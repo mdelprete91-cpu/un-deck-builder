@@ -41,19 +41,23 @@ export function threeColumns(s: Slide, t: BrandTheme): string {
   );
 }
 
-/** Partnership callout: 1–5 labelled rows left, photo panel right (template 03). */
+/**
+ * Partnership callout: 1–5 labelled rows left, photo panel right (template 03).
+ * Rows flow in a flex column (space-between), so spacing adapts when a body
+ * wraps and rows can never overlap. Body budget: 2 lines with 4-5 rows,
+ * 4 lines with up to 3.
+ */
 export function callout(s: Slide, t: BrandTheme): string {
-  const rows = (s.blocks ?? [])
-    .slice(0, 5)
-    .map((b, i) => {
-      const top = 274 + i * 130;
-      return (
-        `<div class="ars" ${item(`blocks.${i}`)} style="position:absolute;left:100px;top:${top}px;width:880px;${dly(8 + i * 6)}">` +
+  const blocks = (s.blocks ?? []).slice(0, 5);
+  const bodyFit = blocks.length <= 3 ? 168 : 84;
+  const rows = blocks
+    .map(
+      (b, i) =>
+        `<div class="ars" ${item(`blocks.${i}`)} style="${dly(8 + i * 6)}">` +
         `<div ${ed(`blocks.${i}.label`, 50)} style="${LABEL36}color:var(--accent);">${esc(b.label)}</div>` +
-        `<div ${ed(`blocks.${i}.body`, 72)} style="margin-top:11px;${BODY30}color:#000000;">${esc(b.body)}</div>` +
-        `</div>`
-      );
-    })
+        `<div ${ed(`blocks.${i}.body`, bodyFit)} style="margin-top:10px;${BODY30}color:#000000;">${esc(b.body)}</div>` +
+        `</div>`,
+    )
     .join("");
   return section(
     t,
@@ -61,7 +65,9 @@ export function callout(s: Slide, t: BrandTheme): string {
     "#000000",
     photoPanel(1080, s.image) +
       heading60(s.title ?? "", "title", "#000000", 100, 880) +
-      rows +
+      `<div style="position:absolute;left:100px;top:264px;width:880px;height:676px;display:flex;flex-direction:column;${
+        blocks.length >= 2 ? "justify-content:space-between;" : ""
+      }">${rows}</div>` +
       footer(t, "light"),
   );
 }
