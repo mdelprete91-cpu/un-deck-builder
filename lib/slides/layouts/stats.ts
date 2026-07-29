@@ -154,8 +154,13 @@ export function singleStat(s: Slide, t: BrandTheme): string {
     "#FFFFFF",
     "#000000",
     heading80(s.title ?? "", "title", "#000000", 880, 700) +
-      `<div class="ar" ${ed("stat", 230)} style="position:absolute;left:1030px;top:80px;width:790px;white-space:nowrap;font-family:${MANROPE};font-weight:500;font-size:213px;line-height:1;letter-spacing:-.02em;color:var(--accent);animation-delay:.1s;">${esc(s.stat)}</div>` +
-      `<div class="ar" ${ed("support", 380)} style="position:absolute;left:1030px;top:540px;width:790px;${BODY32}animation-delay:.18s;">${esc(s.support)}</div>` +
+      // Number and description meet in the middle: the number is anchored to
+      // the bottom of its zone and grows upward (up to 2 lines), the
+      // description sits 32px below it and grows downward (up to ~6 lines).
+      `<div style="position:absolute;left:1030px;top:64px;width:790px;height:426px;display:flex;flex-direction:column;justify-content:flex-end;">` +
+      `<div class="ar" ${ed("stat", 426)} style="font-family:${MANROPE};font-weight:500;font-size:213px;line-height:1;letter-spacing:-.02em;color:var(--accent);animation-delay:.1s;">${esc(s.stat)}</div>` +
+      `</div>` +
+      `<div class="ar" ${ed("support", 300)} style="position:absolute;left:1030px;top:522px;width:790px;${BODY32}animation-delay:.18s;">${esc(s.support)}</div>` +
       footer(t, "light"),
   );
 }
