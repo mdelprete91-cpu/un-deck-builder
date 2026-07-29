@@ -47,6 +47,7 @@ export type DeckAction =
   | { type: "REPLACE_SLIDE"; index: number; content: SlideContent }
   | { type: "GENERATION_DONE"; usage?: { inputTokens: number; outputTokens: number } }
   | { type: "INSERT_TIERS" }
+  | { type: "INSERT_SLIDES"; at: number | null; contents: SlideContent[]; agenda?: string[] }
   | { type: "GENERATION_ERROR"; error: string }
   | { type: "EDIT_FIELD"; index: number; path: string; value: string }
   | { type: "DELETE_ITEM"; index: number; path: string }
@@ -185,6 +186,19 @@ export function deckReducer(state: DeckState, action: DeckAction): DeckState {
       const slides = [...state.slides];
       slides[action.index] = clone;
       return { ...state, ...remember(state), slides };
+    }
+    case "INSERT_SLIDES": {
+      // AI-added slides land at the position the model chose (null = append)
+      // and the agenda slide, if any, gets its refreshed bullets.
+      if (action.contents.length === 0) return state;
+      const slides = [...state.slides];
+      const at = Math.max(0, Math.min(action.at ?? slides.length, slides.length));
+      slides.splice(at, 0, ...action.contents.map(ensureId));
+      if (action.agenda && action.agenda.length > 0) {
+        const ai = slides.findIndex((s) => s.layoutId === "agenda");
+        if (ai >= 0) slides[ai] = { ...slides[ai], bullets: action.agenda.slice(0, 9) };
+      }
+      return { ...state, ...remember(state), slides, activeIndex: at };
     }
     case "INSERT_TIERS": {
       // Partnership decks get the two fixed partnership-tier slides, inserted

@@ -3,7 +3,7 @@
 import { useEffect, useReducer, useRef, useState } from "react";
 import { BRANDS } from "@/lib/slides/brand";
 import { deckReducer, initialDeckState } from "@/lib/slides/state";
-import { normalizeSlide, PRIMARY_ARRAY, type LayoutId } from "@/lib/slides/schema";
+import { normalizeSlide, PRIMARY_ARRAY, type LayoutId, type SlideContent } from "@/lib/slides/schema";
 import { renderSlide, LAYOUTS } from "@/lib/slides/layouts";
 import { defaultContent } from "@/lib/slides/defaults";
 import { loadDeck, saveDeck } from "@/lib/slides/storage";
@@ -59,10 +59,14 @@ export default function Studio() {
     return () => window.removeEventListener("keydown", onKeyDown);
   }, []);
 
-  /** Streams a generation into the deck; resolves with the number of slides received (0 on error/abort). */
+  /**
+   * Streams a generation into the deck; resolves with the number of slides
+   * received (0 on error/abort). With `collectInsert`, slides are gathered and
+   * inserted in one shot at the model-chosen position (add mode).
+   */
   async function runGeneration(
     body: Record<string, unknown>,
-    opts: { replace: boolean; targetIndex?: number },
+    opts: { replace: boolean; targetIndex?: number; collectInsert?: boolean },
   ): Promise<number> {
     abortRef.current?.abort();
     const controller = new AbortController();
@@ -83,6 +87,8 @@ export default function Studio() {
       const decoder = new TextDecoder();
       let buffer = "";
       let received = 0;
+      const collected: SlideContent[] = [];
+      let meta: { insertAfter?: number; agenda?: string[] } | null = null;
       for (;;) {
         const { done, value } = await reader.read();
         if (done) break;
@@ -95,12 +101,16 @@ export default function Studio() {
           if (event.type === "slide") {
             const content = normalizeSlide(event.slide);
             if (!content) continue;
-            if (opts.targetIndex != null) {
+            if (opts.collectInsert) {
+              collected.push(content);
+            } else if (opts.targetIndex != null) {
               dispatch({ type: "REPLACE_SLIDE", index: opts.targetIndex, content });
             } else {
               dispatch({ type: "APPEND_SLIDE", content });
             }
             received++;
+          } else if (event.type === "meta") {
+            meta = event;
           } else if (event.type === "done") {
             dispatch({ type: "GENERATION_DONE", usage: event.usage });
           } else if (event.type === "error") {
@@ -109,6 +119,16 @@ export default function Studio() {
         }
       }
       if (received === 0) throw new Error("The model returned no usable slides. Try rephrasing the prompt.");
+      if (opts.collectInsert && collected.length > 0) {
+        // Hard cap at the requested count — the model must never inflate the deck
+        const cap = typeof body.count === "number" ? body.count : collected.length;
+        dispatch({
+          type: "INSERT_SLIDES",
+          at: meta?.insertAfter ?? null,
+          contents: collected.slice(0, cap),
+          agenda: meta?.agenda,
+        });
+      }
       dispatch({ type: "GENERATION_DONE" });
       return received;
     } catch (err) {
@@ -128,16 +148,17 @@ export default function Studio() {
     if (received > 0 && /partnership/i.test(brief)) dispatch({ type: "INSERT_TIERS" });
   };
 
-  const onAddMore = (count: number) =>
+  const onAddMore = (instruction: string, count: number) =>
     runGeneration(
       {
         mode: "add",
         brief: state.brief,
+        instruction,
         count,
         brandLabel: theme.label,
         existingSlides: state.slides.map(({ id: _id, ...content }) => content),
       },
-      { replace: false },
+      { replace: false, collectInsert: true },
     );
 
   const onRegenerateSlide = (instruction: string) => {

@@ -57,7 +57,15 @@ function tierRows(rows: TierRow[], grid?: (string | null)[][]): string {
           if (typeof cell === "string" && cell !== "on" && cell !== "half") {
             return `<div style="${base}font-family:${OPEN_SANS};font-weight:600;color:#000000;">${esc(cell)}</div>`;
           }
-          const content = cell === "on" ? "✅" : cell === "half" ? `<span style="opacity:.5;">✅</span>` : "";
+          // Empty cells carry an invisible ghost check (inline opacity 0, so
+          // exports stay clean); the editor CSS reveals it on hover so the
+          // user can tell the cell is clickable.
+          const content =
+            cell === "on"
+              ? "✅"
+              : cell === "half"
+                ? `<span style="opacity:.5;">✅</span>`
+                : `<span class="cell-ghost" style="opacity:0;">✅</span>`;
           return `<div data-cell="${r}.${c}" style="${base}cursor:default;">${content}</div>`;
         })
         .join("");

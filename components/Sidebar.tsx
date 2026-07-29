@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { BRANDS, BRAND_IDS, type BrandId } from "@/lib/slides/brand";
 import type { DeckState, DeckAction } from "@/lib/slides/state";
 
@@ -7,7 +8,7 @@ interface SidebarProps {
   state: DeckState;
   dispatch: (action: DeckAction) => void;
   onGenerate: () => void;
-  onAddMore: (count: number) => void;
+  onAddMore: (instruction: string, count: number) => void;
 }
 
 /** Sidebar section label — the BAG eyebrow at product scale. */
@@ -23,6 +24,8 @@ const SECONDARY_BTN =
   "h-10 rounded-full border border-hairline bg-white px-4 text-sm font-semibold text-ink transition-colors duration-150 hover:border-giga-100 hover:bg-giga-tint disabled:pointer-events-none disabled:opacity-40";
 
 export default function Sidebar({ state, dispatch, onGenerate, onAddMore }: SidebarProps) {
+  const [addBrief, setAddBrief] = useState("");
+  const [addCount, setAddCount] = useState(2);
   const generating = state.status === "generating";
   const hasSlides = state.slides.length > 0;
 
@@ -90,10 +93,40 @@ export default function Sidebar({ state, dispatch, onGenerate, onAddMore }: Side
         {generating ? "Generating…" : hasSlides ? "Regenerate deck" : "Generate deck"}
       </button>
 
+      {/* Targeted additions: what to add + how many; the AI picks the position
+          and refreshes the agenda, existing slides are never touched. */}
       {hasSlides && (
-        <button onClick={() => onAddMore(3)} disabled={generating} className={SECONDARY_BTN}>
-          + Add 3 more slides
-        </button>
+        <div>
+          <Eyebrow>Add slides</Eyebrow>
+          <textarea
+            value={addBrief}
+            onChange={(e) => setAddBrief(e.target.value)}
+            placeholder="E.g. team structure: vertical teams (Tech, Finance, Product) plus cross-cutting functions"
+            rows={3}
+            className="w-full resize-y rounded-lg border border-hairline bg-white p-3 text-sm text-ink outline-none transition-shadow duration-150 placeholder:text-ink-muted/70 focus:border-giga focus:ring-[3px] focus:ring-giga/15"
+          />
+          <div className="mt-2 flex items-center gap-2">
+            <input
+              type="number"
+              min={1}
+              max={6}
+              value={addCount}
+              onChange={(e) => setAddCount(Math.max(1, Math.min(6, Number(e.target.value) || 1)))}
+              title="How many slides to add"
+              className="h-10 w-16 rounded-lg border border-hairline bg-white px-2 text-center text-sm text-ink outline-none transition-shadow duration-150 focus:border-giga focus:ring-[3px] focus:ring-giga/15"
+            />
+            <button
+              onClick={() => {
+                onAddMore(addBrief, addCount);
+                setAddBrief("");
+              }}
+              disabled={generating || !addBrief.trim()}
+              className={`${SECONDARY_BTN} flex-1`}
+            >
+              Add slides
+            </button>
+          </div>
+        </div>
       )}
 
       {state.status === "error" && (

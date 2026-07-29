@@ -3,6 +3,7 @@ import {
   buildSystemPrompt,
   buildUserMessage,
   SLIDES_OUTPUT_SCHEMA,
+  ADD_OUTPUT_SCHEMA,
   type GenerateBody,
 } from "@/lib/slides/prompt";
 import { SlideStreamParser } from "@/lib/slides/parse";
@@ -35,8 +36,10 @@ export async function POST(request: Request): Promise<Response> {
   }
 
   const client = new Anthropic();
+  const isAdd = body.mode === "add";
   const count = body.mode === "regenerate" ? 1 : Math.min(Math.max(body.count ?? 8, 1), 20);
-  const maxTokens = Math.min(800 + 400 * count, 16000);
+  // Add mode carries extra output (insertAfter + refreshed agenda bullets)
+  const maxTokens = Math.min(800 + 400 * count + (isAdd ? 400 : 0), 16000);
   const encoder = new TextEncoder();
 
   const stream = new ReadableStream({
@@ -45,19 +48,21 @@ export async function POST(request: Request): Promise<Response> {
         controller.enqueue(encoder.encode(JSON.stringify(event) + "\n"));
       const parser = new SlideStreamParser();
       let index = 0;
+      let raw = "";
       try {
         const messageStream = client.messages.stream({
           model: MODEL,
           max_tokens: maxTokens,
           system: SYSTEM_PROMPT,
           output_config: {
-            format: { type: "json_schema", schema: SLIDES_OUTPUT_SCHEMA },
+            format: { type: "json_schema", schema: isAdd ? ADD_OUTPUT_SCHEMA : SLIDES_OUTPUT_SCHEMA },
           },
           messages: [{ role: "user", content: buildUserMessage(body) }],
         });
 
         for await (const event of messageStream) {
           if (event.type === "content_block_delta" && event.delta.type === "text_delta") {
+            raw += event.delta.text;
             for (const slide of parser.feed(event.delta.text)) {
               send({ type: "slide", index: index++, slide: stripEmptyFields(slide) });
             }
@@ -65,6 +70,14 @@ export async function POST(request: Request): Promise<Response> {
         }
 
         const final = await messageStream.finalMessage();
+        if (isAdd) {
+          try {
+            const parsed = JSON.parse(raw) as { insertAfter?: number; agenda?: string[] };
+            send({ type: "meta", insertAfter: parsed.insertAfter, agenda: parsed.agenda });
+          } catch {
+            // truncated output — the client falls back to appending at the end
+          }
+        }
         send({
           type: "done",
           stopReason: final.stop_reason,

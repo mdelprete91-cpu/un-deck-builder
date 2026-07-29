@@ -37,8 +37,10 @@ interface GenerateBody {
 export function buildUserMessage(body: GenerateBody): string {
   const brand = body.brandLabel ? ` The deck is branded "${body.brandLabel}".` : "";
   switch (body.mode) {
-    case "add":
-      return `Existing deck (JSON): ${JSON.stringify(body.existingSlides ?? [])}\n\nBrief: ${body.brief}${brand}\n\nAppend exactly ${body.count ?? 3} new slides that continue and deepen this story. Do not repeat existing content. Do not add another cover; add a thank-you only if the deck lacks one and these are the closing slides.`;
+    case "add": {
+      const n = body.count ?? 3;
+      return `Existing deck (JSON): ${JSON.stringify(body.existingSlides ?? [])}\n\nDeck brief: ${body.brief}${brand}\n\nRequest: ${body.instruction?.trim() || "continue and deepen the story"}\n\nAdd exactly ${n} new slide${n === 1 ? "" : "s"} fulfilling the request.\n- Return ONLY the new slides in "slides": never repeat, rewrite or include existing slides, and never add another cover, agenda or thank-you.\n- Set "insertAfter" to the 1-based index of the existing slide the new slides belong after (0 = before the first slide). Pick where they best fit the story, keeping any thank-you last.\n- If the deck has an "agenda" slide, return its updated bullets (reflecting the deck after insertion, <=5 words each) in "agenda"; otherwise return an empty array.`;
+    }
     case "regenerate":
       return `Current slide (JSON): ${JSON.stringify(body.targetSlide)}\n\nDeck brief: ${body.brief}${brand}\n\nRewrite this single slide.${body.instruction ? ` Instruction: ${body.instruction}` : " Improve the copy."} You may switch to a more appropriate layout if the instruction calls for it. Return exactly one slide.`;
     default:
@@ -131,6 +133,21 @@ export const SLIDES_OUTPUT_SCHEMA = {
     },
   },
   required: ["slides"],
+  additionalProperties: false,
+} as const;
+
+/**
+ * Output schema for "add" mode: only the new slides, plus where they go and
+ * the refreshed agenda bullets (empty when the deck has no agenda slide).
+ */
+export const ADD_OUTPUT_SCHEMA = {
+  type: "object",
+  properties: {
+    insertAfter: { type: "integer" },
+    agenda: { type: "array", items: { type: "string" } },
+    slides: SLIDES_OUTPUT_SCHEMA.properties.slides,
+  },
+  required: ["insertAfter", "agenda", "slides"],
   additionalProperties: false,
 } as const;
 

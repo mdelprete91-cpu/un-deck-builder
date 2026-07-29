@@ -166,12 +166,21 @@ export function singleStat(s: Slide, t: BrandTheme): string {
   );
 }
 
-/** Legend row (dot + label) used by the two chart layouts. */
-function legendRow(path: string, x: number, y: number, color: string, text: string, delay: number): string {
+/** Legend row (dot + label + value) used by the two chart layouts. */
+function legendRow(
+  path: string,
+  x: number,
+  y: number,
+  color: string,
+  text: string,
+  delay: number,
+  value?: string,
+): string {
   return (
     `<div class="ars" ${item(path.replace(/\.label$/, ""))} style="position:absolute;left:${x}px;top:${y}px;display:flex;align-items:center;gap:24px;${dly(delay)}">` +
     `<div style="width:20px;height:20px;border-radius:50%;background:${color};"></div>` +
     `<div ${ed(path, 60)} style="${BODY32}color:#000000;">${esc(text)}</div>` +
+    (value ? `<div style="${BODY32}font-weight:700;color:#000000;">${esc(value)}</div>` : "") +
     `</div>`
   );
 }
@@ -214,12 +223,6 @@ export function chartBars(s: Slide, t: BrandTheme): string {
       );
     })
     .join("");
-  const xLabels = bars
-    .map((b, i) => {
-      const x = AREA.x + Math.round(colW * i + (colW - 156) / 2);
-      return `<div ${ed(`bars.${i}.label`, 60)} style="position:absolute;left:${x}px;top:839px;width:156px;text-align:center;${BODY32}color:#000000;">${esc(b.label)}</div>`;
-    })
-    .join("");
   const yAxis = [
     [84, fmt(max)],
     [398, fmt(max / 2)],
@@ -231,7 +234,7 @@ export function chartBars(s: Slide, t: BrandTheme): string {
     )
     .join("");
   const legend = bars
-    .map((b, i) => legendRow(`bars.${i}.label`, 102, 346 + i * 115, shades[i % shades.length], b.label, 12 + i * 6))
+    .map((b, i) => legendRow(`bars.${i}.label`, 102, 346 + i * 115, shades[i % shades.length], b.label, 12 + i * 6, fmt(numeric(b.value))))
     .join("");
 
   return section(
@@ -242,7 +245,6 @@ export function chartBars(s: Slide, t: BrandTheme): string {
       legend +
       yAxis +
       `<div style="position:absolute;left:${AREA.x}px;top:${AREA.y}px;width:${AREA.w}px;height:${AREA.h}px;">${grid}${cols}</div>` +
-      xLabels +
       footer(t, "light"),
   );
 }
@@ -263,7 +265,7 @@ export function donutChart(s: Slide, t: BrandTheme): string {
     angle = end;
   });
   const legend = segments
-    .map((seg, i) => legendRow(`bars.${i}.label`, 102, 358 + i * 115, shades[i % shades.length], seg.label, 12 + i * 6))
+    .map((seg, i) => legendRow(`bars.${i}.label`, 102, 358 + i * 115, shades[i % shades.length], seg.label, 12 + i * 6, fmt(numeric(seg.value))))
     .join("");
   return section(
     t,

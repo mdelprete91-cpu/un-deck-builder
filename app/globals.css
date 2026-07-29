@@ -139,6 +139,21 @@ body {
   outline: 2px dashed rgba(39, 122, 255, 0.4);
   outline-offset: 8px;
 }
+/* Tier check cells: make toggleability visible — pointer, tinted hover, and a
+   ghost check appearing on empty cells (inline opacity 0 keeps exports clean) */
+.slide-root [data-cell] {
+  cursor: pointer !important;
+  border-radius: 8px;
+  transition: background-color 0.12s;
+}
+.slide-root [data-cell]:hover {
+  background: rgba(39, 122, 255, 0.1);
+  outline: 2px dashed rgba(39, 122, 255, 0.45);
+  outline-offset: -2px;
+}
+.slide-root [data-cell]:hover .cell-ghost {
+  opacity: 0.35 !important;
+}
 .slide-root .item-delete {
   position: absolute;
   top: -24px;
