@@ -1,26 +1,282 @@
 @import "tailwindcss";
 
+/* Giga "Bright Utility" tokens — see DESIGN.md (inherited from the Brand Asset Generator) */
+@theme {
+  --color-giga: #277aff;
+  --color-giga-deep: #0050e6;
+  --color-giga-100: #d4e5ff;
+  --color-giga-tint: #eaf2ff;
+  --color-ink: #0a1b3f;
+  --color-ink-muted: #5c7187;
+  --color-hairline: #dde6f0;
+  --color-canvas: #f7f9fc;
+  --color-status-red: #ed1c24;
+  --shadow-stripe: 0 1px 2px rgba(50, 50, 93, 0.06), 0 2px 5px rgba(50, 50, 93, 0.08), 0 1px 1.5px rgba(0, 0, 0, 0.05);
+  --shadow-stripe-md: 0 4px 6px rgba(50, 50, 93, 0.07), 0 1px 3px rgba(0, 0, 0, 0.06), 0 8px 20px rgba(50, 50, 93, 0.05);
+  --shadow-stripe-lg: 0 13px 27px rgba(50, 50, 93, 0.1), 0 8px 16px rgba(0, 0, 0, 0.07);
+  /* The "magic" float: a deep, blue-cast shadow for elements hovering over the canvas */
+  --shadow-float: 0 24px 48px -12px rgba(39, 122, 255, 0.28), 0 10px 24px -8px rgba(10, 27, 63, 0.16), 0 2px 6px rgba(10, 27, 63, 0.06);
+  --font-manrope: "Manrope", sans-serif;
+}
+
+/* Chrome micro-animations (state-conveying only) */
+@keyframes floatIn {
+  from { opacity: 0; transform: translateY(14px) scale(0.96); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes popIn {
+  from { opacity: 0; transform: translateY(6px) scale(0.98); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes floatIdle {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-5px); }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .float-in { animation: floatIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) both; }
+  .pop-in { animation: popIn 0.18s cubic-bezier(0.16, 1, 0.3, 1) both; }
+  /* Gentle hover bob for the floating slide actions — starts after the entrance settles */
+  .float-idle { animation: floatIdle 3.4s ease-in-out 0.5s infinite; }
+}
+
+/* Self-hosted brand fonts — Manrope (headings) + Open Sans (body) */
+@font-face {
+  font-family: 'Manrope';
+  font-style: normal;
+  font-weight: 200 800;
+  font-display: swap;
+  src: url(/fonts/manrope-var-normal-latin-ext.woff2) format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Manrope';
+  font-style: normal;
+  font-weight: 200 800;
+  font-display: swap;
+  src: url(/fonts/manrope-var-normal-latin.woff2) format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Open Sans';
+  font-style: italic;
+  font-weight: 300 800;
+  font-stretch: 100%;
+  font-display: swap;
+  src: url(/fonts/open-sans-var-italic-latin-ext.woff2) format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Open Sans';
+  font-style: italic;
+  font-weight: 300 800;
+  font-stretch: 100%;
+  font-display: swap;
+  src: url(/fonts/open-sans-var-italic-latin.woff2) format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Open Sans';
+  font-style: normal;
+  font-weight: 300 800;
+  font-stretch: 100%;
+  font-display: swap;
+  src: url(/fonts/open-sans-var-normal-latin-ext.woff2) format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Open Sans';
+  font-style: normal;
+  font-weight: 300 800;
+  font-stretch: 100%;
+  font-display: swap;
+  src: url(/fonts/open-sans-var-normal-latin.woff2) format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+/* Deck entrance animations — verbatim from the Giga Partnership Template.
+   They only run under [data-deck-active]; the editor preview never sets it. */
+@keyframes deckRise { from { opacity:0; transform:translateY(30px); } to { opacity:1; transform:translateY(0); } }
+@keyframes deckFade { from { opacity:0; } to { opacity:1; } }
+@keyframes deckGrowW { from { transform:scaleX(0); } to { transform:scaleX(1); } }
+@keyframes deckGrowH { from { transform:scaleY(0); } to { transform:scaleY(1); } }
+@keyframes deckRiseSm { from { opacity:0; transform:translateY(14px); } to { opacity:1; transform:translateY(0); } }
+@media (prefers-reduced-motion: no-preference) {
+  [data-deck-active] .ar  { animation: deckRise .7s cubic-bezier(.2,.7,.25,1) both; }
+  [data-deck-active] .ars { animation: deckRiseSm .6s cubic-bezier(.2,.7,.25,1) both; }
+  [data-deck-active] .af  { animation: deckFade .85s ease both; }
+  [data-deck-active] .agw { animation: deckGrowW .8s cubic-bezier(.2,.7,.25,1) both; transform-origin:left center; }
+  [data-deck-active] .agh { animation: deckGrowH .75s cubic-bezier(.2,.7,.25,1) both; transform-origin:bottom; }
+}
+
 :root {
   --background: #ffffff;
-  --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --foreground: #161616;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: 'Open Sans', system-ui, sans-serif;
+}
+
+/* Slide markup uses its own inline box model; make sure nothing leaks in */
+.slide-root, .slide-root * {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+.slide-root [data-edit] {
+  outline: none;
+  cursor: text;
+}
+.slide-root [data-edit]:hover {
+  box-shadow: 0 0 0 2px rgba(39, 122, 255, 0.35);
+}
+.slide-root [data-edit]:focus {
+  box-shadow: 0 0 0 2px #277aff;
+}
+.slide-root [data-item]:hover {
+  outline: 2px dashed rgba(39, 122, 255, 0.4);
+  outline-offset: 8px;
+}
+.slide-root .item-delete {
+  position: absolute;
+  top: -24px;
+  right: -24px;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: #161616;
+  color: #ffffff;
+  border: 3px solid #ffffff;
+  font-size: 26px;
+  font-family: system-ui, sans-serif;
+  line-height: 1;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+.slide-root [data-item]:hover > .item-delete {
+  opacity: 1;
+}
+.slide-root .item-delete:hover {
+  background: #d92d20;
+}
+.slide-root .item-add {
+  position: absolute;
+  left: 50%;
+  bottom: 24px;
+  transform: translateX(-50%);
+  padding: 14px 36px;
+  border-radius: 999px;
+  border: 3px dashed #277aff;
+  background: rgba(255, 255, 255, 0.9);
+  color: #277aff;
+  font-family: 'Manrope', system-ui, sans-serif;
+  font-weight: 700;
+  font-size: 28px;
+  line-height: 1;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s;
+  z-index: 6;
+}
+.slide-root:hover > .item-add {
+  opacity: 1;
+}
+.slide-root .item-add:hover {
+  background: #277aff;
+  color: #ffffff;
+  border-style: solid;
+}
+.slide-root .image-change {
+  position: absolute;
+  transform: translateX(-50%);
+  padding: 12px 28px;
+  border-radius: 999px;
+  border: none;
+  background: rgba(22, 22, 22, 0.75);
+  color: #ffffff;
+  font-family: 'Manrope', system-ui, sans-serif;
+  font-weight: 600;
+  font-size: 26px;
+  line-height: 1;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s;
+  z-index: 6;
+}
+.slide-root:hover .image-change {
+  opacity: 1;
+}
+.slide-root .image-change:hover {
+  background: #277aff;
+}
+.slide-root .logo-upload {
+  position: absolute;
+  left: 50%;
+  bottom: 4px;
+  transform: translateX(-50%);
+  padding: 6px 16px;
+  border-radius: 999px;
+  border: none;
+  background: rgba(22, 22, 22, 0.75);
+  color: #ffffff;
+  font-family: 'Manrope', system-ui, sans-serif;
+  font-weight: 700;
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s;
+  z-index: 6;
+}
+.slide-root [data-logo]:hover > .logo-upload {
+  opacity: 1;
+}
+.slide-root .logo-upload:hover {
+  background: #161616;
+}
+
+/* PDF export: print every slide full-size, one per page */
+#print-root {
+  display: none;
+}
+@page {
+  size: 1920px 1080px;
+  margin: 0;
+}
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  #print-root {
+    display: block;
+    position: absolute;
+    left: 0;
+    top: 0;
+  }
+  #print-root,
+  #print-root * {
+    visibility: visible;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  .print-slide {
+    width: 1920px;
+    height: 1080px;
+    position: relative;
+    overflow: hidden;
+    break-after: page;
+    break-inside: avoid;
+  }
+  .slide-root [data-edit]:hover,
+  .slide-root [data-edit]:focus {
+    box-shadow: none;
+  }
 }
