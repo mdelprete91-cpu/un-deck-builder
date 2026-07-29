@@ -10,8 +10,6 @@ interface SlideFrameProps {
   onDeleteItem?: (path: string) => void;
   /** When set, an in-slide "+ Add element" button appears on hover. */
   onAddItem?: (() => void) | null;
-  /** When set, [data-image] nodes get a "Change image" action (file upload). */
-  onChangeImage?: ((dataUrl: string) => void) | null;
   /** When set, tier-table [data-cell] nodes cycle check → dimmed → empty on click. */
   onToggleCell?: ((row: number, col: number) => void) | null;
   /** When set, partner [data-logo] cells get an SVG logo upload action. */
@@ -20,7 +18,7 @@ interface SlideFrameProps {
 }
 
 /** Downscale an uploaded image to ≤1920px and return a JPEG data URL (keeps localStorage small). */
-function readImageFile(file: File): Promise<string> {
+export function readImageFile(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
     const url = URL.createObjectURL(file);
     const img = new Image();
@@ -53,14 +51,12 @@ export default function SlideFrame({
   onEdit,
   onDeleteItem,
   onAddItem,
-  onChangeImage,
   onToggleCell,
   onUploadLogo,
   className,
 }: SlideFrameProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const logoInputRef = useRef<HTMLInputElement>(null);
   const pendingLogoSlug = useRef<string | null>(null);
   const [box, setBox] = useState({ w: 0, h: 0 });
@@ -70,8 +66,6 @@ export default function SlideFrame({
   onDeleteItemRef.current = onDeleteItem;
   const onAddItemRef = useRef(onAddItem);
   onAddItemRef.current = onAddItem;
-  const onChangeImageRef = useRef(onChangeImage);
-  onChangeImageRef.current = onChangeImage;
   const onToggleCellRef = useRef(onToggleCell);
   onToggleCellRef.current = onToggleCell;
   const onUploadLogoRef = useRef(onUploadLogo);
@@ -153,25 +147,6 @@ export default function SlideFrame({
       });
     }
 
-    // "Change image" action on photo slots
-    stage.querySelectorAll(".image-change").forEach((b) => b.remove());
-    if (onChangeImageRef.current) {
-      stage.querySelectorAll<HTMLElement>("[data-image]").forEach((img) => {
-        const btn = document.createElement("button");
-        btn.className = "image-change";
-        btn.type = "button";
-        btn.title = "Upload a different image";
-        btn.textContent = "🖼 Change image";
-        btn.style.left = `${img.offsetLeft + img.offsetWidth / 2}px`;
-        btn.style.top = `${img.offsetTop + img.offsetHeight - 60}px`;
-        btn.addEventListener("click", (e) => {
-          e.stopPropagation();
-          fileInputRef.current?.click();
-        });
-        (img.parentElement ?? stage).appendChild(btn);
-      });
-    }
-
     // Partner cells: SVG logo upload action
     stage.querySelectorAll(".logo-upload").forEach((b) => b.remove());
     if (onUploadLogoRef.current) {
@@ -242,23 +217,6 @@ export default function SlideFrame({
       />
       {editable && (
         <>
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*"
-            className="hidden"
-            onChange={async (e) => {
-              const file = e.target.files?.[0];
-              e.target.value = "";
-              if (!file) return;
-              try {
-                const dataUrl = await readImageFile(file);
-                onChangeImageRef.current?.(dataUrl);
-              } catch {
-                // unreadable file — ignore
-              }
-            }}
-          />
           <input
             ref={logoInputRef}
             type="file"

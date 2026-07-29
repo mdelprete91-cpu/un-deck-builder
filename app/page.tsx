@@ -9,7 +9,7 @@ import { defaultContent } from "@/lib/slides/defaults";
 import { loadDeck, saveDeck } from "@/lib/slides/storage";
 import { exportHtmlDeck } from "@/lib/slides/export-html";
 import Sidebar from "@/components/Sidebar";
-import SlideFrame from "@/components/SlideFrame";
+import SlideFrame, { readImageFile } from "@/components/SlideFrame";
 import ChartDataPanel from "@/components/ChartDataPanel";
 import ThumbStrip from "@/components/ThumbStrip";
 import PrintRoot from "@/components/PrintRoot";
@@ -187,6 +187,8 @@ export default function Studio() {
   const onAddItem = () => dispatch({ type: "ADD_ITEM", index: state.activeIndex });
 
   const isChart = active?.layoutId === "chart-bars" || active?.layoutId === "donut-chart";
+  const activeHtml = active ? renderSlide(active, theme) : "";
+  const hasImage = activeHtml.includes("data-image");
 
   const onExportHtml = () => {
     exportHtmlDeck(state.slides, theme, state.slides[0]?.title ?? "giga-deck").catch((err) =>
@@ -225,7 +227,7 @@ export default function Studio() {
               {active && (
                 <>
                   <SlideFrame
-                    html={renderSlide(active, theme)}
+                    html={activeHtml}
                     editable
                     onEdit={(path, value) =>
                       dispatch({ type: "EDIT_FIELD", index: state.activeIndex, path, value })
@@ -234,9 +236,6 @@ export default function Studio() {
                       dispatch({ type: "DELETE_ITEM", index: state.activeIndex, path })
                     }
                     onAddItem={null}
-                    onChangeImage={(dataUrl) =>
-                      dispatch({ type: "EDIT_FIELD", index: state.activeIndex, path: "image", value: dataUrl })
-                    }
                     onToggleCell={(row, col) =>
                       dispatch({ type: "TOGGLE_CELL", index: state.activeIndex, row, col })
                     }
@@ -253,6 +252,10 @@ export default function Studio() {
                     onRegenerate={onRegenerateSlide}
                     onAddItem={onAddItem}
                     onEditData={() => setDataPanelOpen((v) => !v)}
+                    canChangeImage={hasImage}
+                    onChangeImage={(dataUrl) =>
+                      dispatch({ type: "EDIT_FIELD", index: state.activeIndex, path: "image", value: dataUrl })
+                    }
                     onDuplicate={() => dispatch({ type: "DUPLICATE", index: state.activeIndex })}
                     onDelete={() => dispatch({ type: "DELETE", index: state.activeIndex })}
                   />
@@ -410,23 +413,28 @@ function SlideActions({
   busy,
   canAddItem,
   canEditData,
+  canChangeImage,
   onRegenerate,
   onAddItem,
   onEditData,
+  onChangeImage,
   onDuplicate,
   onDelete,
 }: {
   busy: boolean;
   canAddItem: boolean;
   canEditData: boolean;
+  canChangeImage: boolean;
   onRegenerate: (instruction: string) => void;
   onAddItem: () => void;
   onEditData: () => void;
+  onChangeImage: (dataUrl: string) => void;
   onDuplicate: () => void;
   onDelete: () => void;
 }) {
   const [aiOpen, setAiOpen] = useState(false);
   const [instruction, setInstruction] = useState("");
+  const imageInputRef = useRef<HTMLInputElement>(null);
   const submit = () => {
     if (busy) return;
     onRegenerate(instruction);
@@ -501,6 +509,16 @@ function SlideActions({
                 Data
               </button>
             )}
+            {canChangeImage && (
+              <button onClick={() => imageInputRef.current?.click()} title="Upload a different image for this slide" className={action}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="3" y="3" width="18" height="18" rx="2" />
+                  <circle cx="9" cy="9" r="2" />
+                  <path d="m21 15-3.1-3.1a2 2 0 0 0-2.8 0L6 21" />
+                </svg>
+                Image
+              </button>
+            )}
             <span className="h-5 w-px bg-hairline" />
             <button onClick={onDuplicate} title="Duplicate slide" className={`${action} w-10 justify-center px-0`}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -515,6 +533,22 @@ function SlideActions({
             </button>
           </>
         )}
+        <input
+          ref={imageInputRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={async (e) => {
+            const file = e.target.files?.[0];
+            e.target.value = "";
+            if (!file) return;
+            try {
+              onChangeImage(await readImageFile(file));
+            } catch {
+              // unreadable file — ignore
+            }
+          }}
+        />
       </div>
     </div>
   );
