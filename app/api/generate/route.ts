@@ -35,7 +35,8 @@ export async function POST(request: Request): Promise<Response> {
     return new Response("ANTHROPIC_API_KEY is not configured", { status: 500 });
   }
 
-  const client = new Anthropic();
+  // 4 retries (default 2): rides out transient 529 "overloaded" spikes
+  const client = new Anthropic({ maxRetries: 4 });
   const isAdd = body.mode === "add";
   const count = body.mode === "regenerate" ? 1 : Math.min(Math.max(body.count ?? 8, 1), 20);
   // Add mode carries extra output (insertAfter + refreshed agenda bullets)
@@ -92,9 +93,12 @@ export async function POST(request: Request): Promise<Response> {
         if (err instanceof Anthropic.AuthenticationError) {
           message = "Invalid ANTHROPIC_API_KEY";
         } else if (err instanceof Anthropic.RateLimitError) {
-          message = "Rate limited by the Anthropic API — wait a moment and retry";
+          message = "Rate limited by the Anthropic API. Wait a moment and retry.";
         } else if (err instanceof Anthropic.APIError) {
-          message = `Anthropic API error (${err.status}): ${err.message}`;
+          message =
+            err.status === 529 || /overloaded/i.test(err.message)
+              ? "The AI service is momentarily overloaded (this is on Anthropic's side, not your prompt). Try again in a few seconds."
+              : `Anthropic API error (${err.status ?? "network"}): ${err.message}`;
         } else if (err instanceof Error) {
           message = err.message;
         }
