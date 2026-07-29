@@ -32,10 +32,14 @@ export default function Sidebar({ state, dispatch, onGenerate, onAddMore }: Side
   return (
     <aside className="flex h-full w-[340px] shrink-0 flex-col gap-6 overflow-y-auto border-r border-hairline bg-white p-6">
       <div>
-        <h1 className="font-manrope text-xl font-semibold tracking-[-0.03em] text-ink">
-          Giga Deck Builder
-        </h1>
-        <p className="mt-1.5 text-xs leading-relaxed text-ink-muted">
+        {/* Same colored lockup as the Brand Asset Generator header */}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src="/logos/giga-unicef-itu-horizontal.svg"
+          alt="Giga, UNICEF and ITU"
+          className="h-9 w-auto"
+        />
+        <p className="mt-2.5 text-xs leading-relaxed text-ink-muted">
           Describe the story. The AI picks the right template slides and fills them in.
         </p>
       </div>
