@@ -15,6 +15,8 @@ interface SlideFrameProps {
   onImagePos?: ((pos: ImagePos) => void) | null;
   /** When set, tier-table [data-cell] nodes cycle check → dimmed → empty on click. */
   onToggleCell?: ((row: number, col: number) => void) | null;
+  /** When set, icon-card [data-icon-pick] icons open the icon picker on click. */
+  onPickIcon?: ((block: number) => void) | null;
   /** When set, partner [data-logo] cells get an SVG logo upload action. */
   onUploadLogo?: ((slug: string, dataUrl: string) => void) | null;
   className?: string;
@@ -56,6 +58,7 @@ export default function SlideFrame({
   onAddItem,
   onImagePos,
   onToggleCell,
+  onPickIcon,
   onUploadLogo,
   className,
 }: SlideFrameProps) {
@@ -74,6 +77,8 @@ export default function SlideFrame({
   onImagePosRef.current = onImagePos;
   const onToggleCellRef = useRef(onToggleCell);
   onToggleCellRef.current = onToggleCell;
+  const onPickIconRef = useRef(onPickIcon);
+  onPickIconRef.current = onPickIcon;
   const onUploadLogoRef = useRef(onUploadLogo);
   onUploadLogoRef.current = onUploadLogo;
 
@@ -284,6 +289,19 @@ export default function SlideFrame({
       });
     }
 
+    // Icon-card icons: click opens the icon picker
+    if (onPickIconRef.current) {
+      stage.querySelectorAll<SVGElement>("[data-icon-pick]").forEach((node) => {
+        node.style.cursor = "pointer";
+        const onClick = (e: Event) => {
+          e.stopPropagation();
+          onPickIconRef.current?.(Number(node.getAttribute("data-icon-pick")));
+        };
+        node.addEventListener("click", onClick);
+        cleanups.push(() => node.removeEventListener("click", onClick));
+      });
+    }
+
     // In-slide "+ Add element" (rebuilt on every wiring pass)
     stage.querySelectorAll(".item-add").forEach((b) => b.remove());
     if (onAddItem) {
@@ -303,7 +321,9 @@ export default function SlideFrame({
       alive = false;
       cleanups.forEach((fn) => fn());
     };
-  }, [html, editable, onAddItem]);
+    // box.w: the ✕ placement measures rects, which are all zero until the
+    // container is first measured — re-wire once the real size lands.
+  }, [html, editable, onAddItem, box.w]);
 
   const scale = Math.min(box.w / 1920, box.h / 1080);
 

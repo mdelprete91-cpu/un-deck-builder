@@ -95,6 +95,8 @@ export interface SlideContent {
   grid?: (string | null)[][];
   /** Partner slide: uploaded SVG logos (data URL) keyed by partner slug. */
   logos?: Record<string, string>;
+  /** Icon-card slides: chosen icon slug per block (see lib/slides/icons.ts). */
+  icons?: string[];
 }
 
 export interface ImagePos {
@@ -151,6 +153,7 @@ export const slideContentSchema = z.object({
   logoTone: z.enum(["light", "dark"]).optional(),
   grid: z.array(z.array(z.union([z.string(), z.null()]))).optional(),
   logos: z.record(z.string(), z.string()).optional(),
+  icons: z.array(z.string()).optional(),
 });
 
 export function clampWords(text: string, maxWords: number): string {

@@ -49,6 +49,7 @@ export type DeckAction =
   | { type: "INSERT_TIERS" }
   | { type: "SET_IMAGE_POS"; index: number; pos: ImagePos }
   | { type: "SET_LOGO_TONE"; id: string; tone: "light" | "dark" }
+  | { type: "SET_ICON"; index: number; block: number; icon: string }
   | { type: "INSERT_SLIDES"; at: number | null; contents: SlideContent[]; agenda?: string[] }
   | { type: "GENERATION_ERROR"; error: string }
   | { type: "EDIT_FIELD"; index: number; path: string; value: string }
@@ -194,6 +195,16 @@ export function deckReducer(state: DeckState, action: DeckAction): DeckState {
       if (!slide) return state;
       const slides = [...state.slides];
       slides[action.index] = { ...slide, imagePos: action.pos };
+      return { ...state, ...remember(state), slides };
+    }
+    case "SET_ICON": {
+      const slide = state.slides[action.index];
+      if (!slide) return state;
+      const clone = structuredClone(slide);
+      clone.icons ??= [];
+      clone.icons[action.block] = action.icon;
+      const slides = [...state.slides];
+      slides[action.index] = clone;
       return { ...state, ...remember(state), slides };
     }
     case "SET_LOGO_TONE": {

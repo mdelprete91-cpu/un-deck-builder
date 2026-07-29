@@ -1,5 +1,6 @@
 import type { Slide } from "../schema";
 import type { BrandTheme } from "../brand";
+import { iconInner } from "../icons";
 import {
   MANROPE,
   BODY30,
@@ -164,18 +165,6 @@ export function steps(s: Slide, t: BrandTheme): string {
   );
 }
 
-/** Simple outline icons for the icon-card layout, stroke follows the accent. */
-const ICONS: string[] = [
-  // globe
-  `<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.6 3.8 5.7 3.8 9S14.5 18.4 12 21c-2.5-2.6-3.8-5.7-3.8-9S9.5 5.6 12 3z"/>`,
-  // wifi
-  `<path d="M2.5 9.5C8 4.5 16 4.5 21.5 9.5M5.5 13c4-3.5 9-3.5 13 0M8.5 16.4c2-1.8 5-1.8 7 0"/><circle cx="12" cy="19.3" r="1.2" fill="currentColor"/>`,
-  // school / building
-  `<path d="M4 20V9l8-5 8 5v11M4 20h16M9.5 20v-5h5v5"/><path d="M12 9.5v.01"/>`,
-  // chart
-  `<path d="M4 20V4M4 20h16"/><path d="M8 16v-5M12 16V8M16 16v-8"/>`,
-];
-
 /** Icon cards, 1–4 in one row (template 10, reworked: soft fill, no accent border). */
 export function iconCards(s: Slide, t: BrandTheme): string {
   const blocks = (s.blocks ?? []).slice(0, 4);
@@ -189,7 +178,8 @@ export function iconCards(s: Slide, t: BrandTheme): string {
         width,
         530,
         8 + i * 8,
-        `<svg width="126" height="126" viewBox="0 0 24 24" fill="none" stroke="${t.accent}" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" style="position:absolute;left:40px;top:40px;">${ICONS[i % ICONS.length]}</svg>` +
+        // data-icon-pick: the editor turns the icon into a picker trigger
+        `<svg data-icon-pick="${i}" width="126" height="126" viewBox="0 0 24 24" fill="none" stroke="${t.accent}" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" style="position:absolute;left:40px;top:40px;">${iconInner(s.icons?.[i], i)}</svg>` +
           `<div style="position:absolute;left:40px;top:202px;width:${width - 80}px;display:flex;flex-direction:column;gap:16px;">` +
           `<div ${ed(`blocks.${i}.label`, 50)} style="${LABEL36}color:#000000;">${esc(b.label)}</div>` +
           `<div ${ed(`blocks.${i}.body`, 260)} style="${BODY30}color:#000000;">${esc(b.body)}</div>` +

@@ -10,6 +10,7 @@ import { loadDeck, saveDeck } from "@/lib/slides/storage";
 import { exportHtmlDeck } from "@/lib/slides/export-html";
 import { exportPptxDeck } from "@/lib/slides/export-pptx";
 import { computeLogoTone } from "@/lib/slides/logo-tone";
+import { ICON_LIBRARY, ICON_NAMES } from "@/lib/slides/icons";
 import Sidebar from "@/components/Sidebar";
 import SlideFrame, { readImageFile } from "@/components/SlideFrame";
 import ChartDataPanel from "@/components/ChartDataPanel";
@@ -217,7 +218,7 @@ export default function Studio() {
         replace: false,
         targetIndex: state.activeIndex,
         // uploaded assets survive the AI rewrite
-        preserve: { image: active.image, imagePos: active.imagePos, logos: active.logos, grid: active.grid },
+        preserve: { image: active.image, imagePos: active.imagePos, logos: active.logos, grid: active.grid, icons: active.icons },
       },
     );
   };
@@ -243,6 +244,8 @@ export default function Studio() {
   };
 
   const [pptxProgress, setPptxProgress] = useState<string | null>(null);
+  // Icon picker: block index of the active slide's icon being changed
+  const [iconPicker, setIconPicker] = useState<number | null>(null);
   const onExportPptx = async () => {
     if (pptxProgress) return;
     setPptxProgress("Preparing…");
@@ -329,6 +332,7 @@ export default function Studio() {
                     onToggleCell={(row, col) =>
                       dispatch({ type: "TOGGLE_CELL", index: state.activeIndex, row, col })
                     }
+                    onPickIcon={(block) => setIconPicker(block)}
                     onUploadLogo={(slug, dataUrl) =>
                       dispatch({ type: "SET_LOGO", index: state.activeIndex, slug, dataUrl })
                     }
@@ -339,6 +343,16 @@ export default function Studio() {
                     }
                     className="h-full w-full rounded-xl shadow-stripe-lg"
                   />
+                  {iconPicker != null && (
+                    <IconPickerModal
+                      current={active.icons?.[iconPicker]}
+                      onPick={(icon) => {
+                        dispatch({ type: "SET_ICON", index: state.activeIndex, block: iconPicker, icon });
+                        setIconPicker(null);
+                      }}
+                      onClose={() => setIconPicker(null)}
+                    />
+                  )}
                   <SlideActions
                     key={active.id}
                     busy={state.status === "generating"}
@@ -372,6 +386,66 @@ export default function Studio() {
       </div>
 
       <PrintRoot slides={state.slides} theme={theme} />
+    </div>
+  );
+}
+
+/** Lucide icon chooser for icon-card slides, opened by clicking a card's icon. */
+function IconPickerModal({
+  current,
+  onPick,
+  onClose,
+}: {
+  current?: string;
+  onPick: (icon: string) => void;
+  onClose: () => void;
+}) {
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-ink/45 p-6"
+      onClick={onClose}
+    >
+      <div
+        className="pop-in w-full max-w-sm rounded-2xl bg-white p-5 shadow-stripe-lg"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <p className="font-manrope mb-3 text-[10px] font-bold uppercase tracking-[0.18em] text-giga">
+          Choose an icon
+        </p>
+        <div className="grid grid-cols-6 gap-1.5">
+          {ICON_NAMES.map((name) => (
+            <button
+              key={name}
+              title={name}
+              onClick={() => onPick(name)}
+              className={`flex h-12 items-center justify-center rounded-lg border transition-colors duration-150 ${
+                current === name
+                  ? "border-giga bg-giga-tint"
+                  : "border-transparent hover:border-giga-100 hover:bg-canvas"
+              }`}
+            >
+              <svg
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="#277AFF"
+                strokeWidth="1.6"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                dangerouslySetInnerHTML={{ __html: ICON_LIBRARY[name] }}
+              />
+            </button>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }
