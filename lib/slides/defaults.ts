@@ -1,4 +1,5 @@
 import type { ArrayField, LayoutId, SlideContent } from "./schema";
+import { PARTNER_NAMES } from "./partners";
 
 /** Placeholder element appended by "Add element" in the editor. */
 export function newItem(field: ArrayField): unknown {
@@ -97,7 +98,7 @@ export function defaultContent(layoutId: LayoutId): SlideContent {
       return {
         layoutId,
         title: "Our partners",
-        bullets: ["Partner 1", "Partner 2", "Partner 3", "Partner 4"],
+        bullets: [...PARTNER_NAMES],
       };
     case "icon-cards":
       return {

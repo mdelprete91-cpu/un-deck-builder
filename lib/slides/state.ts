@@ -48,6 +48,7 @@ export type DeckAction =
   | { type: "GENERATION_DONE"; usage?: { inputTokens: number; outputTokens: number } }
   | { type: "INSERT_TIERS" }
   | { type: "SET_IMAGE_POS"; index: number; pos: ImagePos }
+  | { type: "SET_LOGO_TONE"; id: string; tone: "light" | "dark" }
   | { type: "INSERT_SLIDES"; at: number | null; contents: SlideContent[]; agenda?: string[] }
   | { type: "GENERATION_ERROR"; error: string }
   | { type: "EDIT_FIELD"; index: number; path: string; value: string }
@@ -194,6 +195,15 @@ export function deckReducer(state: DeckState, action: DeckAction): DeckState {
       const slides = [...state.slides];
       slides[action.index] = { ...slide, imagePos: action.pos };
       return { ...state, ...remember(state), slides };
+    }
+    case "SET_LOGO_TONE": {
+      // Derived from the photo's pixels, addressed by id (the compute is
+      // async, indexes may have shifted). Not a user edit: no history push.
+      const i = state.slides.findIndex((s) => s.id === action.id);
+      if (i < 0 || state.slides[i].logoTone === action.tone) return state;
+      const slides = [...state.slides];
+      slides[i] = { ...slides[i], logoTone: action.tone };
+      return { ...state, slides };
     }
     case "INSERT_SLIDES": {
       // AI-added slides land at the position the model chose (null = append)

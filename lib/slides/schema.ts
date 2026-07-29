@@ -86,6 +86,11 @@ export interface SlideContent {
   image?: string;
   /** Photo reframe: focal point in % (default 50/50) and zoom (1-4). */
   imagePos?: ImagePos;
+  /**
+   * Footer-logo contrast on right-photo layouts, computed from the pixels
+   * under the logo: "dark" → white logo, "light" → dark logo. Unset = layout default.
+   */
+  logoTone?: "light" | "dark";
   /** Tier tables: cell overrides ("on" | "half" | text | null), row-major. */
   grid?: (string | null)[][];
   /** Partner slide: uploaded SVG logos (data URL) keyed by partner slug. */
@@ -143,6 +148,7 @@ export const slideContentSchema = z.object({
       zoom: z.coerce.number().min(1).max(4),
     })
     .optional(),
+  logoTone: z.enum(["light", "dark"]).optional(),
   grid: z.array(z.array(z.union([z.string(), z.null()]))).optional(),
   logos: z.record(z.string(), z.string()).optional(),
 });

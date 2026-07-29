@@ -70,7 +70,7 @@ export function callout(s: Slide, t: BrandTheme): string {
     photoPanel(1080, s.image, 840, s.imagePos) +
       heading60(s.title ?? "", "title", "#000000", 100, 880) +
       `<div style="position:absolute;left:100px;top:264px;width:880px;height:${ZONE}px;display:flex;flex-direction:column;gap:${GAP}px;overflow:hidden;">${rows}</div>` +
-      footer(t, "light"),
+      footer(t, "light", s.logoTone),
   );
 }
 
@@ -227,7 +227,8 @@ export function exampleImage(side: "left" | "right") {
       photoPanel(panelLeft, s.image, 840, s.imagePos) +
         heading60(s.title ?? "", "title", "#000000", textLeft, side === "left" ? 900 : 880, 170) +
         rows +
-        footer(t, "light"),
+        // Only the right-side panel puts the photo under the footer logo
+        footer(t, "light", side === "right" ? s.logoTone : undefined),
     );
   };
 }

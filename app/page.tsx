@@ -9,11 +9,21 @@ import { defaultContent } from "@/lib/slides/defaults";
 import { loadDeck, saveDeck } from "@/lib/slides/storage";
 import { exportHtmlDeck } from "@/lib/slides/export-html";
 import { exportPptxDeck } from "@/lib/slides/export-pptx";
+import { computeLogoTone } from "@/lib/slides/logo-tone";
 import Sidebar from "@/components/Sidebar";
 import SlideFrame, { readImageFile } from "@/components/SlideFrame";
 import ChartDataPanel from "@/components/ChartDataPanel";
 import ThumbStrip from "@/components/ThumbStrip";
 import PrintRoot from "@/components/PrintRoot";
+
+/** Layouts whose right-side photo panel runs underneath the footer logo. */
+const LOGO_TONE_LAYOUTS = new Set<string>([
+  "callout",
+  "example-image-right",
+  "section-image-deep",
+  "section-image-light",
+  "section-image-dark",
+]);
 
 export default function Studio() {
   const [state, dispatch] = useReducer(deckReducer, initialDeckState);
@@ -34,6 +44,19 @@ export default function Studio() {
     const timer = setTimeout(() => saveDeck(state), 800);
     return () => clearTimeout(timer);
   }, [state, hydrated]);
+
+  // On layouts where the photo panel sits under the footer logo, pick the
+  // white or dark logo from the pixels beneath it (no AI: pure luminance).
+  // computeLogoTone caches per image+reframe, so re-runs are cheap; dispatch
+  // is by slide id and the reducer no-ops when the tone is unchanged.
+  useEffect(() => {
+    for (const s of state.slides) {
+      if (!LOGO_TONE_LAYOUTS.has(s.layoutId)) continue;
+      computeLogoTone(s.image, s.imagePos).then((tone) => {
+        if (tone && tone !== s.logoTone) dispatch({ type: "SET_LOGO_TONE", id: s.id, tone });
+      });
+    }
+  }, [state.slides]);
 
   // Keyboard: Cmd+Z / Cmd+Shift+Z for undo/redo, arrows to move between
   // slides — both skipped while typing in a field.
@@ -164,7 +187,7 @@ export default function Studio() {
    * base64 data URLs (a single photo once blew a request past 350K tokens),
    * and tier grids are meaningless to it.
    */
-  const lightSlide = ({ id: _id, image: _im, imagePos: _ip, logos: _lg, grid: _gr, ...content }: (typeof state.slides)[number]) =>
+  const lightSlide = ({ id: _id, image: _im, imagePos: _ip, logoTone: _lt, logos: _lg, grid: _gr, ...content }: (typeof state.slides)[number]) =>
     content;
 
   const onAddMore = (instruction: string, count: number) =>

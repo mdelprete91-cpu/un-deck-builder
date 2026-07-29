@@ -1,5 +1,6 @@
 import { CATALOG } from "./catalog";
 import { AI_LAYOUT_IDS, type SlideContent } from "./schema";
+import { PARTNER_NAMES } from "./partners";
 
 /**
  * System prompt: layout catalog + brand voice. Kept tight — prompt size
@@ -21,6 +22,7 @@ RULES:
 - Write in the same language as the brief.
 - Only state facts given in the brief or well-known Giga facts (2.2M+ schools mapped, 146 countries, giga.global). Never invent statistics, names, or emails — if the brief lacks contacts for thank-you, use name "Giga Team", role "Giga", location "Geneva, Switzerland", email "giga@unicef.org".
 - For chart-bars, values are relative heights 0-100.
+- For "partner", bullets are partner names copied EXACTLY from this list (each maps to a real logo): ${PARTNER_NAMES.join(", ")}. Use all of them unless the brief says otherwise. Never invent partner names or write categories like "Telecom operators" — a name outside the list renders as plain text instead of a logo.
 - Every slide object includes every field of the output schema. Set fields the chosen layout does not use to "" (strings) or [] (arrays) — never invent content for them.`;
 }
 

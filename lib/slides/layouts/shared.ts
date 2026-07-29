@@ -95,9 +95,12 @@ export type Surface = "light" | "dark";
  * The logo is anchored right with a fixed height so the three brand lockups
  * keep their aspect ratios.
  */
-export function footer(t: BrandTheme, surface: Surface): string {
+export function footer(t: BrandTheme, surface: Surface, logoSurface?: Surface): string {
+  // On right-photo layouts the logo sits on the image while the label stays
+  // on the page background: logoSurface (from the slide's computed logoTone)
+  // overrides the logo variant only.
   const labelColor = surface === "dark" ? "#FFFFFF" : "#000000";
-  const logo = surface === "dark" ? t.logoDark : t.logoLight;
+  const logo = (logoSurface ?? surface) === "dark" ? t.logoDark : t.logoLight;
   const filter = logo.filter ? `filter:${logo.filter};` : "";
   const h = Math.round(60 * (logo.scale ?? 1));
   return (
