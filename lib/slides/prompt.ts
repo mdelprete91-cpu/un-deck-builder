@@ -13,7 +13,7 @@ LAYOUT CATALOG (id: when to use. fields with hard word limits):
 ${catalogLines}
 
 RULES:
-- Output slides in presentation order. Start with "cover"; end with "thank-you" when the deck is 5+ slides.
+- Output slides in presentation order. ALWAYS start with "cover" and ALWAYS end with "thank-you" (the user deletes them if unneeded).
 - Use "agenda" right after the cover only for decks of 6+ slides.
 - Pick the layout that best fits each beat of the story. Never use the same layout for 3 slides in a row. Alternate light and dark surfaces so the deck has rhythm.
 - Respect every word limit strictly. Numbers do the talking: prefer concrete figures over adjectives.

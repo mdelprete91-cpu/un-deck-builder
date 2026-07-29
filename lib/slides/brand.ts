@@ -17,11 +17,11 @@ export interface BrandTheme {
   barShades: [string, string, string, string, string];
   footerLabel: string;
   /** Logo on light surfaces (black variant) */
-  logoLight: { src: string; filter?: string };
+  logoLight: { src: string; filter?: string; scale?: number };
   /** Logo on dark/colored surfaces (white variant) */
-  logoDark: { src: string; filter?: string };
+  logoDark: { src: string; filter?: string; scale?: number };
   /** Full-color logo used on the cover slide */
-  logoCover: { src: string; filter?: string };
+  logoCover: { src: string; filter?: string; scale?: number };
 }
 
 const GIGA_LOCKUP = "/logos/giga-unicef-itu-horizontal.svg";
@@ -53,7 +53,7 @@ export const BRANDS: Record<BrandId, BrandTheme> = {
     id: "giga",
     label: "Giga",
     ...GIGA_PALETTE,
-    footerLabel: "Digital impact division",
+    footerLabel: "Digital Impact Division",
     logoLight: { src: GIGA_LOCKUP, filter: TO_BLACK },
     logoDark: { src: GIGA_LOCKUP, filter: TO_WHITE },
     logoCover: { src: GIGA_LOCKUP },
@@ -71,10 +71,11 @@ export const BRANDS: Record<BrandId, BrandTheme> = {
     id: "did",
     label: "Digital Impact Division",
     ...GIGA_PALETTE,
-    footerLabel: "Digital impact division",
-    logoLight: { src: DID_BLACK },
-    logoDark: { src: DID_WHITE },
-    logoCover: { src: DID_BLACK },
+    footerLabel: "Digital Impact Division",
+    // The DID lockup is visually smaller than the Giga one — scale it up
+    logoLight: { src: DID_BLACK, scale: 1.4 },
+    logoDark: { src: DID_WHITE, scale: 1.4 },
+    logoCover: { src: DID_BLACK, scale: 1.4 },
   },
 };
 

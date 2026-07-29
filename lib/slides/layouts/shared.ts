@@ -98,27 +98,30 @@ export function footer(t: BrandTheme, surface: Surface): string {
   const labelColor = surface === "dark" ? "#FFFFFF" : "#000000";
   const logo = surface === "dark" ? t.logoDark : t.logoLight;
   const filter = logo.filter ? `filter:${logo.filter};` : "";
+  const h = Math.round(60 * (logo.scale ?? 1));
   return (
     `<div style="position:absolute;left:102px;top:966px;width:432px;font-family:${OPEN_SANS};font-weight:500;font-size:20px;line-height:1.4;color:${labelColor};">${esc(t.footerLabel)}</div>` +
-    `<img src="${logo.src}" alt="" style="position:absolute;right:95px;top:950px;height:60px;width:auto;${filter}">`
+    `<img src="${logo.src}" alt="" style="position:absolute;right:95px;top:${980 - h / 2}px;height:${h}px;width:auto;${filter}">`
   );
 }
 
 /** Cover footer: accent 30px label + full-color logo, larger (450px row at top 916). */
 export function coverFooter(t: BrandTheme): string {
   const filter = t.logoCover.filter ? `filter:${t.logoCover.filter};` : "";
+  const h = Math.round(94 * (t.logoCover.scale ?? 1));
   return (
     `<div style="position:absolute;left:100px;top:943px;width:432px;${BODY30}color:var(--accent);">${esc(t.footerLabel)}</div>` +
-    `<img src="${t.logoCover.src}" alt="" style="position:absolute;right:95px;top:916px;height:94px;width:auto;${filter}">`
+    `<img src="${t.logoCover.src}" alt="" style="position:absolute;right:95px;top:${963 - h / 2}px;height:${h}px;width:auto;${filter}">`
   );
 }
 
 /** Agenda/dark footer with the large white logo (450px row), used on accent surfaces. */
 export function coverFooterDark(t: BrandTheme): string {
   const filter = t.logoDark.filter ? `filter:${t.logoDark.filter};` : "";
+  const h = Math.round(94 * (t.logoDark.scale ?? 1));
   return (
     `<div style="position:absolute;left:100px;top:943px;width:432px;${BODY30}color:#FFFFFF;">${esc(t.footerLabel)}</div>` +
-    `<img src="${t.logoDark.src}" alt="" style="position:absolute;right:95px;top:916px;height:94px;width:auto;${filter}">`
+    `<img src="${t.logoDark.src}" alt="" style="position:absolute;right:95px;top:${963 - h / 2}px;height:${h}px;width:auto;${filter}">`
   );
 }
 

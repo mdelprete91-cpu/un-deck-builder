@@ -62,11 +62,17 @@ export default function Studio() {
   /**
    * Streams a generation into the deck; resolves with the number of slides
    * received (0 on error/abort). With `collectInsert`, slides are gathered and
-   * inserted in one shot at the model-chosen position (add mode).
+   * inserted in one shot at the model-chosen position (add mode). `preserve`
+   * fields are merged back into replaced slides (uploaded images etc.).
    */
   async function runGeneration(
     body: Record<string, unknown>,
-    opts: { replace: boolean; targetIndex?: number; collectInsert?: boolean },
+    opts: {
+      replace: boolean;
+      targetIndex?: number;
+      collectInsert?: boolean;
+      preserve?: Partial<SlideContent>;
+    },
   ): Promise<number> {
     abortRef.current?.abort();
     const controller = new AbortController();
@@ -104,7 +110,11 @@ export default function Studio() {
             if (opts.collectInsert) {
               collected.push(content);
             } else if (opts.targetIndex != null) {
-              dispatch({ type: "REPLACE_SLIDE", index: opts.targetIndex, content });
+              dispatch({
+                type: "REPLACE_SLIDE",
+                index: opts.targetIndex,
+                content: { ...content, ...opts.preserve },
+              });
             } else {
               dispatch({ type: "APPEND_SLIDE", content });
             }
@@ -148,6 +158,14 @@ export default function Studio() {
     if (received > 0 && /partnership/i.test(brief)) dispatch({ type: "INSERT_TIERS" });
   };
 
+  /**
+   * Strip fields the model must never see: uploaded images and logos are
+   * base64 data URLs (a single photo once blew a request past 350K tokens),
+   * and tier grids are meaningless to it.
+   */
+  const lightSlide = ({ id: _id, image: _im, logos: _lg, grid: _gr, ...content }: (typeof state.slides)[number]) =>
+    content;
+
   const onAddMore = (instruction: string, count: number) =>
     runGeneration(
       {
@@ -156,23 +174,27 @@ export default function Studio() {
         instruction,
         count,
         brandLabel: theme.label,
-        existingSlides: state.slides.map(({ id: _id, ...content }) => content),
+        existingSlides: state.slides.map(lightSlide),
       },
       { replace: false, collectInsert: true },
     );
 
   const onRegenerateSlide = (instruction: string) => {
     if (!active) return;
-    const { id: _id, ...content } = active;
     runGeneration(
       {
         mode: "regenerate",
         brief: state.brief,
         brandLabel: theme.label,
-        targetSlide: content,
+        targetSlide: lightSlide(active),
         instruction,
       },
-      { replace: false, targetIndex: state.activeIndex },
+      {
+        replace: false,
+        targetIndex: state.activeIndex,
+        // uploaded assets survive the AI rewrite
+        preserve: { image: active.image, logos: active.logos, grid: active.grid },
+      },
     );
   };
 
