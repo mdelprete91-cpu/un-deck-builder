@@ -2,6 +2,7 @@
 
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { autofitAll, autofitNode } from "@/lib/slides/autofit";
+import type { ImagePos } from "@/lib/slides/schema";
 
 interface SlideFrameProps {
   html: string;
@@ -10,6 +11,8 @@ interface SlideFrameProps {
   onDeleteItem?: (path: string) => void;
   /** When set, an in-slide "+ Add element" button appears on hover. */
   onAddItem?: (() => void) | null;
+  /** When set, photos can be reframed: drag to pan, wheel to zoom, double-click to reset. */
+  onImagePos?: ((pos: ImagePos) => void) | null;
   /** When set, tier-table [data-cell] nodes cycle check → dimmed → empty on click. */
   onToggleCell?: ((row: number, col: number) => void) | null;
   /** When set, partner [data-logo] cells get an SVG logo upload action. */
@@ -51,6 +54,7 @@ export default function SlideFrame({
   onEdit,
   onDeleteItem,
   onAddItem,
+  onImagePos,
   onToggleCell,
   onUploadLogo,
   className,
@@ -66,6 +70,8 @@ export default function SlideFrame({
   onDeleteItemRef.current = onDeleteItem;
   const onAddItemRef = useRef(onAddItem);
   onAddItemRef.current = onAddItem;
+  const onImagePosRef = useRef(onImagePos);
+  onImagePosRef.current = onImagePos;
   const onToggleCellRef = useRef(onToggleCell);
   onToggleCellRef.current = onToggleCell;
   const onUploadLogoRef = useRef(onUploadLogo);
@@ -144,6 +150,82 @@ export default function SlideFrame({
           onDeleteItemRef.current?.(node.getAttribute("data-item")!);
         });
         node.appendChild(btn);
+      });
+    }
+
+    // Photo reframe: drag to pan the focal point, wheel to zoom, dblclick reset.
+    // Styles are mutated locally during the gesture and committed once at the
+    // end (a commit re-injects the whole slide, which would kill the drag).
+    if (onImagePosRef.current) {
+      stage.querySelectorAll<HTMLImageElement>("img[data-image]").forEach((img) => {
+        img.style.cursor = "grab";
+        const readPos = (): ImagePos => {
+          const m = /([\d.]+)% ([\d.]+)%/.exec(img.style.objectPosition || "");
+          const z = /scale\(([\d.]+)\)/.exec(img.style.transform || "");
+          return {
+            x: m ? parseFloat(m[1]) : 50,
+            y: m ? parseFloat(m[2]) : 50,
+            zoom: z ? parseFloat(z[1]) : 1,
+          };
+        };
+        const apply = (p: ImagePos) => {
+          img.style.objectPosition = `${p.x}% ${p.y}%`;
+          img.style.transform = `scale(${p.zoom})`;
+          img.style.transformOrigin = `${p.x}% ${p.y}%`;
+        };
+        const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
+        let drag: { sx: number; sy: number; start: ImagePos; moved: boolean } | null = null;
+        let wheelTimer: ReturnType<typeof setTimeout> | null = null;
+
+        const onPointerDown = (e: PointerEvent) => {
+          e.preventDefault();
+          drag = { sx: e.clientX, sy: e.clientY, start: readPos(), moved: false };
+          img.setPointerCapture(e.pointerId);
+          img.style.cursor = "grabbing";
+        };
+        const onPointerMove = (e: PointerEvent) => {
+          if (!drag) return;
+          const rect = img.getBoundingClientRect();
+          const dx = ((e.clientX - drag.sx) / rect.width) * 100;
+          const dy = ((e.clientY - drag.sy) / rect.height) * 100;
+          if (Math.abs(dx) + Math.abs(dy) > 0.5) drag.moved = true;
+          apply({
+            x: clamp(drag.start.x - dx, 0, 100),
+            y: clamp(drag.start.y - dy, 0, 100),
+            zoom: drag.start.zoom,
+          });
+        };
+        const onPointerUp = () => {
+          if (!drag) return;
+          const moved = drag.moved;
+          drag = null;
+          img.style.cursor = "grab";
+          if (moved) onImagePosRef.current?.(readPos());
+        };
+        const onWheel = (e: WheelEvent) => {
+          e.preventDefault();
+          const p = readPos();
+          apply({ ...p, zoom: clamp(p.zoom * (e.deltaY < 0 ? 1.07 : 0.93), 1, 4) });
+          if (wheelTimer) clearTimeout(wheelTimer);
+          wheelTimer = setTimeout(() => onImagePosRef.current?.(readPos()), 500);
+        };
+        const onDblClick = () => onImagePosRef.current?.({ x: 50, y: 50, zoom: 1 });
+
+        img.addEventListener("pointerdown", onPointerDown);
+        img.addEventListener("pointermove", onPointerMove);
+        img.addEventListener("pointerup", onPointerUp);
+        img.addEventListener("pointercancel", onPointerUp);
+        img.addEventListener("wheel", onWheel, { passive: false });
+        img.addEventListener("dblclick", onDblClick);
+        cleanups.push(() => {
+          if (wheelTimer) clearTimeout(wheelTimer);
+          img.removeEventListener("pointerdown", onPointerDown);
+          img.removeEventListener("pointermove", onPointerMove);
+          img.removeEventListener("pointerup", onPointerUp);
+          img.removeEventListener("pointercancel", onPointerUp);
+          img.removeEventListener("wheel", onWheel);
+          img.removeEventListener("dblclick", onDblClick);
+        });
       });
     }
 

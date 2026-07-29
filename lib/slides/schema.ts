@@ -84,10 +84,18 @@ export interface SlideContent {
   contacts?: Contact[];
   /** Uploaded image (data URL) overriding the layout's default photo. */
   image?: string;
+  /** Photo reframe: focal point in % (default 50/50) and zoom (1-4). */
+  imagePos?: ImagePos;
   /** Tier tables: cell overrides ("on" | "half" | text | null), row-major. */
   grid?: (string | null)[][];
   /** Partner slide: uploaded SVG logos (data URL) keyed by partner slug. */
   logos?: Record<string, string>;
+}
+
+export interface ImagePos {
+  x: number;
+  y: number;
+  zoom: number;
 }
 
 export interface Slide extends SlideContent {
@@ -128,6 +136,13 @@ export const slideContentSchema = z.object({
   bars: z.array(barSchema).optional(),
   contacts: z.array(contactSchema).optional(),
   image: z.string().optional(),
+  imagePos: z
+    .object({
+      x: z.coerce.number().min(0).max(100),
+      y: z.coerce.number().min(0).max(100),
+      zoom: z.coerce.number().min(1).max(4),
+    })
+    .optional(),
   grid: z.array(z.array(z.union([z.string(), z.null()]))).optional(),
   logos: z.record(z.string(), z.string()).optional(),
 });

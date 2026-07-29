@@ -1,4 +1,4 @@
-import type { Slide, SlideContent } from "./schema";
+import type { ImagePos, Slide, SlideContent } from "./schema";
 import { ensureId, PRIMARY_ARRAY } from "./schema";
 import { newItem, defaultContent } from "./defaults";
 import { tierDefaultGrid } from "./layouts/tables";
@@ -47,6 +47,7 @@ export type DeckAction =
   | { type: "REPLACE_SLIDE"; index: number; content: SlideContent }
   | { type: "GENERATION_DONE"; usage?: { inputTokens: number; outputTokens: number } }
   | { type: "INSERT_TIERS" }
+  | { type: "SET_IMAGE_POS"; index: number; pos: ImagePos }
   | { type: "INSERT_SLIDES"; at: number | null; contents: SlideContent[]; agenda?: string[] }
   | { type: "GENERATION_ERROR"; error: string }
   | { type: "EDIT_FIELD"; index: number; path: string; value: string }
@@ -185,6 +186,13 @@ export function deckReducer(state: DeckState, action: DeckAction): DeckState {
       clone.logos = { ...clone.logos, [action.slug]: action.dataUrl };
       const slides = [...state.slides];
       slides[action.index] = clone;
+      return { ...state, ...remember(state), slides };
+    }
+    case "SET_IMAGE_POS": {
+      const slide = state.slides[action.index];
+      if (!slide) return state;
+      const slides = [...state.slides];
+      slides[action.index] = { ...slide, imagePos: action.pos };
       return { ...state, ...remember(state), slides };
     }
     case "INSERT_SLIDES": {

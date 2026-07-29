@@ -30,7 +30,7 @@ export default function Sidebar({ state, dispatch, onGenerate, onAddMore }: Side
   const hasSlides = state.slides.length > 0;
 
   return (
-    <aside className="flex h-full w-[340px] shrink-0 flex-col gap-6 overflow-y-auto border-r border-hairline bg-white p-6">
+    <aside className="flex h-full w-[340px] shrink-0 flex-col gap-6 overflow-y-auto border-r border-hairline bg-white p-6 *:shrink-0">
       <div>
         {/* Same colored lockup as the Brand Asset Generator header */}
         {/* eslint-disable-next-line @next/next/no-img-element */}

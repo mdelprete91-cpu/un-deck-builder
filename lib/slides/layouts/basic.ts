@@ -14,6 +14,7 @@ import {
   coverFooter,
   coverFooterDark,
   photoPanel,
+  framedImage,
   displayTitle,
   heading80,
 } from "./shared";
@@ -97,7 +98,7 @@ export function sectionImage(variant: ImageVariant) {
       t,
       v.bg,
       v.bodyColor,
-      photoPanel(1080, s.image) +
+      photoPanel(1080, s.image, 840, s.imagePos) +
         // Title zone capped at 3 lines (3 × 88px); the body starts 8px below it
         // and owns all remaining height down to the footer.
         `<div class="ar" ${ed("title", 264)} style="position:absolute;left:100px;top:100px;width:880px;font-family:${MANROPE};font-weight:500;font-size:80px;line-height:1.1;letter-spacing:-.022em;color:${v.titleColor};">${esc(s.title)}</div>` +
@@ -133,7 +134,7 @@ export function photo(s: Slide, t: BrandTheme): string {
     "#FFFFFF",
     "#000000",
     heading80(s.title ?? "", "title", "#000000") +
-      `<img src="${s.image ?? "/giga-placeholder.jpg"}" data-image alt="" class="af" style="position:absolute;left:100px;top:326px;width:1720px;height:572px;object-fit:cover;animation-delay:.1s;">` +
+      framedImage(s.image, 100, 326, 1720, 572, s.imagePos) +
       footer(t, "light"),
   );
 }
@@ -144,7 +145,7 @@ export function worldMap(s: Slide, t: BrandTheme): string {
     "#FFFFFF",
     "#000000",
     heading80(s.title ?? "", "title", "#000000") +
-      `<img src="${s.image ?? "/giga-map.png"}" data-image alt="World map of mapped schools" class="af" style="position:absolute;left:100px;top:326px;width:1720px;height:572px;object-fit:cover;animation-delay:.1s;">` +
+      framedImage(s.image ?? "/giga-map.png", 100, 326, 1720, 572, s.imagePos) +
       footer(t, "light"),
   );
 }

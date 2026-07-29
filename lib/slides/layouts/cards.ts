@@ -43,13 +43,17 @@ export function threeColumns(s: Slide, t: BrandTheme): string {
 
 /**
  * Partnership callout: 1–5 labelled rows left, photo panel right (template 03).
- * Rows flow in a flex column (space-between), so spacing adapts when a body
- * wraps and rows can never overlap. Body budget: 2 lines with 4-5 rows,
- * 4 lines with up to 3.
+ * Rows stack from the top with a fixed 24px gap; each body gets the exact
+ * budget that makes the worst case still clear the footer label by 30px+
+ * (zone 264 → 936, footer at 966), so text can never run onto it.
  */
 export function callout(s: Slide, t: BrandTheme): string {
   const blocks = (s.blocks ?? []).slice(0, 5);
-  const bodyFit = blocks.length <= 3 ? 168 : 84;
+  const n = Math.max(blocks.length, 1);
+  const GAP = 24;
+  const ZONE = 672; // 264 → 936, 30px above the footer label
+  const ROW_CHROME = 58; // label line + 10px label-body gap
+  const bodyFit = Math.floor((ZONE - n * ROW_CHROME - (n - 1) * GAP) / n);
   const rows = blocks
     .map(
       (b, i) =>
@@ -63,11 +67,9 @@ export function callout(s: Slide, t: BrandTheme): string {
     t,
     "#FFFFFF",
     "#000000",
-    photoPanel(1080, s.image) +
+    photoPanel(1080, s.image, 840, s.imagePos) +
       heading60(s.title ?? "", "title", "#000000", 100, 880) +
-      `<div style="position:absolute;left:100px;top:264px;width:880px;height:676px;display:flex;flex-direction:column;${
-        blocks.length >= 2 ? "justify-content:space-between;" : ""
-      }">${rows}</div>` +
+      `<div style="position:absolute;left:100px;top:264px;width:880px;height:${ZONE}px;display:flex;flex-direction:column;gap:${GAP}px;overflow:hidden;">${rows}</div>` +
       footer(t, "light"),
   );
 }
@@ -222,7 +224,7 @@ export function exampleImage(side: "left" | "right") {
       t,
       "#FFFFFF",
       "#000000",
-      photoPanel(panelLeft, s.image) +
+      photoPanel(panelLeft, s.image, 840, s.imagePos) +
         heading60(s.title ?? "", "title", "#000000", textLeft, side === "left" ? 900 : 880, 170) +
         rows +
         footer(t, "light"),

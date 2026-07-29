@@ -8,6 +8,7 @@ import { renderSlide, LAYOUTS } from "@/lib/slides/layouts";
 import { defaultContent } from "@/lib/slides/defaults";
 import { loadDeck, saveDeck } from "@/lib/slides/storage";
 import { exportHtmlDeck } from "@/lib/slides/export-html";
+import { exportPptxDeck } from "@/lib/slides/export-pptx";
 import Sidebar from "@/components/Sidebar";
 import SlideFrame, { readImageFile } from "@/components/SlideFrame";
 import ChartDataPanel from "@/components/ChartDataPanel";
@@ -163,7 +164,7 @@ export default function Studio() {
    * base64 data URLs (a single photo once blew a request past 350K tokens),
    * and tier grids are meaningless to it.
    */
-  const lightSlide = ({ id: _id, image: _im, logos: _lg, grid: _gr, ...content }: (typeof state.slides)[number]) =>
+  const lightSlide = ({ id: _id, image: _im, imagePos: _ip, logos: _lg, grid: _gr, ...content }: (typeof state.slides)[number]) =>
     content;
 
   const onAddMore = (instruction: string, count: number) =>
@@ -193,7 +194,7 @@ export default function Studio() {
         replace: false,
         targetIndex: state.activeIndex,
         // uploaded assets survive the AI rewrite
-        preserve: { image: active.image, logos: active.logos, grid: active.grid },
+        preserve: { image: active.image, imagePos: active.imagePos, logos: active.logos, grid: active.grid },
       },
     );
   };
@@ -218,6 +219,23 @@ export default function Studio() {
     );
   };
 
+  const [pptxProgress, setPptxProgress] = useState<string | null>(null);
+  const onExportPptx = async () => {
+    if (pptxProgress) return;
+    setPptxProgress("Preparing…");
+    try {
+      await exportPptxDeck(state.slides, theme, state.slides[0]?.title ?? "giga-deck", (done, total) =>
+        setPptxProgress(`Slide ${done} / ${total}`),
+      );
+    } catch (err) {
+      console.error("PPTX export failed:", err);
+      const message = err instanceof Error ? err.message : String(err);
+      dispatch({ type: "GENERATION_ERROR", error: `PPTX export failed: ${message}` });
+    } finally {
+      setPptxProgress(null);
+    }
+  };
+
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-canvas text-ink">
       <Sidebar state={state} dispatch={dispatch} onGenerate={onGenerate} onAddMore={onAddMore} />
@@ -237,6 +255,8 @@ export default function Studio() {
               onRedo={() => dispatch({ type: "REDO" })}
               onExportPdf={() => window.print()}
               onExportHtml={onExportHtml}
+              onExportPptx={onExportPptx}
+              pptxProgress={pptxProgress}
             />
             {dataPanelOpen && active && isChart && (
               <ChartDataPanel
@@ -245,7 +265,32 @@ export default function Studio() {
                 onClose={() => setDataPanelOpen(false)}
               />
             )}
-            <div className="relative min-h-0 flex-1 p-6 pb-10">
+            <div
+              className="relative min-h-0 flex-1 p-6 pb-10"
+              onDragOver={(e) => {
+                if (e.dataTransfer.types.includes("Files")) e.preventDefault();
+              }}
+              onDrop={async (e) => {
+                e.preventDefault();
+                const files = [...e.dataTransfer.files];
+                const images = files.filter((f) => f.type.startsWith("image/"));
+                if (images.length === 0 && files.length > 0) {
+                  dispatch({
+                    type: "GENERATION_ERROR",
+                    error: "Only images (JPEG/PNG) can be dropped for now. PDF and PPTX import is on the roadmap.",
+                  });
+                  return;
+                }
+                for (const f of images) {
+                  try {
+                    const dataUrl = await readImageFile(f);
+                    dispatch({ type: "INSERT", content: { ...defaultContent("photo"), image: dataUrl } });
+                  } catch {
+                    // unreadable file — skip
+                  }
+                }
+              }}
+            >
               {active && (
                 <>
                   <SlideFrame
@@ -263,6 +308,11 @@ export default function Studio() {
                     }
                     onUploadLogo={(slug, dataUrl) =>
                       dispatch({ type: "SET_LOGO", index: state.activeIndex, slug, dataUrl })
+                    }
+                    onImagePos={
+                      hasImage
+                        ? (pos) => dispatch({ type: "SET_IMAGE_POS", index: state.activeIndex, pos })
+                        : null
                     }
                     className="h-full w-full rounded-xl shadow-stripe-lg"
                   />
@@ -339,6 +389,8 @@ function Toolbar({
   onRedo,
   onExportPdf,
   onExportHtml,
+  onExportPptx,
+  pptxProgress,
 }: {
   index: number;
   total: number;
@@ -349,6 +401,8 @@ function Toolbar({
   onRedo: () => void;
   onExportPdf: () => void;
   onExportHtml: () => void;
+  onExportPptx: () => void;
+  pptxProgress: string | null;
 }) {
   const [exportOpen, setExportOpen] = useState(false);
   useEffect(() => {
@@ -383,13 +437,13 @@ function Toolbar({
           </svg>
         </button>
       </div>
-      <span className="text-xs text-ink-muted">Click any text on the slide to edit it</span>
+      <span className="text-xs text-ink-muted">Click text to edit · drag a photo to reframe, scroll to zoom</span>
       <div className="relative ml-auto">
         <button
           onClick={() => setExportOpen((v) => !v)}
           className="font-manrope flex h-9 items-center gap-1.5 rounded-full bg-giga px-4 text-xs font-semibold text-white shadow-stripe-md transition-all duration-150 hover:bg-giga-deep active:scale-[0.98]"
         >
-          Export
+          {pptxProgress ? `Exporting ${pptxProgress}` : "Export"}
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className={`transition-transform duration-150 ${exportOpen ? "rotate-180" : ""}`}>
             <path d="m6 9 6 6 6-6" />
           </svg>
@@ -417,6 +471,19 @@ function Toolbar({
               >
                 HTML deck
                 <span className="mt-0.5 block font-normal text-ink-muted">Standalone file with animations</span>
+              </button>
+              <button
+                onClick={() => {
+                  setExportOpen(false);
+                  onExportPptx();
+                }}
+                disabled={pptxProgress != null}
+                className="block w-full rounded-lg px-3 py-2 text-left text-xs font-semibold text-ink transition-colors duration-100 hover:bg-giga-tint disabled:pointer-events-none disabled:opacity-50"
+              >
+                PowerPoint
+                <span className="mt-0.5 block font-normal text-ink-muted">
+                  {pptxProgress ? `Exporting… ${pptxProgress}` : ".pptx, slides as full-quality images"}
+                </span>
               </button>
             </div>
           </>
