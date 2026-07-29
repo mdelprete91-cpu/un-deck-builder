@@ -99,8 +99,8 @@ export function sectionImage(variant: ImageVariant) {
       photoPanel(1080, s.image) +
         // Title zone capped at 3 lines (3 × 88px); the body starts 8px below it
         // and owns all remaining height down to the footer.
-        `<div class="ar" ${ed("title", 264)} style="position:absolute;left:100px;top:100px;width:940px;font-family:${MANROPE};font-weight:500;font-size:80px;line-height:1.1;letter-spacing:-.022em;color:${v.titleColor};">${esc(s.title)}</div>` +
-        `<div class="ar" ${ed("body", 560)} style="position:absolute;left:102px;top:372px;width:938px;${BODY30}color:${v.bodyColor};animation-delay:.14s;">${esc(s.body)}</div>` +
+        `<div class="ar" ${ed("title", 264)} style="position:absolute;left:100px;top:100px;width:880px;font-family:${MANROPE};font-weight:500;font-size:80px;line-height:1.1;letter-spacing:-.022em;color:${v.titleColor};">${esc(s.title)}</div>` +
+        `<div class="ar" ${ed("body", 560)} style="position:absolute;left:102px;top:372px;width:880px;${BODY30}color:${v.bodyColor};animation-delay:.14s;">${esc(s.body)}</div>` +
         footer(t, v.surface),
     );
   };

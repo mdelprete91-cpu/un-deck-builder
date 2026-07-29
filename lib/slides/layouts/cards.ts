@@ -47,7 +47,7 @@ export function callout(s: Slide, t: BrandTheme): string {
     .map((b, i) => {
       const top = 274 + i * 130;
       return (
-        `<div class="ars" ${item(`blocks.${i}`)} style="position:absolute;left:100px;top:${top}px;width:940px;animation-delay:.${8 + i * 6}s;">` +
+        `<div class="ars" ${item(`blocks.${i}`)} style="position:absolute;left:100px;top:${top}px;width:880px;animation-delay:.${8 + i * 6}s;">` +
         `<div ${ed(`blocks.${i}.label`, 50)} style="${LABEL36}color:var(--accent);">${esc(b.label)}</div>` +
         `<div ${ed(`blocks.${i}.body`, 72)} style="margin-top:11px;${BODY30}color:#000000;">${esc(b.body)}</div>` +
         `</div>`
@@ -59,7 +59,7 @@ export function callout(s: Slide, t: BrandTheme): string {
     "#FFFFFF",
     "#000000",
     photoPanel(1080, s.image) +
-      heading60(s.title ?? "", "title", "#000000", 100, 940) +
+      heading60(s.title ?? "", "title", "#000000", 100, 880) +
       rows +
       footer(t, "light"),
   );
@@ -205,7 +205,7 @@ export function exampleImage(side: "left" | "right") {
       .slice(0, 2)
       .map(
         (b, i) =>
-          `<div class="ars" ${item(`blocks.${i}`)} style="position:absolute;left:${textLeft}px;top:${i === 0 ? 284 : 588}px;width:${side === "left" ? 900 : 938}px;animation-delay:.${10 + i * 8}s;">` +
+          `<div class="ars" ${item(`blocks.${i}`)} style="position:absolute;left:${textLeft}px;top:${i === 0 ? 284 : 588}px;width:${side === "left" ? 900 : 880}px;animation-delay:.${10 + i * 8}s;">` +
           `<div ${ed(`blocks.${i}.label`, 50)} style="${LABEL36}color:var(--accent);">${esc(b.label)}</div>` +
           `<div ${ed(`blocks.${i}.body`, 230)} style="margin-top:23px;${BODY30}color:#000000;">${esc(b.body)}</div>` +
           `</div>`,
@@ -216,7 +216,7 @@ export function exampleImage(side: "left" | "right") {
       "#FFFFFF",
       "#000000",
       photoPanel(panelLeft, s.image) +
-        heading60(s.title ?? "", "title", "#000000", textLeft, side === "left" ? 900 : 938, 170) +
+        heading60(s.title ?? "", "title", "#000000", textLeft, side === "left" ? 900 : 880, 170) +
         rows +
         footer(t, "light"),
     );
