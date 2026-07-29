@@ -37,24 +37,20 @@ export default function Sidebar({ state, dispatch, onGenerate, onAddMore }: Side
         </p>
       </div>
 
-      {/* Brand style */}
+      {/* Logo lockup: colors stay Giga on every option, only logo and footer change */}
       <div>
-        <Eyebrow>Style</Eyebrow>
+        <Eyebrow>Logo</Eyebrow>
         <div className="flex flex-col gap-1.5">
           {BRAND_IDS.map((id: BrandId) => (
             <button
               key={id}
               onClick={() => dispatch({ type: "SET_BRAND", brandId: id })}
-              className={`flex items-center gap-2.5 rounded-lg border px-3 py-2 text-left text-sm text-ink transition-colors duration-150 ${
+              className={`rounded-lg border px-3 py-2 text-left text-sm text-ink transition-colors duration-150 ${
                 state.brandId === id
                   ? "border-giga bg-giga-tint font-semibold"
                   : "border-hairline hover:border-giga-100 hover:bg-canvas"
               }`}
             >
-              <span
-                className="inline-block h-3 w-3 rounded-full"
-                style={{ background: BRANDS[id].accent }}
-              />
               {BRANDS[id].label}
             </button>
           ))}

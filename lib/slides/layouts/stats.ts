@@ -13,7 +13,9 @@ import {
   chartShades,
 } from "./shared";
 
-const STAT_VALUE = `font-family:${MANROPE};font-weight:500;font-size:144px;line-height:1;letter-spacing:-.02em;color:var(--accent);`;
+// nowrap: a stat value must never break onto two lines — the autofit shrinks
+// it to fit the column width instead (e.g. "$500M").
+const STAT_VALUE = `font-family:${MANROPE};font-weight:500;font-size:144px;line-height:1;letter-spacing:-.02em;color:var(--accent);white-space:nowrap;`;
 
 function statBlock(
   path: string,
@@ -82,10 +84,10 @@ function statSlots(n: number, colA: number, colB: number): [number, number][] {
 /** 1–6 stats beside the title (template 11). */
 export function statGrid(s: Slide, t: BrandTheme): string {
   const stats = (s.stats ?? []).slice(0, 6);
-  const slots = statSlots(stats.length, 940, 1439);
+  const slots = statSlots(stats.length, 920, 1390);
   const rendered = stats
     .map((st, i) =>
-      statBlock(`stats.${i}`, slots[i][0], slots[i][1], 386, st.value, st.label, 8 + i * 4),
+      statBlock(`stats.${i}`, slots[i][0], slots[i][1], 430, st.value, st.label, 8 + i * 4),
     )
     .join("");
   return section(
@@ -133,7 +135,7 @@ export function twoStats(s: Slide, t: BrandTheme): string {
     .map(
       (st, i) =>
         `<div ${item(`stats.${i}`)} style="position:absolute;left:907px;top:${tops[i]}px;width:931px;height:300px;">` +
-        `<div class="ars" ${ed(`stats.${i}.value`, 160)} style="position:absolute;left:0;top:0;font-family:${MANROPE};font-weight:400;font-size:144px;line-height:152px;letter-spacing:-.01em;color:var(--accent);animation-delay:.${10 + i * 12}s;">${esc(st.value)}</div>` +
+        `<div class="ars" ${ed(`stats.${i}.value`, 160)} style="position:absolute;left:0;top:0;width:340px;white-space:nowrap;font-family:${MANROPE};font-weight:400;font-size:144px;line-height:152px;letter-spacing:-.01em;color:var(--accent);animation-delay:.${10 + i * 12}s;">${esc(st.value)}</div>` +
         `<div class="ars" ${ed(`stats.${i}.label`, 300)} style="position:absolute;left:373px;top:4px;width:558px;${BODY32}color:#000000;animation-delay:.${16 + i * 12}s;">${esc(st.label)}</div>` +
         `</div>`,
     )
@@ -152,7 +154,7 @@ export function singleStat(s: Slide, t: BrandTheme): string {
     "#FFFFFF",
     "#000000",
     heading80(s.title ?? "", "title", "#000000", 880, 700) +
-      `<div class="ar" ${ed("stat", 230)} style="position:absolute;left:1030px;top:80px;font-family:${MANROPE};font-weight:500;font-size:213px;line-height:1;letter-spacing:-.02em;color:var(--accent);animation-delay:.1s;">${esc(s.stat)}</div>` +
+      `<div class="ar" ${ed("stat", 230)} style="position:absolute;left:1030px;top:80px;width:790px;white-space:nowrap;font-family:${MANROPE};font-weight:500;font-size:213px;line-height:1;letter-spacing:-.02em;color:var(--accent);animation-delay:.1s;">${esc(s.stat)}</div>` +
       `<div class="ar" ${ed("support", 380)} style="position:absolute;left:1030px;top:540px;width:790px;${BODY32}animation-delay:.18s;">${esc(s.support)}</div>` +
       footer(t, "light"),
   );

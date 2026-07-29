@@ -1,11 +1,87 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { AI_LAYOUT_IDS, MANUAL_LAYOUT_IDS, type LayoutId, type Slide } from "@/lib/slides/schema";
 import type { BrandTheme } from "@/lib/slides/brand";
 import { renderSlide, LAYOUTS } from "@/lib/slides/layouts";
+import { defaultContent } from "@/lib/slides/defaults";
 import SlideFrame from "./SlideFrame";
 import type { DeckAction } from "@/lib/slides/state";
+
+const PICKER_LAYOUT_IDS = [...AI_LAYOUT_IDS, ...MANUAL_LAYOUT_IDS];
+
+/**
+ * Full-screen layout picker: every template rendered as a live preview with
+ * the active brand theme. Click inserts after the current slide.
+ */
+function LayoutPickerModal({
+  theme,
+  onPick,
+  onClose,
+}: {
+  theme: BrandTheme;
+  onPick: (layoutId: LayoutId) => void;
+  onClose: () => void;
+}) {
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
+
+  const previews = useMemo(
+    () =>
+      PICKER_LAYOUT_IDS.map((id) => ({
+        id,
+        html: renderSlide({ ...defaultContent(id), id: `preview-${id}` }, theme),
+      })),
+    [theme],
+  );
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-8" onClick={onClose}>
+      <div className="absolute inset-0 bg-ink/45" />
+      <div
+        className="pop-in relative flex max-h-[85vh] w-full max-w-5xl flex-col rounded-2xl bg-white shadow-float"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between border-b border-hairline px-6 py-4">
+          <div>
+            <h2 className="font-manrope text-lg font-semibold tracking-[-0.02em] text-ink">
+              Choose a layout
+            </h2>
+            <p className="mt-0.5 text-xs text-ink-muted">
+              Inserted after the current slide, prefilled with placeholder copy.
+            </p>
+          </div>
+          <button
+            onClick={onClose}
+            title="Close (Esc)"
+            className="flex h-9 w-9 items-center justify-center rounded-full text-ink-muted transition-colors duration-150 hover:bg-giga-tint hover:text-ink"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+              <path d="M18 6 6 18M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+        <div className="grid flex-1 grid-cols-4 gap-4 overflow-y-auto p-6">
+          {previews.map(({ id, html }) => (
+            <button key={id} onClick={() => onPick(id)} className="group text-left">
+              <div className="pointer-events-none overflow-hidden rounded-lg border-2 border-hairline transition-colors duration-150 group-hover:border-giga">
+                <SlideFrame html={html} className="aspect-video w-full" />
+              </div>
+              <div className="mt-1.5 text-[11px] font-semibold text-ink group-hover:text-giga">
+                {LAYOUTS[id].label}
+              </div>
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 interface ThumbStripProps {
   slides: Slide[];
@@ -114,38 +190,31 @@ export default function ThumbStrip({ slides, theme, activeIndex, dispatch, onIns
         </div>
       ))}
 
-      {/* New-slide tile: expands into the layout list inline (no clipping in the scroll area) */}
-      <div className="shrink-0">
-        <button
-          onClick={() => setLayoutsOpen((v) => !v)}
-          title="Insert a slide layout"
-          className={`flex aspect-video w-full items-center justify-center rounded-lg border-2 border-dashed transition-colors duration-150 ${
-            layoutsOpen
-              ? "border-giga bg-giga-tint text-giga"
-              : "border-hairline text-ink-muted hover:border-giga-100 hover:bg-giga-tint hover:text-giga"
-          }`}
-        >
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-            <path d="M12 5v14M5 12h14" />
-          </svg>
-        </button>
-        {layoutsOpen && (
-          <div className="pop-in mt-1.5 overflow-hidden rounded-lg border border-hairline bg-white py-1 shadow-stripe">
-            {[...AI_LAYOUT_IDS, ...MANUAL_LAYOUT_IDS].map((id) => (
-              <button
-                key={id}
-                onClick={() => {
-                  onInsertLayout(id);
-                  setLayoutsOpen(false);
-                }}
-                className="block w-full px-2.5 py-1.5 text-left text-[11px] text-ink transition-colors duration-100 hover:bg-giga-tint"
-              >
-                {LAYOUTS[id].label}
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
+      {/* New-slide tile: opens the layout picker modal */}
+      <button
+        onClick={() => setLayoutsOpen(true)}
+        title="Insert a slide layout"
+        className={`flex aspect-video w-full shrink-0 items-center justify-center rounded-lg border-2 border-dashed transition-colors duration-150 ${
+          layoutsOpen
+            ? "border-giga bg-giga-tint text-giga"
+            : "border-hairline text-ink-muted hover:border-giga-100 hover:bg-giga-tint hover:text-giga"
+        }`}
+      >
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+          <path d="M12 5v14M5 12h14" />
+        </svg>
+      </button>
+
+      {layoutsOpen && (
+        <LayoutPickerModal
+          theme={theme}
+          onPick={(id) => {
+            onInsertLayout(id);
+            setLayoutsOpen(false);
+          }}
+          onClose={() => setLayoutsOpen(false)}
+        />
+      )}
     </div>
   );
 }

@@ -59,7 +59,11 @@ export default function Studio() {
     return () => window.removeEventListener("keydown", onKeyDown);
   }, []);
 
-  async function runGeneration(body: Record<string, unknown>, opts: { replace: boolean; targetIndex?: number }) {
+  /** Streams a generation into the deck; resolves with the number of slides received (0 on error/abort). */
+  async function runGeneration(
+    body: Record<string, unknown>,
+    opts: { replace: boolean; targetIndex?: number },
+  ): Promise<number> {
     abortRef.current?.abort();
     const controller = new AbortController();
     abortRef.current = controller;
@@ -106,17 +110,23 @@ export default function Studio() {
       }
       if (received === 0) throw new Error("The model returned no usable slides. Try rephrasing the prompt.");
       dispatch({ type: "GENERATION_DONE" });
+      return received;
     } catch (err) {
-      if ((err as Error).name === "AbortError") return;
+      if ((err as Error).name === "AbortError") return 0;
       dispatch({ type: "GENERATION_ERROR", error: (err as Error).message });
+      return 0;
     }
   }
 
-  const onGenerate = () =>
-    runGeneration(
-      { mode: "generate", brief: state.brief, count: state.count, brandLabel: theme.label },
+  const onGenerate = async () => {
+    const brief = state.brief;
+    const received = await runGeneration(
+      { mode: "generate", brief, count: state.count, brandLabel: theme.label },
       { replace: true },
     );
+    // A partnership brief always ships with the two fixed partnership-tier slides.
+    if (received > 0 && /partnership/i.test(brief)) dispatch({ type: "INSERT_TIERS" });
+  };
 
   const onAddMore = (count: number) =>
     runGeneration(

@@ -32,19 +32,27 @@ const DID_WHITE = "/logos/unicef-digital-impact-division-white.svg";
 const TO_BLACK = "brightness(0)";
 const TO_WHITE = "brightness(0) invert(1)";
 
+/**
+ * Every option keeps the Giga palette: switching brand changes only the logo
+ * lockup and the footer label, never the colors (Mario's rule, 29 Jul 2026).
+ */
+const GIGA_PALETTE = {
+  accent: "#277AFF",
+  deep: "#0530AD",
+  light: "#D5E4FF",
+  soft: "#8FB6FF",
+  soft2: "#6FA1FF",
+  panelDeep: "#0a3bc4",
+  panelLight: "#bcd3fb",
+  panelLightStroke: "#92b3ee",
+  barShades: ["#277AFF", "#4C90FF", "#6CA4FF", "#8FB8FF", "#B5D0FF"],
+} satisfies Partial<BrandTheme>;
+
 export const BRANDS: Record<BrandId, BrandTheme> = {
   giga: {
     id: "giga",
     label: "Giga",
-    accent: "#277AFF",
-    deep: "#0530AD",
-    light: "#D5E4FF",
-    soft: "#8FB6FF",
-    soft2: "#6FA1FF",
-    panelDeep: "#0a3bc4",
-    panelLight: "#bcd3fb",
-    panelLightStroke: "#92b3ee",
-    barShades: ["#277AFF", "#4C90FF", "#6CA4FF", "#8FB8FF", "#B5D0FF"],
+    ...GIGA_PALETTE,
     footerLabel: "Digital impact division",
     logoLight: { src: GIGA_LOCKUP, filter: TO_BLACK },
     logoDark: { src: GIGA_LOCKUP, filter: TO_WHITE },
@@ -53,15 +61,7 @@ export const BRANDS: Record<BrandId, BrandTheme> = {
   unicef: {
     id: "unicef",
     label: "UNICEF",
-    accent: "#1CABE2",
-    deep: "#00538C",
-    light: "#D9F0FA",
-    soft: "#8FD4F1",
-    soft2: "#74CBEE",
-    panelDeep: "#0968a8",
-    panelLight: "#bfe4f5",
-    panelLightStroke: "#93cfeb",
-    barShades: ["#1CABE2", "#48BCE8", "#74CBEE", "#A0DBF3", "#CCEAF9"],
+    ...GIGA_PALETTE,
     footerLabel: "UNICEF",
     logoLight: { src: UNICEF_LOGO, filter: TO_BLACK },
     logoDark: { src: UNICEF_LOGO, filter: TO_WHITE },
@@ -70,15 +70,7 @@ export const BRANDS: Record<BrandId, BrandTheme> = {
   did: {
     id: "did",
     label: "Digital Impact Division",
-    accent: "#1CABE2",
-    deep: "#00538C",
-    light: "#D9F0FA",
-    soft: "#8FD4F1",
-    soft2: "#74CBEE",
-    panelDeep: "#0968a8",
-    panelLight: "#bfe4f5",
-    panelLightStroke: "#93cfeb",
-    barShades: ["#1CABE2", "#48BCE8", "#74CBEE", "#A0DBF3", "#CCEAF9"],
+    ...GIGA_PALETTE,
     footerLabel: "Digital impact division",
     logoLight: { src: DID_BLACK },
     logoDark: { src: DID_WHITE },

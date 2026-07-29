@@ -1,6 +1,6 @@
 import type { Slide, SlideContent } from "./schema";
 import { ensureId, PRIMARY_ARRAY } from "./schema";
-import { newItem } from "./defaults";
+import { newItem, defaultContent } from "./defaults";
 import { tierDefaultGrid } from "./layouts/tables";
 import type { BrandId } from "./brand";
 
@@ -46,6 +46,7 @@ export type DeckAction =
   | { type: "APPEND_SLIDE"; content: SlideContent }
   | { type: "REPLACE_SLIDE"; index: number; content: SlideContent }
   | { type: "GENERATION_DONE"; usage?: { inputTokens: number; outputTokens: number } }
+  | { type: "INSERT_TIERS" }
   | { type: "GENERATION_ERROR"; error: string }
   | { type: "EDIT_FIELD"; index: number; path: string; value: string }
   | { type: "DELETE_ITEM"; index: number; path: string }
@@ -184,6 +185,18 @@ export function deckReducer(state: DeckState, action: DeckAction): DeckState {
       const slides = [...state.slides];
       slides[action.index] = clone;
       return { ...state, ...remember(state), slides };
+    }
+    case "INSERT_TIERS": {
+      // Partnership decks get the two fixed partnership-tier slides, inserted
+      // before a closing thank-you. No-op if the deck already has them.
+      if (state.slides.some((s) => s.layoutId === "tiers-1" || s.layoutId === "tiers-2")) return state;
+      const slides = [...state.slides];
+      const at =
+        slides.length > 0 && slides[slides.length - 1].layoutId === "thank-you"
+          ? slides.length - 1
+          : slides.length;
+      slides.splice(at, 0, ensureId(defaultContent("tiers-1")), ensureId(defaultContent("tiers-2")));
+      return { ...state, slides };
     }
     case "ADD_ITEM": {
       const slide = state.slides[action.index];

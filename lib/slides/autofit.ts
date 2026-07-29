@@ -30,8 +30,14 @@ export function autofitNode(node: HTMLElement): void {
   node.style.maxHeight = "";
   node.style.overflow = "";
 
+  // Overflow check covers both axes: vertical against the fit budget, and
+  // horizontal for white-space:nowrap fields (stat values) that must shrink
+  // instead of breaking onto a second line.
+  const overflows = () =>
+    node.scrollHeight > max + 1 || node.scrollWidth > node.clientWidth + 2;
+
   let scale = 1;
-  while (node.scrollHeight > max + 1 && scale > 0.4) {
+  while (overflows() && scale > 0.4) {
     scale -= 0.05;
     node.style.fontSize = `${baseFs * scale}px`;
     if (!Number.isNaN(baseLh)) node.style.lineHeight = `${baseLh * scale}px`;
@@ -62,7 +68,7 @@ function autofitNode(node){
   node.style.maxHeight = '';
   node.style.overflow = '';
   var scale = 1;
-  while(node.scrollHeight > max + 1 && scale > 0.4){
+  while((node.scrollHeight > max + 1 || node.scrollWidth > node.clientWidth + 2) && scale > 0.4){
     scale -= 0.05;
     node.style.fontSize = (fs * scale) + 'px';
     if(!isNaN(lh)) node.style.lineHeight = (lh * scale) + 'px';
