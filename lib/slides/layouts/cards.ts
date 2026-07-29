@@ -42,18 +42,19 @@ export function threeColumns(s: Slide, t: BrandTheme): string {
 }
 
 /**
- * Partnership callout: 1–5 labelled rows left, photo panel right (template 03).
- * Rows stack from the top with a fixed 24px gap; each body gets the exact
- * budget that makes the worst case still clear the footer label by 30px+
- * (zone 264 → 936, footer at 966), so text can never run onto it.
+ * Partnership callout: 1–4 labelled rows left, photo panel right (template 03).
+ * Rows stack from the top with a fixed 24px gap. Body budgets are whole
+ * text lines per element count (4 rows → 2 lines, 3 → 3, 2 → 6, 1 → 8) so
+ * the type never shrinks; every combination clears the footer label by 30px+
+ * (zone 264 → 936, footer at 966).
  */
 export function callout(s: Slide, t: BrandTheme): string {
-  const blocks = (s.blocks ?? []).slice(0, 5);
+  const blocks = (s.blocks ?? []).slice(0, 4);
   const n = Math.max(blocks.length, 1);
   const GAP = 24;
   const ZONE = 672; // 264 → 936, 30px above the footer label
-  const ROW_CHROME = 58; // label line + 10px label-body gap
-  const bodyFit = Math.floor((ZONE - n * ROW_CHROME - (n - 1) * GAP) / n);
+  const LINE = 42; // one BODY30 line (30px × 1.36, rounded up)
+  const bodyFit = (n >= 4 ? 2 : n === 3 ? 3 : n === 2 ? 6 : 8) * LINE;
   const rows = blocks
     .map(
       (b, i) =>
@@ -101,7 +102,7 @@ export function fourCards(s: Slide, t: BrandTheme): string {
   const blocks = (s.blocks ?? []).slice(0, 4);
   const inner = (b: { label: string; body: string }, i: number, w: number, h: number) =>
     `<div ${ed(`blocks.${i}.label`, 62)} style="position:absolute;left:40px;top:40px;width:${w - 80}px;font-family:${MANROPE};font-weight:600;font-size:48px;line-height:1.1;letter-spacing:-.02em;color:var(--accent);">${esc(b.label)}</div>` +
-    `<div ${ed(`blocks.${i}.body`, h - 125)} style="position:absolute;left:40px;top:109px;width:${w - 80}px;${BODY32}color:#000000;">${esc(b.body)}</div>`;
+    `<div ${ed(`blocks.${i}.body`, h - 115)} style="position:absolute;left:40px;top:109px;width:${w - 80}px;${BODY32}color:#000000;">${esc(b.body)}</div>`;
 
   let cards: string;
   if (blocks.length >= 4) {
@@ -149,7 +150,7 @@ export function steps(s: Slide, t: BrandTheme): string {
         `<div style="position:absolute;left:40px;top:40px;font-family:${MANROPE};font-weight:600;font-size:48px;line-height:1.1;color:var(--accent);">${i + 1}</div>` +
           `<div style="position:absolute;left:40px;top:117px;width:${width - 80}px;display:flex;flex-direction:column;gap:16px;">` +
           `<div ${ed(`blocks.${i}.label`, 50)} style="${LABEL36}color:#000000;">${esc(b.label)}</div>` +
-          `<div ${ed(`blocks.${i}.body`, 290)} style="${BODY32}color:#000000;">${esc(b.body)}</div>` +
+          `<div ${ed(`blocks.${i}.body`, 240)} style="${BODY32}color:#000000;">${esc(b.body)}</div>` +
           `</div>`,
         { border: false },
       ),

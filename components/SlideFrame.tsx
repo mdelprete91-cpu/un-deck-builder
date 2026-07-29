@@ -97,7 +97,13 @@ export default function SlideFrame({
     // heights, donut segments, partner logos), so the DOM is never kept stale.
     stage.innerHTML = html;
     autofitAll(stage);
-    if (!editable) return;
+    // Web fonts may land after the first measurement and reflow the text;
+    // refit once they are ready (no-op when already loaded).
+    let alive = true;
+    document.fonts.ready.then(() => {
+      if (alive && stageRef.current === stage) autofitAll(stage);
+    });
+    if (!editable) return () => { alive = false; };
 
     const cleanups: (() => void)[] = [];
 
@@ -293,7 +299,10 @@ export default function SlideFrame({
       stage.appendChild(btn);
     }
 
-    return () => cleanups.forEach((fn) => fn());
+    return () => {
+      alive = false;
+      cleanups.forEach((fn) => fn());
+    };
   }, [html, editable, onAddItem]);
 
   const scale = Math.min(box.w / 1920, box.h / 1080);

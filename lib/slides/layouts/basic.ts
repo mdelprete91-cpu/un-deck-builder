@@ -185,7 +185,7 @@ export function partners(s: Slide, t: BrandTheme): string {
     t,
     "var(--accent)",
     "#FFFFFF",
-    `<div class="ar" ${ed("title", 300)} style="position:absolute;left:100px;top:100px;width:810px;font-family:${MANROPE};font-weight:500;font-size:144px;line-height:1;letter-spacing:-.02em;color:#FFFFFF;white-space:pre-line;">${esc(s.title ?? "Our partners")}</div>` +
+    `<div class="ar" ${ed("title", 340)} style="position:absolute;left:100px;top:100px;width:810px;font-family:${MANROPE};font-weight:500;font-size:144px;line-height:1;letter-spacing:-.02em;color:#FFFFFF;white-space:pre-line;">${esc(s.title ?? "Our partners")}</div>` +
       cells,
   );
 }

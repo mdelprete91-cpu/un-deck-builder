@@ -30,7 +30,7 @@ function statBlock(
 ): string {
   return (
     `<div class="ars" ${item(path)} style="position:absolute;left:${x}px;top:${y}px;width:${width}px;${dly(delay)}">` +
-    `<div ${ed(`${path}.value`, 150)} style="${STAT_VALUE}">${esc(value)}</div>` +
+    `<div ${ed(`${path}.value`, 180)} style="${STAT_VALUE}">${esc(value)}</div>` +
     `<div ${ed(`${path}.label`, 110)} style="margin-top:8px;${labelStyle}color:#000000;">${esc(label)}</div>` +
     `</div>`
   );
@@ -136,8 +136,9 @@ export function twoStats(s: Slide, t: BrandTheme): string {
     .map(
       (st, i) =>
         `<div ${item(`stats.${i}`)} style="position:absolute;left:907px;top:${tops[i]}px;width:931px;height:300px;">` +
-        `<div class="ars" ${ed(`stats.${i}.value`, 160)} style="position:absolute;left:0;top:0;width:340px;white-space:nowrap;font-family:${MANROPE};font-weight:400;font-size:144px;line-height:152px;letter-spacing:-.01em;color:var(--accent);${dly(10 + i * 12)}">${esc(st.value)}</div>` +
-        `<div class="ars" ${ed(`stats.${i}.label`, 300)} style="position:absolute;left:373px;top:4px;width:558px;${BODY32}color:#000000;${dly(16 + i * 12)}">${esc(st.label)}</div>` +
+        // 500px value slot: a 6-char figure ("99.9M+") fits at full 144px
+        `<div class="ars" ${ed(`stats.${i}.value`, 185)} style="position:absolute;left:0;top:0;width:500px;white-space:nowrap;font-family:${MANROPE};font-weight:400;font-size:144px;line-height:152px;letter-spacing:-.01em;color:var(--accent);${dly(10 + i * 12)}">${esc(st.value)}</div>` +
+        `<div class="ars" ${ed(`stats.${i}.label`, 300)} style="position:absolute;left:530px;top:4px;width:401px;${BODY32}color:#000000;${dly(16 + i * 12)}">${esc(st.label)}</div>` +
         `</div>`,
     )
     .join("");
@@ -308,7 +309,7 @@ export function timeline(s: Slide, t: BrandTheme): string {
     t,
     "#FFFFFF",
     "#000000",
-    heading80(s.title ?? "", "title", "#000000", 1720, 92) +
+    heading80(s.title ?? "", "title", "#000000", 1720, 110) +
       `<div class="agw" style="position:absolute;left:104px;top:446px;width:1816px;height:138px;display:flex;animation-delay:.12s;">${band}</div>` +
       labels +
       footer(t, "light"),
