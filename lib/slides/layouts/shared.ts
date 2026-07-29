@@ -34,6 +34,15 @@ export function ed(path: string, fit?: number): string {
   return `data-edit="${path}"${fit ? ` data-fit="${fit}"` : ""}`;
 }
 
+/**
+ * Entrance-animation delay from centiseconds: dly(8) → "animation-delay:0.08s;".
+ * Never build delays as `.${n}s` — with a single-digit n that reads as 0.8s,
+ * which made first elements animate after their siblings in the HTML export.
+ */
+export function dly(cs: number): string {
+  return `animation-delay:${cs / 100}s;`;
+}
+
 /** Attribute marking a deletable element (card, stat, bullet…); value is the array path. */
 export function item(path: string): string {
   return `data-item="${path}"`;

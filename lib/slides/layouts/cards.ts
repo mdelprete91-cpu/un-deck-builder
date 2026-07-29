@@ -7,6 +7,7 @@ import {
   LABEL36,
   esc,
   ed,
+  dly,
   item,
   columns,
   section,
@@ -23,7 +24,7 @@ export function threeColumns(s: Slide, t: BrandTheme): string {
   const cols = blocks
     .map(
       (b, i) =>
-        `<div class="ars" ${item(`blocks.${i}`)} style="position:absolute;left:${xs[i]}px;top:448px;width:${Math.min(width, 549)}px;animation-delay:.${10 + i * 8}s;">` +
+        `<div class="ars" ${item(`blocks.${i}`)} style="position:absolute;left:${xs[i]}px;top:448px;width:${Math.min(width, 549)}px;${dly(10 + i * 8)}">` +
         `<div style="font-family:${MANROPE};font-weight:600;font-size:48px;line-height:1.1;color:var(--accent-soft);">${i + 1}</div>` +
         `<div ${ed(`blocks.${i}.label`, 100)} style="margin-top:32px;${LABEL36}color:#FFFFFF;">${esc(b.label)}</div>` +
         `<div ${ed(`blocks.${i}.body`, 380)} style="margin-top:18px;${BODY30}color:#FFFFFF;">${esc(b.body)}</div>` +
@@ -47,7 +48,7 @@ export function callout(s: Slide, t: BrandTheme): string {
     .map((b, i) => {
       const top = 274 + i * 130;
       return (
-        `<div class="ars" ${item(`blocks.${i}`)} style="position:absolute;left:100px;top:${top}px;width:880px;animation-delay:.${8 + i * 6}s;">` +
+        `<div class="ars" ${item(`blocks.${i}`)} style="position:absolute;left:100px;top:${top}px;width:880px;${dly(8 + i * 6)}">` +
         `<div ${ed(`blocks.${i}.label`, 50)} style="${LABEL36}color:var(--accent);">${esc(b.label)}</div>` +
         `<div ${ed(`blocks.${i}.body`, 72)} style="margin-top:11px;${BODY30}color:#000000;">${esc(b.body)}</div>` +
         `</div>`
@@ -78,7 +79,7 @@ function card(
 ): string {
   const { bg = true, border = true } = opts;
   return (
-    `<div class="ars" ${item(path)} style="position:absolute;left:${x}px;top:${y}px;width:${w}px;height:${h}px;box-sizing:border-box;${bg ? "background:#F7F7F7;" : ""}${border ? "border:4px solid var(--accent);" : ""}animation-delay:.${delay}s;">` +
+    `<div class="ars" ${item(path)} style="position:absolute;left:${x}px;top:${y}px;width:${w}px;height:${h}px;box-sizing:border-box;${bg ? "background:#F7F7F7;" : ""}${border ? "border:4px solid var(--accent);" : ""}${dly(delay)}">` +
     inner +
     `</div>`
   );
@@ -205,7 +206,7 @@ export function exampleImage(side: "left" | "right") {
       .slice(0, 2)
       .map(
         (b, i) =>
-          `<div class="ars" ${item(`blocks.${i}`)} style="position:absolute;left:${textLeft}px;top:${i === 0 ? 284 : 588}px;width:${side === "left" ? 900 : 880}px;animation-delay:.${10 + i * 8}s;">` +
+          `<div class="ars" ${item(`blocks.${i}`)} style="position:absolute;left:${textLeft}px;top:${i === 0 ? 284 : 588}px;width:${side === "left" ? 900 : 880}px;${dly(10 + i * 8)}">` +
           `<div ${ed(`blocks.${i}.label`, 50)} style="${LABEL36}color:var(--accent);">${esc(b.label)}</div>` +
           `<div ${ed(`blocks.${i}.body`, 230)} style="margin-top:23px;${BODY30}color:#000000;">${esc(b.body)}</div>` +
           `</div>`,

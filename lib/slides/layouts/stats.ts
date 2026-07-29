@@ -6,6 +6,7 @@ import {
   BODY32,
   esc,
   ed,
+  dly,
   item,
   section,
   footer,
@@ -28,7 +29,7 @@ function statBlock(
   labelStyle = BODY32,
 ): string {
   return (
-    `<div class="ars" ${item(path)} style="position:absolute;left:${x}px;top:${y}px;width:${width}px;animation-delay:.${delay}s;">` +
+    `<div class="ars" ${item(path)} style="position:absolute;left:${x}px;top:${y}px;width:${width}px;${dly(delay)}">` +
     `<div ${ed(`${path}.value`, 150)} style="${STAT_VALUE}">${esc(value)}</div>` +
     `<div ${ed(`${path}.label`, 110)} style="margin-top:8px;${labelStyle}color:#000000;">${esc(label)}</div>` +
     `</div>`
@@ -135,8 +136,8 @@ export function twoStats(s: Slide, t: BrandTheme): string {
     .map(
       (st, i) =>
         `<div ${item(`stats.${i}`)} style="position:absolute;left:907px;top:${tops[i]}px;width:931px;height:300px;">` +
-        `<div class="ars" ${ed(`stats.${i}.value`, 160)} style="position:absolute;left:0;top:0;width:340px;white-space:nowrap;font-family:${MANROPE};font-weight:400;font-size:144px;line-height:152px;letter-spacing:-.01em;color:var(--accent);animation-delay:.${10 + i * 12}s;">${esc(st.value)}</div>` +
-        `<div class="ars" ${ed(`stats.${i}.label`, 300)} style="position:absolute;left:373px;top:4px;width:558px;${BODY32}color:#000000;animation-delay:.${16 + i * 12}s;">${esc(st.label)}</div>` +
+        `<div class="ars" ${ed(`stats.${i}.value`, 160)} style="position:absolute;left:0;top:0;width:340px;white-space:nowrap;font-family:${MANROPE};font-weight:400;font-size:144px;line-height:152px;letter-spacing:-.01em;color:var(--accent);${dly(10 + i * 12)}">${esc(st.value)}</div>` +
+        `<div class="ars" ${ed(`stats.${i}.label`, 300)} style="position:absolute;left:373px;top:4px;width:558px;${BODY32}color:#000000;${dly(16 + i * 12)}">${esc(st.label)}</div>` +
         `</div>`,
     )
     .join("");
@@ -168,7 +169,7 @@ export function singleStat(s: Slide, t: BrandTheme): string {
 /** Legend row (dot + label) used by the two chart layouts. */
 function legendRow(path: string, x: number, y: number, color: string, text: string, delay: number): string {
   return (
-    `<div class="ars" ${item(path.replace(/\.label$/, ""))} style="position:absolute;left:${x}px;top:${y}px;display:flex;align-items:center;gap:24px;animation-delay:.${delay}s;">` +
+    `<div class="ars" ${item(path.replace(/\.label$/, ""))} style="position:absolute;left:${x}px;top:${y}px;display:flex;align-items:center;gap:24px;${dly(delay)}">` +
     `<div style="width:20px;height:20px;border-radius:50%;background:${color};"></div>` +
     `<div ${ed(path, 60)} style="${BODY32}color:#000000;">${esc(text)}</div>` +
     `</div>`
@@ -208,8 +209,8 @@ export function chartBars(s: Slide, t: BrandTheme): string {
       const h = Math.max(6, Math.round((v / max) * (AREA.h - 87)));
       const x = Math.round(colW * i + (colW - barW) / 2);
       return (
-        `<div class="agh" ${item(`bars.${i}`)} style="position:absolute;left:${x}px;top:${AREA.h - h}px;width:${barW}px;height:${h}px;background:${shades[i % shades.length]};border-radius:4px 4px 0 0;animation-delay:.${10 + i * 8}s;"></div>` +
-        `<div class="ars" ${ed(`bars.${i}.value`, 44)} style="position:absolute;left:${x - 30}px;top:${AREA.h - h - 48}px;width:${barW + 60}px;text-align:center;font-family:${MANROPE};font-weight:600;font-size:30px;line-height:1.2;color:#000000;animation-delay:.${14 + i * 8}s;">${fmt(v)}</div>`
+        `<div class="agh" ${item(`bars.${i}`)} style="position:absolute;left:${x}px;top:${AREA.h - h}px;width:${barW}px;height:${h}px;background:${shades[i % shades.length]};border-radius:4px 4px 0 0;${dly(10 + i * 8)}"></div>` +
+        `<div class="ars" ${ed(`bars.${i}.value`, 44)} style="position:absolute;left:${x - 30}px;top:${AREA.h - h - 48}px;width:${barW + 60}px;text-align:center;font-family:${MANROPE};font-weight:600;font-size:30px;line-height:1.2;color:#000000;${dly(14 + i * 8)}">${fmt(v)}</div>`
       );
     })
     .join("");
@@ -294,7 +295,7 @@ export function timeline(s: Slide, t: BrandTheme): string {
       const x = Math.round(104 + i * colW + 2);
       const top = i < below ? 624 : 199;
       return (
-        `<div class="ars" ${item(`blocks.${i}`)} style="position:absolute;left:${x}px;top:${top}px;width:${Math.round(colW) - 60}px;animation-delay:.${18 + i * 8}s;">` +
+        `<div class="ars" ${item(`blocks.${i}`)} style="position:absolute;left:${x}px;top:${top}px;width:${Math.round(colW) - 60}px;${dly(18 + i * 8)}">` +
         `<div ${ed(`blocks.${i}.label`, 60)} style="font-family:${MANROPE};font-weight:600;font-size:40px;line-height:56px;letter-spacing:-.01em;color:#161616;">${esc(b.label)}</div>` +
         `<div ${ed(`blocks.${i}.body`, 165)} style="margin-top:12px;${BODY30}color:#000000;">${esc(b.body)}</div>` +
         `</div>`
@@ -320,7 +321,7 @@ export function timelinePhases(s: Slide, t: BrandTheme): string {
   const cols = phases
     .map(
       (p, i) =>
-        `<div class="ars" ${item(`blocks.${i}`)} style="position:absolute;left:${Math.round(100 + i * step)}px;top:300px;width:280px;animation-delay:.${10 + i * 8}s;">` +
+        `<div class="ars" ${item(`blocks.${i}`)} style="position:absolute;left:${Math.round(100 + i * step)}px;top:300px;width:280px;${dly(10 + i * 8)}">` +
         `<div style="font-family:${MANROPE};font-weight:600;font-size:32px;line-height:1.32;color:var(--accent);">Phase ${i + 1}</div>` +
         `<div style="margin-top:60px;height:8px;background:var(--accent);"></div>` +
         `<div ${ed(`blocks.${i}.label`, 45)} style="margin-top:38px;font-family:${MANROPE};font-weight:600;font-size:32px;line-height:1.32;color:#161616;">${esc(p.label)}</div>` +

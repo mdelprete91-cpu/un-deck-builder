@@ -7,6 +7,7 @@ import {
   BODY32,
   esc,
   ed,
+  dly,
   item,
   section,
   footer,
@@ -32,7 +33,7 @@ export function agenda(s: Slide, t: BrandTheme): string {
   const items = (s.bullets ?? [])
     .map(
       (bullet, i) =>
-        `<div class="ars" ${item(`bullets.${i}`)} style="padding:10px;height:73px;box-sizing:border-box;display:flex;align-items:center;margin-bottom:8px;font-family:${MANROPE};font-weight:600;font-size:48px;line-height:1.1;letter-spacing:-.02em;color:#FFFFFF;animation-delay:.${10 + i * 6}s;"><span style="white-space:pre;">0${i + 1} | </span><span ${ed(`bullets.${i}`, 63)}>${esc(bullet)}</span></div>`,
+        `<div class="ars" ${item(`bullets.${i}`)} style="padding:10px;height:73px;box-sizing:border-box;display:flex;align-items:center;margin-bottom:8px;font-family:${MANROPE};font-weight:600;font-size:48px;line-height:1.1;letter-spacing:-.02em;color:#FFFFFF;${dly(10 + i * 6)}"><span style="white-space:pre;">0${i + 1} | </span><span ${ed(`bullets.${i}`, 63)}>${esc(bullet)}</span></div>`,
     )
     .join("");
   return section(
@@ -114,7 +115,7 @@ export function bodyCopy(s: Slide, t: BrandTheme): string {
           const xs = blocks.length === 2 ? [100, 978] : [100];
           const width = blocks.length === 2 ? 842 : 1720;
           return (
-            `<div class="ars" ${item(`blocks.${i}`)} style="position:absolute;left:${xs[i]}px;top:394px;width:${width}px;animation-delay:.${12 + i * 6}s;">` +
+            `<div class="ars" ${item(`blocks.${i}`)} style="position:absolute;left:${xs[i]}px;top:394px;width:${width}px;${dly(12 + i * 6)}">` +
             `<div ${ed(`blocks.${i}.body`, 540)} style="${BODY30}">${esc(b.body)}</div>` +
             `</div>`
           );
@@ -172,7 +173,7 @@ export function partners(s: Slide, t: BrandTheme): string {
       const src = s.logos?.[slug] ?? `/partners/${slug}.svg`;
       // brightness(0) invert(1) forces ANY uploaded logo to render white
       return (
-        `<div class="ars" ${item(`bullets.${i}`)} data-logo="${slug}" style="position:absolute;left:${cx}px;top:${cy}px;width:266px;height:110px;display:flex;align-items:center;justify-content:center;overflow:hidden;animation-delay:.${8 + i * 4}s;">` +
+        `<div class="ars" ${item(`bullets.${i}`)} data-logo="${slug}" style="position:absolute;left:${cx}px;top:${cy}px;width:266px;height:110px;display:flex;align-items:center;justify-content:center;overflow:hidden;${dly(8 + i * 4)}">` +
         `<img src="${src}" alt="${esc(n)}" style="max-width:240px;max-height:100px;object-fit:contain;filter:brightness(0) invert(1);" onerror="this.style.display='none';this.nextElementSibling.style.display='block'">` +
         `<div ${ed(`bullets.${i}`)} style="display:none;font-family:${MANROPE};font-weight:600;font-size:30px;letter-spacing:-.02em;color:#FFFFFF;text-align:center;">${esc(n)}</div>` +
         `</div>`
@@ -201,7 +202,7 @@ export function thankYou(s: Slide, t: BrandTheme): string {
     .slice(0, 2)
     .map(
       (c, i) =>
-        `<div class="ars" ${item(`contacts.${i}`)} style="position:absolute;left:${100 + i * 744}px;top:395px;width:664px;animation-delay:.${12 + i * 8}s;">` +
+        `<div class="ars" ${item(`contacts.${i}`)} style="position:absolute;left:${100 + i * 744}px;top:395px;width:664px;${dly(12 + i * 8)}">` +
         `<div ${ed(`contacts.${i}.name`, 120)} style="font-family:${MANROPE};font-weight:600;font-size:48px;line-height:1.15;letter-spacing:-.02em;">${esc(c.name)}</div>` +
         `<div style="margin-top:29px;font-family:${OPEN_SANS};font-weight:500;font-size:32px;line-height:1.4;letter-spacing:-.01em;">` +
         `<div ${ed(`contacts.${i}.role`)}>${esc(c.role)}</div>` +
@@ -212,7 +213,7 @@ export function thankYou(s: Slide, t: BrandTheme): string {
     .join("");
   const channels = CHANNELS.map(
     (ch, i) =>
-      `<div class="ars" style="flex:1;${BODY30}color:#FFFFFF;animation-delay:.${26 + i * 4}s;"><div>${ch.label}</div><div>${ch.value}</div></div>`,
+      `<div class="ars" style="flex:1;${BODY30}color:#FFFFFF;${dly(26 + i * 4)}"><div>${ch.label}</div><div>${ch.value}</div></div>`,
   ).join("");
   return section(
     t,
