@@ -140,8 +140,25 @@ export default function SlideFrame({
         btn.type = "button";
         btn.title = "Delete element";
         btn.textContent = "✕";
-        if (getComputedStyle(node).overflow === "hidden") {
-          // clipped cells (e.g. partner logos) keep the ✕ inside the corner
+        // The ✕ overhangs the item's top-right corner (-24px). Keep it inside
+        // when the item clips itself (partner logos) or when a clipping
+        // ancestor would cut the overhang off (callout rows in the flex zone).
+        let inside = getComputedStyle(node).overflow === "hidden";
+        if (!inside) {
+          const overhang = 24 * (stage.getBoundingClientRect().width / 1920);
+          const r = node.getBoundingClientRect();
+          for (let p = node.parentElement; p && p !== stage; p = p.parentElement) {
+            const cs = getComputedStyle(p);
+            if (cs.overflow === "hidden" || cs.overflowX === "hidden" || cs.overflowY === "hidden") {
+              const cr = p.getBoundingClientRect();
+              if (r.right + overhang > cr.right + 1 || r.top - overhang < cr.top - 1) {
+                inside = true;
+                break;
+              }
+            }
+          }
+        }
+        if (inside) {
           btn.style.top = "8px";
           btn.style.right = "8px";
         }

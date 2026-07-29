@@ -39,6 +39,32 @@
   .float-idle { animation: floatIdle 3.4s ease-in-out 0.5s infinite; }
 }
 
+/* Rainbow halo behind the slide-actions pill: keeps it visible on white
+   slides. Registered property so the conic angle itself can animate. */
+@property --glow-angle {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 0deg;
+}
+@keyframes glowSpin {
+  to { --glow-angle: 360deg; }
+}
+.rainbow-glow {
+  position: absolute;
+  inset: -4px;
+  border-radius: 9999px;
+  pointer-events: none;
+  background: conic-gradient(
+    from var(--glow-angle),
+    #277aff, #8b5cf6, #ff5ca8, #ffb020, #00d4a0, #27c4ff, #277aff
+  );
+  filter: blur(12px);
+  opacity: 0.55;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .rainbow-glow { animation: glowSpin 5s linear infinite; }
+}
+
 /* Self-hosted brand fonts — Manrope (headings) + Open Sans (body) */
 @font-face {
   font-family: 'Manrope';

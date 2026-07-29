@@ -557,9 +557,10 @@ function SlideActions({
     "flex h-10 items-center gap-1.5 rounded-full px-3.5 text-[13px] font-semibold text-ink transition-colors duration-150 hover:bg-giga-tint disabled:pointer-events-none disabled:opacity-30";
   return (
     <div className="float-in pointer-events-none absolute inset-x-0 bottom-12 z-20 flex justify-center">
-      <div
-        className={`${aiOpen || busy ? "" : "float-idle "}pointer-events-auto flex items-center gap-0.5 rounded-full border border-giga-100 bg-white p-1.5 shadow-float`}
-      >
+      {/* Glow and pill bob together; the glow sits behind the white pill */}
+      <div className={`${aiOpen || busy ? "" : "float-idle "}pointer-events-auto relative`}>
+        <div aria-hidden className="rainbow-glow" />
+        <div className="relative flex items-center gap-0.5 rounded-full border border-giga-100 bg-white p-1.5 shadow-float">
         {busy ? (
           <div className="flex h-10 items-center gap-2.5 px-4 text-[13px] font-semibold text-giga">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" className="animate-spin">
@@ -661,6 +662,7 @@ function SlideActions({
             }
           }}
         />
+        </div>
       </div>
     </div>
   );
