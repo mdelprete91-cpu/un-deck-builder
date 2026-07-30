@@ -180,6 +180,17 @@ body {
 .slide-root [data-cell]:hover .cell-ghost {
   opacity: 0.35 !important;
 }
+/* Icon-card icons are clickable (icon picker): show it on hover */
+.slide-root [data-icon-pick] {
+  border-radius: 16px;
+  padding: 8px;
+  margin: -8px;
+  transition: background-color 0.15s, box-shadow 0.15s;
+}
+.slide-root [data-icon-pick]:hover {
+  background: rgba(39, 122, 255, 0.08);
+  box-shadow: 0 0 0 2px rgba(39, 122, 255, 0.4);
+}
 .slide-root .item-delete {
   position: absolute;
   top: -24px;

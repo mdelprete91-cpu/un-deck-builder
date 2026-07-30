@@ -390,7 +390,7 @@ export default function Studio() {
   );
 }
 
-/** Lucide icon chooser for icon-card slides, opened by clicking a card's icon. */
+/** Lucide icon chooser for icon-card slides: the full set, searchable. */
 function IconPickerModal({
   current,
   onPick,
@@ -400,6 +400,7 @@ function IconPickerModal({
   onPick: (icon: string) => void;
   onClose: () => void;
 }) {
+  const [query, setQuery] = useState("");
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
@@ -407,43 +408,63 @@ function IconPickerModal({
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
+  const q = query.trim().toLowerCase();
+  const names = q ? ICON_NAMES.filter((n) => n.includes(q)) : ICON_NAMES;
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-ink/45 p-6"
       onClick={onClose}
     >
       <div
-        className="pop-in w-full max-w-sm rounded-2xl bg-white p-5 shadow-stripe-lg"
+        className="pop-in flex w-full max-w-xl flex-col rounded-2xl bg-white p-5 shadow-stripe-lg"
         onClick={(e) => e.stopPropagation()}
       >
-        <p className="font-manrope mb-3 text-[10px] font-bold uppercase tracking-[0.18em] text-giga">
-          Choose an icon
-        </p>
-        <div className="grid grid-cols-6 gap-1.5">
-          {ICON_NAMES.map((name) => (
+        <div className="mb-3 flex items-baseline justify-between">
+          <p className="font-manrope text-[10px] font-bold uppercase tracking-[0.18em] text-giga">
+            Choose an icon
+          </p>
+          <span className="text-[11px] text-ink-muted">
+            {names.length.toLocaleString()} icons
+          </span>
+        </div>
+        <input
+          autoFocus
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Search icons… (e.g. satellite, school, rocket)"
+          className="mb-3 w-full rounded-lg border border-hairline bg-white px-3 py-2 text-sm text-ink outline-none transition-shadow duration-150 placeholder:text-ink-muted/70 focus:border-giga focus:ring-[3px] focus:ring-giga/15"
+        />
+        <div className="grid max-h-[52vh] grid-cols-9 gap-1 overflow-y-auto pr-1">
+          {names.map((name) => (
             <button
               key={name}
               title={name}
               onClick={() => onPick(name)}
-              className={`flex h-12 items-center justify-center rounded-lg border transition-colors duration-150 ${
+              className={`group flex h-11 cursor-pointer items-center justify-center rounded-lg border transition-all duration-100 ${
                 current === name
                   ? "border-giga bg-giga-tint"
-                  : "border-transparent hover:border-giga-100 hover:bg-canvas"
+                  : "border-transparent hover:border-giga-100 hover:bg-giga-tint hover:shadow-stripe"
               }`}
             >
               <svg
-                width="24"
-                height="24"
+                width="22"
+                height="22"
                 viewBox="0 0 24 24"
                 fill="none"
                 stroke="#277AFF"
                 strokeWidth="1.6"
                 strokeLinecap="round"
                 strokeLinejoin="round"
+                className="transition-transform duration-100 group-hover:scale-125"
                 dangerouslySetInnerHTML={{ __html: ICON_LIBRARY[name] }}
               />
             </button>
           ))}
+          {names.length === 0 && (
+            <p className="col-span-9 py-6 text-center text-sm text-ink-muted">
+              No icon matches “{query}”.
+            </p>
+          )}
         </div>
       </div>
     </div>
