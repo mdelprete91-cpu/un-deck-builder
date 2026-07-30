@@ -39,6 +39,44 @@
   .float-idle { animation: floatIdle 3.4s ease-in-out 0.5s infinite; }
 }
 
+/* Slide-count slider: filled track (inline gradient) + ringed thumb */
+.giga-range {
+  appearance: none;
+  -webkit-appearance: none;
+  height: 6px;
+  border-radius: 9999px;
+  outline: none;
+  cursor: pointer;
+}
+.giga-range::-webkit-slider-thumb {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #ffffff;
+  border: 2.5px solid #277aff;
+  box-shadow: 0 1px 4px rgba(10, 27, 63, 0.25);
+  transition: transform 0.1s;
+}
+.giga-range::-webkit-slider-thumb:hover {
+  transform: scale(1.15);
+}
+.giga-range:active::-webkit-slider-thumb {
+  transform: scale(1.25);
+}
+.giga-range::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #ffffff;
+  border: 2.5px solid #277aff;
+  box-shadow: 0 1px 4px rgba(10, 27, 63, 0.25);
+}
+.giga-range::-moz-range-track {
+  background: transparent;
+}
+
 /* Rainbow halo behind the slide-actions pill: keeps it visible on white
    slides. Registered property so the conic angle itself can animate. */
 @property --glow-angle {
