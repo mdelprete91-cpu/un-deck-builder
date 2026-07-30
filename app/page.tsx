@@ -179,8 +179,10 @@ export default function Studio() {
       { mode: "generate", brief, count: state.count, brandLabel: theme.label },
       { replace: true },
     );
-    // A partnership brief always ships with the two fixed partnership-tier slides.
-    if (received > 0 && /partnership/i.test(brief)) dispatch({ type: "INSERT_TIERS" });
+    // The two fixed partnership-tier slides are added only when the brief
+    // asks for them explicitly ("tiers", "tier table", "livelli"); a generic
+    // partnership deck must not ship them uninvited.
+    if (received > 0 && /\btiers?\b|\blivell[oi]\b/i.test(brief)) dispatch({ type: "INSERT_TIERS" });
   };
 
   /**
