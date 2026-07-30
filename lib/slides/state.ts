@@ -26,7 +26,7 @@ export interface DeckState {
 }
 
 export const initialDeckState: DeckState = {
-  brandId: "giga",
+  brandId: "did",
   brief: "",
   count: 8,
   slides: [],

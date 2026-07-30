@@ -1,4 +1,4 @@
-export type BrandId = "giga" | "unicef" | "did";
+export type BrandId = "giga" | "unicef" | "did" | "inclusion";
 
 export interface BrandTheme {
   id: BrandId;
@@ -26,8 +26,9 @@ export interface BrandTheme {
 
 const GIGA_LOCKUP = "/logos/giga-unicef-itu-horizontal.svg";
 const UNICEF_LOGO = "/logos/unicef.svg";
-const DID_BLACK = "/logos/unicef-digital-impact-division-black.svg";
-const DID_WHITE = "/logos/unicef-digital-impact-division-white.svg";
+const DID_UNBOXED = "/logos/unicef-digital-impact-unboxed.svg";
+const INCLUSION_BLACK = "/logos/unicef-digital-inclusion-black.svg";
+const INCLUSION_WHITE = "/logos/unicef-digital-inclusion-white.svg";
 
 const TO_BLACK = "brightness(0)";
 const TO_WHITE = "brightness(0) invert(1)";
@@ -48,7 +49,18 @@ const GIGA_PALETTE = {
   barShades: ["#277AFF", "#4C90FF", "#6CA4FF", "#8FB8FF", "#B5D0FF"],
 } satisfies Partial<BrandTheme>;
 
+// Key order drives the Logo select: Digital Impact Division first.
 export const BRANDS: Record<BrandId, BrandTheme> = {
+  did: {
+    id: "did",
+    label: "Digital Impact Division",
+    ...GIGA_PALETTE,
+    footerLabel: "Digital Impact Division",
+    // Unboxed lockup (no cyan square), slightly scaled up to match the others
+    logoLight: { src: DID_UNBOXED, filter: TO_BLACK, scale: 1.2 },
+    logoDark: { src: DID_UNBOXED, filter: TO_WHITE, scale: 1.2 },
+    logoCover: { src: DID_UNBOXED, scale: 1.2 },
+  },
   giga: {
     id: "giga",
     label: "Giga",
@@ -67,15 +79,14 @@ export const BRANDS: Record<BrandId, BrandTheme> = {
     logoDark: { src: UNICEF_LOGO, filter: TO_WHITE },
     logoCover: { src: UNICEF_LOGO },
   },
-  did: {
-    id: "did",
-    label: "Digital Impact Division",
+  inclusion: {
+    id: "inclusion",
+    label: "UNICEF Digital Inclusion",
     ...GIGA_PALETTE,
-    footerLabel: "Digital Impact Division",
-    // The DID lockup is visually smaller than the Giga one — scale it up
-    logoLight: { src: DID_BLACK, scale: 1.4 },
-    logoDark: { src: DID_WHITE, scale: 1.4 },
-    logoCover: { src: DID_BLACK, scale: 1.4 },
+    footerLabel: "Digital Inclusion",
+    logoLight: { src: INCLUSION_BLACK, filter: TO_BLACK },
+    logoDark: { src: INCLUSION_WHITE, filter: TO_WHITE },
+    logoCover: { src: INCLUSION_BLACK },
   },
 };
 

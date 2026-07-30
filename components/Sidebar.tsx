@@ -36,9 +36,9 @@ export default function Sidebar({ state, dispatch, onGenerate, onAddMore }: Side
         {/* Same colored lockup as the Brand Asset Generator header */}
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src="/logos/giga-unicef-itu-horizontal.svg"
-          alt="Giga, UNICEF and ITU"
-          className="h-11 w-auto"
+          src="/logos/unicef-digital-impact-unboxed.svg"
+          alt="UNICEF Digital Impact Division"
+          className="h-12 w-auto"
         />
       </div>
 
