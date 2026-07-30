@@ -37,11 +37,8 @@ export default function Sidebar({ state, dispatch, onGenerate, onAddMore }: Side
         <img
           src="/logos/giga-unicef-itu-horizontal.svg"
           alt="Giga, UNICEF and ITU"
-          className="h-9 w-auto"
+          className="h-11 w-auto"
         />
-        <p className="mt-2.5 text-xs leading-relaxed text-ink-muted">
-          Describe the story. The AI picks the right template slides and fills them in.
-        </p>
       </div>
 
       {/* Logo lockup: colors stay Giga on every option, only logo and footer change */}
@@ -74,6 +71,9 @@ export default function Sidebar({ state, dispatch, onGenerate, onAddMore }: Side
           rows={7}
           className="w-full resize-y rounded-lg border border-hairline bg-white p-3 text-sm text-ink outline-none transition-shadow duration-150 placeholder:text-ink-muted/70 focus:border-giga focus:ring-[3px] focus:ring-giga/15"
         />
+        <p className="mt-1.5 text-xs leading-relaxed text-ink-muted">
+          Describe the story. The AI picks the right template slides and fills them in.
+        </p>
       </div>
 
       {/* Count */}
