@@ -171,7 +171,7 @@ export function defaultContent(layoutId: LayoutId): SlideContent {
     case "thank-you":
       return {
         layoutId,
-        title: "Thank you!",
+        title: "Thanks",
         contacts: [
           {
             name: "Name Surname",

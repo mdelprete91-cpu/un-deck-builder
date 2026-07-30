@@ -228,6 +228,10 @@ export function normalizeSlide(raw: unknown): SlideContent | null {
   if (!parsed.success) return null;
   const slide = parsed.data as SlideContent;
 
+  // The closing slide is always titled "Thanks" — only the user may change
+  // it by editing the slide; the model never picks the wording.
+  if (slide.layoutId === "thank-you") slide.title = "Thanks";
+
   // body-copy moved from one `body` string to 1-2 `blocks`; convert model or
   // legacy output that still carries prose in `body`.
   if (slide.layoutId === "body-copy" && !slide.blocks?.length && slide.body) {

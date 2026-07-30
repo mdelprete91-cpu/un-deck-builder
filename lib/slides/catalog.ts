@@ -40,7 +40,7 @@ export const CATALOG: CatalogEntry[] = [
   { id: "example-image-left", usage: "Two labelled paragraphs + full-height photo left", fields: "title(<=6 words), blocks(1-2: label 1-2 words, body <=30 words)" },
   { id: "example-image-right", usage: "Two labelled paragraphs + full-height photo right", fields: "title(<=6 words), blocks(1-2: label 1-2 words, body <=30 words)" },
   { id: "partner", usage: "Partner name wall on accent background; only when partners are named in the brief", fields: "title(<=3 words e.g. Our partners), bullets(2-15 partner names)" },
-  { id: "thank-you", usage: "Closing slide, always last", fields: "title(Thank you! or equivalent), contacts(1-2: name, role, location, email)" },
+  { id: "thank-you", usage: "Closing slide, always last", fields: 'title(always exactly "Thanks"), contacts(1-2: name, role, location, email)' },
 ];
 
 // Compile-time guarantee that the catalog covers every AI-selectable layout.
