@@ -84,24 +84,9 @@ export default function Sidebar({ state, dispatch, onGenerate, onAddMore }: Side
           className="w-full resize-y rounded-lg border border-hairline bg-white p-3 text-sm text-ink outline-none transition-shadow duration-150 placeholder:text-ink-muted/70 focus:border-giga focus:ring-[3px] focus:ring-giga/15"
         />
         <p className="mt-1.5 text-xs leading-relaxed text-ink-muted">
-          Describe the story. The AI picks the right template slides and fills them in.
+          Describe the story. The AI picks the right template slides, decides how many the story
+          needs (ask for a count if you want one) and fills them in.
         </p>
-      </div>
-
-      {/* Count */}
-      <div>
-        <Eyebrow>Slides: {state.count}</Eyebrow>
-        <input
-          type="range"
-          min={3}
-          max={20}
-          value={state.count}
-          onChange={(e) => dispatch({ type: "SET_COUNT", count: Number(e.target.value) })}
-          className="giga-range w-full"
-          style={{
-            background: `linear-gradient(to right, #277AFF ${((state.count - 3) / 17) * 100}%, #DDE6F0 ${((state.count - 3) / 17) * 100}%)`,
-          }}
-        />
       </div>
 
       <button

@@ -8,7 +8,6 @@ import { renderSlide, LAYOUTS } from "@/lib/slides/layouts";
 import { defaultContent } from "@/lib/slides/defaults";
 import { loadDeck, saveDeck } from "@/lib/slides/storage";
 import { exportHtmlDeck } from "@/lib/slides/export-html";
-import { exportPptxDeck } from "@/lib/slides/export-pptx";
 import { computeLogoTone } from "@/lib/slides/logo-tone";
 import { ICON_LIBRARY, ICON_NAMES } from "@/lib/slides/icons";
 import Sidebar from "@/components/Sidebar";
@@ -176,7 +175,7 @@ export default function Studio() {
   const onGenerate = async () => {
     const brief = state.brief;
     const received = await runGeneration(
-      { mode: "generate", brief, count: state.count, brandLabel: theme.label },
+      { mode: "generate", brief, brandLabel: theme.label },
       { replace: true },
     );
     // The two fixed partnership-tier slides are added only when the brief
@@ -245,24 +244,8 @@ export default function Studio() {
     );
   };
 
-  const [pptxProgress, setPptxProgress] = useState<string | null>(null);
   // Icon picker: block index of the active slide's icon being changed
   const [iconPicker, setIconPicker] = useState<number | null>(null);
-  const onExportPptx = async () => {
-    if (pptxProgress) return;
-    setPptxProgress("Preparing…");
-    try {
-      await exportPptxDeck(state.slides, theme, state.slides[0]?.title ?? "giga-deck", (done, total) =>
-        setPptxProgress(`Slide ${done} / ${total}`),
-      );
-    } catch (err) {
-      console.error("PPTX export failed:", err);
-      const message = err instanceof Error ? err.message : String(err);
-      dispatch({ type: "GENERATION_ERROR", error: `PPTX export failed: ${message}` });
-    } finally {
-      setPptxProgress(null);
-    }
-  };
 
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-canvas text-ink">
@@ -283,8 +266,6 @@ export default function Studio() {
               onRedo={() => dispatch({ type: "REDO" })}
               onExportPdf={() => window.print()}
               onExportHtml={onExportHtml}
-              onExportPptx={onExportPptx}
-              pptxProgress={pptxProgress}
             />
             {dataPanelOpen && active && isChart && (
               <ChartDataPanel
@@ -509,8 +490,6 @@ function Toolbar({
   onRedo,
   onExportPdf,
   onExportHtml,
-  onExportPptx,
-  pptxProgress,
 }: {
   index: number;
   total: number;
@@ -521,8 +500,6 @@ function Toolbar({
   onRedo: () => void;
   onExportPdf: () => void;
   onExportHtml: () => void;
-  onExportPptx: () => void;
-  pptxProgress: string | null;
 }) {
   const [exportOpen, setExportOpen] = useState(false);
   useEffect(() => {
@@ -563,7 +540,7 @@ function Toolbar({
           onClick={() => setExportOpen((v) => !v)}
           className="font-manrope flex h-9 items-center gap-1.5 rounded-full bg-giga px-4 text-xs font-semibold text-white shadow-stripe-md transition-all duration-150 hover:bg-giga-deep active:scale-[0.98]"
         >
-          {pptxProgress ? `Exporting ${pptxProgress}` : "Export"}
+          Export
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className={`transition-transform duration-150 ${exportOpen ? "rotate-180" : ""}`}>
             <path d="m6 9 6 6 6-6" />
           </svg>
@@ -592,18 +569,13 @@ function Toolbar({
                 HTML deck
                 <span className="mt-0.5 block font-normal text-ink-muted">Standalone file with animations</span>
               </button>
+              {/* PPTX export is parked: item stays visible but disabled */}
               <button
-                onClick={() => {
-                  setExportOpen(false);
-                  onExportPptx();
-                }}
-                disabled={pptxProgress != null}
-                className="block w-full rounded-lg px-3 py-2 text-left text-xs font-semibold text-ink transition-colors duration-100 hover:bg-giga-tint disabled:pointer-events-none disabled:opacity-50"
+                disabled
+                className="block w-full rounded-lg px-3 py-2 text-left text-xs font-semibold text-ink opacity-50"
               >
                 PowerPoint
-                <span className="mt-0.5 block font-normal text-ink-muted">
-                  {pptxProgress ? `Exporting… ${pptxProgress}` : ".pptx, slides as full-quality images"}
-                </span>
+                <span className="mt-0.5 block font-normal text-ink-muted">Not available at the moment</span>
               </button>
             </div>
           </>

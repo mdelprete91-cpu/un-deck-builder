@@ -93,7 +93,41 @@ function remember(state: DeckState): Pick<DeckState, "past" | "future"> {
   };
 }
 
+/**
+ * The agenda is a live index of the deck's chapters: when section-divider
+ * slides exist, its bullets always mirror their titles in deck order.
+ * Decks without dividers keep a manual agenda.
+ */
+function syncAgenda(slides: Slide[]): Slide[] {
+  const ai = slides.findIndex((s) => s.layoutId === "agenda");
+  if (ai < 0) return slides;
+  const chapters = slides
+    .filter((s) => s.layoutId === "section-divider")
+    .map((s) => (s.title ?? "").trim());
+  if (chapters.length === 0) return slides;
+  const bullets = chapters.slice(0, 9);
+  const current = slides[ai].bullets ?? [];
+  if (current.length === bullets.length && current.every((b, i) => b === bullets[i])) return slides;
+  const next = [...slides];
+  next[ai] = { ...next[ai], bullets };
+  return next;
+}
+
+/** Deck positions of the section-divider slides, in order. */
+function dividerIndexes(slides: Slide[]): number[] {
+  return slides.flatMap((s, i) => (s.layoutId === "section-divider" ? [i] : []));
+}
+
 export function deckReducer(state: DeckState, action: DeckAction): DeckState {
+  const next = reduce(state, action);
+  if (next.slides !== state.slides) {
+    const synced = syncAgenda(next.slides);
+    if (synced !== next.slides) return { ...next, slides: synced };
+  }
+  return next;
+}
+
+function reduce(state: DeckState, action: DeckAction): DeckState {
   switch (action.type) {
     case "HYDRATE":
       return { ...state, ...action.state, status: "idle", past: [], future: [] };
@@ -141,6 +175,18 @@ export function deckReducer(state: DeckState, action: DeckAction): DeckState {
     case "EDIT_FIELD": {
       const slide = state.slides[action.index];
       if (!slide) return state;
+      // Agenda bullets are chapter titles: editing one renames the matching
+      // section-divider (the agenda re-syncs from it).
+      const bullet = /^bullets\.(\d+)$/.exec(action.path);
+      if (slide.layoutId === "agenda" && bullet) {
+        const dividers = dividerIndexes(state.slides);
+        const target = dividers[Number(bullet[1])];
+        if (target !== undefined) {
+          const slides = [...state.slides];
+          slides[target] = { ...slides[target], title: action.value };
+          return { ...state, ...remember(state), slides };
+        }
+      }
       const slides = [...state.slides];
       slides[action.index] = setPath(slide, action.path, action.value);
       return { ...state, ...remember(state), slides };
@@ -150,6 +196,21 @@ export function deckReducer(state: DeckState, action: DeckAction): DeckState {
       const slide = state.slides[action.index];
       if (!slide) return state;
       const [field, idxStr] = action.path.split(".");
+      // Agenda bullets are chapter titles: deleting one removes the matching
+      // section-divider slide (chapter content stays).
+      if (slide.layoutId === "agenda" && field === "bullets") {
+        const dividers = dividerIndexes(state.slides);
+        const target = dividers[Number(idxStr)];
+        if (target !== undefined) {
+          const slides = state.slides.filter((_, i) => i !== target);
+          return {
+            ...state,
+            ...remember(state),
+            slides,
+            activeIndex: Math.min(state.activeIndex, Math.max(0, slides.length - 1)),
+          };
+        }
+      }
       const spec = PRIMARY_ARRAY[slide.layoutId];
       if (!spec || spec.field !== field) return state;
       const arr = slide[spec.field];
@@ -244,6 +305,19 @@ export function deckReducer(state: DeckState, action: DeckAction): DeckState {
     case "ADD_ITEM": {
       const slide = state.slides[action.index];
       if (!slide) return state;
+      // Adding an agenda item on a chaptered deck creates the chapter too:
+      // a new section-divider lands before the closing thank-you and the
+      // agenda picks up its title automatically.
+      if (slide.layoutId === "agenda" && dividerIndexes(state.slides).length > 0) {
+        if (dividerIndexes(state.slides).length >= 9) return state;
+        const slides = [...state.slides];
+        const at =
+          slides.length > 0 && slides[slides.length - 1].layoutId === "thank-you"
+            ? slides.length - 1
+            : slides.length;
+        slides.splice(at, 0, ensureId({ layoutId: "section-divider", title: "New chapter" }));
+        return { ...state, ...remember(state), slides };
+      }
       const spec = PRIMARY_ARRAY[slide.layoutId];
       if (!spec) return state;
       const arr = (slide[spec.field] ?? []) as unknown[];

@@ -38,7 +38,9 @@ export async function POST(request: Request): Promise<Response> {
   // 4 retries (default 2): rides out transient 529 "overloaded" spikes
   const client = new Anthropic({ maxRetries: 4 });
   const isAdd = body.mode === "add";
-  const count = body.mode === "regenerate" ? 1 : Math.min(Math.max(body.count ?? 8, 1), 20);
+  // The model picks the deck size itself in generate mode, so budget for the
+  // biggest reasonable deck; add/regenerate keep count-driven budgets.
+  const count = body.mode === "regenerate" ? 1 : Math.min(Math.max(body.count ?? 20, 1), 20);
   // Add mode carries extra output (insertAfter + refreshed agenda bullets)
   const maxTokens = Math.min(800 + 400 * count + (isAdd ? 400 : 0), 16000);
   const encoder = new TextEncoder();

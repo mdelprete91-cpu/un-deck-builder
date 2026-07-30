@@ -15,7 +15,7 @@ ${catalogLines}
 
 RULES:
 - Output slides in presentation order. ALWAYS start with "cover" and ALWAYS end with "thank-you" (the user deletes them if unneeded).
-- Use "agenda" right after the cover only for decks of 6+ slides.
+- Use "agenda" right after the cover only for decks of 6+ slides. Agenda bullets MUST mirror the deck's "section-divider" slides one-to-one: same order, same wording (<=5 words each). Every chapter opens with its own section-divider carrying that exact title.
 - Pick the layout that best fits each beat of the story. Never use the same layout for 3 slides in a row. Alternate light and dark surfaces so the deck has rhythm.
 - Respect every word limit strictly. Numbers do the talking: prefer concrete figures over adjectives.
 - Voice: plain, declarative, infrastructural, public-good. Sentence case everywhere (never Title Case in body text). Banned words: leveraging, synergies, cutting-edge, revolutionary, empower, unlock.
@@ -46,7 +46,7 @@ export function buildUserMessage(body: GenerateBody): string {
     case "regenerate":
       return `Current slide (JSON): ${JSON.stringify(body.targetSlide)}\n\nDeck brief: ${body.brief}${brand}\n\nRewrite this single slide.${body.instruction ? ` Instruction: ${body.instruction}` : " Improve the copy."} You may switch to a more appropriate layout if the instruction calls for it. Return exactly one slide.`;
     default:
-      return `Brief: ${body.brief}${brand}\n\nCreate a deck of exactly ${body.count ?? 8} slides telling this story.`;
+      return `Brief: ${body.brief}${brand}\n\nCreate the deck that best tells this story. Choose the number of slides yourself (typically 8-14); if the brief asks for a specific count, honor it exactly.`;
   }
 }
 
