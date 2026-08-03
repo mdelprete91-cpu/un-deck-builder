@@ -1,3 +1,8 @@
+# Start here
+
+Read `CONTEXT.md` before writing any code. It carries the product's non-negotiables, the pipeline
+map, the contracts that break silently, and what counts as "done" in this repo.
+
 <!-- BEGIN:nextjs-agent-rules -->
 # This is NOT the Next.js you know
 
