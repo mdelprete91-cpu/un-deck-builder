@@ -70,30 +70,40 @@ export function bigStat(s: Slide, t: BrandTheme): string {
 export function quote(s: Slide, t: BrandTheme): string {
   return section(
     t,
-    "#01B37C",
+    t.quoteBg,
     "#FFFFFF",
     `<div class="ar" ${ed("quote", 490)} style="position:absolute;left:100px;top:300px;width:1720px;font-family:${MANROPE};font-weight:600;font-size:75px;line-height:1.18;letter-spacing:-.02em;color:#FFFFFF;">“${esc(s.quote)}”</div>` +
-      `<div class="ar" ${ed("author", 150)} style="position:absolute;left:102px;top:806px;width:1718px;font-family:${MANROPE};font-weight:600;font-size:43px;color:var(--accent-deep);animation-delay:.14s;">${esc(s.author)}</div>` +
+      `<div class="ar" ${ed("author", 150)} style="position:absolute;left:102px;top:806px;width:1718px;font-family:${MANROPE};font-weight:600;font-size:43px;color:${t.quoteAuthor};animation-delay:.14s;">${esc(s.author)}</div>` +
       footer(t, "dark"),
   );
 }
 
 type ImageVariant = "deep" | "light" | "dark";
 
-const IMAGE_VARIANTS: Record<
-  ImageVariant,
-  { bg: string; titleColor: string; bodyColor: string; surface: "light" | "dark" }
-> = {
-  deep: { bg: "var(--accent-deep)", titleColor: "#FFFFFF", bodyColor: "#FFFFFF", surface: "dark" },
-  light: { bg: "var(--accent-light)", titleColor: "var(--accent-deep)", bodyColor: "#161616", surface: "light" },
-  // Legacy: black surfaces are banned (Giga no-black rule) — old "dark" slides
-  // now render on the deep accent instead.
-  dark: { bg: "var(--accent-deep)", titleColor: "#FFFFFF", bodyColor: "#FFFFFF", surface: "dark" },
-};
+/**
+ * The colored variant travels with the brand (`t.sectionImage`) because
+ * Digital Impact Division runs these slides on white. "dark" is legacy: black
+ * surfaces are banned (Giga no-black rule), so it renders like "deep".
+ */
+function imageVariant(
+  variant: ImageVariant,
+  t: BrandTheme,
+): { bg: string; titleColor: string; bodyColor: string; surface: "light" | "dark" } {
+  if (variant === "light") {
+    return {
+      bg: "var(--accent-light)",
+      titleColor: "var(--accent-deep)",
+      bodyColor: "#161616",
+      surface: "light",
+    };
+  }
+  const v = t.sectionImage;
+  return { bg: v.bg, titleColor: v.title, bodyColor: v.body, surface: v.surface };
+}
 
 export function sectionImage(variant: ImageVariant) {
   return (s: Slide, t: BrandTheme): string => {
-    const v = IMAGE_VARIANTS[variant];
+    const v = imageVariant(variant, t);
     return section(
       t,
       v.bg,
