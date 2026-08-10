@@ -20,6 +20,56 @@ function Eyebrow({ children }: { children: React.ReactNode }) {
   );
 }
 
+/**
+ * Switch row that lives *inside* the prompt group, sharing its border. It is a
+ * generation input, not a live view option: a detached card reads as "flip it
+ * and the deck changes", which is not what happens (it takes effect on the
+ * next generation). Sitting on the prompt box, it reads as part of what
+ * Generate sends.
+ */
+function SwitchRow({
+  label,
+  hint,
+  checked,
+  disabled,
+  onChange,
+}: {
+  label: string;
+  hint: string;
+  checked: boolean;
+  disabled?: boolean;
+  onChange: (next: boolean) => void;
+}) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      disabled={disabled}
+      onClick={() => onChange(!checked)}
+      className="flex w-full items-center justify-between gap-3 rounded-b-lg border-t border-hairline px-3 py-2.5 text-left outline-none transition-colors duration-150 hover:bg-giga-tint focus-visible:bg-giga-tint disabled:pointer-events-none disabled:opacity-40"
+    >
+      <span>
+        <span className="font-manrope block text-sm font-semibold tracking-[-0.01em] text-ink">
+          {label}
+        </span>
+        <span className="mt-0.5 block text-xs leading-snug text-ink-muted">{hint}</span>
+      </span>
+      <span
+        className={`relative h-6 w-11 shrink-0 rounded-full transition-colors duration-150 ${
+          checked ? "bg-giga" : "bg-hairline"
+        }`}
+      >
+        <span
+          className={`absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white shadow-stripe transition-transform duration-150 ${
+            checked ? "translate-x-5" : "translate-x-0"
+          }`}
+        />
+      </span>
+    </button>
+  );
+}
+
 const SECONDARY_BTN =
   "h-10 rounded-full border border-hairline bg-white px-4 text-sm font-semibold text-ink transition-colors duration-150 hover:border-giga-100 hover:bg-giga-tint disabled:pointer-events-none disabled:opacity-40";
 
@@ -29,6 +79,10 @@ export default function Sidebar({ state, dispatch, onGenerate, onAddMore }: Side
   const [addOpen, setAddOpen] = useState(false);
   const generating = state.status === "generating";
   const hasSlides = state.slides.length > 0;
+  const deckHasChapters = state.slides.some(
+    (s) => s.layoutId === "agenda" || s.layoutId === "section-divider",
+  );
+  const chaptersPending = hasSlides && deckHasChapters !== state.chapters;
 
   return (
     <aside className="flex h-full w-[340px] shrink-0 flex-col gap-6 overflow-y-auto border-r border-hairline bg-white p-6 *:shrink-0">
@@ -73,20 +127,40 @@ export default function Sidebar({ state, dispatch, onGenerate, onAddMore }: Side
         </div>
       </div>
 
-      {/* Brief */}
+      {/* Brief. The Chapters switch shares this box: both are inputs to the
+          same Generate press. Agenda and dividers are one switch because the
+          agenda only exists to mirror the dividers — an agenda without
+          chapters is a broken state, not an option. */}
       <div>
         <Eyebrow>Prompt</Eyebrow>
-        <textarea
-          value={state.brief}
-          onChange={(e) => dispatch({ type: "SET_BRIEF", brief: e.target.value })}
-          placeholder="E.g. A partnership pitch for a telecom operator in East Africa: what Giga does, the opportunity, what we ask, what they get, impact numbers…"
-          rows={7}
-          className="w-full resize-y rounded-lg border border-hairline bg-white p-3 text-sm text-ink outline-none transition-shadow duration-150 placeholder:text-ink-muted/70 focus:border-giga focus:ring-[3px] focus:ring-giga/15"
-        />
+        <div className="rounded-lg border border-hairline bg-white transition-shadow duration-150 focus-within:border-giga focus-within:ring-[3px] focus-within:ring-giga/15">
+          <textarea
+            value={state.brief}
+            onChange={(e) => dispatch({ type: "SET_BRIEF", brief: e.target.value })}
+            placeholder="E.g. A partnership pitch for a telecom operator in East Africa: what Giga does, the opportunity, what we ask, what they get, impact numbers…"
+            rows={7}
+            className="block w-full resize-y rounded-t-lg bg-transparent p-3 text-sm text-ink outline-none placeholder:text-ink-muted/70"
+          />
+          <SwitchRow
+            label="Chapters"
+            hint="Agenda slide and section dividers"
+            checked={state.chapters}
+            disabled={generating}
+            onChange={(chapters) => dispatch({ type: "SET_CHAPTERS", chapters })}
+          />
+        </div>
         <p className="mt-1.5 text-xs leading-relaxed text-ink-muted">
           Describe the story. The AI picks the right template slides, decides how many the story
           needs (ask for a count if you want one) and fills them in.
         </p>
+        {/* The switch only takes effect on the next generation, so say so
+            exactly when the deck on screen disagrees with it. */}
+        {chaptersPending && (
+          <p className="mt-1.5 text-xs leading-relaxed text-ink-muted">
+            The deck on screen still has {state.chapters ? "no chapters" : "chapters"}. Regenerate
+            to apply.
+          </p>
+        )}
       </div>
 
       <button

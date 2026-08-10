@@ -1,13 +1,14 @@
 import type { DeckState } from "./state";
 
 const KEY = "giga-deck:session";
-const VERSION = 1;
+const VERSION = 2;
 
 interface Persisted {
   version: number;
   brandId: DeckState["brandId"];
   brief: string;
   count: number;
+  chapters: boolean;
   slides: DeckState["slides"];
   activeIndex: number;
   usage: DeckState["usage"];
@@ -20,6 +21,7 @@ export function saveDeck(state: DeckState): void {
       brandId: state.brandId,
       brief: state.brief,
       count: state.count,
+      chapters: state.chapters,
       slides: state.slides,
       activeIndex: state.activeIndex,
       usage: state.usage,
@@ -40,6 +42,7 @@ export function loadDeck(): Partial<DeckState> | null {
       brandId: parsed.brandId,
       brief: parsed.brief ?? "",
       count: parsed.count ?? 8,
+      chapters: parsed.chapters ?? true,
       slides: parsed.slides,
       activeIndex: parsed.activeIndex ?? 0,
       usage: parsed.usage ?? { inputTokens: 0, outputTokens: 0 },

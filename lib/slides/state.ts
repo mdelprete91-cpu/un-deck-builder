@@ -15,6 +15,12 @@ export interface DeckState {
   brandId: BrandId;
   brief: string;
   count: number;
+  /**
+   * Whether generated decks get chapters: the agenda slide and the
+   * section-divider slides that it mirrors. A generation setting, not a view
+   * option — turning it off never touches the deck already on screen.
+   */
+  chapters: boolean;
   slides: Slide[];
   activeIndex: number;
   status: "idle" | "generating" | "error";
@@ -29,6 +35,7 @@ export const initialDeckState: DeckState = {
   brandId: "did",
   brief: "",
   count: 8,
+  chapters: true,
   slides: [],
   activeIndex: 0,
   status: "idle",
@@ -42,6 +49,7 @@ export type DeckAction =
   | { type: "SET_BRAND"; brandId: BrandId }
   | { type: "SET_BRIEF"; brief: string }
   | { type: "SET_COUNT"; count: number }
+  | { type: "SET_CHAPTERS"; chapters: boolean }
   | { type: "GENERATION_START"; replace: boolean }
   | { type: "APPEND_SLIDE"; content: SlideContent }
   | { type: "REPLACE_SLIDE"; index: number; content: SlideContent }
@@ -137,6 +145,8 @@ function reduce(state: DeckState, action: DeckAction): DeckState {
       return { ...state, brief: action.brief };
     case "SET_COUNT":
       return { ...state, count: action.count };
+    case "SET_CHAPTERS":
+      return { ...state, chapters: action.chapters };
     case "GENERATION_START":
       return {
         ...state,
@@ -395,6 +405,7 @@ function reduce(state: DeckState, action: DeckAction): DeckState {
         brandId: state.brandId,
         brief: state.brief,
         count: state.count,
+        chapters: state.chapters,
       };
     default:
       return state;

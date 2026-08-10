@@ -25,6 +25,9 @@ const LOGO_TONE_LAYOUTS = new Set<string>([
   "section-image-dark",
 ]);
 
+/** The two layouts the "Chapters" toggle governs. */
+const CHAPTER_LAYOUTS = new Set<string>(["agenda", "section-divider"]);
+
 export default function Studio() {
   const [state, dispatch] = useReducer(deckReducer, initialDeckState);
   const [hydrated, setHydrated] = useState(false);
@@ -88,6 +91,9 @@ export default function Studio() {
    * received (0 on error/abort). With `collectInsert`, slides are gathered and
    * inserted in one shot at the model-chosen position (add mode). `preserve`
    * fields are merged back into replaced slides (uploaded images etc.).
+   * `dropChapters` is the safety net behind the no-chapters prompt rule: the
+   * model occasionally emits an agenda or a divider anyway, and one stray
+   * chapter slide is exactly what the user turned the toggle off to avoid.
    */
   async function runGeneration(
     body: Record<string, unknown>,
@@ -96,6 +102,7 @@ export default function Studio() {
       targetIndex?: number;
       collectInsert?: boolean;
       preserve?: Partial<SlideContent>;
+      dropChapters?: boolean;
     },
   ): Promise<number> {
     abortRef.current?.abort();
@@ -131,6 +138,7 @@ export default function Studio() {
           if (event.type === "slide") {
             const content = normalizeSlide(event.slide);
             if (!content) continue;
+            if (opts.dropChapters && CHAPTER_LAYOUTS.has(content.layoutId)) continue;
             if (opts.collectInsert) {
               collected.push(content);
             } else if (opts.targetIndex != null) {
@@ -175,8 +183,8 @@ export default function Studio() {
   const onGenerate = async () => {
     const brief = state.brief;
     const received = await runGeneration(
-      { mode: "generate", brief, brandLabel: theme.label },
-      { replace: true },
+      { mode: "generate", brief, brandLabel: theme.label, chapters: state.chapters },
+      { replace: true, dropChapters: !state.chapters },
     );
     // The two fixed partnership-tier slides are added only when the brief
     // asks for them explicitly ("tiers", "tier table", "livelli"); a generic
@@ -200,9 +208,10 @@ export default function Studio() {
         instruction,
         count,
         brandLabel: theme.label,
+        chapters: state.chapters,
         existingSlides: state.slides.map(lightSlide),
       },
-      { replace: false, collectInsert: true },
+      { replace: false, collectInsert: true, dropChapters: !state.chapters },
     );
 
   const onRegenerateSlide = (instruction: string) => {

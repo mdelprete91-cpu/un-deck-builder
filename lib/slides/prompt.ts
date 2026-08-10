@@ -34,19 +34,30 @@ interface GenerateBody {
   existingSlides?: SlideContent[];
   targetSlide?: SlideContent;
   instruction?: string;
+  /** false = a deck with no agenda slide and no section dividers */
+  chapters?: boolean;
 }
+
+/**
+ * Chapter opt-out. It lives in the user message, not the system prompt: the
+ * system prompt is built once at module load and its "agenda mirrors the
+ * dividers" rule is the default, so this overrides it per request.
+ */
+const NO_CHAPTERS =
+  '\n- This deck has NO chapters: never use the "agenda" or "section-divider" layouts. Carry the structure with the content slides themselves and let each one stand on its own.';
 
 export function buildUserMessage(body: GenerateBody): string {
   const brand = body.brandLabel ? ` The deck is branded "${body.brandLabel}".` : "";
+  const noChapters = body.chapters === false ? NO_CHAPTERS : "";
   switch (body.mode) {
     case "add": {
       const n = body.count ?? 3;
-      return `Existing deck (JSON): ${JSON.stringify(body.existingSlides ?? [])}\n\nDeck brief: ${body.brief}${brand}\n\nRequest: ${body.instruction?.trim() || "continue and deepen the story"}\n\nAdd exactly ${n} new slide${n === 1 ? "" : "s"} fulfilling the request.\n- Return ONLY the new slides in "slides": never repeat, rewrite or include existing slides, and never add another cover, agenda or thank-you.\n- Set "insertAfter" to the 1-based index of the existing slide the new slides belong after (0 = before the first slide). Pick where they best fit the story, keeping any thank-you last.\n- If the deck has an "agenda" slide, return its updated bullets (reflecting the deck after insertion, <=5 words each) in "agenda"; otherwise return an empty array.`;
+      return `Existing deck (JSON): ${JSON.stringify(body.existingSlides ?? [])}\n\nDeck brief: ${body.brief}${brand}\n\nRequest: ${body.instruction?.trim() || "continue and deepen the story"}\n\nAdd exactly ${n} new slide${n === 1 ? "" : "s"} fulfilling the request.\n- Return ONLY the new slides in "slides": never repeat, rewrite or include existing slides, and never add another cover, agenda or thank-you.\n- Set "insertAfter" to the 1-based index of the existing slide the new slides belong after (0 = before the first slide). Pick where they best fit the story, keeping any thank-you last.\n- If the deck has an "agenda" slide, return its updated bullets (reflecting the deck after insertion, <=5 words each) in "agenda"; otherwise return an empty array.${noChapters}`;
     }
     case "regenerate":
       return `Current slide (JSON): ${JSON.stringify(body.targetSlide)}\n\nDeck brief: ${body.brief}${brand}\n\nRewrite this single slide.${body.instruction ? ` Instruction: ${body.instruction}` : " Improve the copy."} You may switch to a more appropriate layout if the instruction calls for it. Return exactly one slide.`;
     default:
-      return `Brief: ${body.brief}${brand}\n\nCreate the deck that best tells this story. Choose the number of slides yourself (typically 8-14); if the brief asks for a specific count, honor it exactly.`;
+      return `Brief: ${body.brief}${brand}\n\nCreate the deck that best tells this story. Choose the number of slides yourself (typically 8-14); if the brief asks for a specific count, honor it exactly.${noChapters}`;
   }
 }
 
