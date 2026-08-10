@@ -24,21 +24,28 @@ Deployed on Vercel as `un-deck-builder`. One env var: `ANTHROPIC_API_KEY`.
 
 Do not change these without asking Mario first. They are decisions, not defaults.
 
-1. **The Giga palette is fixed.** Switching brand (Digital Impact Division, Giga, UNICEF, Digital
-   Inclusion) changes the logo lockup and the footer label only, never the colors. See the comment
-   in `lib/slides/brand.ts`.
-2. **No black.** No solid black or near-black background anywhere, in the chrome or on a slide.
+1. **Two palettes, split by brand family, and both are fixed.** Giga and UNICEF run on the Giga
+   palette; Digital Impact Division and Digital Inclusion share the cyan one. Switching within a
+   family changes the logo lockup and the footer label only, never the colors. See the comment in
+   `lib/slides/brand.ts`.
+2. **The two Digital sub-brands are two-surface brands.** Every colored surface is exactly UNICEF
+   cyan `#01AEEF`; anything that is not that cyan is white. So there is no second darker blue
+   (`deep` is the same cyan as `accent`), the tinted surface (`light`) is plain white, Section +
+   image is a white slide, and the template's green quote slide is cyan here too. Chart series are
+   tints of the same cyan, never a second hue.
+3. **No black.** No solid black or near-black background anywhere, in the chrome or on a slide.
    This is why `section-image-dark` was retired. Dark surfaces are Giga blue, not black.
-3. **One accent.** Giga Blue `#277AFF` and its tints. Red only for destructive and error states.
-4. **Typography never varies.** Manrope plus Open Sans, self-hosted in `public/fonts`. No third
+4. **One accent.** Giga Blue `#277AFF` and its tints, or `#01AEEF` and its tints on the Digital
+   sub-brands. Red only for destructive and error states.
+5. **Typography never varies.** Manrope plus Open Sans, self-hosted in `public/fonts`. No third
    typeface, in the chrome or in a slide.
-5. **Slide markup is verbatim from the template.** The renderers in `lib/slides/layouts/` reproduce
+6. **Slide markup is verbatim from the template.** The renderers in `lib/slides/layouts/` reproduce
    approved geometry at 1920x1080. Do not "improve" spacing, sizes, or hierarchy on your own
    judgment. If a slide looks wrong, the fix is usually the fit budget or the word limit, not the
    geometry.
-6. **Never invent a layout.** New slide types come from the template, not from the model and not
+7. **Never invent a layout.** New slide types come from the template, not from the model and not
    from us.
-7. **Slide renderers emit HTML strings with inline styles only.** No Tailwind classes, no external
+8. **Slide renderers emit HTML strings with inline styles only.** No Tailwind classes, no external
    CSS. The same markup has to survive the editor preview, the thumbnails, the print root, the
    self-contained HTML export, and the PPTX capture. A class that only exists in `globals.css`
    breaks the exports silently.
@@ -98,6 +105,16 @@ them.
 **Forced content.** The closing slide is always titled "Thanks" (`normalizeSlide`). Agenda bullets
 mirror the `section-divider` slides one to one, enforced both in the prompt and by `syncAgenda` in
 `state.ts`.
+
+**The "Chapters" switch is a generation setting.** `state.chapters` (on by default) decides whether
+a generated deck gets an agenda slide and section dividers. It sits *inside* the prompt box, sharing
+its border and focus ring, because it is an input to the same Generate press: as a detached card it
+read as a live view option, which it is not. When the deck on screen disagrees with the switch, the
+sidebar says so under the prompt rather than silently doing nothing. Off, it does two things:
+`NO_CHAPTERS` goes into the user message for generate and add, and `dropChapters` in `page.tsx`
+discards any `agenda` or `section-divider` the model emits anyway. Keep both — the prompt rule alone
+leaks a stray divider often enough to matter. It never edits the deck already on screen, and
+`regenerate` is deliberately exempt so regenerating an existing agenda slide still works.
 
 **Bump `VERSION` in `storage.ts`** whenever the persisted shape changes, otherwise returning users
 hydrate a broken deck from localStorage.
