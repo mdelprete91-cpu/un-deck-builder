@@ -1,12 +1,16 @@
-import type { Slide } from "./schema";
 import type { BrandTheme } from "./brand";
+import type { DeckState } from "./state";
 import { renderSlide } from "./layouts";
 import { AUTOFIT_JS } from "./autofit";
+import { deckStateScript } from "./deck-file";
 
 /**
  * Serialize the deck into one self-contained HTML file:
  * fonts and assets inlined as data URIs, arrow-key navigation, and the
  * template's entrance animations replayed on each slide change.
+ *
+ * The file is also the project file — it carries the deck's data model in an
+ * inert JSON block that `parseDeckFile` reads back. See deck-file.ts.
  */
 
 const FONT_FILES = [
@@ -89,7 +93,12 @@ const DECK_JS = `
   fit();show(i);
 })();`;
 
-export async function exportHtmlDeck(slides: Slide[], theme: BrandTheme, title: string): Promise<void> {
+export async function exportHtmlDeck(
+  state: DeckState,
+  theme: BrandTheme,
+  title: string,
+): Promise<void> {
+  const { slides } = state;
   // 1. Inline fonts
   const [manropeLatin, manropeExt, openSansLatin, openSansExt] = await Promise.all(
     FONT_FILES.map(toDataUri),
@@ -100,7 +109,10 @@ export async function exportHtmlDeck(slides: Slide[], theme: BrandTheme, title: 
     fontFace("Open Sans", "300 800", openSansExt, LATIN_EXT) +
     fontFace("Open Sans", "300 800", openSansLatin, LATIN);
 
-  // 2. Render slides, collect referenced assets, inline them
+  // 2. Render slides, collect referenced assets, inline them.
+  // The state payload must NEVER be part of `body`: the pass below rewrites
+  // every `src="/…"` it finds anywhere in this string, and a user can type
+  // that text into a slide title. Assemble it in step 3 instead.
   let body = slides
     .map((s) => `<div class="deck-slide">${renderSlide(s, theme)}</div>`)
     .join("\n");
@@ -123,6 +135,7 @@ export async function exportHtmlDeck(slides: Slide[], theme: BrandTheme, title: 
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="generator" content="Giga Deck Builder">
 <title>${title.replace(/</g, "&lt;")}</title>
 <style>${fontCss}${DECK_CSS}</style>
 </head>
@@ -132,6 +145,7 @@ ${body}
 </div>
 <div id="hud"></div>
 <script>${AUTOFIT_JS}${DECK_JS}</script>
+${deckStateScript(state)}
 </body>
 </html>`;
 

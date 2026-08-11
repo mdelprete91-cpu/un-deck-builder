@@ -8,6 +8,7 @@ import { renderSlide, LAYOUTS } from "@/lib/slides/layouts";
 import { defaultContent } from "@/lib/slides/defaults";
 import { loadDeck, saveDeck } from "@/lib/slides/storage";
 import { exportHtmlDeck } from "@/lib/slides/export-html";
+import { parseDeckFile } from "@/lib/slides/deck-file";
 import { computeLogoTone } from "@/lib/slides/logo-tone";
 import { ICON_LIBRARY, ICON_NAMES } from "@/lib/slides/icons";
 import Sidebar from "@/components/Sidebar";
@@ -248,9 +249,74 @@ export default function Studio() {
   const hasImage = activeHtml.includes("data-image");
 
   const onExportHtml = () => {
-    exportHtmlDeck(state.slides, theme, state.slides[0]?.title ?? "giga-deck").catch((err) =>
+    exportHtmlDeck(state, theme, state.slides[0]?.title ?? "giga-deck").catch((err) =>
       dispatch({ type: "GENERATION_ERROR", error: `Export failed: ${err.message}` }),
     );
+  };
+
+  // Reopen an exported HTML deck. Read and validate first, ask second: nobody
+  // should have to answer "this replaces your deck?" for an unreadable file.
+  const openDeckFile = async (file: File) => {
+    let html: string;
+    try {
+      html = await file.text();
+    } catch {
+      dispatch({ type: "GENERATION_ERROR", error: "That file could not be read." });
+      return;
+    }
+    const result = parseDeckFile(html);
+    if (!result.ok) {
+      dispatch({ type: "GENERATION_ERROR", error: result.message });
+      return;
+    }
+    if (
+      state.slides.length > 0 &&
+      !confirm("Replace the deck on screen with the one in this file? The current deck will be lost.")
+    ) {
+      return;
+    }
+    dispatch({ type: "HYDRATE", state: result.state });
+    if (result.dropped > 0) {
+      dispatch({
+        type: "GENERATION_ERROR",
+        error:
+          result.dropped === 1
+            ? "Opened the deck, but one slide could not be read and was left out."
+            : `Opened the deck, but ${result.dropped} slides could not be read and were left out.`,
+      });
+    }
+  };
+
+  const deckFileInputRef = useRef<HTMLInputElement>(null);
+  const openDeckFilePicker = () => deckFileInputRef.current?.click();
+
+  const isDeckFile = (f: File) => f.type === "text/html" || /\.html?$/i.test(f.name);
+
+  const onDropFiles = async (files: File[]) => {
+    const deckFile = files.find(isDeckFile);
+    if (deckFile) {
+      await openDeckFile(deckFile);
+      return;
+    }
+    const images = files.filter((f) => f.type.startsWith("image/"));
+    if (images.length === 0) {
+      if (files.length > 0) {
+        dispatch({
+          type: "GENERATION_ERROR",
+          error:
+            "Drop an image to add it as a slide, or an HTML deck exported from here to reopen it. PDF and PowerPoint files can't be imported yet.",
+        });
+      }
+      return;
+    }
+    for (const f of images) {
+      try {
+        const dataUrl = await readImageFile(f);
+        dispatch({ type: "INSERT", content: { ...defaultContent("photo"), image: dataUrl } });
+      } catch {
+        // unreadable file — skip
+      }
+    }
   };
 
   // Icon picker: block index of the active slide's icon being changed
@@ -258,11 +324,43 @@ export default function Studio() {
 
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-canvas text-ink">
-      <Sidebar state={state} dispatch={dispatch} onGenerate={onGenerate} onAddMore={onAddMore} />
+      <Sidebar
+        state={state}
+        dispatch={dispatch}
+        onGenerate={onGenerate}
+        onAddMore={onAddMore}
+        onOpenDeckFile={openDeckFilePicker}
+      />
 
-      <main className="relative flex min-w-0 flex-1 flex-col">
+      {/* Drop handling lives on <main> so it also works with an empty deck —
+          reopening a saved file is exactly what you do when there is nothing
+          on screen yet. */}
+      <main
+        className="relative flex min-w-0 flex-1 flex-col"
+        onDragOver={(e) => {
+          if (e.dataTransfer.types.includes("Files")) e.preventDefault();
+        }}
+        onDrop={(e) => {
+          e.preventDefault();
+          void onDropFiles([...e.dataTransfer.files]);
+        }}
+      >
+        <input
+          ref={deckFileInputRef}
+          type="file"
+          accept=".html,.htm,text/html"
+          className="hidden"
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            e.target.value = "";
+            if (file) void openDeckFile(file);
+          }}
+        />
         {state.slides.length === 0 ? (
-          <EmptyState generating={state.status === "generating"} />
+          <EmptyState
+            generating={state.status === "generating"}
+            onOpenDeckFile={openDeckFilePicker}
+          />
         ) : (
           <>
             <Toolbar
@@ -283,32 +381,7 @@ export default function Studio() {
                 onClose={() => setDataPanelOpen(false)}
               />
             )}
-            <div
-              className="relative min-h-0 flex-1 p-6 pb-10"
-              onDragOver={(e) => {
-                if (e.dataTransfer.types.includes("Files")) e.preventDefault();
-              }}
-              onDrop={async (e) => {
-                e.preventDefault();
-                const files = [...e.dataTransfer.files];
-                const images = files.filter((f) => f.type.startsWith("image/"));
-                if (images.length === 0 && files.length > 0) {
-                  dispatch({
-                    type: "GENERATION_ERROR",
-                    error: "Only images (JPEG/PNG) can be dropped for now. PDF and PPTX import is on the roadmap.",
-                  });
-                  return;
-                }
-                for (const f of images) {
-                  try {
-                    const dataUrl = await readImageFile(f);
-                    dispatch({ type: "INSERT", content: { ...defaultContent("photo"), image: dataUrl } });
-                  } catch {
-                    // unreadable file — skip
-                  }
-                }
-              }}
-            >
+            <div className="relative min-h-0 flex-1 p-6 pb-10">
               {active && (
                 <>
                   <SlideFrame
@@ -463,7 +536,13 @@ function IconPickerModal({
   );
 }
 
-function EmptyState({ generating }: { generating: boolean }) {
+function EmptyState({
+  generating,
+  onOpenDeckFile,
+}: {
+  generating: boolean;
+  onOpenDeckFile: () => void;
+}) {
   return (
     <div className="flex flex-1 flex-col items-center justify-center gap-4">
       {generating ? (
@@ -482,6 +561,16 @@ function EmptyState({ generating }: { generating: boolean }) {
           <p className="max-w-xs text-center text-sm leading-relaxed text-ink-muted">
             Describe your story in the prompt box and hit Generate. Slides appear here as they are
             created.
+          </p>
+          <p className="max-w-xs text-center text-sm leading-relaxed text-ink-muted">
+            Already have a deck?{" "}
+            <button
+              onClick={onOpenDeckFile}
+              className="font-semibold text-giga underline-offset-2 transition-colors duration-150 hover:underline"
+            >
+              Open the HTML file you exported
+            </button>
+            , or drop it here.
           </p>
         </>
       )}
@@ -576,7 +665,9 @@ function Toolbar({
                 className="block w-full rounded-lg px-3 py-2 text-left text-xs font-semibold text-ink transition-colors duration-100 hover:bg-giga-tint"
               >
                 HTML deck
-                <span className="mt-0.5 block font-normal text-ink-muted">Standalone file with animations</span>
+                <span className="mt-0.5 block font-normal text-ink-muted">
+                  Standalone file, reopen it here to keep editing
+                </span>
               </button>
               {/* PPTX export is parked: item stays visible but disabled */}
               <button

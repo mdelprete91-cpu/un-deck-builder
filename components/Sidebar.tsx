@@ -9,6 +9,7 @@ interface SidebarProps {
   dispatch: (action: DeckAction) => void;
   onGenerate: () => void;
   onAddMore: (instruction: string, count: number) => void;
+  onOpenDeckFile: () => void;
 }
 
 /** Sidebar section label — the BAG eyebrow at product scale. */
@@ -73,7 +74,13 @@ function SwitchRow({
 const SECONDARY_BTN =
   "h-10 rounded-full border border-hairline bg-white px-4 text-sm font-semibold text-ink transition-colors duration-150 hover:border-giga-100 hover:bg-giga-tint disabled:pointer-events-none disabled:opacity-40";
 
-export default function Sidebar({ state, dispatch, onGenerate, onAddMore }: SidebarProps) {
+export default function Sidebar({
+  state,
+  dispatch,
+  onGenerate,
+  onAddMore,
+  onOpenDeckFile,
+}: SidebarProps) {
   const [addBrief, setAddBrief] = useState("");
   const [addCount, setAddCount] = useState(2);
   const [addOpen, setAddOpen] = useState(false);
@@ -255,6 +262,19 @@ export default function Sidebar({ state, dispatch, onGenerate, onAddMore }: Side
       )}
 
       <div className="mt-auto flex flex-col gap-2">
+        {/* Outside the hasSlides guard on purpose: with an empty deck this is
+            the only way in, and reopening a saved deck is exactly what you do
+            when there is nothing on screen. */}
+        <button
+          onClick={onOpenDeckFile}
+          disabled={generating}
+          className={`${SECONDARY_BTN} flex items-center justify-center gap-1.5`}
+        >
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M12 3v12M8 7l4-4 4 4M4 15v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-4" />
+          </svg>
+          Open deck file
+        </button>
         {hasSlides && (
           <button
             onClick={() => {

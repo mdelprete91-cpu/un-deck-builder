@@ -223,14 +223,21 @@ export function splitBodyBlocks(body: string): Block[] {
     : [{ label: "", body: first.trim() }];
 }
 
-export function normalizeSlide(raw: unknown): SlideContent | null {
+export function normalizeSlide(
+  raw: unknown,
+  opts: { keepClosingTitle?: boolean } = {},
+): SlideContent | null {
   const parsed = slideContentSchema.safeParse(raw);
   if (!parsed.success) return null;
   const slide = parsed.data as SlideContent;
 
   // The closing slide is always titled "Thanks" — only the user may change
-  // it by editing the slide; the model never picks the wording.
-  if (slide.layoutId === "thank-you") slide.title = "Thanks";
+  // it by editing the slide; the model never picks the wording. A reopened
+  // deck file is the user's own output, so it keeps whatever it says, as
+  // long as it says something.
+  if (slide.layoutId === "thank-you" && !(opts.keepClosingTitle && slide.title?.trim())) {
+    slide.title = "Thanks";
+  }
 
   // body-copy moved from one `body` string to 1-2 `blocks`; convert model or
   // legacy output that still carries prose in `body`.

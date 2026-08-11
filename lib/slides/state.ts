@@ -137,8 +137,18 @@ export function deckReducer(state: DeckState, action: DeckAction): DeckState {
 
 function reduce(state: DeckState, action: DeckAction): DeckState {
   switch (action.type) {
+    // Restores a whole session: localStorage on load, or a reopened deck file.
+    // History is dropped on purpose — a Snapshot carries only slides, so undoing
+    // past a hydrate would leave old slides sitting in the new brand and brief.
     case "HYDRATE":
-      return { ...state, ...action.state, status: "idle", past: [], future: [] };
+      return {
+        ...state,
+        ...action.state,
+        status: "idle",
+        error: undefined,
+        past: [],
+        future: [],
+      };
     case "SET_BRAND":
       return { ...state, brandId: action.brandId };
     case "SET_BRIEF":

@@ -144,3 +144,8 @@ export const BRANDS: Record<BrandId, BrandTheme> = {
 };
 
 export const BRAND_IDS = Object.keys(BRANDS) as BrandId[];
+
+/** Narrow untrusted input (a reopened deck file) to a brand we actually ship. */
+export function isBrandId(value: unknown): value is BrandId {
+  return typeof value === "string" && Object.hasOwn(BRANDS, value);
+}

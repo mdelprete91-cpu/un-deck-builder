@@ -102,9 +102,17 @@ into the replaced slide afterwards. Data URLs in a prompt are expensive and usel
 banned still validate and render. Never offer them to the AI or in the insert list, never delete
 them.
 
-**Forced content.** The closing slide is always titled "Thanks" (`normalizeSlide`). Agenda bullets
-mirror the `section-divider` slides one to one, enforced both in the prompt and by `syncAgenda` in
-`state.ts`.
+**Forced content.** The closing slide is always titled "Thanks" (`normalizeSlide`), except when a
+deck file is reopened: that title is the user's own output, so `normalizeSlide(raw, {
+keepClosingTitle: true })` keeps whatever it says, as long as it says something. The AI path never
+passes that flag. Agenda bullets mirror the `section-divider` slides one to one, enforced both in
+the prompt and by `syncAgenda` in `state.ts`.
+
+**The state payload must stay out of the rendered markup.** `exportHtmlDeck` inlines assets by
+rewriting every `src="/…"` it finds anywhere in the slide markup, and a user can type that text into
+a slide title. The `<script id="giga-deck-state">` block is therefore assembled at document level,
+after the runtime script, never inside the `body` string. Move it into `body` and the two corrupt
+each other.
 
 **The "Chapters" switch is a generation setting.** `state.chapters` (on by default) decides whether
 a generated deck gets an agenda slide and section dividers. It sits *inside* the prompt box, sharing
@@ -156,13 +164,46 @@ example), make it manual-insert only instead of AI-selectable.
 - **PDF**: browser print (`window.print()`), one slide per page, via `components/PrintRoot.tsx`.
   Chrome, backgrounds on, scale 100%.
 - **HTML deck**: one self-contained file, fonts and logos inlined as data URIs, arrow-key navigation,
-  template entrance animations, autofit script inlined.
+  template entrance animations, autofit script inlined. **It is also the project file** — see below.
 - **PPTX**: the code in `export-pptx.ts` works (renders each slide offscreen, captures to PNG,
   places it full bleed) but is deliberately **not wired into the UI**. It was parked. Do not
   re-enable it without asking.
 
 Known limits, on purpose for now: table cells in the tier layouts are not inline-editable, and
 PDF/PPTX import is not implemented.
+
+## The deck file
+
+There is no server and no account, so the exported HTML doubles as the save file: `lib/slides/deck-file.ts`
+writes the deck's data model into an inert `<script id="giga-deck-state" type="application/json">`
+block and reads it back. `parseDeckFile` returns a `Partial<DeckState>` that `app/page.tsx` hands to
+the existing `HYDRATE` action — the same one localStorage uses on load.
+
+A database was considered and turned down: the need is backup and portability, and a real one would
+cost auth (without it a shared deck is either public or bound to a device that loses it exactly like
+localStorage does), plus moving uploads to object storage, which would break the offline HTML export
+until it learned to inline remote URLs too.
+
+Things worth knowing before touching it:
+
+- **Everything in a file is untrusted.** `normalizeSlide` runs per slide, `image` and every `logos`
+  value must look like an upload (`SAFE_ASSET`) or the field is dropped, `activeIndex` and `count`
+  are clamped, an unknown `brandId` is ignored rather than guessed. Renderers put these straight
+  into a `src` and `SlideFrame` injects with `innerHTML`, which wires `onerror` even though it does
+  not run `<script>`.
+- **`usage` is not in the file.** Token cost belongs to the session that spent it.
+- **The payload doubles the size of a photo-heavy deck** (each image is in the markup and in the
+  payload). Accepted: deduplicating would couple the payload to rendered markup.
+- **A `<` never appears literally in the payload** — `deckStateScript` escapes them all, which is
+  what makes "the first `</script>` after the marker is the terminator" safe to rely on when reading.
+
+### Changing the deck file format
+
+1. Bump `DECK_FILE_VERSION` in `deck-file.ts`.
+2. Keep `parseDeckFile` reading every older version. Only a *newer* version is an error.
+3. `VERSION` in `storage.ts` is a separate counter for the localStorage shape. Bump it only if
+   `Persisted` actually changed — bumping it logs out every returning user.
+4. Export a real deck with a photo, reopen it, and check the closing slide title survived.
 
 ## Working here
 
