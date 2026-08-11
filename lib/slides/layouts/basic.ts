@@ -1,4 +1,5 @@
 import type { Slide } from "../schema";
+import { DEFAULT_CHANNELS } from "../schema";
 import type { BrandTheme } from "../brand";
 import {
   MANROPE,
@@ -200,14 +201,6 @@ export function partners(s: Slide, t: BrandTheme): string {
   );
 }
 
-const CHANNELS: { label: string; value: string }[] = [
-  { label: "Website", value: "giga.global" },
-  { label: "Email", value: "info@giga.global" },
-  { label: "Instagram", value: "@giga_global" },
-  { label: "X", value: "@gigaglobal" },
-  { label: "LinkedIn", value: "/gigaglobal" },
-];
-
 export function thankYou(s: Slide, t: BrandTheme): string {
   const contacts = (s.contacts ?? [])
     .slice(0, 2)
@@ -222,10 +215,17 @@ export function thankYou(s: Slide, t: BrandTheme): string {
         `</div></div>`,
     )
     .join("");
-  const channels = CHANNELS.map(
-    (ch, i) =>
-      `<div class="ars" style="flex:1;${BODY30}color:#FFFFFF;${dly(26 + i * 4)}"><div>${ch.label}</div><div>${ch.value}</div></div>`,
-  ).join("");
+  // Decks saved before the row became editable have no `channels`, so fall
+  // back to the default for rendering. normalizeSlide seeds the array itself.
+  const channels = (s.channels ?? DEFAULT_CHANNELS)
+    .map(
+      (ch, i) =>
+        `<div class="ars" style="flex:1;${BODY30}color:#FFFFFF;${dly(26 + i * 4)}">` +
+        `<div ${ed(`channels.${i}.label`)}>${esc(ch.label)}</div>` +
+        `<div ${ed(`channels.${i}.value`)}>${esc(ch.value)}</div>` +
+        `</div>`,
+    )
+    .join("");
   return section(
     t,
     "var(--accent)",

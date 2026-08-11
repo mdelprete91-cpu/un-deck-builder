@@ -82,6 +82,8 @@ export interface SlideContent {
   stats?: Stat[];
   bars?: Bar[];
   contacts?: Contact[];
+  /** Closing slide: the social row, seeded from DEFAULT_CHANNELS. */
+  channels?: Channel[];
   /** Uploaded image (data URL) overriding the layout's default photo. */
   image?: string;
   /** Photo reframe: focal point in % (default 50/50) and zoom (1-4). */
@@ -98,6 +100,25 @@ export interface SlideContent {
   /** Icon-card slides: chosen icon slug per block (see lib/slides/icons.ts). */
   icons?: string[];
 }
+
+export interface Channel {
+  label: string;
+  value: string;
+}
+
+/**
+ * The social row on the closing slide. Giga's own handles, the same on every
+ * brand, so nobody has to retype them — but they live on the slide and are
+ * editable, because a deck for a specific audience sometimes needs a different
+ * contact. The model never writes them: they are not in the AI output schema.
+ */
+export const DEFAULT_CHANNELS: Channel[] = [
+  { label: "Website", value: "giga.global" },
+  { label: "Email", value: "info@giga.global" },
+  { label: "Instagram", value: "@giga_global" },
+  { label: "X", value: "@gigaglobal" },
+  { label: "LinkedIn", value: "/gigaglobal" },
+];
 
 export interface ImagePos {
   x: number;
@@ -121,6 +142,10 @@ const barSchema = z.object({
   label: z.string().default(""),
   value: z.coerce.number().min(0).max(100).default(50),
 });
+const channelSchema = z.object({
+  label: z.string().default(""),
+  value: z.string().default(""),
+});
 const contactSchema = z.object({
   name: z.string().default(""),
   role: z.string().default(""),
@@ -142,6 +167,7 @@ export const slideContentSchema = z.object({
   stats: z.array(statSchema).optional(),
   bars: z.array(barSchema).optional(),
   contacts: z.array(contactSchema).optional(),
+  channels: z.array(channelSchema).optional(),
   image: z.string().optional(),
   imagePos: z
     .object({
@@ -237,6 +263,12 @@ export function normalizeSlide(
   // long as it says something.
   if (slide.layoutId === "thank-you" && !(opts.keepClosingTitle && slide.title?.trim())) {
     slide.title = "Thanks";
+  }
+
+  // The social row is editable, so it has to exist on the slide: setPath is a
+  // silent no-op on a missing array, and the model never writes this field.
+  if (slide.layoutId === "thank-you" && !slide.channels?.length) {
+    slide.channels = DEFAULT_CHANNELS.map((c) => ({ ...c }));
   }
 
   // body-copy moved from one `body` string to 1-2 `blocks`; convert model or

@@ -102,6 +102,13 @@ into the replaced slide afterwards. Data URLs in a prompt are expensive and usel
 banned still validate and render. Never offer them to the AI or in the insert list, never delete
 them.
 
+**Editable means it must be on the slide.** `setPath` (`state.ts`) walks the dotted path and returns
+the slide untouched if an intermediate node is missing, so a renderer that puts `data-edit` on a
+value read from a module constant produces a field the user can click, type into, and watch revert.
+That was the closing slide's social row: it now lives in `slide.channels`, seeded from
+`DEFAULT_CHANNELS` by `normalizeSlide` and, for decks saved before it moved, by `loadDeck`. Deleting
+is a separate contract: the ✕ from `item()` only works for the layout's `PRIMARY_ARRAY` field.
+
 **Forced content.** The closing slide is always titled "Thanks" (`normalizeSlide`), except when a
 deck file is reopened: that title is the user's own output, so `normalizeSlide(raw, {
 keepClosingTitle: true })` keeps whatever it says, as long as it says something. The AI path never

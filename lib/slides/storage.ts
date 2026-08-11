@@ -1,3 +1,4 @@
+import { DEFAULT_CHANNELS } from "./schema";
 import type { DeckState } from "./state";
 
 const KEY = "giga-deck:session";
@@ -43,7 +44,15 @@ export function loadDeck(): Partial<DeckState> | null {
       brief: parsed.brief ?? "",
       count: parsed.count ?? 8,
       chapters: parsed.chapters ?? true,
-      slides: parsed.slides,
+      // The closing slide's social row used to be a constant in the renderer.
+      // Seed it on decks saved before it moved onto the slide, or editing it
+      // would be a silent no-op (setPath cannot write into a missing array).
+      // Additive and lossless, so it needs no VERSION bump.
+      slides: parsed.slides.map((s) =>
+        s.layoutId === "thank-you" && !s.channels?.length
+          ? { ...s, channels: DEFAULT_CHANNELS.map((c) => ({ ...c })) }
+          : s,
+      ),
       activeIndex: parsed.activeIndex ?? 0,
       usage: parsed.usage ?? { inputTokens: 0, outputTokens: 0 },
     };

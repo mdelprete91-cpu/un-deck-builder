@@ -1,4 +1,5 @@
 import type { ArrayField, LayoutId, SlideContent } from "./schema";
+import { DEFAULT_CHANNELS } from "./schema";
 import { PARTNER_NAMES } from "./partners";
 
 /** Placeholder element appended by "Add element" in the editor. */
@@ -172,6 +173,7 @@ export function defaultContent(layoutId: LayoutId): SlideContent {
       return {
         layoutId,
         title: "Thanks",
+        channels: DEFAULT_CHANNELS.map((c) => ({ ...c })),
         contacts: [
           {
             name: "Name Surname",
