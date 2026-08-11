@@ -153,7 +153,7 @@ export function framedImage(
   const p = pos ?? { x: 50, y: 50, zoom: 1 };
   return (
     `<div style="position:absolute;left:${left}px;top:${top}px;width:${width}px;height:${height}px;overflow:hidden;">` +
-    `<img src="${image ?? "/giga-placeholder.jpg"}" data-image alt="" class="af" style="width:100%;height:100%;object-fit:cover;object-position:${p.x}% ${p.y}%;transform:scale(${p.zoom});transform-origin:${p.x}% ${p.y}%;">` +
+    `<img src="${esc(image ?? "/giga-placeholder.jpg")}" data-image alt="" class="af" style="width:100%;height:100%;object-fit:cover;object-position:${p.x}% ${p.y}%;transform:scale(${p.zoom});transform-origin:${p.x}% ${p.y}%;">` +
     `</div>`
   );
 }

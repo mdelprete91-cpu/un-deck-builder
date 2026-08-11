@@ -185,7 +185,7 @@ export function partners(s: Slide, t: BrandTheme): string {
       // brightness(0) invert(1) forces ANY uploaded logo to render white
       return (
         `<div class="ars" ${item(`bullets.${i}`)} data-logo="${slug}" style="position:absolute;left:${cx}px;top:${cy}px;width:266px;height:110px;display:flex;align-items:center;justify-content:center;overflow:hidden;${dly(8 + i * 4)}">` +
-        `<img src="${src}" alt="${esc(n)}" style="max-width:240px;max-height:100px;object-fit:contain;filter:brightness(0) invert(1);" onerror="this.style.display='none';this.nextElementSibling.style.display='block'">` +
+        `<img src="${esc(src)}" alt="${esc(n)}" style="max-width:240px;max-height:100px;object-fit:contain;filter:brightness(0) invert(1);" onerror="this.style.display='none';this.nextElementSibling.style.display='block'">` +
         `<div ${ed(`bullets.${i}`)} style="display:none;font-family:${MANROPE};font-weight:600;font-size:30px;letter-spacing:-.02em;color:#FFFFFF;text-align:center;">${esc(n)}</div>` +
         `</div>`
       );
