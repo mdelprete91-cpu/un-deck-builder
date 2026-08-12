@@ -161,7 +161,10 @@ Touch all of these, in this order:
    only, geometry from the template.
 4. `lib/slides/layouts/index.ts` : register it in `LAYOUTS` with its human label.
 5. `lib/slides/defaults.ts` : placeholder content for manual insert.
-6. Check the fit budgets against the word limits by generating a slide at the catalog maximum.
+6. If the photo runs underneath the footer, add the id to `LOGO_TONE_LAYOUTS` in `app/page.tsx`
+   with the geometry the tone is sampled from (`RIGHT_PANEL_TONE` or `FULL_BLEED_TONE`). Miss this
+   and the layout renders fine with a logo that never flips.
+7. Check the fit budgets against the word limits by generating a slide at the catalog maximum.
 
 If a layout is dense approved content that the model would hallucinate (the partnership tiers, for
 example), make it manual-insert only instead of AI-selectable.

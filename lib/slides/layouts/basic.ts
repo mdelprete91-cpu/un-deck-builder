@@ -150,6 +150,24 @@ export function photo(s: Slide, t: BrandTheme): string {
   );
 }
 
+/**
+ * Full-bleed image, nothing on it but the footer. No title, no copy: it is a
+ * breath between chapters, or the picture that carries the point on its own.
+ *
+ * Both halves of the footer sit on the photo, so both follow `logoTone`, which
+ * page.tsx computes from the pixels under the footer row (see logo-tone.ts).
+ * Default "dark" — a photo is more often dark than not, and a white lockup on
+ * a light photo is worse than a dark one on a dark photo.
+ */
+export function photoFull(s: Slide, t: BrandTheme): string {
+  return section(
+    t,
+    "#FFFFFF",
+    "#000000",
+    photoPanel(0, s.image, 1920, s.imagePos, s.map) + footer(t, s.logoTone ?? "dark"),
+  );
+}
+
 export function worldMap(s: Slide, t: BrandTheme): string {
   return section(
     t,

@@ -22,6 +22,7 @@ export const LAYOUTS: Record<LayoutId, { label: string; render: RenderFn }> = {
   steps: { label: "Numbered cards", render: cards.steps },
   "body-copy": { label: "Body copy", render: basic.bodyCopy },
   photo: { label: "Photo", render: basic.photo },
+  "photo-full": { label: "Full image", render: basic.photoFull },
   map: { label: "World map", render: basic.worldMap },
   "icon-cards": { label: "Icon cards", render: cards.iconCards },
   "stat-grid": { label: "Stat grid", render: stats.statGrid },

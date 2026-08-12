@@ -5,17 +5,36 @@ import type { ImagePos } from "./schema";
  * that end up underneath the footer logo and pick the white or the dark logo
  * from their mean luminance.
  *
- * Geometry matches the three right-photo layouts (callout, section-image,
- * example-image-right): panel at x1080 w840 full height, logo anchored at
- * right:95px around y980. The sample rect is padded so DID's taller lockup
- * and every brand's width are covered.
+ * The geometry differs per layout family, so it is passed in: `RIGHT_PANEL_TONE`
+ * for the right-photo layouts, `FULL_BLEED_TONE` for the full image. Sample
+ * rects are padded so DID's taller lockup and every brand's width are covered.
+ * app/page.tsx owns the layout-to-geometry map.
  */
 
 export type LogoTone = "light" | "dark"; // same semantics as footer surface: "dark" → white logo
 
-const PANEL = { left: 1080, width: 840, height: 1080 };
-/** Slide-space area under the footer logo, padded on every side. */
-const LOGO_RECT = { x: 1540, y: 925, w: 310, h: 110 };
+export interface ToneGeometry {
+  /** The image panel in slide space. */
+  panel: { left: number; width: number; height: number };
+  /** The area whose pixels decide the tone, in slide space. */
+  sample: { x: number; y: number; w: number; h: number };
+}
+
+/** Right-photo layouts: panel at x1080 w840, logo anchored right:95px near y980. */
+export const RIGHT_PANEL_TONE: ToneGeometry = {
+  panel: { left: 1080, width: 840, height: 1080 },
+  sample: { x: 1540, y: 925, w: 310, h: 110 },
+};
+
+/**
+ * Full-bleed image: the label sits on the photo too, so the sample spans the
+ * whole footer row rather than just the logo. One tone for the whole footer
+ * keeps it reading as a single element.
+ */
+export const FULL_BLEED_TONE: ToneGeometry = {
+  panel: { left: 0, width: 1920, height: 1080 },
+  sample: { x: 95, y: 925, w: 1755, h: 110 },
+};
 /** Mean luminance (0-255) above which the area counts as light. */
 const LIGHT_THRESHOLD = 155;
 
@@ -27,16 +46,18 @@ function cacheKey(src: string, p: ImagePos): string {
 }
 
 /**
- * Resolve the logo tone for a photo shown in the right panel, or null when
- * the image cannot be read (keep the layout's default in that case).
+ * Resolve the logo tone for a photo shown in `geom.panel`, or null when the
+ * image cannot be read (keep the layout's default in that case).
  */
 export async function computeLogoTone(
   image: string | undefined,
   pos?: ImagePos,
+  geom: ToneGeometry = RIGHT_PANEL_TONE,
 ): Promise<LogoTone | null> {
   const src = image ?? "/giga-placeholder.jpg";
   const p = pos ?? { x: 50, y: 50, zoom: 1 };
-  const key = cacheKey(src, p);
+  const { panel: PANEL, sample: LOGO_RECT } = geom;
+  const key = `${PANEL.left}|${cacheKey(src, p)}`;
   const hit = cache.get(key);
   if (hit) return hit;
 

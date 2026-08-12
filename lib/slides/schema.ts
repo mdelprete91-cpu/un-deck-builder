@@ -32,7 +32,7 @@ export const AI_LAYOUT_IDS = [
 ] as const;
 
 /** Manual-insert only: densely structured content the model would hallucinate. */
-export const MANUAL_LAYOUT_IDS = ["tiers-1", "tiers-2"] as const;
+export const MANUAL_LAYOUT_IDS = ["tiers-1", "tiers-2", "photo-full"] as const;
 
 /**
  * Retired layouts: kept only so decks saved before the ban still validate and

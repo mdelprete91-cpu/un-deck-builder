@@ -9,7 +9,7 @@ import { defaultContent } from "@/lib/slides/defaults";
 import { loadDeck, saveDeck } from "@/lib/slides/storage";
 import { exportHtmlDeck } from "@/lib/slides/export-html";
 import { parseDeckFile } from "@/lib/slides/deck-file";
-import { computeLogoTone } from "@/lib/slides/logo-tone";
+import { computeLogoTone, FULL_BLEED_TONE, RIGHT_PANEL_TONE, type ToneGeometry } from "@/lib/slides/logo-tone";
 import { ICON_LIBRARY, ICON_NAMES } from "@/lib/slides/icons";
 import Sidebar from "@/components/Sidebar";
 import SlideFrame, { readImageFile } from "@/components/SlideFrame";
@@ -18,13 +18,18 @@ import ImagePickerModal from "@/components/ImagePickerModal";
 import ThumbStrip from "@/components/ThumbStrip";
 import PrintRoot from "@/components/PrintRoot";
 
-/** Layouts whose right-side photo panel runs underneath the footer logo. */
-const LOGO_TONE_LAYOUTS = new Set<string>([
-  "callout",
-  "example-image-right",
-  "section-image-deep",
-  "section-image-light",
-  "section-image-dark",
+/**
+ * Layouts whose photo runs underneath the footer, mapped to the geometry that
+ * decides the logo tone: the right-side panel for most, the whole frame for the
+ * full-bleed image.
+ */
+const LOGO_TONE_LAYOUTS = new Map<string, ToneGeometry>([
+  ["callout", RIGHT_PANEL_TONE],
+  ["example-image-right", RIGHT_PANEL_TONE],
+  ["section-image-deep", RIGHT_PANEL_TONE],
+  ["section-image-light", RIGHT_PANEL_TONE],
+  ["section-image-dark", RIGHT_PANEL_TONE],
+  ["photo-full", FULL_BLEED_TONE],
 ]);
 
 /** The two layouts the "Chapters" toggle governs. */
@@ -56,8 +61,9 @@ export default function Studio() {
   // is by slide id and the reducer no-ops when the tone is unchanged.
   useEffect(() => {
     for (const s of state.slides) {
-      if (!LOGO_TONE_LAYOUTS.has(s.layoutId)) continue;
-      computeLogoTone(s.image, s.imagePos).then((tone) => {
+      const geom = LOGO_TONE_LAYOUTS.get(s.layoutId);
+      if (!geom) continue;
+      computeLogoTone(s.image, s.imagePos, geom).then((tone) => {
         if (tone && tone !== s.logoTone) dispatch({ type: "SET_LOGO_TONE", id: s.id, tone });
       });
     }

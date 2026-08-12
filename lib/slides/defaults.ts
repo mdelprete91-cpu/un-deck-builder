@@ -169,6 +169,9 @@ export function defaultContent(layoutId: LayoutId): SlideContent {
           { label: "Give", body: LOREM_BODY },
         ],
       };
+    case "photo-full":
+      return { layoutId };
+
     case "thank-you":
       return {
         layoutId,
