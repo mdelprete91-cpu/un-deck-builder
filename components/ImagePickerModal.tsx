@@ -120,8 +120,14 @@ export default function ImagePickerModal({
                     loading="lazy"
                     className="h-24 w-full bg-[#1C1C1C] object-contain transition-transform duration-150 group-hover:scale-[1.03]"
                   />
-                  <span className="block truncate px-2 py-1.5 text-xs font-semibold text-ink">
+                  <span className="block truncate px-2 pt-1.5 text-xs font-semibold text-ink">
                     {c.name}
+                  </span>
+                  {/* Say it here rather than after the pick: an empty country
+                      on a partnership slide reads as "no schools", which is
+                      not what the export means. */}
+                  <span className="block px-2 pb-1.5 text-[10px] text-ink-muted">
+                    {c.empty ? "No schools plotted yet" : " "}
                   </span>
                 </button>
               ))}

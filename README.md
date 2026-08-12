@@ -10,9 +10,9 @@ Generate branded slide decks from a prompt. The AI never designs slides: it pick
 - **Logo lockups** change the footer logo and the footer label, and carry one of two palettes. Giga and UNICEF keep the Giga blue palette; Digital Impact Division and Digital Inclusion run on two surfaces only, UNICEF cyan `#01AEEF` and white. The typography (Manrope + Open Sans, self-hosted) never changes.
 - **Layout variants**: card and stat layouts adapt to their element count (1 to 4 cards, 1 to 6 stats, 2 to 5 timeline points…) — both when the AI picks a count and when you edit.
 - **Editing**: click any text on the slide to edit it (Escape cancels). Hover an element for ✕ to delete it, "+ Element" adds one back. Undo/redo with Cmd+Z / Cmd+Shift+Z or the toolbar arrows. Thumbnails: reorder, duplicate, delete. "Regenerate slide" rewrites the active slide with an instruction. Deck autosaves to localStorage.
-- **Export PDF**: browser print (Chrome, backgrounds on, scale 100%) — one slide per page at 1920×1080.
-- **Export HTML deck**: one self-contained file (fonts and logos inlined) with arrow-key navigation and the template's entrance animations. The same file is the project file: it carries the deck's data model in an inert JSON block.
-- **Open deck file**: drop an exported HTML deck on the canvas, or use "Open deck file" in the sidebar, to pick up where you left off — slides, logo, brief and the Chapters setting all come back. Replacing a deck that is on screen asks first. Decks exported before this existed can still be presented, they just cannot be reopened.
+- **Download PDF**: browser print (Chrome, backgrounds on, scale 100%) — one slide per page at 1920×1080.
+- **Download HTML deck**: one self-contained file (fonts and logos inlined) with arrow-key navigation and the template's entrance animations. The same file is the project file: it carries the deck's data model in an inert JSON block.
+- **Upload**: drop an exported HTML deck on the canvas, or use "Upload" in the toolbar next to Download, to pick up where you left off — slides, logo, brief and the Chapters setting all come back. Replacing a deck that is on screen asks first. Decks exported before this existed can still be presented, they just cannot be reopened.
 
 ## Setup
 

@@ -168,6 +168,9 @@ example), make it manual-insert only instead of AI-selectable.
 
 ## Exports
 
+The toolbar calls them Upload and Download, not Import and Export: these are files on your machine,
+not a system to sync with.
+
 - **PDF**: browser print (`window.print()`), one slide per page, via `components/PrintRoot.tsx`.
   Chrome, backgrounds on, scale 100%.
 - **HTML deck**: one self-contained file, fonts and logos inlined as data URIs, arrow-key navigation,

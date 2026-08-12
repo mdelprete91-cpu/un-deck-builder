@@ -332,7 +332,6 @@ export default function Studio() {
         dispatch={dispatch}
         onGenerate={onGenerate}
         onAddMore={onAddMore}
-        onOpenDeckFile={openDeckFilePicker}
       />
 
       {/* Drop handling lives on <main> so it also works with an empty deck —
@@ -418,6 +417,7 @@ export default function Studio() {
               onRedo={() => dispatch({ type: "REDO" })}
               onExportPdf={() => window.print()}
               onExportHtml={onExportHtml}
+              onOpenDeckFile={openDeckFilePicker}
             />
             {dataPanelOpen && active && isChart && (
               <ChartDataPanel
@@ -631,6 +631,7 @@ function Toolbar({
   onRedo,
   onExportPdf,
   onExportHtml,
+  onOpenDeckFile,
 }: {
   index: number;
   total: number;
@@ -641,6 +642,7 @@ function Toolbar({
   onRedo: () => void;
   onExportPdf: () => void;
   onExportHtml: () => void;
+  onOpenDeckFile: () => void;
 }) {
   const [exportOpen, setExportOpen] = useState(false);
   useEffect(() => {
@@ -655,7 +657,7 @@ function Toolbar({
     "flex h-8 w-8 items-center justify-center rounded-full text-ink transition-colors duration-150 hover:bg-giga-tint disabled:pointer-events-none disabled:opacity-30";
   return (
     <div className="flex items-center gap-3 border-b border-hairline bg-white px-6 py-2.5">
-      <span className="font-manrope text-sm font-semibold tracking-[-0.01em] text-ink">
+      <span className="font-manrope shrink-0 whitespace-nowrap text-sm font-semibold tracking-[-0.01em] text-ink">
         Slide {index + 1} / {total}
       </span>
       <span className="rounded-full bg-giga-tint px-2.5 py-0.5 text-xs font-semibold text-giga">
@@ -675,13 +677,29 @@ function Toolbar({
           </svg>
         </button>
       </div>
-      <span className="text-xs text-ink-muted">Click text to edit · drag a photo to reframe, scroll to zoom</span>
-      <div className="relative ml-auto">
+      {/* The hint is the first thing to go: with Upload next to Download the
+          row wraps on a laptop, and a wrapped toolbar reads as broken. */}
+      <span className="hidden truncate text-xs text-ink-muted xl:block">
+        Click text to edit · drag a photo to reframe, scroll to zoom
+      </span>
+      <div className="ml-auto flex shrink-0 items-center gap-2">
+        <button
+          onClick={onOpenDeckFile}
+          title="Open a deck you downloaded earlier"
+          className="font-manrope flex h-9 items-center gap-1.5 rounded-full border border-hairline bg-white px-4 text-xs font-semibold text-ink transition-colors duration-150 hover:border-giga-100 hover:bg-giga-tint"
+        >
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M12 16V4M8 8l4-4 4 4" />
+            <path d="M4 16v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" />
+          </svg>
+          Upload
+        </button>
+        <div className="relative">
         <button
           onClick={() => setExportOpen((v) => !v)}
           className="font-manrope flex h-9 items-center gap-1.5 rounded-full bg-giga px-4 text-xs font-semibold text-white shadow-stripe-md transition-all duration-150 hover:bg-giga-deep active:scale-[0.98]"
         >
-          Export
+          Download
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className={`transition-transform duration-150 ${exportOpen ? "rotate-180" : ""}`}>
             <path d="m6 9 6 6 6-6" />
           </svg>
@@ -723,6 +741,7 @@ function Toolbar({
             </div>
           </>
         )}
+        </div>
       </div>
     </div>
   );
