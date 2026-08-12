@@ -43,7 +43,7 @@ export function loadDeck(): Partial<DeckState> | null {
       brandId: parsed.brandId,
       brief: parsed.brief ?? "",
       count: parsed.count ?? 8,
-      chapters: parsed.chapters ?? true,
+      chapters: parsed.chapters ?? false,
       // The closing slide's social row used to be a constant in the renderer.
       // Seed it on decks saved before it moved onto the slide, or editing it
       // would be a silent no-op (setPath cannot write into a missing array).

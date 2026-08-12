@@ -5,7 +5,7 @@ Generate branded slide decks from a prompt. The AI never designs slides: it pick
 ## How it works
 
 - **Sidebar**: prompt box, logo lockup (Digital Impact Division / Giga / UNICEF / Digital Inclusion), slide count, generate.
-- **Chapters switch** (inside the prompt box, on by default): off, the deck is generated with no agenda slide and no section dividers, for when that structure is more than the story needs. It is an input to Generate, not a view option: it shapes the next generation and never edits the deck on screen, and the sidebar says so when the two disagree.
+- **Chapters switch** (inside the prompt box, off by default): off, the deck is generated with no agenda slide and no section dividers, for when that structure is more than the story needs. It is an input to Generate, not a view option: it shapes the next generation and never edits the deck on screen, and the sidebar says so when the two disagree.
 - **Generation**: Claude Haiku 4.5 returns structured JSON (`layoutId` + text fields) via a streaming API route — slides appear one by one. Fast and cheap (~$0.01 per 12-slide deck).
 - **Logo lockups** change the footer logo and the footer label, and carry one of two palettes. Giga and UNICEF keep the Giga blue palette; Digital Impact Division and Digital Inclusion run on two surfaces only, UNICEF cyan `#01AEEF` and white. The typography (Manrope + Open Sans, self-hosted) never changes.
 - **Layout variants**: card and stat layouts adapt to their element count (1 to 4 cards, 1 to 6 stats, 2 to 5 timeline points…) — both when the AI picks a count and when you edit.

@@ -121,7 +121,7 @@ a slide title. The `<script id="giga-deck-state">` block is therefore assembled 
 after the runtime script, never inside the `body` string. Move it into `body` and the two corrupt
 each other.
 
-**The "Chapters" switch is a generation setting.** `state.chapters` (on by default) decides whether
+**The "Chapters" switch is a generation setting.** `state.chapters` (off by default) decides whether
 a generated deck gets an agenda slide and section dividers. It sits *inside* the prompt box, sharing
 its border and focus ring, because it is an input to the same Generate press: as a detached card it
 read as a live view option, which it is not. When the deck on screen disagrees with the switch, the

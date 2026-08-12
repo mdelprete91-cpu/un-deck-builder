@@ -35,7 +35,7 @@ export const initialDeckState: DeckState = {
   brandId: "did",
   brief: "",
   count: 8,
-  chapters: true,
+  chapters: false,
   slides: [],
   activeIndex: 0,
   status: "idle",
