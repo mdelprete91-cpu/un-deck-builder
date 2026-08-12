@@ -86,6 +86,12 @@ export interface SlideContent {
   channels?: Channel[];
   /** Uploaded image (data URL) overriding the layout's default photo. */
   image?: string;
+  /**
+   * Country map slug (see country-maps.ts) shown in the image slot instead of
+   * a photo. A slug, not a data URL: the file is served from /country-maps, so
+   * the deck stays small and the export inlines the image once.
+   */
+  map?: string;
   /** Photo reframe: focal point in % (default 50/50) and zoom (1-4). */
   imagePos?: ImagePos;
   /**
@@ -169,6 +175,7 @@ export const slideContentSchema = z.object({
   contacts: z.array(contactSchema).optional(),
   channels: z.array(channelSchema).optional(),
   image: z.string().optional(),
+  map: z.string().optional(),
   imagePos: z
     .object({
       x: z.coerce.number().min(0).max(100),

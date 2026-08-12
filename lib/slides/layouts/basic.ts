@@ -109,7 +109,7 @@ export function sectionImage(variant: ImageVariant) {
       t,
       v.bg,
       v.bodyColor,
-      photoPanel(1080, s.image, 840, s.imagePos) +
+      photoPanel(1080, s.image, 840, s.imagePos, s.map) +
         // Title zone capped at 3 lines (3 × 88px); the body starts 8px below it
         // and owns all remaining height down to the footer.
         `<div class="ar" ${ed("title", 264)} style="position:absolute;left:100px;top:100px;width:880px;font-family:${MANROPE};font-weight:500;font-size:80px;line-height:1.1;letter-spacing:-.022em;color:${v.titleColor};">${esc(s.title)}</div>` +
@@ -145,7 +145,7 @@ export function photo(s: Slide, t: BrandTheme): string {
     "#FFFFFF",
     "#000000",
     heading80(s.title ?? "", "title", "#000000") +
-      framedImage(s.image, 100, 326, 1720, 572, s.imagePos) +
+      framedImage(s.image, 100, 326, 1720, 572, s.imagePos, s.map) +
       footer(t, "light"),
   );
 }
@@ -156,7 +156,7 @@ export function worldMap(s: Slide, t: BrandTheme): string {
     "#FFFFFF",
     "#000000",
     heading80(s.title ?? "", "title", "#000000") +
-      framedImage(s.image ?? "/giga-map.png", 100, 326, 1720, 572, s.imagePos) +
+      framedImage(s.image ?? "/giga-map.png", 100, 326, 1720, 572, s.imagePos, s.map) +
       footer(t, "light"),
   );
 }

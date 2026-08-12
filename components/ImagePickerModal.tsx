@@ -1,0 +1,148 @@
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
+import { COUNTRY_MAPS, countryMapThumb } from "@/lib/slides/country-maps";
+
+/**
+ * What goes in a slide's image slot: a photo from the user's machine, or one
+ * of the Giga Maps country exports. Two paths behind one button, because from
+ * the slide's point of view they fill the same hole.
+ */
+export default function ImagePickerModal({
+  current,
+  onUpload,
+  onPickMap,
+  onClearMap,
+  onClose,
+}: {
+  current?: string;
+  onUpload: () => void;
+  onPickMap: (slug: string) => void;
+  onClearMap: () => void;
+  onClose: () => void;
+}) {
+  // Land straight on the library when the slide already shows a map: that is
+  // the state you are in when you want a different country.
+  const [tab, setTab] = useState<"choose" | "maps">(current ? "maps" : "choose");
+  const [query, setQuery] = useState("");
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
+
+  const matches = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return q ? COUNTRY_MAPS.filter((c) => c.name.toLowerCase().includes(q)) : COUNTRY_MAPS;
+  }, [query]);
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-ink/45 p-6"
+      onClick={onClose}
+    >
+      <div
+        className="pop-in flex max-h-[82vh] w-full max-w-3xl flex-col rounded-2xl bg-white p-5 shadow-stripe-lg"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <span className="font-manrope mb-3 block text-[10px] font-bold uppercase tracking-[0.18em] text-giga">
+          Slide image
+        </span>
+
+        {tab === "choose" ? (
+          <div className="grid grid-cols-2 gap-3">
+            <button
+              onClick={onUpload}
+              className="flex flex-col items-center gap-2 rounded-xl border border-hairline bg-white px-4 py-8 text-center transition-colors duration-150 hover:border-giga-100 hover:bg-giga-tint"
+            >
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#277AFF" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 16V4M8 8l4-4 4 4" />
+                <path d="M4 16v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" />
+              </svg>
+              <span className="text-sm font-semibold text-ink">Upload image</span>
+              <span className="text-xs text-ink-muted">A photo from your computer</span>
+            </button>
+            <button
+              onClick={() => setTab("maps")}
+              className="flex flex-col items-center gap-2 rounded-xl border border-hairline bg-white px-4 py-8 text-center transition-colors duration-150 hover:border-giga-100 hover:bg-giga-tint"
+            >
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#277AFF" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2-6-2Z" />
+                <path d="M9 4v14M15 6v14" />
+              </svg>
+              <span className="text-sm font-semibold text-ink">Maps</span>
+              <span className="text-xs text-ink-muted">Schools in a country, {COUNTRY_MAPS.length} available</span>
+            </button>
+          </div>
+        ) : (
+          <>
+            <div className="mb-3 flex items-center gap-2">
+              <button
+                onClick={() => setTab("choose")}
+                title="Back"
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-ink transition-colors duration-150 hover:bg-giga-tint"
+              >
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M15 18l-6-6 6-6" />
+                </svg>
+              </button>
+              <input
+                autoFocus
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Search a country"
+                className="h-10 w-full rounded-lg border border-hairline bg-white px-3 text-sm text-ink outline-none transition-shadow duration-150 placeholder:text-ink-muted/70 focus:border-giga focus:ring-[3px] focus:ring-giga/15"
+              />
+              <span className="shrink-0 text-xs text-ink-muted">{matches.length}</span>
+            </div>
+
+            {/* auto-rows-max, or the rows stretch to fill and squash the tiles:
+                a grid item with overflow:hidden has no automatic minimum size. */}
+            <div className="-mx-1 grid min-h-0 flex-1 auto-rows-max grid-cols-3 gap-2 overflow-y-auto px-1 pb-1">
+              {matches.map((c) => (
+                <button
+                  key={c.slug}
+                  onClick={() => onPickMap(c.slug)}
+                  className={`group overflow-hidden rounded-lg border text-left transition-all duration-150 hover:border-giga ${
+                    current === c.slug ? "border-giga ring-[3px] ring-giga/15" : "border-hairline"
+                  }`}
+                >
+                  {/* Plain <img>: these are small static thumbnails we ship
+                      ourselves, and the slide renderers emit raw HTML anyway,
+                      so next/image would only apply inside this one modal. */}
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={countryMapThumb(c.slug)}
+                    alt=""
+                    loading="lazy"
+                    className="h-24 w-full bg-[#1C1C1C] object-contain transition-transform duration-150 group-hover:scale-[1.03]"
+                  />
+                  <span className="block truncate px-2 py-1.5 text-xs font-semibold text-ink">
+                    {c.name}
+                  </span>
+                </button>
+              ))}
+              {matches.length === 0 && (
+                <p className="col-span-3 py-10 text-center text-sm text-ink-muted">
+                  No country matches “{query}”. Giga has maps for {COUNTRY_MAPS.length} countries.
+                </p>
+              )}
+            </div>
+
+            {current && (
+              <button
+                onClick={onClearMap}
+                className="mt-3 self-start rounded-full px-3 py-2 text-xs font-semibold text-status-red transition-colors duration-150 hover:bg-status-red/5"
+              >
+                Remove the map from this slide
+              </button>
+            )}
+          </>
+        )}
+      </div>
+    </div>
+  );
+}

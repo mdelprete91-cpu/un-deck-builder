@@ -179,6 +179,26 @@ example), make it manual-insert only instead of AI-selectable.
 Known limits, on purpose for now: table cells in the tier layouts are not inline-editable, and
 PDF/PPTX import is not implemented.
 
+## Country maps
+
+`public/country-maps/<slug>.jpg` holds the Giga Maps export for each of the 54 countries Giga works
+in: every school as a dot on a dark basemap. A slide stores `map: "<slug>"`, never the image itself,
+so the deck stays small and the HTML export inlines the file once. `lib/slides/country-maps.ts` is
+the list, and `isCountryMap` guards it against a deck file naming a country we no longer ship.
+
+- **A photo and a map are alternatives in one slot.** `SET_IMAGE` and `SET_MAP` each clear the
+  other. `SET_MAP` also drops `imagePos`, which belongs to the photo.
+- **A map is drawn `contain`, on the basemap grey**, not `cover` like a photo. Cover would crop a
+  country out of its own slide, and `imagePos.zoom` starts at 1, so nobody could pan it back. This
+  is the one place a near-black surface is allowed: it is the map's own background, and it comes
+  from Giga Maps, which is the standing exception to the no-black rule.
+- **The raw exports are screenshots**, so the country sits wherever it landed in the frame.
+  `tools/prepare-country-maps.py` crops each one around its school dots, which is what makes them
+  usable at all. Re-run it when new countries arrive and regenerate the list to match. It never
+  upscales and never crops a dot away.
+- The model does not choose maps: the user picks one from the picker behind the "Image" action. It
+  is stripped from what the model sees (`lightSlide`) and restored via `preserve` on regenerate.
+
 ## The deck file
 
 There is no server and no account, so the exported HTML doubles as the save file: `lib/slides/deck-file.ts`

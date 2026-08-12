@@ -14,6 +14,7 @@ import { ICON_LIBRARY, ICON_NAMES } from "@/lib/slides/icons";
 import Sidebar from "@/components/Sidebar";
 import SlideFrame, { readImageFile } from "@/components/SlideFrame";
 import ChartDataPanel from "@/components/ChartDataPanel";
+import ImagePickerModal from "@/components/ImagePickerModal";
 import ThumbStrip from "@/components/ThumbStrip";
 import PrintRoot from "@/components/PrintRoot";
 
@@ -198,7 +199,7 @@ export default function Studio() {
    * base64 data URLs (a single photo once blew a request past 350K tokens),
    * and tier grids are meaningless to it.
    */
-  const lightSlide = ({ id: _id, image: _im, imagePos: _ip, logoTone: _lt, logos: _lg, grid: _gr, ...content }: (typeof state.slides)[number]) =>
+  const lightSlide = ({ id: _id, image: _im, imagePos: _ip, logoTone: _lt, logos: _lg, grid: _gr, map: _mp, ...content }: (typeof state.slides)[number]) =>
     content;
 
   const onAddMore = (instruction: string, count: number) =>
@@ -229,7 +230,7 @@ export default function Studio() {
         replace: false,
         targetIndex: state.activeIndex,
         // uploaded assets survive the AI rewrite
-        preserve: { image: active.image, imagePos: active.imagePos, logos: active.logos, grid: active.grid, icons: active.icons },
+        preserve: { image: active.image, imagePos: active.imagePos, logos: active.logos, grid: active.grid, icons: active.icons, map: active.map },
       },
     );
   };
@@ -321,6 +322,8 @@ export default function Studio() {
 
   // Icon picker: block index of the active slide's icon being changed
   const [iconPicker, setIconPicker] = useState<number | null>(null);
+  const [imagePicker, setImagePicker] = useState(false);
+  const slideImageInputRef = useRef<HTMLInputElement>(null);
 
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-canvas text-ink">
@@ -354,6 +357,48 @@ export default function Studio() {
             const file = e.target.files?.[0];
             e.target.value = "";
             if (file) void openDeckFile(file);
+          }}
+        />
+        {/* The image picker renders here, not inside SlideActions: that pill is
+            animated with a transform, and a transformed ancestor becomes the
+            containing block for position:fixed, which pinned the modal to the
+            pill instead of the viewport. */}
+        {imagePicker && active && (
+          <ImagePickerModal
+            current={active.map}
+            onUpload={() => {
+              setImagePicker(false);
+              slideImageInputRef.current?.click();
+            }}
+            onPickMap={(slug) => {
+              dispatch({ type: "SET_MAP", index: state.activeIndex, slug });
+              setImagePicker(false);
+            }}
+            onClearMap={() => {
+              dispatch({ type: "SET_MAP", index: state.activeIndex, slug: null });
+              setImagePicker(false);
+            }}
+            onClose={() => setImagePicker(false)}
+          />
+        )}
+        <input
+          ref={slideImageInputRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={async (e) => {
+            const file = e.target.files?.[0];
+            e.target.value = "";
+            if (!file) return;
+            try {
+              dispatch({
+                type: "SET_IMAGE",
+                index: state.activeIndex,
+                dataUrl: await readImageFile(file),
+              });
+            } catch {
+              // unreadable file — ignore
+            }
           }}
         />
         {state.slides.length === 0 ? (
@@ -427,9 +472,7 @@ export default function Studio() {
                     onAddItem={onAddItem}
                     onEditData={() => setDataPanelOpen((v) => !v)}
                     canChangeImage={hasImage}
-                    onChangeImage={(dataUrl) =>
-                      dispatch({ type: "EDIT_FIELD", index: state.activeIndex, path: "image", value: dataUrl })
-                    }
+                    onChangeImage={() => setImagePicker(true)}
                     onDuplicate={() => dispatch({ type: "DUPLICATE", index: state.activeIndex })}
                     onDelete={() => dispatch({ type: "DELETE", index: state.activeIndex })}
                   />
@@ -709,13 +752,13 @@ function SlideActions({
   onRegenerate: (instruction: string) => void;
   onAddItem: () => void;
   onEditData: () => void;
-  onChangeImage: (dataUrl: string) => void;
+  /** Opens the picker, which lives at page level: see the comment on its render. */
+  onChangeImage: () => void;
   onDuplicate: () => void;
   onDelete: () => void;
 }) {
   const [aiOpen, setAiOpen] = useState(false);
   const [instruction, setInstruction] = useState("");
-  const imageInputRef = useRef<HTMLInputElement>(null);
   const submit = () => {
     if (busy) return;
     onRegenerate(instruction);
@@ -792,7 +835,7 @@ function SlideActions({
               </button>
             )}
             {canChangeImage && (
-              <button onClick={() => imageInputRef.current?.click()} title="Upload a different image for this slide" className={action}>
+              <button onClick={onChangeImage} title="Change the image on this slide" className={action}>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <rect x="3" y="3" width="18" height="18" rx="2" />
                   <circle cx="9" cy="9" r="2" />
@@ -815,22 +858,6 @@ function SlideActions({
             </button>
           </>
         )}
-        <input
-          ref={imageInputRef}
-          type="file"
-          accept="image/*"
-          className="hidden"
-          onChange={async (e) => {
-            const file = e.target.files?.[0];
-            e.target.value = "";
-            if (!file) return;
-            try {
-              onChangeImage(await readImageFile(file));
-            } catch {
-              // unreadable file — ignore
-            }
-          }}
-        />
         </div>
       </div>
     </div>

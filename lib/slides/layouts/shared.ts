@@ -1,5 +1,9 @@
 import type { BrandTheme } from "../brand";
 import type { ImagePos } from "../schema";
+import { countryMapSrc, isCountryMap } from "../country-maps";
+
+/** The Giga Maps basemap grey, so a letterboxed map reads as one dark panel. */
+const MAP_BASEMAP = "#1C1C1C";
 
 /**
  * Typography and geometry from the "Giga Slides" template (2026-07):
@@ -134,8 +138,14 @@ export function coverFooterDark(t: BrandTheme): string {
  * or undefined for the Giga classroom placeholder; `data-image` marks the
  * node for the editor's "Change image" action.
  */
-export function photoPanel(left: number, image?: string, width = 840, pos?: ImagePos): string {
-  return framedImage(image, left, 0, width, 1080, pos);
+export function photoPanel(
+  left: number,
+  image?: string,
+  width = 840,
+  pos?: ImagePos,
+  map?: string,
+): string {
+  return framedImage(image, left, 0, width, 1080, pos, map);
 }
 
 /**
@@ -149,11 +159,22 @@ export function framedImage(
   width: number,
   height: number,
   pos?: ImagePos,
+  map?: string,
 ): string {
   const p = pos ?? { x: 50, y: 50, zoom: 1 };
+  // A country map is data, not scenery: it is shown whole (contain) on its own
+  // basemap grey, because cover would crop a country out of its own slide and
+  // zoom only goes up from 1, so nobody could pan it back into view. A photo
+  // still fills the slot, which is what the template's geometry is drawn for.
+  const isMap = !!map && isCountryMap(map);
+  const src = isMap ? countryMapSrc(map!) : (image ?? "/giga-placeholder.jpg");
+  const fit = isMap
+    ? `object-fit:contain;`
+    : `object-fit:cover;object-position:${p.x}% ${p.y}%;transform:scale(${p.zoom});transform-origin:${p.x}% ${p.y}%;`;
+  const bg = isMap ? `background:${MAP_BASEMAP};` : "";
   return (
-    `<div style="position:absolute;left:${left}px;top:${top}px;width:${width}px;height:${height}px;overflow:hidden;">` +
-    `<img src="${esc(image ?? "/giga-placeholder.jpg")}" data-image alt="" class="af" style="width:100%;height:100%;object-fit:cover;object-position:${p.x}% ${p.y}%;transform:scale(${p.zoom});transform-origin:${p.x}% ${p.y}%;">` +
+    `<div style="position:absolute;left:${left}px;top:${top}px;width:${width}px;height:${height}px;overflow:hidden;${bg}">` +
+    `<img src="${esc(src)}" data-image alt="" class="af" style="width:100%;height:100%;${fit}">` +
     `</div>`
   );
 }

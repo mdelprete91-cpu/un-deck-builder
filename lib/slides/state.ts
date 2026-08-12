@@ -66,6 +66,8 @@ export type DeckAction =
   | { type: "TOGGLE_CELL"; index: number; row: number; col: number }
   | { type: "SET_BARS"; index: number; bars: { label: string; value: number }[] }
   | { type: "SET_LOGO"; index: number; slug: string; dataUrl: string }
+  | { type: "SET_IMAGE"; index: number; dataUrl: string }
+  | { type: "SET_MAP"; index: number; slug: string | null }
   | { type: "MOVE"; from: number; to: number }
   | { type: "DUPLICATE"; index: number }
   | { type: "DELETE"; index: number }
@@ -267,6 +269,34 @@ function reduce(state: DeckState, action: DeckAction): DeckState {
       if (!slide) return state;
       const clone = structuredClone(slide);
       clone.logos = { ...clone.logos, [action.slug]: action.dataUrl };
+      const slides = [...state.slides];
+      slides[action.index] = clone;
+      return { ...state, ...remember(state), slides };
+    }
+    // A photo and a country map are alternatives in the same slot, so setting
+    // one clears the other. The reframe belongs to the photo: a map is drawn
+    // whole, and keeping a stale crop would apply it to the next upload.
+    case "SET_IMAGE": {
+      const slide = state.slides[action.index];
+      if (!slide) return state;
+      const clone = structuredClone(slide);
+      clone.image = action.dataUrl;
+      delete clone.map;
+      const slides = [...state.slides];
+      slides[action.index] = clone;
+      return { ...state, ...remember(state), slides };
+    }
+    case "SET_MAP": {
+      const slide = state.slides[action.index];
+      if (!slide) return state;
+      const clone = structuredClone(slide);
+      if (action.slug === null) {
+        delete clone.map;
+      } else {
+        clone.map = action.slug;
+        delete clone.image;
+        delete clone.imagePos;
+      }
       const slides = [...state.slides];
       slides[action.index] = clone;
       return { ...state, ...remember(state), slides };

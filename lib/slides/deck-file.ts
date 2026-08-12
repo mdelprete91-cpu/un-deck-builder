@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { isBrandId } from "./brand";
+import { isCountryMap } from "./country-maps";
 import { ensureId, normalizeSlide } from "./schema";
 import type { Slide, SlideContent } from "./schema";
 import type { DeckState } from "./state";
@@ -78,6 +79,9 @@ export function deckStateScript(state: DeckState): string {
 /** Drop an asset field that did not come from an upload, keeping the slide. */
 function safeAssets(slide: SlideContent): void {
   if (slide.image !== undefined && !SAFE_ASSET.test(slide.image)) delete slide.image;
+  // A map is a slug we resolve to a path we own, so it only has to be one we
+  // actually ship: a file from an older build can name a country we dropped.
+  if (slide.map !== undefined && !isCountryMap(slide.map)) delete slide.map;
   if (slide.logos) {
     for (const [slug, src] of Object.entries(slide.logos)) {
       if (!SAFE_ASSET.test(src)) delete slide.logos[slug];
