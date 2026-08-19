@@ -134,6 +134,28 @@ leaks a stray divider often enough to matter. It never edits the deck already on
 **Bump `VERSION` in `storage.ts`** whenever the persisted shape changes, otherwise returning users
 hydrate a broken deck from localStorage.
 
+**The editor opens empty, and the autosave is a safety net rather than a session.** It used to
+restore the last deck silently, so every visit after the first started on finished work with no
+obvious way back to a blank page. `openSession` now returns that deck separately from the settings:
+`app/page.tsx` holds it in `previous` state and offers it on the empty state instead of applying it,
+and only `brandId` and `chapters` are hydrated, because a preference is not work.
+
+The offer is backed by the saved session itself, not a copy — a photo-heavy deck already runs at the
+edge of the localStorage quota, so a second key would be the write that fails. What keeps it alive
+is the autosave: **it is held off while `previous` is set**, since the empty editor has nothing worth
+writing over that deck. Remove that guard and the first debounce tick erases the deck the card is
+still offering. `onDeckArrived` releases it, which is also what stops the offer from resurfacing
+behind a deck the user has since deleted; Discard calls `clearSaved`.
+
+**The tour is anchored by `data-tour` attributes.** `components/Tour.tsx` finds its target with
+`document.querySelector('[data-tour="…"]')`, so renaming or removing one of those attributes
+silently drops a step (a missing target is skipped on purpose: half the chrome only renders with
+slides). The steps themselves live in `INTRO_STEPS` and `EDITOR_STEPS` in `app/page.tsx`. Phase one
+runs on an empty editor and stops at Generate; phase two runs from `onDeckArrived`, the single place
+every path that puts slides on screen goes through (generate, restore, open a file, manual insert,
+drop an image). `seenOnboarding`/`markSeen` in `lib/slides/onboarding.ts` gate both, and bumping
+`VERSION` there replays the tour for everyone.
+
 ## The AI layer
 
 - Model: `claude-haiku-4-5-20251001`. Fast and cheap, about $0.01 for a 12-slide deck. The whole

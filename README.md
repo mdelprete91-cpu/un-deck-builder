@@ -9,7 +9,9 @@ Generate branded slide decks from a prompt. The AI never designs slides: it pick
 - **Generation**: Claude Haiku 4.5 returns structured JSON (`layoutId` + text fields) via a streaming API route — slides appear one by one. Fast and cheap (~$0.01 per 12-slide deck).
 - **Logo lockups** change the footer logo and the footer label, and carry one of two palettes. Giga and UNICEF keep the Giga blue palette; Digital Impact Division and Digital Inclusion run on two surfaces only, UNICEF cyan `#01AEEF` and white. The typography (Manrope + Open Sans, self-hosted) never changes.
 - **Layout variants**: card and stat layouts adapt to their element count (1 to 4 cards, 1 to 6 stats, 2 to 5 timeline points…) — both when the AI picks a count and when you edit.
-- **Editing**: click any text on the slide to edit it (Escape cancels). Hover an element for ✕ to delete it, "+ Element" adds one back. Undo/redo with Cmd+Z / Cmd+Shift+Z or the toolbar arrows. Thumbnails: reorder, duplicate, delete. "Regenerate slide" rewrites the active slide with an instruction. Deck autosaves to localStorage.
+- **Editing**: click any text on the slide to edit it (Escape cancels). Hover an element for ✕ to delete it, "+ Element" adds one back. Undo/redo with Cmd+Z / Cmd+Shift+Z or the toolbar arrows. Thumbnails: reorder, duplicate, delete. "Regenerate slide" rewrites the active slide with an instruction. The deck autosaves to localStorage as you work.
+- **Opening the app**: always on an empty editor. The autosave is a safety net, not a session that resumes on its own, so the deck from last time waits on a "Last session" card on the empty state, with Pick it up and Discard. Only the logo lockup and the Chapters setting carry over.
+- **Product tour**: runs on first use, in two phases. The brief, the Chapters switch and Generate on the empty editor, then the canvas, the slide bar, Add slides and Download once the first deck exists. "How it works" in the sidebar replays it at any time.
 - **Download PDF**: browser print (Chrome, backgrounds on, scale 100%) — one slide per page at 1920×1080.
 - **Download HTML deck**: one self-contained file (fonts and logos inlined) with arrow-key navigation and the template's entrance animations. The same file is the project file: it carries the deck's data model in an inert JSON block.
 - **Upload**: drop an exported HTML deck on the canvas, or use "Upload" in the toolbar next to Download, to pick up where you left off — slides, logo, brief and the Chapters setting all come back. Replacing a deck that is on screen asks first. Decks exported before this existed can still be presented, they just cannot be reopened.
@@ -36,7 +38,10 @@ lib/slides/
   parse.ts      incremental JSON scanner → slides stream in one by one
   export-html.ts  standalone deck serializer
   deck-file.ts  the deck file format: writes the embedded state block, reads it back
-app/api/generate/route.ts   NDJSON streaming route (claude-haiku-4-5)
+  storage.ts    localStorage autosave, and the previous-session slot behind it
+  onboarding.ts which phase of the product tour the user has already seen
+components/Tour.tsx           the spotlight tour, driven by data-tour attributes
+app/api/generate/route.ts     NDJSON streaming route (claude-haiku-4-5)
 ```
 
 Layouts `tiers-1` and `tiers-2` are manual-insert only (dense approved content the model shouldn't rewrite); table cells are not inline-editable in v1.

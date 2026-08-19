@@ -6,7 +6,8 @@ import { deckReducer, initialDeckState } from "@/lib/slides/state";
 import { normalizeSlide, PRIMARY_ARRAY, type LayoutId, type SlideContent } from "@/lib/slides/schema";
 import { renderSlide, LAYOUTS } from "@/lib/slides/layouts";
 import { defaultContent } from "@/lib/slides/defaults";
-import { loadDeck, saveDeck } from "@/lib/slides/storage";
+import { clearSaved, openSession, saveDeck } from "@/lib/slides/storage";
+import { markSeen, seenOnboarding, type TourPhase } from "@/lib/slides/onboarding";
 import { exportHtmlDeck } from "@/lib/slides/export-html";
 import { parseDeckFile } from "@/lib/slides/deck-file";
 import { computeLogoTone, FULL_BLEED_TONE, RIGHT_PANEL_TONE, type ToneGeometry } from "@/lib/slides/logo-tone";
@@ -17,6 +18,8 @@ import ChartDataPanel from "@/components/ChartDataPanel";
 import ImagePickerModal from "@/components/ImagePickerModal";
 import ThumbStrip from "@/components/ThumbStrip";
 import PrintRoot from "@/components/PrintRoot";
+import Tour, { type TourStep } from "@/components/Tour";
+import type { DeckState } from "@/lib/slides/state";
 
 /**
  * Layouts whose photo runs underneath the footer, mapped to the geometry that
@@ -35,25 +38,142 @@ const LOGO_TONE_LAYOUTS = new Map<string, ToneGeometry>([
 /** The two layouts the "Chapters" toggle governs. */
 const CHAPTER_LAYOUTS = new Set<string>(["agenda", "section-divider"]);
 
+/**
+ * The worked example under the tour's brief step. One card, not a good/bad
+ * pair: the step is anchored to the prompt box, and two cards do not fit in
+ * the space below it without putting the tour's own buttons out of reach.
+ */
+function BriefExample() {
+  return (
+    <div className="mt-3 rounded-lg border border-giga-100 bg-giga-tint p-2.5">
+      <span className="font-manrope mb-0.5 block text-[10px] font-bold uppercase tracking-[0.18em] text-giga">
+        A brief that works
+      </span>
+      <p className="text-xs leading-relaxed text-ink">
+        A partnership pitch to a Kenyan telecom operator, in 10 slides: what Giga is, the gap in
+        real numbers, our ask, and what they get back.
+      </p>
+    </div>
+  );
+}
+
+/**
+ * Phase one, on an empty editor: what the tool does, then the two controls
+ * that decide what comes out of it. It stops at Generate because everything
+ * past that point is chrome that has not rendered yet.
+ */
+const INTRO_STEPS: TourStep[] = [
+  {
+    title: "You describe the deck. The template does the design.",
+    body: "Every slide comes from the approved Giga Slides template. The AI only picks which slides your story needs and writes the words, so a deck cannot come out off brand.",
+  },
+  {
+    target: "prompt",
+    title: "Write the brief here",
+    body: "Dense, not long. Give the story, the audience and the real numbers, and cut the filler: more context makes a better deck, more words don't.",
+  },
+  {
+    target: "prompt",
+    title: "And say how many slides",
+    body: "Ask for a count in the brief itself, like “in 10 slides”. Without one the AI decides.",
+    extra: <BriefExample />,
+  },
+  {
+    target: "chapters",
+    title: "Chapters, only if the deck needs them",
+    body: "On, the deck opens with an agenda and splits into sections. Off, it runs straight through. It applies to the next deck you generate, never to the one already on screen.",
+  },
+  {
+    target: "generate",
+    title: "Then generate",
+    body: "Slides appear one by one as they are written. Nothing is final: every word on every slide can be edited afterwards.",
+  },
+];
+
+/**
+ * Phase two, once a deck is on screen, in the order the work happens: edit
+ * what the AI wrote, redo a slide, add one, take the deck with you. Every
+ * target below is chrome that only renders with slides.
+ */
+const EDITOR_STEPS: TourStep[] = [
+  {
+    target: "canvas",
+    title: "Edit straight on the slide",
+    body: "Click any text to rewrite it. It resizes itself to fit. Drag a photo to reframe it, scroll to zoom.",
+  },
+  {
+    target: "slide-bar",
+    title: "The bar follows the slide",
+    body: "Redo the whole slide with a one-line instruction, add an element, swap the image, duplicate or delete. It always acts on the slide on screen.",
+  },
+  {
+    target: "add-slides",
+    title: "Add slides as you go",
+    body: "Describe what is missing and the AI writes it, picks where it belongs and updates the agenda. Nothing already on screen is touched.",
+  },
+  {
+    target: "download",
+    title: "Download is the save",
+    body: "Nothing is stored on a server. Download the HTML deck before you close the tab, then use Upload next to it to reopen the file here and keep editing.",
+  },
+];
+
 export default function Studio() {
   const [state, dispatch] = useReducer(deckReducer, initialDeckState);
   const [hydrated, setHydrated] = useState(false);
   const [dataPanelOpen, setDataPanelOpen] = useState(false);
+  /** Last session's deck, offered on the empty state. Never applied on its own. */
+  const [previous, setPrevious] = useState<Partial<DeckState> | null>(null);
+  /** The running tour: its steps, and the phases finishing it marks as seen. */
+  const [tour, setTour] = useState<{ steps: TourStep[]; phases: TourPhase[] } | null>(null);
   const abortRef = useRef<AbortController | null>(null);
   const theme = BRANDS[state.brandId];
   const active = state.slides[state.activeIndex];
 
-  // Hydrate from localStorage once, then autosave (debounced)
+  // Open empty. The editor used to restore the last deck silently, which meant
+  // every visit after the first started on somebody else's finished work with
+  // no obvious way back to a blank page. Only the generation settings carry
+  // over; the deck itself waits behind a card on the empty state.
   useEffect(() => {
-    const saved = loadDeck();
-    if (saved) dispatch({ type: "HYDRATE", state: saved });
+    const { settings, previous: prev } = openSession();
+    if (Object.keys(settings).length > 0) dispatch({ type: "HYDRATE", state: settings });
+    setPrevious(prev);
+    if (!seenOnboarding().intro) setTour({ steps: INTRO_STEPS, phases: ["intro"] });
     setHydrated(true);
   }, []);
+
+  /**
+   * A deck just landed on screen. The editor phase of the tour points at
+   * chrome that only renders with slides, so this is the earliest it can run.
+   * The previous session also stops being "where you left off" the moment the
+   * user has a deck of their own: the offer goes away rather than resurfacing
+   * behind a deck they have since deleted.
+   */
+  const onDeckArrived = () => {
+    setPrevious(null);
+    if (!tour && !seenOnboarding().editor) setTour({ steps: EDITOR_STEPS, phases: ["editor"] });
+  };
+
+  /** Replay from the sidebar: the whole thing when there is a deck to show. */
+  const onHowItWorks = () =>
+    setTour(
+      state.slides.length > 0
+        ? { steps: [...INTRO_STEPS, ...EDITOR_STEPS], phases: ["intro", "editor"] }
+        : { steps: INTRO_STEPS, phases: ["intro"] },
+    );
+
+  const onTourDone = () => {
+    if (tour) markSeen(...tour.phases);
+    setTour(null);
+  };
+  // Autosave, debounced. Held off while last session's deck is still on offer:
+  // that deck IS the saved session, and there is nothing worth saving over it
+  // until the user takes it, drops it, or starts a deck of their own.
   useEffect(() => {
-    if (!hydrated) return;
+    if (!hydrated || previous) return;
     const timer = setTimeout(() => saveDeck(state), 800);
     return () => clearTimeout(timer);
-  }, [state, hydrated]);
+  }, [state, hydrated, previous]);
 
   // On layouts where the photo panel sits under the footer logo, pick the
   // white or dark logo from the pixels beneath it (no AI: pure luminance).
@@ -198,6 +318,7 @@ export default function Studio() {
     // asks for them explicitly ("tiers", "tier table", "livelli"); a generic
     // partnership deck must not ship them uninvited.
     if (received > 0 && /\btiers?\b|\blivell[oi]\b/i.test(brief)) dispatch({ type: "INSERT_TIERS" });
+    if (received > 0) onDeckArrived();
   };
 
   /**
@@ -241,8 +362,10 @@ export default function Studio() {
     );
   };
 
-  const onInsertLayout = (layoutId: LayoutId) =>
+  const onInsertLayout = (layoutId: LayoutId) => {
     dispatch({ type: "INSERT", content: defaultContent(layoutId) });
+    onDeckArrived();
+  };
 
   const canAddItem =
     !!active &&
@@ -283,6 +406,7 @@ export default function Studio() {
       return;
     }
     dispatch({ type: "HYDRATE", state: result.state });
+    onDeckArrived();
     if (result.dropped > 0) {
       dispatch({
         type: "GENERATION_ERROR",
@@ -320,10 +444,22 @@ export default function Studio() {
       try {
         const dataUrl = await readImageFile(f);
         dispatch({ type: "INSERT", content: { ...defaultContent("photo"), image: dataUrl } });
+        onDeckArrived();
       } catch {
         // unreadable file — skip
       }
     }
+  };
+
+  const onRestorePrevious = () => {
+    if (!previous) return;
+    dispatch({ type: "HYDRATE", state: previous });
+    onDeckArrived();
+  };
+
+  const onDismissPrevious = () => {
+    clearSaved();
+    setPrevious(null);
   };
 
   // Icon picker: block index of the active slide's icon being changed
@@ -338,6 +474,7 @@ export default function Studio() {
         dispatch={dispatch}
         onGenerate={onGenerate}
         onAddMore={onAddMore}
+        onHowItWorks={onHowItWorks}
       />
 
       {/* Drop handling lives on <main> so it also works with an empty deck —
@@ -410,6 +547,9 @@ export default function Studio() {
           <EmptyState
             generating={state.status === "generating"}
             onOpenDeckFile={openDeckFilePicker}
+            previous={previous}
+            onRestorePrevious={onRestorePrevious}
+            onDismissPrevious={onDismissPrevious}
           />
         ) : (
           <>
@@ -432,7 +572,7 @@ export default function Studio() {
                 onClose={() => setDataPanelOpen(false)}
               />
             )}
-            <div className="relative min-h-0 flex-1 p-6 pb-10">
+            <div className="relative min-h-0 flex-1 p-6 pb-10" data-tour="canvas">
               {active && (
                 <>
                   <SlideFrame
@@ -498,6 +638,8 @@ export default function Studio() {
           onInsertLayout={onInsertLayout}
         />
       </div>
+
+      {tour && <Tour steps={tour.steps} onDone={onTourDone} />}
 
       <PrintRoot slides={state.slides} theme={theme} />
     </div>
@@ -588,10 +730,21 @@ function IconPickerModal({
 function EmptyState({
   generating,
   onOpenDeckFile,
+  previous,
+  onRestorePrevious,
+  onDismissPrevious,
 }: {
   generating: boolean;
   onOpenDeckFile: () => void;
+  previous: Partial<DeckState> | null;
+  onRestorePrevious: () => void;
+  onDismissPrevious: () => void;
 }) {
+  const count = previous?.slides?.length ?? 0;
+  // On a cover the title is usually the brand lockup and the subtitle carries
+  // the subject, which is what makes one parked deck tell itself from another.
+  const first = previous?.slides?.[0];
+  const title = (first?.layoutId === "cover" ? first.subtitle : first?.title)?.trim();
   return (
     <div className="flex flex-1 flex-col items-center justify-center gap-4">
       {generating ? (
@@ -621,6 +774,39 @@ function EmptyState({
             </button>
             , or drop it here.
           </p>
+          {/* The editor no longer restores the last deck on its own, so the
+              deck is offered here instead of appearing under the user. */}
+          {count > 0 && (
+            <div className="pop-in mt-2 w-full max-w-sm rounded-xl border border-hairline bg-white p-4 shadow-stripe">
+              <span className="font-manrope mb-1 block text-[10px] font-bold uppercase tracking-[0.18em] text-giga">
+                Last session
+              </span>
+              <p className="text-sm leading-relaxed text-ink">
+                {title ? `“${title}”` : "Untitled deck"}
+                <span className="text-ink-muted">
+                  {" "}
+                  · {count} slide{count === 1 ? "" : "s"}
+                </span>
+              </p>
+              <p className="mt-1 text-xs leading-relaxed text-ink-muted">
+                Left in this browser, not saved to a file.
+              </p>
+              <div className="mt-3 flex items-center gap-2">
+                <button
+                  onClick={onRestorePrevious}
+                  className="font-manrope h-9 rounded-full bg-giga px-4 text-xs font-semibold text-white shadow-stripe-md transition-all duration-150 hover:bg-giga-deep active:scale-[0.98]"
+                >
+                  Pick it up
+                </button>
+                <button
+                  onClick={onDismissPrevious}
+                  className="rounded-full px-3 py-2 text-xs font-semibold text-ink-muted transition-colors duration-150 hover:text-ink"
+                >
+                  Discard
+                </button>
+              </div>
+            </div>
+          )}
         </>
       )}
     </div>
@@ -688,7 +874,7 @@ function Toolbar({
       <span className="hidden truncate text-xs text-ink-muted xl:block">
         Click text to edit · drag a photo to reframe, scroll to zoom
       </span>
-      <div className="ml-auto flex shrink-0 items-center gap-2">
+      <div className="ml-auto flex shrink-0 items-center gap-2" data-tour="download">
         <button
           onClick={onOpenDeckFile}
           title="Open a deck you downloaded earlier"
@@ -797,7 +983,10 @@ function SlideActions({
       {/* Glow and pill bob together; the glow sits behind the white pill */}
       <div className={`${aiOpen || busy ? "" : "float-idle "}pointer-events-auto relative`}>
         <div aria-hidden className="rainbow-glow" />
-        <div className="relative flex items-center gap-0.5 rounded-full border border-giga-100 bg-white p-1.5 shadow-float">
+        <div
+          data-tour="slide-bar"
+          className="relative flex items-center gap-0.5 rounded-full border border-giga-100 bg-white p-1.5 shadow-float"
+        >
         {busy ? (
           <div className="flex h-10 items-center gap-2.5 px-4 text-[13px] font-semibold text-giga">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" className="animate-spin">

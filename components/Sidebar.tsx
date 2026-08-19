@@ -9,6 +9,8 @@ interface SidebarProps {
   dispatch: (action: DeckAction) => void;
   onGenerate: () => void;
   onAddMore: (instruction: string, count: number) => void;
+  /** Reopens the welcome card, which is the only place the brief rules live. */
+  onHowItWorks: () => void;
 }
 
 /** Sidebar section label — the BAG eyebrow at product scale. */
@@ -33,16 +35,19 @@ function SwitchRow({
   checked,
   disabled,
   onChange,
+  tourTarget,
 }: {
   label: string;
   hint: string;
   checked: boolean;
   disabled?: boolean;
   onChange: (next: boolean) => void;
+  tourTarget?: string;
 }) {
   return (
     <button
       type="button"
+      data-tour={tourTarget}
       role="switch"
       aria-checked={checked}
       disabled={disabled}
@@ -73,7 +78,13 @@ function SwitchRow({
 const SECONDARY_BTN =
   "h-10 rounded-full border border-hairline bg-white px-4 text-sm font-semibold text-ink transition-colors duration-150 hover:border-giga-100 hover:bg-giga-tint disabled:pointer-events-none disabled:opacity-40";
 
-export default function Sidebar({ state, dispatch, onGenerate, onAddMore }: SidebarProps) {
+export default function Sidebar({
+  state,
+  dispatch,
+  onGenerate,
+  onAddMore,
+  onHowItWorks,
+}: SidebarProps) {
   const [addBrief, setAddBrief] = useState("");
   const [addCount, setAddCount] = useState(2);
   const [addOpen, setAddOpen] = useState(false);
@@ -133,7 +144,10 @@ export default function Sidebar({ state, dispatch, onGenerate, onAddMore }: Side
           chapters is a broken state, not an option. */}
       <div>
         <Eyebrow>Prompt</Eyebrow>
-        <div className="rounded-lg border border-hairline bg-white transition-shadow duration-150 focus-within:border-giga focus-within:ring-[3px] focus-within:ring-giga/15">
+        <div
+          data-tour="prompt"
+          className="rounded-lg border border-hairline bg-white transition-shadow duration-150 focus-within:border-giga focus-within:ring-[3px] focus-within:ring-giga/15"
+        >
           <textarea
             value={state.brief}
             onChange={(e) => dispatch({ type: "SET_BRIEF", brief: e.target.value })}
@@ -142,6 +156,7 @@ export default function Sidebar({ state, dispatch, onGenerate, onAddMore }: Side
             className="block w-full resize-y rounded-t-lg bg-transparent p-3 text-sm text-ink outline-none placeholder:text-ink-muted/70"
           />
           <SwitchRow
+            tourTarget="chapters"
             label="Chapters"
             hint="Agenda slide and section dividers"
             checked={state.chapters}
@@ -164,6 +179,7 @@ export default function Sidebar({ state, dispatch, onGenerate, onAddMore }: Side
       </div>
 
       <button
+        data-tour="generate"
         onClick={onGenerate}
         disabled={generating || !state.brief.trim()}
         className="font-manrope h-12 rounded-full bg-giga px-6 text-sm font-semibold text-white shadow-stripe-md transition-all duration-150 hover:bg-giga-deep active:scale-[0.98] disabled:pointer-events-none disabled:opacity-40"
@@ -176,6 +192,7 @@ export default function Sidebar({ state, dispatch, onGenerate, onAddMore }: Side
           never touched. */}
       {hasSlides && (
         <button
+          data-tour="add-slides"
           onClick={() => setAddOpen(true)}
           disabled={generating}
           className={`${SECONDARY_BTN} flex items-center justify-center gap-1.5`}
@@ -255,6 +272,17 @@ export default function Sidebar({ state, dispatch, onGenerate, onAddMore }: Side
       )}
 
       <div className="mt-auto flex flex-col gap-2">
+        <button
+          onClick={onHowItWorks}
+          className="flex h-9 items-center justify-center gap-1.5 rounded-full px-4 text-xs font-semibold text-ink-muted transition-colors duration-150 hover:bg-giga-tint hover:text-giga"
+        >
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="9" />
+            <path d="M9.5 9a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.7v.2" />
+            <path d="M12 17h.01" />
+          </svg>
+          How it works
+        </button>
         {hasSlides && (
           <button
             onClick={() => {
