@@ -193,6 +193,9 @@ function reduce(state: DeckState, action: DeckAction): DeckState {
         ...state,
         format: action.format,
         brandId: action.format === "two-pager" ? TWO_PAGER_BRAND : state.brandId,
+        // A two-pager is a two-pager: the name is the spec. The slide default
+        // (8) would ask the model for an eight-page brief.
+        count: action.format === "two-pager" ? 2 : initialDeckState.count,
       };
     case "SET_BRIEF":
       return { ...state, brief: action.brief };
