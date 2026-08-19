@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { normalizePage, pageBlockSchema, type PageBlock } from "./pages/schema";
 
 /** Layouts the AI is allowed to pick. */
 export const AI_LAYOUT_IDS = [
@@ -41,8 +42,27 @@ export const MANUAL_LAYOUT_IDS = ["tiers-1", "tiers-2", "photo-full"] as const;
  */
 export const LEGACY_LAYOUT_IDS = ["section-image-dark"] as const;
 
-export const LAYOUT_IDS = [...AI_LAYOUT_IDS, ...MANUAL_LAYOUT_IDS, ...LEGACY_LAYOUT_IDS] as const;
+/**
+ * The two-pager page. Not a slide layout: it is never offered to the AI as a
+ * layoutId, never in the insert list, and its content lives in `stack` rather
+ * than in the flat slide fields. It is a LayoutId only so a page can sit in
+ * `state.slides` and inherit reorder, duplicate, delete, undo and persistence
+ * unchanged.
+ */
+export const PAGE_LAYOUT_IDS = ["a4-page"] as const;
+
+export const LAYOUT_IDS = [
+  ...AI_LAYOUT_IDS,
+  ...MANUAL_LAYOUT_IDS,
+  ...LEGACY_LAYOUT_IDS,
+  ...PAGE_LAYOUT_IDS,
+] as const;
 export type LayoutId = (typeof LAYOUT_IDS)[number];
+
+/** True for a two-pager page, which most slide-only machinery must skip. */
+export function isPage(s: { layoutId: LayoutId }): boolean {
+  return s.layoutId === "a4-page";
+}
 
 export interface Block {
   label: string;
@@ -105,6 +125,14 @@ export interface SlideContent {
   logos?: Record<string, string>;
   /** Icon-card slides: chosen icon slug per block (see lib/slides/icons.ts). */
   icons?: string[];
+  /** Two-pager page ("a4-page"): the ordered block stack. */
+  stack?: PageBlock[];
+  /**
+   * Two-pager page footer label. On the page rather than read from the theme
+   * because it is editable per page ("Digital Inclusion · Songbird"); the
+   * renderer falls back to the brand label while it is empty.
+   */
+  footerLabel?: string;
 }
 
 export interface Channel {
@@ -187,6 +215,8 @@ export const slideContentSchema = z.object({
   grid: z.array(z.array(z.union([z.string(), z.null()]))).optional(),
   logos: z.record(z.string(), z.string()).optional(),
   icons: z.array(z.string()).optional(),
+  stack: z.array(pageBlockSchema).optional(),
+  footerLabel: z.string().optional(),
 });
 
 export function clampWords(text: string, maxWords: number): string {
@@ -263,6 +293,19 @@ export function normalizeSlide(
   const parsed = slideContentSchema.safeParse(raw);
   if (!parsed.success) return null;
   const slide = parsed.data as SlideContent;
+
+  // A two-pager page validates its own stack and nothing else: none of the
+  // slide-shaped rules below apply, and ARRAY_LIMITS has no "a4-page" entry
+  // (adding one would reject every page, since `stack` is not an ArrayField).
+  if (isPage(slide)) {
+    const stack = normalizePage(slide.stack);
+    if (!stack) return null;
+    slide.stack = stack;
+    // The label has to exist for the editor to write to it: setPath is a
+    // silent no-op on a missing field.
+    slide.footerLabel = slide.footerLabel ?? "";
+    return slide;
+  }
 
   // The closing slide is always titled "Thanks" — only the user may change
   // it by editing the slide; the model never picks the wording. A reopened

@@ -4,8 +4,13 @@ import * as basic from "./basic";
 import * as cards from "./cards";
 import * as stats from "./stats";
 import * as tables from "./tables";
+import { renderPage, type PageCtx } from "../pages/render";
 
-export type RenderFn = (slide: Slide, theme: BrandTheme) => string;
+/**
+ * `ctx` is optional so every slide renderer stays assignable unchanged: only
+ * the two-pager page needs to know where it sits (for the page number).
+ */
+export type RenderFn = (slide: Slide, theme: BrandTheme, ctx?: PageCtx) => string;
 
 export const LAYOUTS: Record<LayoutId, { label: string; render: RenderFn }> = {
   cover: { label: "Cover", render: basic.cover },
@@ -39,10 +44,11 @@ export const LAYOUTS: Record<LayoutId, { label: string; render: RenderFn }> = {
   "thank-you": { label: "Thank you", render: basic.thankYou },
   "tiers-1": { label: "Partnership tiers (1/2)", render: tables.tiers1 },
   "tiers-2": { label: "Partnership tiers (2/2)", render: tables.tiers2 },
+  "a4-page": { label: "A4 page", render: renderPage },
 };
 
-export function renderSlide(slide: Slide, theme: BrandTheme): string {
+export function renderSlide(slide: Slide, theme: BrandTheme, ctx?: PageCtx): string {
   const def = LAYOUTS[slide.layoutId];
   if (!def) return "";
-  return def.render(slide, theme);
+  return def.render(slide, theme, ctx);
 }
