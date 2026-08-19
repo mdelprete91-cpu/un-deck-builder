@@ -1,4 +1,4 @@
-import { DEFAULT_CHANNELS } from "./schema";
+import { DEFAULT_CHANNELS, isPage } from "./schema";
 import type { DeckState } from "./state";
 
 const KEY = "giga-deck:session";
@@ -7,6 +7,7 @@ const VERSION = 2;
 interface Persisted {
   version: number;
   brandId: DeckState["brandId"];
+  format?: DeckState["format"];
   brief: string;
   count: number;
   chapters: boolean;
@@ -30,6 +31,7 @@ export function saveDeck(state: DeckState): void {
     const payload: Persisted = {
       version: VERSION,
       brandId: state.brandId,
+      format: state.format,
       brief: state.brief,
       count: state.count,
       chapters: state.chapters,
@@ -62,6 +64,9 @@ export function openSession(): OpenedSession {
   }
   if (!saved) return { settings: {}, previous: null };
   return {
+    // `format` is not a setting: it belongs to the document. Hydrating it
+    // would open an empty editor in two-pager mode and make Generate produce
+    // A4 pages nobody asked for. It travels with `previous` instead.
     settings: { brandId: saved.brandId, chapters: saved.chapters },
     previous: (saved.slides?.length ?? 0) > 0 ? saved : null,
   };
@@ -72,8 +77,14 @@ function read(raw: string | null): Partial<DeckState> | null {
     if (!raw) return null;
     const parsed = JSON.parse(raw) as Persisted;
     if (parsed.version !== VERSION || !Array.isArray(parsed.slides)) return null;
+    // The slides are the content, so they decide the format — including for a
+    // session saved before the field existed.
+    const twoPager = parsed.slides.some((s) => isPage(s));
     return {
-      brandId: parsed.brandId,
+      brandId: twoPager ? "inclusion" : parsed.brandId,
+      // Added after VERSION 2 and defaulted, so it is additive and lossless:
+      // bumping the version here would log out every returning user instead.
+      format: twoPager ? "two-pager" : (parsed.format ?? "slides"),
       brief: parsed.brief ?? "",
       count: parsed.count ?? 8,
       chapters: parsed.chapters ?? false,

@@ -11,14 +11,33 @@ interface SlideFrameProps {
   onDeleteItem?: (path: string) => void;
   /** When set, an in-slide "+ Add element" button appears on hover. */
   onAddItem?: (() => void) | null;
-  /** When set, photos can be reframed: drag to pan, wheel to zoom, double-click to reset. */
-  onImagePos?: ((pos: ImagePos) => void) | null;
+  /**
+   * When set, photos can be reframed: drag to pan, wheel to zoom, double-click
+   * to reset. `path` is the image's state path ("image" on a slide,
+   * "stack.2.items.0.image" on a two-pager page).
+   */
+  onImagePos?: ((pos: ImagePos, path: string) => void) | null;
+  /** When set, every photo slot gets its own upload action. */
+  onPickImage?: ((path: string) => void) | null;
   /** When set, tier-table [data-cell] nodes cycle check → dimmed → empty on click. */
   onToggleCell?: ((row: number, col: number) => void) | null;
-  /** When set, icon-card [data-icon-pick] icons open the icon picker on click. */
-  onPickIcon?: ((block: number) => void) | null;
+  /**
+   * When set, [data-icon-pick] icons open the icon picker. The attribute is a
+   * block index on a slide and an icon path on a page; the caller tells them
+   * apart.
+   */
+  onPickIcon?: ((target: string) => void) | null;
   /** When set, partner [data-logo] cells get an SVG logo upload action. */
   onUploadLogo?: ((slug: string, dataUrl: string) => void) | null;
+  /** The stage in CSS px. Slides are 1920x1080; an A4 page is 793x1123. */
+  size?: { w: number; h: number };
+  /** Two-pager pages only: block selection and reordering, drawn on hover. */
+  onFocusBlock?: ((index: number) => void) | null;
+  focusedBlock?: number | null;
+  onMoveBlock?: ((from: number, to: number) => void) | null;
+  onDeleteBlock?: ((index: number) => void) | null;
+  /** Editor chrome is sized for the 1920 stage; a page needs the small set. */
+  variant?: "slide" | "page";
   className?: string;
 }
 
@@ -60,6 +79,13 @@ export default function SlideFrame({
   onToggleCell,
   onPickIcon,
   onUploadLogo,
+  onPickImage,
+  onFocusBlock,
+  focusedBlock,
+  onMoveBlock,
+  onDeleteBlock,
+  size = { w: 1920, h: 1080 },
+  variant = "slide",
   className,
 }: SlideFrameProps) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -81,6 +107,11 @@ export default function SlideFrame({
   onPickIconRef.current = onPickIcon;
   const onUploadLogoRef = useRef(onUploadLogo);
   onUploadLogoRef.current = onUploadLogo;
+  // The two-pager callbacks travel together in one ref: the wiring effect
+  // must not re-run when a parent re-renders, and one ref is one lint waiver
+  // rather than four.
+  const pageRef = useRef({ onPickImage, onFocusBlock, onMoveBlock, onDeleteBlock });
+  pageRef.current = { onPickImage, onFocusBlock, onMoveBlock, onDeleteBlock };
 
   useLayoutEffect(() => {
     const el = containerRef.current;
@@ -156,7 +187,7 @@ export default function SlideFrame({
         // ancestor would cut the overhang off (callout rows in the flex zone).
         let inside = getComputedStyle(node).overflow === "hidden";
         if (!inside) {
-          const overhang = 24 * (stage.getBoundingClientRect().width / 1920);
+          const overhang = 24 * (stage.getBoundingClientRect().width / size.w);
           const r = node.getBoundingClientRect();
           for (let p = node.parentElement; p && p !== stage; p = p.parentElement) {
             const cs = getComputedStyle(p);
@@ -186,6 +217,8 @@ export default function SlideFrame({
     // end (a commit re-injects the whole slide, which would kill the drag).
     if (onImagePosRef.current) {
       stage.querySelectorAll<HTMLImageElement>("img[data-image]").forEach((img) => {
+        // "" on the slide layouts, a state path on a two-pager page.
+        const path = img.getAttribute("data-image") || "image";
         img.style.cursor = "grab";
         const readPos = (): ImagePos => {
           const m = /([\d.]+)% ([\d.]+)%/.exec(img.style.objectPosition || "");
@@ -228,16 +261,16 @@ export default function SlideFrame({
           const moved = drag.moved;
           drag = null;
           img.style.cursor = "grab";
-          if (moved) onImagePosRef.current?.(readPos());
+          if (moved) onImagePosRef.current?.(readPos(), path);
         };
         const onWheel = (e: WheelEvent) => {
           e.preventDefault();
           const p = readPos();
           apply({ ...p, zoom: clamp(p.zoom * (e.deltaY < 0 ? 1.07 : 0.93), 1, 4) });
           if (wheelTimer) clearTimeout(wheelTimer);
-          wheelTimer = setTimeout(() => onImagePosRef.current?.(readPos()), 500);
+          wheelTimer = setTimeout(() => onImagePosRef.current?.(readPos(), path), 500);
         };
-        const onDblClick = () => onImagePosRef.current?.({ x: 50, y: 50, zoom: 1 });
+        const onDblClick = () => onImagePosRef.current?.({ x: 50, y: 50, zoom: 1 }, path);
 
         img.addEventListener("pointerdown", onPointerDown);
         img.addEventListener("pointermove", onPointerMove);
@@ -275,6 +308,63 @@ export default function SlideFrame({
       });
     }
 
+    // Two-pager blocks: click to focus, hover for move and delete. The chrome
+    // is injected here rather than emitted by the renderer, so the printed
+    // markup and the exports stay exactly what the design says.
+    stage.querySelectorAll(".block-chrome").forEach((b) => b.remove());
+    if (pageRef.current.onFocusBlock) {
+      const blocks = [...stage.querySelectorAll<HTMLElement>("[data-block]")];
+      blocks.forEach((node) => {
+        const i = Number(node.getAttribute("data-block"));
+        if (i === focusedBlock) node.classList.add("block-on");
+        const onClick = () => pageRef.current.onFocusBlock?.(i);
+        node.addEventListener("click", onClick);
+        cleanups.push(() => {
+          node.removeEventListener("click", onClick);
+          node.classList.remove("block-on");
+        });
+        const bar = document.createElement("div");
+        bar.className = "block-chrome";
+        const button = (label: string, title: string, fn: () => void, disabled = false) => {
+          const b = document.createElement("button");
+          b.type = "button";
+          b.title = title;
+          b.textContent = label;
+          b.disabled = disabled;
+          b.addEventListener("click", (e) => {
+            e.stopPropagation();
+            fn();
+          });
+          bar.appendChild(b);
+        };
+        button("↑", "Move this block up", () => pageRef.current.onMoveBlock?.(i, i - 1), i === 0);
+        button("↓", "Move this block down", () => pageRef.current.onMoveBlock?.(i, i + 1), i === blocks.length - 1);
+        button("✕", "Remove this block", () => pageRef.current.onDeleteBlock?.(i), blocks.length <= 1);
+        node.appendChild(bar);
+      });
+    }
+
+    // Photo slots: their own upload action, which is what makes a page with
+    // several images workable (the toolbar action can only mean one of them).
+    stage.querySelectorAll(".image-upload").forEach((b) => b.remove());
+    if (pageRef.current.onPickImage) {
+      stage.querySelectorAll<HTMLElement>("img[data-image]").forEach((img) => {
+        const slot = img.parentElement;
+        if (!slot) return;
+        if (getComputedStyle(slot).position === "static") slot.style.position = "relative";
+        const btn = document.createElement("button");
+        btn.className = "image-upload";
+        btn.type = "button";
+        btn.title = "Change this image";
+        btn.textContent = "Image";
+        btn.addEventListener("click", (e) => {
+          e.stopPropagation();
+          pageRef.current.onPickImage?.(img.getAttribute("data-image") || "image");
+        });
+        slot.appendChild(btn);
+      });
+    }
+
     // Tier-table checkmark cells: click to cycle on → dimmed → empty
     if (onToggleCellRef.current) {
       stage.querySelectorAll<HTMLElement>("[data-cell]").forEach((node) => {
@@ -295,7 +385,7 @@ export default function SlideFrame({
         node.style.cursor = "pointer";
         const onClick = (e: Event) => {
           e.stopPropagation();
-          onPickIconRef.current?.(Number(node.getAttribute("data-icon-pick")));
+          onPickIconRef.current?.(node.getAttribute("data-icon-pick")!);
         };
         node.addEventListener("click", onClick);
         cleanups.push(() => node.removeEventListener("click", onClick));
@@ -323,21 +413,21 @@ export default function SlideFrame({
     };
     // box.w: the ✕ placement measures rects, which are all zero until the
     // container is first measured — re-wire once the real size lands.
-  }, [html, editable, onAddItem, box.w]);
+  }, [html, editable, onAddItem, box.w, size.w, focusedBlock]);
 
-  const scale = Math.min(box.w / 1920, box.h / 1080);
+  const scale = Math.min(box.w / size.w, box.h / size.h);
 
   return (
     <div ref={containerRef} className={`relative overflow-hidden ${className ?? ""}`}>
       <div
         ref={stageRef}
-        className="slide-root"
+        className={variant === "page" ? "slide-root page-root" : "slide-root"}
         style={{
           position: "absolute",
-          width: 1920,
-          height: 1080,
-          left: (box.w - 1920 * scale) / 2,
-          top: (box.h - 1080 * scale) / 2,
+          width: size.w,
+          height: size.h,
+          left: (box.w - size.w * scale) / 2,
+          top: (box.h - size.h * scale) / 2,
           transform: `scale(${scale})`,
           transformOrigin: "top left",
           visibility: scale > 0 ? "visible" : "hidden",

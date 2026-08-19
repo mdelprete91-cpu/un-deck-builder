@@ -138,6 +138,45 @@ export default function Sidebar({
         </div>
       </div>
 
+      {/* Template. Only on Digital Inclusion, which is the one brand the A4
+          two-pager exists for, and only while the deck is empty: the two
+          formats do not mix, and the reducer enforces that too. */}
+      {state.brandId === "inclusion" && (
+        <div>
+          <Eyebrow>Template</Eyebrow>
+          <div className="flex rounded-lg border border-hairline bg-white p-0.5">
+            {(
+              [
+                ["slides", "Slides"],
+                ["two-pager", "Two-pager"],
+              ] as const
+            ).map(([id, label]) => (
+              <button
+                key={id}
+                disabled={state.slides.length > 0 && state.format !== id}
+                onClick={() => dispatch({ type: "SET_FORMAT", format: id })}
+                title={
+                  state.slides.length > 0
+                    ? "Delete the deck to switch template"
+                    : id === "two-pager"
+                      ? "A4 pages, made to be printed"
+                      : "16:9 slides"
+                }
+                className={`flex-1 rounded-md px-3 py-1.5 text-xs font-semibold transition-colors duration-150 ${
+                  state.format === id
+                    ? "bg-giga text-white"
+                    : state.slides.length > 0
+                      ? "text-ink-muted/50"
+                      : "text-ink-muted hover:bg-giga-tint hover:text-giga"
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Brief. The Chapters switch shares this box: both are inputs to the
           same Generate press. Agenda and dividers are one switch because the
           agenda only exists to mirror the dividers — an agenda without

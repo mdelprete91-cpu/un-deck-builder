@@ -89,6 +89,19 @@ function text(
   );
 }
 
+/**
+ * The click target for "remove this element".
+ *
+ * It is always a separate, empty node: the ✕ is injected *inside* the
+ * `[data-item]` node and hangs past its right edge, which makes `scrollWidth`
+ * exceed `clientWidth` — and autofit reads exactly that as overflow and
+ * shrinks the text to its 40% floor. `data-item` and `data-fit` must never sit
+ * on the same element.
+ */
+function hit(path: string, x: number, y: number, w: number, h: number): string {
+  return `<span ${item(path)} style="position:absolute;left:${pt(x)};top:${pt(y)};width:${pt(w)};height:${pt(h)};"></span>`;
+}
+
 /** A line that opens with a bold lead-in: two editable spans, one fit budget. */
 function leadLine(
   basePath: string,
@@ -99,14 +112,13 @@ function leadLine(
   w: number,
   height: number,
   style: string,
-  extraAttrs = "",
 ): string {
   const inner = lead
     ? `<span ${edP(`${basePath}.label`)} style="font-weight:700;">${esc(lead)}</span> ` +
       `<span ${edP(`${basePath}.body`)}>${esc(bodyText)}</span>`
     : `<span ${edP(`${basePath}.body`)}>${esc(bodyText)}</span>`;
   return (
-    `<div ${extraAttrs} ${fitAttr(height)} style="position:absolute;left:${pt(x)};top:${pt(y)};width:${pt(w)};` +
+    `<div ${fitAttr(height)} style="position:absolute;left:${pt(x)};top:${pt(y)};width:${pt(w)};` +
     `${style}color:${PALETTE.ink};white-space:pre-line;">${inner}</div>`
   );
 }
@@ -179,7 +191,7 @@ const railProse: BlockRender = (b, { path }) => {
           `${TYPE.body}color:${PALETTE.ink};">${marker}</div>`,
       );
     }
-    parts.push(leadLine(ip, it.label, it.body, left, y, width, height, TYPE.body, item(ip)));
+    parts.push(hit(ip, left, y, width, height) + leadLine(ip, it.label, it.body, left, y, width, height, TYPE.body));
     y += height;
   });
   return { html: parts.join(""), height: Math.max(rail.height, y) };
@@ -235,7 +247,7 @@ const statCards: BlockRender = (b, { path }) => {
     const ip = `${path}.items.${i}`;
     parts.push(
       box(x, top, w, h, { stroke: accented ? PALETTE.orangeBorder : PALETTE.hairline }) +
-        `<span ${item(ip)} style="position:absolute;left:${pt(x)};top:${pt(top)};width:${pt(w)};height:${pt(h)};"></span>` +
+        hit(ip, x, top, w, h) +
         text(`${ip}.label`, it.label, x + inset, top + 14, textW, 30, TYPE.stat, accented ? PALETTE.orange : PALETTE.ink) +
         text(`${ip}.body`, it.body, x + inset, top + 45.5, textW, h - 58, TYPE.caption),
     );
@@ -257,7 +269,7 @@ const iconColumns: BlockRender = (b, { path }) => {
       `<svg data-icon-pick="${ip}.icon" width="21" height="21" viewBox="0 0 24 24" fill="none" ` +
       `stroke="var(--accent)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" ` +
       `style="position:absolute;left:${pt(x + 1.5)};top:0;">${iconInner(it.icon, i)}</svg>` +
-      `<span ${item(ip)} style="position:absolute;left:${pt(x)};top:0;width:${pt(w)};height:${pt(height)};"></span>` +
+      hit(ip, x, 0, w, height) +
       text(`${ip}.label`, it.label, x, 31.5, w, LH.body, TYPE.head) +
       text(`${ip}.body`, it.body, x, 48.5, w, bodyLines * LH.body, TYPE.body)
     );
@@ -289,7 +301,7 @@ const photoCards: BlockRender = (b, { path }) => {
     parts.push(
       box(x, top, w, cardH, { radius: 6, fill: PALETTE.panel }) +
         photo(it.image, `${ip}.image`, x, top, w, 101, it.imagePos, `${pt(6)} ${pt(6)} 0 0`) +
-        `<span ${item(ip)} style="position:absolute;left:${pt(x)};top:${pt(top)};width:${pt(w)};height:${pt(cardH)};"></span>` +
+        hit(ip, x, top, w, cardH) +
         text(`${ip}.label`, it.label, x + inset, top + 117, w - inset * 2, LH.body, TYPE.head) +
         text(`${ip}.body`, it.body, x + inset, top + 134, w - inset * 2, LH.caption * 2, TYPE.caption),
     );
@@ -402,7 +414,7 @@ const tableBlock: BlockRender = (b, { path }) => {
       );
     });
     parts.push(
-      `<span ${item(`${path}.items.${r}`)} style="position:absolute;left:${pt(cols.xs[0])};top:${pt(y)};width:${pt(GRID.content.w)};height:${pt(h)};"></span>`,
+      hit(`${path}.items.${r}`, cols.xs[0], y, GRID.content.w, h),
     );
     y += h;
   });
@@ -424,7 +436,7 @@ const numberedBadges: BlockRender = (b, { path }) => {
     parts.push(
       box(GRID.content.x + 3, y, d, d, { radius: d / 2, fill: "var(--accent)" }) +
         `<div style="position:absolute;left:${pt(GRID.content.x + 3)};top:${pt(y + 4)};width:${pt(d)};${TYPE.caption}color:${PALETTE.white};text-align:center;">${i + 1}</div>` +
-        `<span ${item(ip)} style="position:absolute;left:${pt(GRID.content.x)};top:${pt(y)};width:${pt(GRID.content.w)};height:${pt(Math.max(d, lines))};"></span>` +
+        hit(ip, GRID.content.x, y, GRID.content.w, Math.max(d, lines)) +
         text(`${ip}.body`, it.body, textX, y + 3, textW, lines, TYPE.body),
     );
     y += Math.max(d, lines) + 14;
@@ -439,7 +451,7 @@ const contacts: BlockRender = (b, { path }) => {
   let y = 0;
   (b.items ?? []).forEach((it, i) => {
     const ip = `${path}.items.${i}`;
-    parts.push(leadLine(ip, it.label, it.body, GRID.content.x, y, GRID.content.w, LH.body, TYPE.body, item(ip)));
+    parts.push(hit(ip, GRID.content.x, y, GRID.content.w, LH.body) + leadLine(ip, it.label, it.body, GRID.content.x, y, GRID.content.w, LH.body, TYPE.body));
     y += LH.body;
     if (it.extra) {
       // The address becomes a link only when it looks like one: esc() would

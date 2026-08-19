@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import type { Slide } from "@/lib/slides/schema";
+import { isPage, type Slide } from "@/lib/slides/schema";
 import type { BrandTheme } from "@/lib/slides/brand";
 import { renderSlide } from "@/lib/slides/layouts";
 import { autofitAll } from "@/lib/slides/autofit";
@@ -27,11 +27,15 @@ export default function PrintRoot({ slides, theme }: { slides: Slide[]; theme: B
 
   return (
     <div id="print-root" ref={rootRef}>
-      {slides.map((slide) => (
+      {slides.map((slide, i) => (
         <div
           key={slide.id}
-          className="print-slide slide-root"
-          dangerouslySetInnerHTML={{ __html: renderSlide(slide, theme) }}
+          // A two-pager page prints from the named A4 @page rule; a slide keeps
+          // the 1920x1080 sheet. The class is what picks the paper size.
+          className={isPage(slide) ? "print-page slide-root page-root" : "print-slide slide-root"}
+          dangerouslySetInnerHTML={{
+            __html: renderSlide(slide, theme, { index: i, total: slides.length }),
+          }}
         />
       ))}
     </div>
