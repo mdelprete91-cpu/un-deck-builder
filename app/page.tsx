@@ -1236,11 +1236,17 @@ function SlideActions({
               </button>
             )}
             <span className="h-5 w-px bg-hairline" />
-            <button onClick={onDuplicate} title="Duplicate slide" className={`${action} w-10 justify-center px-0`}>
+            <button onClick={onDuplicate} title="Duplicate slide" className={action}>
               <Copy size={16} aria-hidden />
+              Duplicate
             </button>
-            <button onClick={onDelete} title="Delete slide" className="flex h-10 w-10 items-center justify-center rounded-full text-ink-muted transition-colors duration-150 hover:bg-status-red/10 hover:text-status-red">
+            <button
+              onClick={onDelete}
+              title="Delete slide"
+              className={`${action} text-ink-muted hover:bg-status-red-bg hover:text-status-red`}
+            >
               <Trash2 size={16} aria-hidden />
+              Delete
             </button>
           </>
         )}
