@@ -1175,14 +1175,16 @@ function SlideActions({
     setInstruction("");
     setAiOpen(false);
   };
+  // Every action is the same bordered pill as Undo/Redo in the toolbar, with
+  // an icon and a word; no dividers, the gap does the separating.
   const action =
-    "flex h-10 items-center gap-1.5 rounded-full px-3.5 text-[13px] font-medium text-ink transition-colors duration-150 hover:bg-mist disabled:pointer-events-none disabled:opacity-30";
+    "flex h-9 items-center gap-1.5 rounded-full border border-hairline bg-white px-3.5 text-[13px] text-ink transition-colors duration-150 hover:bg-mist disabled:pointer-events-none disabled:border-hairline-light disabled:text-ink-faint";
   return (
     <div className="float-in pointer-events-none absolute inset-x-0 bottom-12 z-20 flex justify-center">
       <div className="pointer-events-auto relative">
         <div
           data-tour="slide-bar"
-          className="relative flex items-center gap-0.5 rounded-full border border-hairline bg-white p-1.5 shadow-float"
+          className="relative flex items-center gap-1.5 rounded-full border border-hairline-light bg-white p-1.5 shadow-float"
         >
         {busy ? (
           <div className="flex h-10 items-center gap-2.5 px-4 text-[13px] font-medium text-giga">
@@ -1218,7 +1220,6 @@ function SlideActions({
             <button onClick={() => setAiOpen(true)} disabled={busy} className={`${action} text-giga hover:bg-mist`}>
               Edit with AI
             </button>
-            <span className="h-5 w-px bg-hairline" />
             <button onClick={onAddItem} disabled={!canAddItem} title="Add an element to this slide" className={action}>
               <Plus size={16} aria-hidden />
               Element
@@ -1235,7 +1236,6 @@ function SlideActions({
                 Image
               </button>
             )}
-            <span className="h-5 w-px bg-hairline" />
             <button onClick={onDuplicate} title="Duplicate slide" className={action}>
               <Copy size={16} aria-hidden />
               Duplicate
