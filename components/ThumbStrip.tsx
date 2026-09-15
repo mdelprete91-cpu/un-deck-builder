@@ -13,9 +13,81 @@ import type { DeckAction } from "@/lib/slides/state";
 const PICKER_LAYOUT_IDS = [...AI_LAYOUT_IDS, ...MANUAL_LAYOUT_IDS];
 
 /**
- * Full-screen layout picker: every template rendered as a live preview with
- * the active brand theme. Click inserts after the current slide.
+ * The picker modal, in the register of ChatGPT's "Add from library": the
+ * title and the close button on one row, a borderless search under them, a
+ * hairline, then a three-column grid of rounded cards. Both pickers (slide
+ * layouts, A4 page presets) are this one component with different items.
  */
+function PickerModal({
+  title,
+  searchPlaceholder,
+  items,
+  onPick,
+  onClose,
+}: {
+  title: string;
+  searchPlaceholder: string;
+  items: { id: string; label: string; html: string; size?: { w: number; h: number }; aspect: string }[];
+  onPick: (id: string) => void;
+  onClose: () => void;
+}) {
+  const [query, setQuery] = useState("");
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
+  const q = query.trim().toLowerCase();
+  const shown = q ? items.filter((i) => i.label.toLowerCase().includes(q)) : items;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-8" onClick={onClose}>
+      <div className="absolute inset-0 bg-scrim" />
+      <div
+        className="pop-in relative flex max-h-[85vh] w-full max-w-4xl flex-col rounded-3xl bg-white shadow-float"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="border-b border-hairline-light px-7 pt-6">
+          <div className="flex items-center justify-between">
+            <h2 className="text-xl font-medium text-ink">{title}</h2>
+            <button
+              onClick={onClose}
+              title="Close (Esc)"
+              className="-mr-2 flex h-9 w-9 items-center justify-center rounded-full text-ink transition-colors duration-150 hover:bg-mist"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                <path d="M18 6 6 18M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+          <input
+            autoFocus
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder={searchPlaceholder}
+            className="block h-14 w-full bg-transparent text-base text-ink outline-none placeholder:text-ink-faint"
+          />
+        </div>
+        <div className="grid flex-1 grid-cols-3 gap-6 overflow-y-auto p-7">
+          {shown.map(({ id, label, html, size, aspect }) => (
+            <button key={id} onClick={() => onPick(id)} className="group text-left">
+              <div className="pointer-events-none overflow-hidden rounded-2xl border border-hairline-light shadow-stripe transition-[box-shadow,border-color] duration-150 group-hover:border-hairline group-hover:shadow-float">
+                <SlideFrame html={html} size={size} className={`${aspect} w-full`} />
+              </div>
+              <div className="mt-2 text-[13px] text-ink-muted transition-colors duration-150 group-hover:text-ink">{label}</div>
+            </button>
+          ))}
+          {shown.length === 0 && (
+            <p className="col-span-3 py-10 text-center text-sm text-ink-muted">No layout matches “{query}”.</p>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function LayoutPickerModal({
   theme,
   onPick,
@@ -25,69 +97,30 @@ function LayoutPickerModal({
   onPick: (layoutId: LayoutId) => void;
   onClose: () => void;
 }) {
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [onClose]);
-
-  const previews = useMemo(
+  const items = useMemo(
     () =>
       PICKER_LAYOUT_IDS.map((id) => ({
         id,
+        label: LAYOUTS[id].label,
         html: renderSlide({ ...defaultContent(id), id: `preview-${id}` }, theme),
+        aspect: "aspect-video",
       })),
     [theme],
   );
-
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-8" onClick={onClose}>
-      <div className="absolute inset-0 bg-scrim" />
-      <div
-        className="pop-in relative flex max-h-[85vh] w-full max-w-5xl flex-col rounded-2xl bg-white shadow-float"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="flex items-center justify-between border-b border-hairline px-6 py-4">
-          <div>
-            <h2 className="text-lg font-medium text-ink">
-              Choose a layout
-            </h2>
-            <p className="mt-0.5 text-xs text-ink-muted">
-              Inserted after the current slide, prefilled with placeholder copy.
-            </p>
-          </div>
-          <button
-            onClick={onClose}
-            title="Close (Esc)"
-            className="flex h-9 w-9 items-center justify-center rounded-full text-ink-muted transition-colors duration-150 hover:bg-mist hover:text-ink"
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-              <path d="M18 6 6 18M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
-        <div className="grid flex-1 grid-cols-4 gap-4 overflow-y-auto p-6">
-          {previews.map(({ id, html }) => (
-            <button key={id} onClick={() => onPick(id)} className="group text-left">
-              <div className="pointer-events-none overflow-hidden rounded-lg border-2 border-hairline transition-colors duration-150 group-hover:border-ink">
-                <SlideFrame html={html} className="aspect-video w-full" />
-              </div>
-              <div className="mt-1.5 text-[11px] font-medium text-ink">
-                {LAYOUTS[id].label}
-              </div>
-            </button>
-          ))}
-        </div>
-      </div>
-    </div>
+    <PickerModal
+      title="Add a slide"
+      searchPlaceholder="Search layouts"
+      items={items}
+      onPick={(id) => onPick(id as LayoutId)}
+      onClose={onClose}
+    />
   );
 }
 
 /**
  * "Add page" for two-pagers: the presets, rendered live. A preset is a
- * starting composition, not a layout — every block in it can be moved,
+ * starting composition, not a layout: every block in it can be moved,
  * removed or added to afterwards.
  */
 function PagePresetModal({
@@ -99,15 +132,7 @@ function PagePresetModal({
   onPick: (presetId: string) => void;
   onClose: () => void;
 }) {
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [onClose]);
-
-  const previews = useMemo(
+  const items = useMemo(
     () =>
       PAGE_PRESETS.map((preset) => ({
         id: preset.id,
@@ -117,46 +142,19 @@ function PagePresetModal({
           theme,
           { index: 0, total: 1 },
         ),
+        size: A4_PX,
+        aspect: "aspect-[595/842]",
       })),
     [theme],
   );
-
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-8" onClick={onClose}>
-      <div className="absolute inset-0 bg-scrim" />
-      <div
-        className="pop-in relative flex max-h-[85vh] w-full max-w-5xl flex-col rounded-2xl bg-white shadow-float"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="flex items-center justify-between border-b border-hairline px-6 py-4">
-          <div>
-            <h2 className="text-lg font-semibold text-ink">Add a page</h2>
-            <p className="text-xs text-ink-muted">
-              Pick a starting composition. You can add, remove and reorder blocks afterwards.
-            </p>
-          </div>
-          <button
-            onClick={onClose}
-            title="Close (Esc)"
-            className="flex h-9 w-9 items-center justify-center rounded-full text-ink-muted transition-colors duration-150 hover:bg-mist hover:text-ink"
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-              <path d="M18 6 6 18M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
-        <div className="grid flex-1 grid-cols-4 gap-4 overflow-y-auto p-6">
-          {previews.map(({ id, label, html }) => (
-            <button key={id} onClick={() => onPick(id)} className="group text-left">
-              <div className="pointer-events-none overflow-hidden rounded-lg border-2 border-hairline transition-colors duration-150 group-hover:border-ink">
-                <SlideFrame html={html} size={A4_PX} className="aspect-[595/842] w-full" />
-              </div>
-              <div className="mt-1.5 text-[11px] font-medium text-ink">{label}</div>
-            </button>
-          ))}
-        </div>
-      </div>
-    </div>
+    <PickerModal
+      title="Add a page"
+      searchPlaceholder="Search page presets"
+      items={items}
+      onPick={onPick}
+      onClose={onClose}
+    />
   );
 }
 
