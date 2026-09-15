@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import Button from "@/components/Button";
 
 export interface TourStep {
   /**
@@ -167,28 +168,18 @@ export default function Tour({ steps, onDone }: { steps: TourStep[]; onDone: () 
         {step.extra}
       </div>
       <div className="mt-5 flex shrink-0 items-center justify-between gap-3">
-        <button
-          onClick={onDone}
-          className="flex h-9 items-center rounded-full px-4 text-sm font-medium text-ink-muted transition-colors duration-150 hover:bg-mist hover:text-ink"
-        >
+        <Button variant="ghost" onClick={onDone}>
           Skip
-        </button>
+        </Button>
         <div className="flex items-center gap-3">
           {i > 0 && (
-            <button
-              onClick={() => setI((n) => n - 1)}
-              className="h-10 rounded-full border border-hairline bg-white px-4 text-sm font-medium text-ink transition-colors duration-150 hover:bg-mist"
-            >
+            <Button variant="secondary" onClick={() => setI((n) => n - 1)}>
               Back
-            </button>
+            </Button>
           )}
-          <button
-            autoFocus
-            onClick={next}
-            className="h-9 rounded-full bg-giga px-4 text-sm font-medium text-white transition-all duration-150 hover:bg-giga-deep active:scale-[0.98]"
-          >
+          <Button variant="primary" autoFocus onClick={next}>
             {i === steps.length - 1 ? "Done" : "Next"}
-          </button>
+          </Button>
         </div>
       </div>
     </div>

@@ -1,6 +1,8 @@
 "use client";
 
+import { Plus, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import Button from "@/components/Button";
 import type { Slide } from "@/lib/slides/schema";
 import { numeric } from "@/lib/slides/layouts/stats";
 
@@ -51,13 +53,14 @@ export default function ChartDataPanel({ slide, onChange, onClose }: ChartDataPa
     <div className="absolute right-8 top-16 z-20 w-80 rounded-2xl border border-hairline bg-white p-4 shadow-stripe-lg">
       <div className="mb-3 flex items-center justify-between">
         <span className="text-sm font-medium text-ink">Chart data</span>
-        <button
+        <Button
+          variant="ghost"
+          iconOnly
+          icon={X}
           onClick={onClose}
-          className="rounded-full px-2 py-0.5 text-sm text-ink-muted transition-colors duration-150 hover:text-ink"
           title="Close"
-        >
-          ✕
-        </button>
+          aria-label="Close"
+        />
       </div>
       <div className="flex flex-col gap-2">
         {rows.map((row, i) => (
@@ -75,24 +78,27 @@ export default function ChartDataPanel({ slide, onChange, onClose }: ChartDataPa
               inputMode="decimal"
               className="w-24 rounded-lg border border-hairline px-2.5 py-1.5 text-right text-sm text-ink outline-none transition-shadow duration-150 placeholder:text-ink-faint focus:border-giga focus:ring-[3px] focus:ring-giga/15"
             />
-            <button
+            <Button
+              variant="ghost"
+              iconOnly
+              icon={X}
               onClick={() => apply(rows.filter((_, j) => j !== i))}
               disabled={rows.length <= MIN_ROWS}
               title="Remove row"
-              className="rounded-full px-1 text-ink-muted transition-colors duration-150 hover:text-status-red disabled:opacity-25"
-            >
-              ✕
-            </button>
+              aria-label="Remove row"
+            />
           </div>
         ))}
       </div>
-      <button
+      <Button
+        variant="secondary"
+        icon={Plus}
         onClick={() => apply([...rows, { label: `Item ${rows.length + 1}`, value: "0" }])}
         disabled={rows.length >= MAX_ROWS}
-        className="mt-3 w-full rounded-lg border border-dashed border-hairline px-3 py-1.5 text-sm font-medium text-ink-muted transition-colors duration-150 hover:border-giga hover:text-giga disabled:opacity-30"
+        className="mt-3 w-full"
       >
-        + Add row
-      </button>
+        Add row
+      </Button>
       <p className="mt-2 text-[11px] leading-relaxed text-ink-muted">
         Values are real numbers, the chart scales to the largest. Cmd+Z to undo.
       </p>

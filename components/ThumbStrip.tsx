@@ -1,6 +1,6 @@
 "use client";
 
-import { Copy, Plus, X } from "lucide-react";
+import { Copy, Plus, X, type LucideIcon } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AI_LAYOUT_IDS, MANUAL_LAYOUT_IDS, type LayoutId, type Slide } from "@/lib/slides/schema";
 import type { BrandTheme } from "@/lib/slides/brand";
@@ -8,6 +8,7 @@ import { renderSlide, LAYOUTS } from "@/lib/slides/layouts";
 import { defaultContent } from "@/lib/slides/defaults";
 import { A4_PX } from "@/lib/slides/pages/a4";
 import { PAGE_PRESETS, presetStack } from "@/lib/slides/pages/presets";
+import Button from "@/components/Button";
 import SlideFrame from "./SlideFrame";
 import type { DeckAction } from "@/lib/slides/state";
 
@@ -55,13 +56,15 @@ function PickerModal({
       >
         <div className="flex items-center justify-between border-b border-hairline-light px-7 py-5">
           <h2 className="text-xl font-medium text-ink">{title}</h2>
-          <button
+          <Button
+            variant="ghost"
+            iconOnly
+            icon={X}
             onClick={onClose}
             title="Close (Esc)"
-            className="-mr-2 flex h-9 w-9 items-center justify-center rounded-full text-ink transition-colors duration-150 hover:bg-mist"
-          >
-            <X size={16} aria-hidden />
-          </button>
+            aria-label="Close"
+            className="-mr-2"
+          />
         </div>
         {/* The preview is the whole card: no caption, the name is the tooltip. */}
         <div className="grid flex-1 grid-cols-3 gap-6 overflow-y-auto p-7">
@@ -258,7 +261,7 @@ export default function ThumbStrip({
           </div>
           <div className="absolute bottom-1 right-1 hidden gap-1 group-hover:flex">
             <ThumbButton
-              icon={<Copy size={12} aria-hidden />}
+              icon={Copy}
               title="Duplicate"
               onClick={(e) => {
                 e.stopPropagation();
@@ -266,7 +269,7 @@ export default function ThumbStrip({
               }}
             />
             <ThumbButton
-              icon={<X size={12} aria-hidden />}
+              icon={X}
               title="Delete"
               onClick={(e) => {
                 e.stopPropagation();
@@ -279,16 +282,15 @@ export default function ThumbStrip({
 
       {/* The add action is a real button, not a ghost tile: on the grey rail a
           dashed outline all but disappeared. Same secondary pill as Upload. */}
-      <button
+      <Button
+        variant="secondary"
+        icon={Plus}
         onClick={() => setLayoutsOpen(true)}
         title={twoPager ? "Add a page" : "Insert a slide layout"}
-        className={`flex h-9 w-full shrink-0 items-center justify-center gap-1.5 rounded-full border border-hairline bg-white text-sm font-medium text-ink transition-colors duration-150 hover:bg-mist focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-giga/15 ${
-          layoutsOpen ? "bg-mist" : ""
-        }`}
+        className="w-full"
       >
-        <Plus size={14} aria-hidden />
         {twoPager ? "Add page" : "Add slide"}
-      </button>
+      </Button>
 
       {layoutsOpen && twoPager && (
         <PagePresetModal
@@ -319,17 +321,18 @@ function ThumbButton({
   title,
   onClick,
 }: {
-  icon: React.ReactNode;
+  icon: LucideIcon;
   title: string;
   onClick: (e: React.MouseEvent) => void;
 }) {
   return (
-    <button
+    <Button
+      variant="secondary"
+      iconOnly
+      icon={icon}
       title={title}
+      aria-label={title}
       onClick={onClick}
-      className="flex h-6 w-6 items-center justify-center rounded-md bg-white/95 text-ink shadow-stripe transition-colors duration-150 hover:bg-ink hover:text-white"
-    >
-      {icon}
-    </button>
+    />
   );
 }

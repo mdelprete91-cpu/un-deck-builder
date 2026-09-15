@@ -6,6 +6,7 @@ import type { DataLayer, GigaMapCountry, MapTheme } from "@/lib/giga-maps/config
 import { CONNECTIVITY_LEGEND } from "@/lib/giga-maps/config";
 import { fetchGigaMapCountries, renderGigaMapDataUrl } from "@/lib/giga-maps/render";
 import type { MapSlot } from "@/lib/giga-maps/slot";
+import Button from "@/components/Button";
 
 /**
  * Country map from live Giga Maps data, rendered in the browser at the exact
@@ -185,24 +186,24 @@ export default function LiveMapPanel({
         <div className="flex flex-col gap-1.5" ref={pickerRef}>
           <Eyebrow>Country</Eyebrow>
           <div className="relative">
-            <button
-              type="button"
+            <Button
+              variant="secondary"
+              iconRight={ChevronsUpDown}
               onClick={() => setPickerOpen((o) => !o)}
               disabled={!country}
               aria-haspopup="listbox"
               aria-expanded={pickerOpen}
-              className="flex h-10 w-full items-center justify-between gap-2 rounded-lg border border-hairline bg-white pl-2 pr-2.5 text-left transition-[box-shadow,border-color] duration-150 hover:border-ink/20 focus-visible:border-giga focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-giga/15 disabled:opacity-60"
+              className="w-full justify-between"
             >
               <span className="flex min-w-0 items-center gap-2">
                 <span className="rounded bg-mist px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-ink-muted">
                   {country?.code ?? "…"}
                 </span>
-                <span className="truncate text-sm font-medium text-ink">
+                <span className="truncate">
                   {country?.name ?? (countriesError ? "Unavailable" : "Loading…")}
                 </span>
               </span>
-              <ChevronsUpDown size={16} aria-hidden />
-            </button>
+            </Button>
             {pickerOpen && (
               <div role="listbox" className="pop-in absolute left-0 top-full z-10 mt-1 flex w-[300px] flex-col gap-1.5 rounded-xl border border-hairline bg-white p-2 shadow-stripe-lg">
                 <input
@@ -278,30 +279,21 @@ export default function LiveMapPanel({
 
       {/* Footer */}
       <div className="mt-0.5 flex items-center justify-between border-t border-hairline pt-3">
-        <button
-          type="button"
-          onClick={onLibrary}
-          className="rounded-full px-3 py-2 text-sm font-normal text-ink-faint transition-colors duration-150 hover:bg-mist hover:text-ink focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-giga/15"
-        >
+        <Button variant="ghost" onClick={onLibrary}>
           Use a pre-made screenshot instead
-        </button>
+        </Button>
         <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={onCancel}
-            className="h-9 whitespace-nowrap rounded-full border border-hairline bg-white px-4 text-sm font-medium text-ink transition-colors duration-150 hover:bg-mist focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-giga/15"
-          >
+          <Button variant="secondary" onClick={onCancel}>
             Cancel
-          </button>
-          <button
-            type="button"
+          </Button>
+          <Button
+            variant="primary"
+            icon={Check}
             onClick={() => preview && onUse(preview)}
             disabled={!preview || busy}
-            className="inline-flex h-10 items-center gap-2 whitespace-nowrap rounded-full bg-giga px-4 text-sm font-medium text-white transition-[background-color,transform,opacity] duration-150 hover:bg-giga-deep focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-giga/25 active:scale-[0.98] disabled:opacity-45 disabled:hover:bg-giga"
           >
-            <Check size={16} aria-hidden />
             Use this map
-          </button>
+          </Button>
         </div>
       </div>
     </div>
@@ -366,24 +358,22 @@ function Segmented<T extends string>({
 }) {
   return (
     <div
-      className="grid h-10 rounded-full bg-mist p-[3px]"
+      className="grid rounded-full bg-mist p-[3px]"
       style={{ gridTemplateColumns: `repeat(${options.length}, minmax(0, 1fr))` }}
     >
       {options.map((o) => (
-        <button
+        <Button
           key={o.key}
-          type="button"
+          variant={value === o.key ? "secondary" : "ghost"}
           aria-pressed={value === o.key}
           onClick={() => onChange(o.key)}
-          className={`flex items-center justify-center gap-1.5 whitespace-nowrap rounded-full text-xs font-medium transition-colors duration-150 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-giga/15 ${
-            value === o.key ? "bg-white text-ink shadow-stripe" : "text-ink-muted hover:text-ink"
-          }`}
+          className="w-full"
         >
           {o.swatch && (
             <span className="h-2.5 w-2.5 rounded-[3px] border border-hairline" style={{ background: o.swatch }} />
           )}
           {o.label}
-        </button>
+        </Button>
       ))}
     </div>
   );

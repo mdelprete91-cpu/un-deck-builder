@@ -4,6 +4,7 @@ import { ArrowUp, Circle, CircleCheck, LoaderCircle, Plus } from "lucide-react";
 import { useLayoutEffect, useRef, useState } from "react";
 import { ATTACHMENT_ACCEPT, type Attachment } from "@/lib/slides/attachments";
 import AttachmentsRow from "@/components/AttachmentsRow";
+import Button from "@/components/Button";
 
 /**
  * The brief composer: one rounded surface that holds everything a Generate
@@ -122,20 +123,15 @@ export default function PromptBox({
         )}
 
         <div className="flex items-center justify-between gap-2 px-2 pb-2 pt-1">
-          <button
-            type="button"
+          <Button
+            variant="secondary"
+            iconOnly
+            icon={Plus}
             onClick={() => fileRef.current?.click()}
             disabled={generating || reading}
             aria-label={reading ? "Reading files" : "Attach files"}
             title="Attach a PDF, Word, PowerPoint, text file or image"
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-hairline bg-white text-ink transition-colors duration-150 hover:bg-mist focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-giga/15 disabled:pointer-events-none disabled:opacity-40"
-          >
-            {reading ? (
-              <Spinner />
-            ) : (
-              <Plus size={16} aria-hidden />
-            )}
-          </button>
+          />
           <input
             ref={fileRef}
             type="file"
@@ -153,8 +149,10 @@ export default function PromptBox({
             {/* Chapters is a generation input: it shapes the next deck, never the
                 one on screen. As a pressed pill next to Generate it reads as
                 part of what the press sends. */}
-            <button
-              type="button"
+            {/* The glyph is the state: a ticked circle on, an empty one off. */}
+            <Button
+              variant={chapters ? "accent" : "ghost"}
+              icon={chapters ? CircleCheck : Circle}
               data-tour="chapters"
               role="switch"
               aria-checked={chapters}
@@ -165,34 +163,21 @@ export default function PromptBox({
                   ? "Chapters on: agenda slide and section dividers"
                   : "Chapters off: the deck runs straight through"
               }
-              className={`flex h-9 items-center gap-1.5 rounded-full px-3 text-xs font-medium transition-colors duration-150 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-giga/15 disabled:pointer-events-none disabled:opacity-40 ${
-                chapters
-                  ? "bg-giga-tint text-giga"
-                  : "text-ink-muted hover:bg-mist hover:text-ink"
-              }`}
             >
-              {/* The glyph is the state: a ticked circle on, an empty one off. */}
-              {chapters ? <CircleCheck size={14} aria-hidden /> : <Circle size={14} aria-hidden />}
               Chapters
-            </button>
+            </Button>
 
-            <button
-              type="button"
+            <Button
+              variant="primary"
+              iconOnly
+              icon={generating ? LoaderCircle : ArrowUp}
+              iconClassName={generating ? "animate-spin" : undefined}
               data-tour="generate"
               onClick={onGenerate}
               disabled={!canSend}
               aria-label={generating ? "Generating" : hasSlides ? "Regenerate deck" : "Generate deck"}
               title={hasSlides ? "Regenerate the deck (⌘↵)" : "Generate the deck (⌘↵)"}
-              className={`flex h-9 shrink-0 items-center justify-center gap-1.5 rounded-full bg-giga text-sm font-medium text-white transition-all duration-150 hover:bg-giga-deep active:scale-[0.96] focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-giga/30 disabled:pointer-events-none disabled:opacity-40 w-9`}
-            >
-              {generating ? (
-                <Spinner />
-              ) : (
-                <>
-                  <ArrowUp size={16} aria-hidden />
-                </>
-              )}
-            </button>
+            />
           </div>
         </div>
       </div>
@@ -200,8 +185,3 @@ export default function PromptBox({
   );
 }
 
-function Spinner() {
-  return (
-    <LoaderCircle size={16} className="animate-spin" aria-hidden />
-  );
-}

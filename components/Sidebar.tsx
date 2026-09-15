@@ -5,6 +5,7 @@ import { useState } from "react";
 import { BRANDS, PICKER_BRAND_IDS, type BrandId } from "@/lib/slides/brand";
 import type { DeckState, DeckAction } from "@/lib/slides/state";
 import type { Attachment } from "@/lib/slides/attachments";
+import Button from "@/components/Button";
 import PromptBox from "@/components/PromptBox";
 import Select from "@/components/Select";
 
@@ -37,9 +38,6 @@ function Eyebrow({ children }: { children: React.ReactNode }) {
  * opens, because the format is derived from the slides, not from this switch.
  */
 const SHOW_TEMPLATE_SWITCH = false;
-
-const SECONDARY_BTN =
-  "h-9 rounded-full border border-hairline bg-white px-3 text-sm font-medium text-ink transition-colors duration-150 hover:bg-mist disabled:pointer-events-none disabled:opacity-40";
 
 export default function Sidebar({
   state,
@@ -141,15 +139,16 @@ export default function Sidebar({
           picks the position and refreshes the agenda, existing slides are
           never touched. */}
       {hasSlides && (
-        <button
+        <Button
+          variant="secondary"
+          icon={Plus}
           data-tour="add-slides"
           onClick={() => setAddOpen(true)}
           disabled={generating}
-          className={`${SECONDARY_BTN} flex items-center justify-center gap-1.5`}
+          className="w-full"
         >
-          <Plus size={14} aria-hidden />
           Add slides
-        </button>
+        </Button>
       )}
 
       {addOpen && (
@@ -190,23 +189,20 @@ export default function Sidebar({
                 />
               </label>
               <div className="flex items-center gap-2">
-                <button
-                  onClick={() => setAddOpen(false)}
-                  className="rounded-full px-4 py-2 text-sm text-ink-muted transition-colors duration-150 hover:text-ink"
-                >
+                <Button variant="ghost" onClick={() => setAddOpen(false)}>
                   Cancel
-                </button>
-                <button
+                </Button>
+                <Button
+                  variant="primary"
                   onClick={() => {
                     onAddMore(addBrief, addCount);
                     setAddBrief("");
                     setAddOpen(false);
                   }}
                   disabled={generating || !addBrief.trim()}
-                  className="h-10 rounded-full bg-giga px-5 text-sm font-medium text-white transition-all duration-150 hover:bg-giga-deep active:scale-[0.98] disabled:pointer-events-none disabled:opacity-40"
                 >
                   Add slides
-                </button>
+                </Button>
               </div>
             </div>
           </div>
@@ -220,23 +216,19 @@ export default function Sidebar({
       )}
 
       <div className="mt-auto flex flex-col gap-2">
-        <button
-          onClick={onHowItWorks}
-          className="flex h-9 items-center justify-center gap-1.5 rounded-full px-3 text-sm font-medium text-ink-muted transition-colors duration-150 hover:bg-mist hover:text-ink"
-        >
-          <CircleHelp size={14} aria-hidden />
+        <Button variant="ghost" icon={CircleHelp} onClick={onHowItWorks}>
           How it works
-        </button>
+        </Button>
         {hasSlides && (
-          <button
+          <Button
+            variant="danger"
+            icon={Trash2}
             onClick={() => {
               if (confirm("Delete the current deck?")) dispatch({ type: "CLEAR" });
             }}
-            className="flex h-9 items-center justify-center gap-1.5 rounded-full px-3 text-sm font-medium text-status-red transition-colors duration-150 hover:bg-status-red-bg"
           >
-            <Trash2 size={14} aria-hidden />
             Delete deck
-          </button>
+          </Button>
         )}
         {(state.usage.inputTokens > 0 || state.usage.outputTokens > 0) && (
           <p className="text-center text-[10px] text-ink-muted/80">

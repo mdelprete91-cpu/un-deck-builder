@@ -17,6 +17,7 @@ import { exportPageDoc } from "@/lib/slides/export-page-html";
 import { parseDeckFile } from "@/lib/slides/deck-file";
 import { computeLogoTone, FULL_BLEED_TONE, RIGHT_PANEL_TONE, type ToneGeometry } from "@/lib/slides/logo-tone";
 import { ICON_LIBRARY, ICON_NAMES } from "@/lib/slides/icons";
+import Button from "@/components/Button";
 import Sidebar from "@/components/Sidebar";
 import SlideFrame, { readImageFile } from "@/components/SlideFrame";
 import ChartDataPanel from "@/components/ChartDataPanel";
@@ -976,19 +977,12 @@ function EmptyState({
             ready to edit.
           </p>
           <div className="mt-2 flex items-center gap-2">
-            <button
-              onClick={onWriteBrief}
-              className="flex h-9 items-center rounded-full bg-giga px-4 text-sm font-medium text-white transition-all duration-150 hover:bg-giga-deep active:scale-[0.98]"
-            >
+            <Button variant="primary" onClick={onWriteBrief}>
               Write the brief
-            </button>
-            <button
-              onClick={onOpenDeckFile}
-              className="flex h-9 items-center gap-1.5 rounded-full border border-hairline bg-white px-3 text-sm font-medium text-ink transition-colors duration-150 hover:bg-mist"
-            >
-              <Upload size={14} aria-hidden />
+            </Button>
+            <Button variant="secondary" icon={Upload} onClick={onOpenDeckFile}>
               Open a deck
-            </button>
+            </Button>
           </div>
           <p className="text-xs text-ink-faint">You can also drop an HTML deck you downloaded anywhere here.</p>
           {/* The editor no longer restores the last deck on its own, so the
@@ -1009,18 +1003,12 @@ function EmptyState({
                 Left in this browser, not saved to a file.
               </p>
               <div className="mt-3 flex items-center gap-2">
-                <button
-                  onClick={onRestorePrevious}
-                  className="h-9 rounded-full bg-giga px-4 text-sm font-medium text-white transition-all duration-150 hover:bg-giga-deep active:scale-[0.98]"
-                >
+                <Button variant="primary" onClick={onRestorePrevious}>
                   Pick it up
-                </button>
-                <button
-                  onClick={onDismissPrevious}
-                  className="flex h-9 items-center rounded-full px-4 text-sm font-medium text-ink-muted transition-colors duration-150 hover:bg-mist hover:text-ink"
-                >
+                </Button>
+                <Button variant="ghost" onClick={onDismissPrevious}>
                   Discard
-                </button>
+                </Button>
               </div>
             </div>
           )}
@@ -1060,37 +1048,29 @@ function Toolbar({
   }, [exportOpen]);
   // Undo and redo are one pair: same pill, same stroke. Disabled only changes
   // the ink, not the shape, so the two never look like different controls.
-  const iconBtn =
-    "flex h-9 items-center gap-1.5 rounded-full border border-hairline bg-white px-3 text-sm font-medium text-ink transition-colors duration-150 hover:bg-mist disabled:pointer-events-none disabled:border-hairline-light disabled:text-ink-faint";
   return (
     <div className="flex items-center gap-3 border-b border-hairline bg-white px-6 py-2.5">
       <div className="flex items-center gap-1.5">
-        <button onClick={onUndo} disabled={!canUndo} title="Undo (Cmd+Z)" className={iconBtn}>
-          <Undo2 size={14} aria-hidden />
+        <Button variant="secondary" icon={Undo2} onClick={onUndo} disabled={!canUndo} title="Undo (Cmd+Z)">
           Undo
-        </button>
-        <button onClick={onRedo} disabled={!canRedo} title="Redo (Cmd+Shift+Z)" className={iconBtn}>
-          <Redo2 size={14} aria-hidden />
+        </Button>
+        <Button variant="secondary" icon={Redo2} onClick={onRedo} disabled={!canRedo} title="Redo (Cmd+Shift+Z)">
           Redo
-        </button>
+        </Button>
       </div>
       <div className="ml-auto flex shrink-0 items-center gap-2" data-tour="download">
-        <button
+        <Button
+          variant="secondary"
+          icon={Upload}
           onClick={onOpenDeckFile}
           title="Open a deck you downloaded earlier"
-          className="flex h-9 items-center gap-1.5 rounded-full border border-hairline bg-white px-3 text-sm font-medium text-ink transition-colors duration-150 hover:bg-mist"
         >
-          <Upload size={14} aria-hidden />
           Upload
-        </button>
+        </Button>
         <div className="relative">
-        <button
-          onClick={() => setExportOpen((v) => !v)}
-          className="flex h-9 items-center gap-1.5 rounded-full bg-giga px-3 text-sm font-medium text-white transition-all duration-150 hover:bg-giga-deep active:scale-[0.98]"
-        >
+        <Button variant="primary" iconRight={ChevronDown} onClick={() => setExportOpen((v) => !v)}>
           Download
-          <ChevronDown size={16} className={`transition-transform duration-150 ${exportOpen ? "rotate-180" : ""}`} aria-hidden />
-        </button>
+        </Button>
         {exportOpen && (
           <>
             <div className="fixed inset-0 z-10" onClick={() => setExportOpen(false)} />
@@ -1177,15 +1157,6 @@ function SlideActions({
   };
   // Every action is the same bordered pill as Undo/Redo in the toolbar, with
   // an icon and a word; no dividers, the gap does the separating.
-  const pill =
-    "flex h-9 items-center rounded-full border border-hairline bg-white text-sm font-medium text-ink transition-colors duration-150 hover:bg-mist disabled:pointer-events-none disabled:border-hairline-light disabled:text-ink-faint";
-  // ChatGPT Library: icon+text pills pad 12px, text-only 16px, icon-only are
-  // 36px squares with the same 16px icon.
-  const action = `${pill} gap-1.5 px-3`;
-  const textAction = `${pill} px-4`;
-  // Icon-only pills get their own padding: "px-0" after "px-3" loses in
-  // Tailwind's ordering, and the icon was being squeezed to 6px.
-  const iconAction = `${pill} w-9 justify-center`;
   return (
     <div className="float-in pointer-events-none absolute inset-x-0 bottom-12 z-20 flex justify-center">
       <div className="pointer-events-auto relative">
@@ -1211,49 +1182,68 @@ function SlideActions({
               placeholder="Describe how to redo this slide…"
               className="w-80 bg-transparent px-2 text-sm text-ink outline-none placeholder:text-ink-faint"
             />
-            <button
-              onClick={submit}
-              disabled={busy}
-              className="h-9 rounded-full bg-giga px-4 text-sm font-medium text-white transition-all duration-150 hover:bg-giga-deep active:scale-[0.98] disabled:pointer-events-none disabled:opacity-40"
-            >
+            <Button variant="primary" onClick={submit} disabled={busy}>
               {busy ? "Working…" : "Regenerate"}
-            </button>
-            <button onClick={() => setAiOpen(false)} title="Close" className="flex h-10 w-10 items-center justify-center rounded-full text-ink-muted transition-colors duration-150 hover:bg-mist hover:text-ink">
-              <X size={16} aria-hidden />
-            </button>
+            </Button>
+            <Button
+              variant="ghost"
+              iconOnly
+              icon={X}
+              onClick={() => setAiOpen(false)}
+              title="Close"
+              aria-label="Close"
+            />
           </>
         ) : (
           <>
-            <button onClick={() => setAiOpen(true)} disabled={busy} className={textAction}>
+            <Button variant="secondary" onClick={() => setAiOpen(true)} disabled={busy}>
               Edit with AI
-            </button>
-            <button onClick={onAddItem} disabled={!canAddItem} title="Add an element to this slide" className={action}>
-              <Plus size={14} aria-hidden />
+            </Button>
+            <Button
+              variant="secondary"
+              icon={Plus}
+              onClick={onAddItem}
+              disabled={!canAddItem}
+              title="Add an element to this slide"
+            >
               Element
-            </button>
+            </Button>
             {canEditData && (
-              <button onClick={onEditData} title="Edit the chart data in a table" className={action}>
-                <ChartColumn size={14} aria-hidden />
+              <Button
+                variant="secondary"
+                icon={ChartColumn}
+                onClick={onEditData}
+                title="Edit the chart data in a table"
+              >
                 Data
-              </button>
+              </Button>
             )}
             {canChangeImage && (
-              <button onClick={onChangeImage} title="Change the image on this slide" className={action}>
-                <ImageIcon size={14} aria-hidden />
+              <Button
+                variant="secondary"
+                icon={ImageIcon}
+                onClick={onChangeImage}
+                title="Change the image on this slide"
+              >
                 Image
-              </button>
+              </Button>
             )}
-            <button onClick={onDuplicate} title="Duplicate slide" aria-label="Duplicate slide" className={iconAction}>
-              <Copy size={16} aria-hidden />
-            </button>
-            <button
+            <Button
+              variant="secondary"
+              iconOnly
+              icon={Copy}
+              onClick={onDuplicate}
+              title="Duplicate slide"
+              aria-label="Duplicate slide"
+            />
+            <Button
+              variant="danger"
+              iconOnly
+              icon={Trash2}
               onClick={onDelete}
               title="Delete slide"
               aria-label="Delete slide"
-              className={`${iconAction} text-ink-muted hover:bg-status-red-bg hover:text-status-red`}
-            >
-              <Trash2 size={16} aria-hidden />
-            </button>
+            />
           </>
         )}
         </div>

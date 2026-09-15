@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { COUNTRY_MAPS, countryMapThumb } from "@/lib/slides/country-maps";
 import LiveMapPanel from "@/components/LiveMapPanel";
 import type { MapSlot } from "@/lib/giga-maps/slot";
+import Button from "@/components/Button";
 
 /**
  * What goes in a slide's image slot: a photo from the user's machine, a map
@@ -78,25 +79,26 @@ export default function ImagePickerModal({
               <span className="text-sm font-medium text-ink">Maps</span>
               <span className="text-xs text-ink-muted">Schools and health centers, any country, live from Giga Maps</span>
             </button>
-            <button
+            <Button
+              variant="ghost"
               onClick={() => setTab("maps")}
-              className="col-span-2 justify-self-start rounded-full px-3 py-2 text-[13px] font-normal text-ink-faint transition-colors duration-150 hover:bg-mist hover:text-ink"
+              className="col-span-2 justify-self-start"
             >
               Or pick one of the {COUNTRY_MAPS.length} pre-made screenshots
-            </button>
+            </Button>
           </div>
         ) : tab === "live" ? (
           <>
             <div className="mb-3.5 flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <button
+                <Button
+                  variant="ghost"
+                  iconOnly
+                  icon={ChevronLeft}
                   onClick={() => setTab("choose")}
                   title="Back"
                   aria-label="Back"
-                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-ink transition-colors duration-150 hover:bg-mist focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-giga/15"
-                >
-                  <ChevronLeft size={16} aria-hidden />
-                </button>
+                />
                 <span className="text-base font-medium text-ink">Country map</span>
               </div>
               <span className="text-xs text-ink-muted">
@@ -108,13 +110,14 @@ export default function ImagePickerModal({
         ) : (
           <>
             <div className="mb-3 flex items-center gap-2">
-              <button
+              <Button
+                variant="ghost"
+                iconOnly
+                icon={ChevronLeft}
                 onClick={() => setTab("choose")}
                 title="Back"
-                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-ink transition-colors duration-150 hover:bg-mist"
-              >
-                <ChevronLeft size={16} aria-hidden />
-              </button>
+                aria-label="Back"
+              />
               <input
                 autoFocus
                 value={query}
@@ -165,12 +168,13 @@ export default function ImagePickerModal({
             </div>
 
             {current && (
-              <button
+              <Button
+                variant="danger"
                 onClick={onClearMap}
-                className="mt-3 self-start rounded-full px-3 py-2 text-sm font-medium text-status-red transition-colors duration-150 hover:bg-status-red/5"
+                className="mt-3 self-start"
               >
                 Remove the map from this slide
-              </button>
+              </Button>
             )}
           </>
         )}
