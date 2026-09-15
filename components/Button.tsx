@@ -17,7 +17,7 @@ const VARIANT: Record<ButtonVariant, string> = {
   primary:
     "bg-giga text-white hover:bg-giga-deep active:scale-[0.98] disabled:opacity-40",
   secondary:
-    "border border-hairline bg-white text-ink hover:bg-mist disabled:border-hairline-light disabled:text-ink-faint",
+    "border border-hairline bg-white text-ink hover:bg-canvas-2 disabled:border-hairline-light disabled:text-ink-faint",
   ghost: "text-ink-muted hover:bg-mist hover:text-ink disabled:text-ink-faint",
   danger: "text-status-red hover:bg-status-red-bg disabled:text-ink-faint",
   /** An "on" state, like the Chapters toggle: tinted, accent text. */
