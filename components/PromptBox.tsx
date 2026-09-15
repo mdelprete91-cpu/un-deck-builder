@@ -187,15 +187,12 @@ export default function PromptBox({
               disabled={!canSend}
               aria-label={generating ? "Generating" : hasSlides ? "Regenerate deck" : "Generate deck"}
               title={hasSlides ? "Regenerate the deck (⌘↵)" : "Generate the deck (⌘↵)"}
-              className={`flex h-9 shrink-0 items-center justify-center gap-1.5 rounded-full bg-giga text-sm font-medium text-white transition-all duration-150 hover:bg-giga-deep active:scale-[0.96] focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-giga/30 disabled:pointer-events-none disabled:opacity-40 ${
-                hasSlides && !generating ? "pl-3.5 pr-3" : "w-9"
-              }`}
+              className={`flex h-9 shrink-0 items-center justify-center gap-1.5 rounded-full bg-giga text-sm font-medium text-white transition-all duration-150 hover:bg-giga-deep active:scale-[0.96] focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-giga/30 disabled:pointer-events-none disabled:opacity-40 w-9`}
             >
               {generating ? (
                 <Spinner />
               ) : (
                 <>
-                  {hasSlides && <span>Regenerate</span>}
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M12 19V5M5 12l7-7 7 7" />
                   </svg>
