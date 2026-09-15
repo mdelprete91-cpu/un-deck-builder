@@ -2,20 +2,24 @@
 
 /* Giga "Bright Utility" tokens — see DESIGN.md (inherited from the Brand Asset Generator) */
 @theme {
+  /* One accent, Giga Blue, on a neutral chrome. The greys are the ChatGPT
+     scale: warm-neutral, no blue cast, flat surfaces. See DESIGN.md. */
   --color-giga: #277aff;
   --color-giga-deep: #0050e6;
   --color-giga-100: #d4e5ff;
   --color-giga-tint: #eaf2ff;
-  --color-ink: #0a1b3f;
-  --color-ink-muted: #5c7187;
-  --color-hairline: #dde6f0;
-  --color-canvas: #f7f9fc;
+  --color-ink: #0d0d0d;
+  --color-ink-muted: #5d5d5d;
+  --color-hairline: #e6e6e6;
+  --color-canvas: #f9f9f9;
+  --color-mist: #f0f0f0;
+  --color-mist-deep: #e3e3e3;
   --color-status-red: #ed1c24;
-  --shadow-stripe: 0 1px 2px rgba(50, 50, 93, 0.06), 0 2px 5px rgba(50, 50, 93, 0.08), 0 1px 1.5px rgba(0, 0, 0, 0.05);
-  --shadow-stripe-md: 0 4px 6px rgba(50, 50, 93, 0.07), 0 1px 3px rgba(0, 0, 0, 0.06), 0 8px 20px rgba(50, 50, 93, 0.05);
-  --shadow-stripe-lg: 0 13px 27px rgba(50, 50, 93, 0.1), 0 8px 16px rgba(0, 0, 0, 0.07);
-  /* The "magic" float: a deep, blue-cast shadow for elements hovering over the canvas */
-  --shadow-float: 0 24px 48px -12px rgba(39, 122, 255, 0.28), 0 10px 24px -8px rgba(10, 27, 63, 0.16), 0 2px 6px rgba(10, 27, 63, 0.06);
+  --shadow-stripe: 0 1px 2px rgba(0, 0, 0, 0.04), 0 2px 6px rgba(0, 0, 0, 0.04);
+  --shadow-stripe-md: 0 2px 8px rgba(0, 0, 0, 0.06);
+  --shadow-stripe-lg: 0 12px 32px rgba(0, 0, 0, 0.1), 0 2px 8px rgba(0, 0, 0, 0.05);
+  /* Floating panels over the stage: a soft neutral lift, no color cast */
+  --shadow-float: 0 8px 24px rgba(0, 0, 0, 0.1), 0 2px 6px rgba(0, 0, 0, 0.05);
   --font-manrope: "Manrope", sans-serif;
 }
 
@@ -28,15 +32,9 @@
   from { opacity: 0; transform: translateY(6px) scale(0.98); }
   to { opacity: 1; transform: none; }
 }
-@keyframes floatIdle {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-5px); }
-}
 @media (prefers-reduced-motion: no-preference) {
   .float-in { animation: floatIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) both; }
   .pop-in { animation: popIn 0.18s cubic-bezier(0.16, 1, 0.3, 1) both; }
-  /* Gentle hover bob for the floating slide actions — starts after the entrance settles */
-  .float-idle { animation: floatIdle 3.4s ease-in-out 0.5s infinite; }
 }
 
 /* Slide-count slider: thick filled track (inline gradient) + borderless
@@ -82,32 +80,6 @@
 }
 .giga-range::-moz-range-track {
   background: transparent;
-}
-
-/* Rainbow halo behind the slide-actions pill: keeps it visible on white
-   slides. Registered property so the conic angle itself can animate. */
-@property --glow-angle {
-  syntax: "<angle>";
-  inherits: false;
-  initial-value: 0deg;
-}
-@keyframes glowSpin {
-  to { --glow-angle: 360deg; }
-}
-.rainbow-glow {
-  position: absolute;
-  inset: -4px;
-  border-radius: 9999px;
-  pointer-events: none;
-  background: conic-gradient(
-    from var(--glow-angle),
-    #277aff, #8b5cf6, #ff5ca8, #ffb020, #00d4a0, #27c4ff, #277aff
-  );
-  filter: blur(12px);
-  opacity: 0.55;
-}
-@media (prefers-reduced-motion: no-preference) {
-  .rainbow-glow { animation: glowSpin 5s linear infinite; }
 }
 
 /* Self-hosted brand fonts — Manrope (headings) + Open Sans (body) */

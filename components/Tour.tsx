@@ -16,7 +16,7 @@ export interface TourStep {
 }
 
 const CARD_W = 368;
-/** The slide bar bobs (float-idle), so the ring is padded to cover the drift. */
+/** Breathing room between the target and the spotlight ring. */
 const PAD = 12;
 const GAP = 16;
 const EDGE = 18;
@@ -157,7 +157,7 @@ export default function Tour({ steps, onDone }: { steps: TourStep[]; onDone: () 
       {/* Only the copy scrolls: the buttons have to stay reachable on a short
           viewport, or a step with examples hides its own Next. */}
       <div className="min-h-0 overflow-y-auto">
-        <span className="font-manrope mb-2 block text-xs font-bold uppercase tracking-[0.18em] text-giga">
+        <span className="font-manrope mb-2 block text-xs font-semibold text-ink-muted">
           Step {i + 1} of {steps.length}
         </span>
         <h3 className="font-manrope text-lg font-semibold tracking-[-0.02em] text-ink">
@@ -177,7 +177,7 @@ export default function Tour({ steps, onDone }: { steps: TourStep[]; onDone: () 
           {i > 0 && (
             <button
               onClick={() => setI((n) => n - 1)}
-              className="h-10 rounded-full border border-hairline bg-white px-4 text-sm font-semibold text-ink transition-colors duration-150 hover:border-giga-100 hover:bg-giga-tint"
+              className="h-10 rounded-full border border-hairline bg-white px-4 text-sm font-semibold text-ink transition-colors duration-150 hover:bg-mist"
             >
               Back
             </button>
@@ -185,7 +185,7 @@ export default function Tour({ steps, onDone }: { steps: TourStep[]; onDone: () 
           <button
             autoFocus
             onClick={next}
-            className="font-manrope h-10 rounded-full bg-giga px-5 text-sm font-semibold text-white shadow-stripe-md transition-all duration-150 hover:bg-giga-deep active:scale-[0.98]"
+            className="font-manrope h-10 rounded-full bg-giga px-5 text-sm font-semibold text-white transition-all duration-150 hover:bg-giga-deep active:scale-[0.98]"
           >
             {i === steps.length - 1 ? "Done" : "Next"}
           </button>
@@ -198,12 +198,12 @@ export default function Tour({ steps, onDone }: { steps: TourStep[]; onDone: () 
     <>
       {/* Blocks the app underneath: a click mid-tour on Delete slide would
           leave the tour pointing at something that no longer exists. */}
-      <div className={`fixed inset-0 z-[60] ${centered ? "bg-ink/45" : ""}`} />
+      <div className={`fixed inset-0 z-[60] ${centered ? "bg-ink/40" : ""}`} />
       {hole && (
         <div
           aria-hidden
           className="pointer-events-none fixed z-[61] rounded-2xl transition-all duration-200"
-          style={{ ...hole, boxShadow: "0 0 0 9999px rgba(10, 27, 63, 0.45)" }}
+          style={{ ...hole, boxShadow: "0 0 0 9999px rgba(0, 0, 0, 0.4)" }}
         />
       )}
       {hole ? (

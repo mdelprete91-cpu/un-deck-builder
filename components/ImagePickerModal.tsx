@@ -48,14 +48,14 @@ export default function ImagePickerModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-ink/45 p-6"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 p-6"
       onClick={onClose}
     >
       <div
         className="pop-in flex max-h-[88vh] w-full max-w-3xl flex-col rounded-2xl bg-white p-5 shadow-stripe-lg"
         onClick={(e) => e.stopPropagation()}
       >
-        <span className="font-manrope mb-3 block text-[10px] font-bold uppercase tracking-[0.18em] text-giga">
+        <span className="font-manrope mb-3 block text-xs font-semibold text-ink-muted">
           Slide image
         </span>
 
@@ -63,7 +63,7 @@ export default function ImagePickerModal({
           <div className="grid grid-cols-2 gap-3">
             <button
               onClick={onUpload}
-              className="flex flex-col items-center gap-2 rounded-xl border border-hairline bg-white px-4 py-8 text-center transition-colors duration-150 hover:border-giga-100 hover:bg-giga-tint"
+              className="flex flex-col items-center gap-2 rounded-xl border border-hairline bg-white px-4 py-8 text-center transition-colors duration-150 hover:bg-mist"
             >
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#277AFF" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M12 16V4M8 8l4-4 4 4" />
@@ -74,7 +74,7 @@ export default function ImagePickerModal({
             </button>
             <button
               onClick={() => setTab("live")}
-              className="flex flex-col items-center gap-2 rounded-xl border border-hairline bg-white px-4 py-8 text-center transition-colors duration-150 hover:border-giga-100 hover:bg-giga-tint"
+              className="flex flex-col items-center gap-2 rounded-xl border border-hairline bg-white px-4 py-8 text-center transition-colors duration-150 hover:bg-mist"
             >
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#277AFF" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2-6-2Z" />
@@ -85,7 +85,7 @@ export default function ImagePickerModal({
             </button>
             <button
               onClick={() => setTab("maps")}
-              className="col-span-2 justify-self-start rounded-full px-3 py-2 text-xs font-semibold text-ink-muted transition-colors duration-150 hover:bg-giga-tint hover:text-ink"
+              className="col-span-2 justify-self-start rounded-full px-3 py-2 text-xs font-semibold text-ink-muted transition-colors duration-150 hover:bg-mist hover:text-ink"
             >
               Or pick one of the {COUNTRY_MAPS.length} pre-made screenshots
             </button>
@@ -98,7 +98,7 @@ export default function ImagePickerModal({
                   onClick={() => setTab("choose")}
                   title="Back"
                   aria-label="Back"
-                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-ink transition-colors duration-150 hover:bg-giga-tint focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-giga/15"
+                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-ink transition-colors duration-150 hover:bg-mist focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-giga/15"
                 >
                   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M15 18l-6-6 6-6" />
@@ -118,7 +118,7 @@ export default function ImagePickerModal({
               <button
                 onClick={() => setTab("choose")}
                 title="Back"
-                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-ink transition-colors duration-150 hover:bg-giga-tint"
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-ink transition-colors duration-150 hover:bg-mist"
               >
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M15 18l-6-6 6-6" />

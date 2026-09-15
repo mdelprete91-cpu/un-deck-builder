@@ -1,30 +1,23 @@
 "use client";
 
-import { useRef, useState } from "react";
-import { ATTACHMENT_ACCEPT, formatBytes, type Attachment } from "@/lib/slides/attachments";
+import { formatBytes, type Attachment } from "@/lib/slides/attachments";
 
 /**
- * The row inside the prompt box that holds the brief's reference files:
- * one chip per attachment plus the "Attach files" affordance. Files can also
- * be dropped anywhere on the prompt box; the parent wires that and passes
- * `dragging` so the whole box can show it.
+ * The chips for the brief's reference files, one per attachment. It renders
+ * nothing on its own: the file picker, the "+" button and the drop target
+ * belong to `PromptBox`, which owns the composer this row sits in.
  */
 export default function AttachmentsRow({
   attachments,
   disabled,
-  onAdd,
   onRemove,
 }: {
   attachments: Attachment[];
   disabled?: boolean;
-  onAdd: (files: File[]) => void;
   onRemove: (id: string) => void;
 }) {
-  const inputRef = useRef<HTMLInputElement>(null);
-  const [busy, setBusy] = useState(false);
-
   return (
-    <div className="flex flex-wrap items-center gap-1.5 border-t border-hairline px-2.5 py-2">
+    <div className="flex flex-wrap items-center gap-1.5">
       {attachments.map((a) => (
         <span
           key={a.id}
@@ -47,35 +40,6 @@ export default function AttachmentsRow({
           </button>
         </span>
       ))}
-      <button
-        type="button"
-        onClick={() => inputRef.current?.click()}
-        disabled={disabled || busy}
-        className="inline-flex h-7 items-center gap-1.5 rounded-full px-2 text-xs font-semibold text-ink-muted transition-colors duration-150 hover:bg-giga-tint hover:text-giga focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-giga/15 disabled:pointer-events-none disabled:opacity-40"
-      >
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M21.4 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.2-9.19a4 4 0 0 1 5.65 5.66l-9.2 9.19a2 2 0 0 1-2.82-2.83l8.48-8.48" />
-        </svg>
-        {busy ? "Reading…" : attachments.length ? "Add more" : "Attach files"}
-      </button>
-      <input
-        ref={inputRef}
-        type="file"
-        multiple
-        accept={ATTACHMENT_ACCEPT}
-        className="hidden"
-        onChange={async (e) => {
-          const files = Array.from(e.target.files ?? []);
-          e.target.value = "";
-          if (files.length === 0) return;
-          setBusy(true);
-          try {
-            await onAdd(files);
-          } finally {
-            setBusy(false);
-          }
-        }}
-      />
     </div>
   );
 }

@@ -59,8 +59,8 @@ const CHAPTER_LAYOUTS = new Set<string>(["agenda", "section-divider"]);
  */
 function BriefExample() {
   return (
-    <div className="mt-3 rounded-lg border border-giga-100 bg-giga-tint p-2.5">
-      <span className="font-manrope mb-0.5 block text-[10px] font-bold uppercase tracking-[0.18em] text-giga">
+    <div className="mt-3 rounded-xl border border-hairline bg-canvas p-3">
+      <span className="font-manrope mb-0.5 block text-xs font-semibold text-ink-muted">
         A brief that works
       </span>
       <p className="text-xs leading-relaxed text-ink">
@@ -631,7 +631,7 @@ export default function Studio() {
   const slideImageInputRef = useRef<HTMLInputElement>(null);
 
   return (
-    <div className="flex h-screen w-screen overflow-hidden bg-canvas text-ink">
+    <div className="flex h-screen w-screen overflow-hidden bg-white text-ink">
       <Sidebar
         state={state}
         dispatch={dispatch}
@@ -831,7 +831,7 @@ export default function Studio() {
         )}
       </main>
 
-      <div className="w-[200px] shrink-0 border-l border-hairline bg-white">
+      <div className="w-[200px] shrink-0 border-l border-hairline bg-canvas">
         <ThumbStrip
           slides={state.slides}
           theme={theme}
@@ -879,7 +879,7 @@ function IconPickerModal({
   const names = q ? ICON_NAMES.filter((n) => n.includes(q)) : ICON_NAMES;
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-ink/45 p-6"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 p-6"
       onClick={onClose}
     >
       <div
@@ -887,7 +887,7 @@ function IconPickerModal({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mb-3 flex items-baseline justify-between">
-          <p className="font-manrope text-[10px] font-bold uppercase tracking-[0.18em] text-giga">
+          <p className="font-manrope text-xs font-semibold text-ink-muted">
             Choose an icon
           </p>
           <span className="text-[11px] text-ink-muted">
@@ -909,8 +909,8 @@ function IconPickerModal({
               onClick={() => onPick(name)}
               className={`group flex h-11 cursor-pointer items-center justify-center rounded-lg border transition-all duration-100 ${
                 current === name
-                  ? "border-giga bg-giga-tint"
-                  : "border-transparent hover:border-giga-100 hover:bg-giga-tint hover:shadow-stripe"
+                  ? "border-ink/20 bg-mist"
+                  : "border-transparent hover:bg-mist"
               }`}
             >
               <svg
@@ -960,20 +960,16 @@ function EmptyState({
     <div className="flex flex-1 flex-col items-center justify-center gap-4">
       {generating ? (
         <>
-          <div className="h-8 w-8 animate-spin rounded-full border-2 border-giga border-t-transparent" />
+          <div className="h-7 w-7 animate-spin rounded-full border-2 border-ink/15 border-t-ink" />
           <p className="text-sm text-ink-muted">Generating your deck…</p>
         </>
       ) : (
         <>
-          <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-giga-tint text-giga">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-              <rect x="3" y="4" width="18" height="13" rx="2" />
-              <path d="M12 17v3M8 20h8" />
-            </svg>
-          </div>
+          <h1 className="font-manrope text-2xl font-semibold tracking-[-0.02em] text-ink">
+            What deck are we making?
+          </h1>
           <p className="max-w-xs text-center text-sm leading-relaxed text-ink-muted">
-            Describe your story in the prompt box and hit Generate. Slides appear here as they are
-            created.
+            Describe the story in the prompt box. Slides appear here as they are written.
           </p>
           <p className="max-w-xs text-center text-sm leading-relaxed text-ink-muted">
             Already have a deck?{" "}
@@ -988,8 +984,8 @@ function EmptyState({
           {/* The editor no longer restores the last deck on its own, so the
               deck is offered here instead of appearing under the user. */}
           {count > 0 && (
-            <div className="pop-in mt-2 w-full max-w-sm rounded-xl border border-hairline bg-white p-4 shadow-stripe">
-              <span className="font-manrope mb-1 block text-[10px] font-bold uppercase tracking-[0.18em] text-giga">
+            <div className="pop-in mt-4 w-full max-w-sm rounded-2xl border border-hairline bg-white p-4">
+              <span className="font-manrope mb-1 block text-xs font-semibold text-ink-muted">
                 Last session
               </span>
               <p className="text-sm leading-relaxed text-ink">
@@ -1005,7 +1001,7 @@ function EmptyState({
               <div className="mt-3 flex items-center gap-2">
                 <button
                   onClick={onRestorePrevious}
-                  className="font-manrope h-9 rounded-full bg-giga px-4 text-xs font-semibold text-white shadow-stripe-md transition-all duration-150 hover:bg-giga-deep active:scale-[0.98]"
+                  className="font-manrope h-9 rounded-full bg-giga px-4 text-xs font-semibold text-white transition-all duration-150 hover:bg-giga-deep active:scale-[0.98]"
                 >
                   Pick it up
                 </button>
@@ -1059,13 +1055,13 @@ function Toolbar({
     return () => window.removeEventListener("keydown", onKey);
   }, [exportOpen]);
   const iconBtn =
-    "flex h-8 w-8 items-center justify-center rounded-full text-ink transition-colors duration-150 hover:bg-giga-tint disabled:pointer-events-none disabled:opacity-30";
+    "flex h-8 w-8 items-center justify-center rounded-full text-ink transition-colors duration-150 hover:bg-mist disabled:pointer-events-none disabled:opacity-30";
   return (
     <div className="flex items-center gap-3 border-b border-hairline bg-white px-6 py-2.5">
       <span className="font-manrope shrink-0 whitespace-nowrap text-sm font-semibold tracking-[-0.01em] text-ink">
         Slide {index + 1} / {total}
       </span>
-      <span className="rounded-full bg-giga-tint px-2.5 py-0.5 text-xs font-semibold text-giga">
+      <span className="rounded-full bg-mist px-2.5 py-0.5 text-xs font-medium text-ink-muted">
         {layoutLabel}
       </span>
       <div className="flex items-center">
@@ -1091,7 +1087,7 @@ function Toolbar({
         <button
           onClick={onOpenDeckFile}
           title="Open a deck you downloaded earlier"
-          className="font-manrope flex h-9 items-center gap-1.5 rounded-full border border-hairline bg-white px-4 text-xs font-semibold text-ink transition-colors duration-150 hover:border-giga-100 hover:bg-giga-tint"
+          className="font-manrope flex h-9 items-center gap-1.5 rounded-full border border-hairline bg-white px-4 text-xs font-semibold text-ink transition-colors duration-150 hover:bg-mist"
         >
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M12 16V4M8 8l4-4 4 4" />
@@ -1102,7 +1098,7 @@ function Toolbar({
         <div className="relative">
         <button
           onClick={() => setExportOpen((v) => !v)}
-          className="font-manrope flex h-9 items-center gap-1.5 rounded-full bg-giga px-4 text-xs font-semibold text-white shadow-stripe-md transition-all duration-150 hover:bg-giga-deep active:scale-[0.98]"
+          className="font-manrope flex h-9 items-center gap-1.5 rounded-full bg-giga px-4 text-xs font-semibold text-white transition-all duration-150 hover:bg-giga-deep active:scale-[0.98]"
         >
           Download
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className={`transition-transform duration-150 ${exportOpen ? "rotate-180" : ""}`}>
@@ -1118,7 +1114,7 @@ function Toolbar({
                   setExportOpen(false);
                   onExportPdf();
                 }}
-                className="block w-full rounded-lg px-3 py-2 text-left text-xs font-semibold text-ink transition-colors duration-100 hover:bg-giga-tint"
+                className="block w-full rounded-lg px-3 py-2 text-left text-xs font-semibold text-ink transition-colors duration-100 hover:bg-mist"
               >
                 PDF
                 <span className="mt-0.5 block font-normal text-ink-muted">
@@ -1130,7 +1126,7 @@ function Toolbar({
                   setExportOpen(false);
                   onExportHtml();
                 }}
-                className="block w-full rounded-lg px-3 py-2 text-left text-xs font-semibold text-ink transition-colors duration-100 hover:bg-giga-tint"
+                className="block w-full rounded-lg px-3 py-2 text-left text-xs font-semibold text-ink transition-colors duration-100 hover:bg-mist"
               >
                 {twoPager ? "HTML file" : "HTML deck"}
                 <span className="mt-0.5 block font-normal text-ink-muted">
@@ -1194,15 +1190,13 @@ function SlideActions({
     setAiOpen(false);
   };
   const action =
-    "flex h-10 items-center gap-1.5 rounded-full px-3.5 text-[13px] font-semibold text-ink transition-colors duration-150 hover:bg-giga-tint disabled:pointer-events-none disabled:opacity-30";
+    "flex h-10 items-center gap-1.5 rounded-full px-3.5 text-[13px] font-semibold text-ink transition-colors duration-150 hover:bg-mist disabled:pointer-events-none disabled:opacity-30";
   return (
     <div className="float-in pointer-events-none absolute inset-x-0 bottom-12 z-20 flex justify-center">
-      {/* Glow and pill bob together; the glow sits behind the white pill */}
-      <div className={`${aiOpen || busy ? "" : "float-idle "}pointer-events-auto relative`}>
-        <div aria-hidden className="rainbow-glow" />
+      <div className="pointer-events-auto relative">
         <div
           data-tour="slide-bar"
-          className="relative flex items-center gap-0.5 rounded-full border border-giga-100 bg-white p-1.5 shadow-float"
+          className="relative flex items-center gap-0.5 rounded-full border border-hairline bg-white p-1.5 shadow-float"
         >
         {busy ? (
           <div className="flex h-10 items-center gap-2.5 px-4 text-[13px] font-semibold text-giga">
@@ -1235,7 +1229,7 @@ function SlideActions({
             >
               {busy ? "Working…" : "Regenerate"}
             </button>
-            <button onClick={() => setAiOpen(false)} title="Close" className="flex h-10 w-10 items-center justify-center rounded-full text-ink-muted transition-colors duration-150 hover:bg-giga-tint hover:text-ink">
+            <button onClick={() => setAiOpen(false)} title="Close" className="flex h-10 w-10 items-center justify-center rounded-full text-ink-muted transition-colors duration-150 hover:bg-mist hover:text-ink">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
                 <path d="M18 6 6 18M6 6l12 12" />
               </svg>
@@ -1243,7 +1237,7 @@ function SlideActions({
           </>
         ) : (
           <>
-            <button onClick={() => setAiOpen(true)} disabled={busy} className={`${action} text-giga hover:bg-giga-tint`}>
+            <button onClick={() => setAiOpen(true)} disabled={busy} className={`${action} text-giga hover:bg-mist`}>
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9L12 3z" />
                 <path d="M19 15l.9 2.1L22 18l-2.1.9L19 21l-.9-2.1L16 18l2.1-.9L19 15z" />

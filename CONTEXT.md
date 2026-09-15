@@ -127,11 +127,12 @@ a slide title. The `<script id="giga-deck-state">` block is therefore assembled 
 after the runtime script, never inside the `body` string. Move it into `body` and the two corrupt
 each other.
 
-**The "Chapters" switch is a generation setting.** `state.chapters` (off by default) decides whether
-a generated deck gets an agenda slide and section dividers. It sits *inside* the prompt box, sharing
-its border and focus ring, because it is an input to the same Generate press: as a detached card it
-read as a live view option, which it is not. When the deck on screen disagrees with the switch, the
-sidebar says so under the prompt rather than silently doing nothing. Off, it does two things:
+**The "Chapters" toggle is a generation setting.** `state.chapters` (off by default) decides whether
+a generated deck gets an agenda slide and section dividers. It sits *inside* the prompt box, as a
+pill in the composer's bottom bar right next to Generate, because it is an input to the same
+Generate press: as a detached card it read as a live view option, which it is not. When the deck on
+screen disagrees with the toggle, the sidebar says so under the prompt rather than silently doing
+nothing. Off, it does two things:
 `NO_CHAPTERS` goes into the user message for generate and add, and `dropChapters` in `page.tsx`
 discards any `agenda` or `section-divider` the model emits anyway. Keep both — the prompt rule alone
 leaks a stray divider often enough to matter. It never edits the deck already on screen, and
@@ -196,8 +197,11 @@ drop on the box. They exist to give the model the facts; they are **not** deck c
   be empty when files are attached; the route substitutes "Build it from the attached material."
 - **`regenerate` does not carry attachments.** It already gets the brief and the slide; re-sending
   a PDF for every single-slide rewrite would multiply the cost for little gain.
-- Chips use the toolbar chip vocabulary (`bg-giga-tint`, `text-giga`, inline SVG glyphs); the
-  prompt box keeps `data-tour="prompt"` on its outer node so the tour still frames the whole thing.
+- The composer is `components/PromptBox.tsx`: it owns the textarea, the hidden file input behind
+  the "+" button, the drop target, the Chapters pill and the Generate button. `AttachmentsRow` only
+  renders the chips (`bg-giga-tint`, `text-giga`, inline SVG glyphs). The outer node keeps
+  `data-tour="prompt"`, and the pill and the button carry `data-tour="chapters"` and
+  `data-tour="generate"`, so the tour still frames each of them.
 
 ## Two-pagers
 
