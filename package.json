@@ -12,6 +12,7 @@
     "@anthropic-ai/sdk": "^0.115.0",
     "html-to-image": "^1.11.13",
     "lucide": "^1.27.0",
+    "maplibre-gl": "^5.24.0",
     "next": "16.2.12",
     "pptxgenjs": "^4.0.1",
     "react": "19.2.4",

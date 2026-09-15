@@ -10,6 +10,8 @@ product
 
 Brand and communications people at Giga, UNICEF, ITU, and partner organizations. They are not designers; they describe a story and the tool picks the right template slides and fills them in. They then tweak text inline, reorder slides, and export. Same audience as the Giga Brand Asset Generator; several of them arrive from it.
 
+The same people also write **two-pagers**: A4 briefs that get printed and handed over in a meeting, not presented. On Digital Inclusion the tool builds those too, from the same brief and with the same editing, and the only real difference is that the output is a sheet of paper rather than a screen.
+
 ## Product Purpose
 
 Generate on-brand presentation decks from a prompt using the official "Giga Slides" template, then let the user refine them with zero design decisions: inline text editing with autofit, add/remove elements, real chart data, image and logo uploads, PDF/HTML export. Success means a partner ships a deck that looks indistinguishable from one made by the design team.

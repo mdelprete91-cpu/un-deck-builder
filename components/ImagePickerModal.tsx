@@ -2,28 +2,35 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { COUNTRY_MAPS, countryMapThumb } from "@/lib/slides/country-maps";
+import LiveMapPanel from "@/components/LiveMapPanel";
+import type { MapSlot } from "@/lib/giga-maps/slot";
 
 /**
- * What goes in a slide's image slot: a photo from the user's machine, or one
- * of the Giga Maps country exports. Two paths behind one button, because from
- * the slide's point of view they fill the same hole.
+ * What goes in a slide's image slot: a photo from the user's machine, a map
+ * rendered on the spot from live Giga Maps data, or one of the older Giga
+ * Maps screenshots. Three paths behind one button, because from the slide's
+ * point of view they fill the same hole.
  */
 export default function ImagePickerModal({
   current,
+  slot,
   onUpload,
   onPickMap,
+  onPickGenerated,
   onClearMap,
   onClose,
 }: {
   current?: string;
+  slot: MapSlot;
   onUpload: () => void;
   onPickMap: (slug: string) => void;
+  onPickGenerated: (dataUrl: string) => void;
   onClearMap: () => void;
   onClose: () => void;
 }) {
   // Land straight on the library when the slide already shows a map: that is
   // the state you are in when you want a different country.
-  const [tab, setTab] = useState<"choose" | "maps">(current ? "maps" : "choose");
+  const [tab, setTab] = useState<"choose" | "maps" | "live">(current ? "maps" : "choose");
   const [query, setQuery] = useState("");
 
   useEffect(() => {
@@ -45,7 +52,7 @@ export default function ImagePickerModal({
       onClick={onClose}
     >
       <div
-        className="pop-in flex max-h-[82vh] w-full max-w-3xl flex-col rounded-2xl bg-white p-5 shadow-stripe-lg"
+        className="pop-in flex max-h-[88vh] w-full max-w-3xl flex-col rounded-2xl bg-white p-5 shadow-stripe-lg"
         onClick={(e) => e.stopPropagation()}
       >
         <span className="font-manrope mb-3 block text-[10px] font-bold uppercase tracking-[0.18em] text-giga">
@@ -66,7 +73,7 @@ export default function ImagePickerModal({
               <span className="text-xs text-ink-muted">A photo from your computer</span>
             </button>
             <button
-              onClick={() => setTab("maps")}
+              onClick={() => setTab("live")}
               className="flex flex-col items-center gap-2 rounded-xl border border-hairline bg-white px-4 py-8 text-center transition-colors duration-150 hover:border-giga-100 hover:bg-giga-tint"
             >
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#277AFF" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
@@ -74,9 +81,37 @@ export default function ImagePickerModal({
                 <path d="M9 4v14M15 6v14" />
               </svg>
               <span className="text-sm font-semibold text-ink">Maps</span>
-              <span className="text-xs text-ink-muted">Schools in a country, {COUNTRY_MAPS.length} available</span>
+              <span className="text-xs text-ink-muted">Schools and health centers, any country, live from Giga Maps</span>
+            </button>
+            <button
+              onClick={() => setTab("maps")}
+              className="col-span-2 justify-self-start rounded-full px-3 py-2 text-xs font-semibold text-ink-muted transition-colors duration-150 hover:bg-giga-tint hover:text-ink"
+            >
+              Or pick one of the {COUNTRY_MAPS.length} pre-made screenshots
             </button>
           </div>
+        ) : tab === "live" ? (
+          <>
+            <div className="mb-3.5 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setTab("choose")}
+                  title="Back"
+                  aria-label="Back"
+                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-ink transition-colors duration-150 hover:bg-giga-tint focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-giga/15"
+                >
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M15 18l-6-6 6-6" />
+                  </svg>
+                </button>
+                <span className="font-manrope text-base font-semibold tracking-[-0.03em] text-ink">Country map</span>
+              </div>
+              <span className="text-xs text-ink-muted">
+                Live from Giga Maps · fits this slide at {slot.width} × {slot.height}
+              </span>
+            </div>
+            <LiveMapPanel slot={slot} onUse={onPickGenerated} onCancel={onClose} onLibrary={() => setTab("maps")} />
+          </>
         ) : (
           <>
             <div className="mb-3 flex items-center gap-2">

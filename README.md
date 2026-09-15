@@ -2,9 +2,12 @@
 
 Generate branded slide decks from a prompt. The AI never designs slides: it picks layouts from the approved **Giga Partnership Template** (27 layouts, 1920×1080) and fills in the text. You edit inline, reorder, and export.
 
+On **UNICEF Digital Inclusion** there is a second template: the **two-pager**, an A4 portrait piece made to be printed. Same idea, one level down — the AI stacks blocks from an approved catalog (14 of them, taken from the signed-off A4 boards) and writes the text.
+
 ## How it works
 
 - **Sidebar**: prompt box, logo lockup (Digital Impact Division / Giga / UNICEF / Digital Inclusion), slide count, generate.
+- **Template switch** (Digital Inclusion only, and only on an empty deck): Slides, or Two-pager. A two-pager page is a vertical stack of blocks at A4 — title, labelled text, status callout, stat cards, icon columns, photo cards, two columns, figure, screens, table, numbered asks, contacts. "Add page" starts from a preset composition; inside a page you add, remove and reorder blocks. Everything else behaves the same: inline editing, ✕ to delete an element, duplicate, reorder, undo, regenerate with AI, and per-slot image upload.
 - **Chapters switch** (inside the prompt box, off by default): off, the deck is generated with no agenda slide and no section dividers, for when that structure is more than the story needs. It is an input to Generate, not a view option: it shapes the next generation and never edits the deck on screen, and the sidebar says so when the two disagree.
 - **Generation**: Claude Haiku 4.5 returns structured JSON (`layoutId` + text fields) via a streaming API route — slides appear one by one. Fast and cheap (~$0.01 per 12-slide deck).
 - **Logo lockups** change the footer logo and the footer label, and carry one of two palettes. Giga and UNICEF keep the Giga blue palette; Digital Impact Division and Digital Inclusion run on two surfaces only, UNICEF cyan `#01AEEF` and white. The typography (Manrope + Open Sans, self-hosted) never changes.
@@ -12,8 +15,8 @@ Generate branded slide decks from a prompt. The AI never designs slides: it pick
 - **Editing**: click any text on the slide to edit it (Escape cancels). Hover an element for ✕ to delete it, "+ Element" adds one back. Undo/redo with Cmd+Z / Cmd+Shift+Z or the toolbar arrows. Thumbnails: reorder, duplicate, delete. "Regenerate slide" rewrites the active slide with an instruction. The deck autosaves to localStorage as you work.
 - **Opening the app**: always on an empty editor. The autosave is a safety net, not a session that resumes on its own, so the deck from last time waits on a "Last session" card on the empty state, with Pick it up and Discard. Only the logo lockup and the Chapters setting carry over.
 - **Product tour**: runs on first use, in two phases. The brief, the Chapters switch and Generate on the empty editor, then the canvas, the slide bar, Add slides and Download once the first deck exists. "How it works" in the sidebar replays it at any time.
-- **Download PDF**: browser print (Chrome, backgrounds on, scale 100%) — one slide per page at 1920×1080.
-- **Download HTML deck**: one self-contained file (fonts and logos inlined) with arrow-key navigation and the template's entrance animations. The same file is the project file: it carries the deck's data model in an inert JSON block.
+- **Download PDF**: browser print (Chrome, backgrounds on, scale 100%) — one slide per page at 1920×1080, or one A4 sheet per page for a two-pager.
+- **Download HTML deck**: one self-contained file (fonts and logos inlined) with arrow-key navigation and the template's entrance animations. The same file is the project file: it carries the deck's data model in an inert JSON block. A two-pager downloads instead as a scrolling A4 document that prints to the same PDF — still the save file.
 - **Upload**: drop an exported HTML deck on the canvas, or use "Upload" in the toolbar next to Download, to pick up where you left off — slides, logo, brief and the Chapters setting all come back. Replacing a deck that is on screen asks first. Decks exported before this existed can still be presented, they just cannot be reopened.
 
 ## Setup

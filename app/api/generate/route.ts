@@ -4,14 +4,25 @@ import {
   buildUserMessage,
   SLIDES_OUTPUT_SCHEMA,
   ADD_OUTPUT_SCHEMA,
+  PAGES_OUTPUT_SCHEMA,
+  ADD_PAGES_OUTPUT_SCHEMA,
   type GenerateBody,
 } from "@/lib/slides/prompt";
+import type { DeckFormat } from "@/lib/slides/state";
 import { SlideStreamParser } from "@/lib/slides/parse";
 
 export const runtime = "nodejs";
 
 const MODEL = "claude-haiku-4-5-20251001";
-const SYSTEM_PROMPT = buildSystemPrompt();
+/**
+ * Both prompts are built once at module load: nothing per-request may go in
+ * here (that is what the user message is for), and building two strings costs
+ * nothing while keeping the slide path byte-identical.
+ */
+const SYSTEM_PROMPTS: Record<DeckFormat, string> = {
+  slides: buildSystemPrompt("slides"),
+  "two-pager": buildSystemPrompt("two-pager"),
+};
 
 /** The schema requires every field, so unused ones arrive as ""/[] — drop them. */
 function stripEmptyFields(slide: unknown): unknown {
@@ -19,6 +30,25 @@ function stripEmptyFields(slide: unknown): unknown {
   return Object.fromEntries(
     Object.entries(slide).filter(([, v]) => v !== "" && !(Array.isArray(v) && v.length === 0)),
   );
+}
+
+/**
+ * The same job one level down, for a page: `stripEmptyFields` only looks at
+ * the top level, which would leave every block carrying rail:"" and every
+ * item carrying extra:"". Kept separate rather than made recursive so the
+ * slide path stays exactly as it was.
+ */
+function stripEmptyPage(page: unknown): unknown {
+  if (typeof page !== "object" || page === null) return page;
+  const p = page as { blocks?: unknown[] };
+  const blocks = Array.isArray(p.blocks)
+    ? p.blocks.map((b) => {
+        const block = stripEmptyFields(b) as { items?: unknown[] };
+        if (Array.isArray(block.items)) block.items = block.items.map(stripEmptyFields);
+        return block;
+      })
+    : [];
+  return { ...(stripEmptyFields(page) as Record<string, unknown>), blocks };
 }
 
 export async function POST(request: Request): Promise<Response> {
@@ -38,11 +68,15 @@ export async function POST(request: Request): Promise<Response> {
   // 4 retries (default 2): rides out transient 529 "overloaded" spikes
   const client = new Anthropic({ maxRetries: 4 });
   const isAdd = body.mode === "add";
+  const twoPager = body.format === "two-pager";
   // The model picks the deck size itself in generate mode, so budget for the
   // biggest reasonable deck; add/regenerate keep count-driven budgets.
   const count = body.mode === "regenerate" ? 1 : Math.min(Math.max(body.count ?? 20, 1), 20);
   // Add mode carries extra output (insertAfter + refreshed agenda bullets)
-  const maxTokens = Math.min(800 + 400 * count + (isAdd ? 400 : 0), 16000);
+  // An A4 page of text is worth about four slides, and truncation here is
+  // silent: the parser simply never emits the page.
+  const perItem = twoPager ? 1600 : 400;
+  const maxTokens = Math.min(800 + perItem * count + (isAdd ? 400 : 0), 16000);
   const encoder = new TextEncoder();
 
   const stream = new ReadableStream({
@@ -56,9 +90,18 @@ export async function POST(request: Request): Promise<Response> {
         const messageStream = client.messages.stream({
           model: MODEL,
           max_tokens: maxTokens,
-          system: SYSTEM_PROMPT,
+          system: SYSTEM_PROMPTS[twoPager ? "two-pager" : "slides"],
           output_config: {
-            format: { type: "json_schema", schema: isAdd ? ADD_OUTPUT_SCHEMA : SLIDES_OUTPUT_SCHEMA },
+            format: {
+              type: "json_schema",
+              schema: twoPager
+                ? isAdd
+                  ? ADD_PAGES_OUTPUT_SCHEMA
+                  : PAGES_OUTPUT_SCHEMA
+                : isAdd
+                  ? ADD_OUTPUT_SCHEMA
+                  : SLIDES_OUTPUT_SCHEMA,
+            },
           },
           messages: [{ role: "user", content: buildUserMessage(body) }],
         });
@@ -67,13 +110,24 @@ export async function POST(request: Request): Promise<Response> {
           if (event.type === "content_block_delta" && event.delta.type === "text_delta") {
             raw += event.delta.text;
             for (const slide of parser.feed(event.delta.text)) {
-              send({ type: "slide", index: index++, slide: stripEmptyFields(slide) });
+              send({
+                type: "slide",
+                index: index++,
+                slide: twoPager ? stripEmptyPage(slide) : stripEmptyFields(slide),
+              });
             }
           }
         }
 
         const final = await messageStream.finalMessage();
-        if (isAdd) {
+        if (twoPager && isAdd) {
+          try {
+            const parsed = JSON.parse(raw) as { insertAfter?: number };
+            send({ type: "meta", insertAfter: parsed.insertAfter });
+          } catch {
+            // truncated output — the client falls back to appending at the end
+          }
+        } else if (isAdd) {
           try {
             const parsed = JSON.parse(raw) as { insertAfter?: number; agenda?: string[] };
             send({ type: "meta", insertAfter: parsed.insertAfter, agenda: parsed.agenda });

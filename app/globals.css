@@ -317,12 +317,112 @@ body {
   background: #161616;
 }
 
+
+/* Two-pager pages: the same editor chrome, sized for a 793px stage instead of
+   a 1920px one. This is injected chrome, never part of the rendered markup. */
+.page-root .item-delete {
+  top: -10px;
+  right: -10px;
+  width: 22px;
+  height: 22px;
+  border-width: 2px;
+  font-size: 12px;
+}
+.page-root .item-add {
+  bottom: 10px;
+  padding: 4px 12px;
+  font-size: 12px;
+  border-width: 2px;
+}
+.page-root .logo-upload {
+  padding: 3px 8px;
+  font-size: 10px;
+}
+
+/* Photo slots: one upload action per image, because a page has several. */
+.slide-root .image-upload {
+  position: absolute;
+  left: 50%;
+  bottom: 6px;
+  transform: translateX(-50%);
+  padding: 3px 10px;
+  border-radius: 999px;
+  border: none;
+  background: rgba(22, 22, 22, 0.75);
+  color: #ffffff;
+  font-family: 'Manrope', system-ui, sans-serif;
+  font-weight: 700;
+  font-size: 11px;
+  line-height: 1;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s;
+  z-index: 6;
+}
+.slide-root [data-image]:hover + .image-upload,
+.slide-root .image-upload:hover {
+  opacity: 1;
+}
+
+/* Block selection and reordering on a page. */
+.page-root [data-block] {
+  outline: 1px solid transparent;
+  outline-offset: 3px;
+  transition: outline-color 0.15s;
+}
+.page-root [data-block]:hover {
+  outline-color: rgba(1, 174, 239, 0.35);
+}
+.page-root [data-block].block-on {
+  outline-color: rgba(1, 174, 239, 0.9);
+}
+.page-root .block-chrome {
+  position: absolute;
+  top: -12px;
+  right: 0;
+  display: flex;
+  gap: 2px;
+  opacity: 0;
+  transition: opacity 0.15s;
+  z-index: 7;
+}
+.page-root [data-block]:hover > .block-chrome {
+  opacity: 1;
+}
+.page-root .block-chrome button {
+  width: 20px;
+  height: 20px;
+  border-radius: 6px;
+  border: 1px solid #ffffff;
+  background: #161616;
+  color: #ffffff;
+  font-size: 11px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0;
+}
+.page-root .block-chrome button:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
 /* PDF export: print every slide full-size, one per page */
 #print-root {
   display: none;
 }
 @page {
   size: 1920px 1080px;
+  margin: 0;
+}
+/*
+ * A4 two-pagers print from a named page rule, so the two paper sizes coexist:
+ * two unnamed @page rules would silently overwrite each other. The size is
+ * written in the same units as the box (595pt 842pt, not the `A4` keyword) —
+ * any mismatch between paper and content produces a blank sheet after every
+ * real page.
+ */
+@page a4 {
+  size: 595pt 842pt;
   margin: 0;
 }
 @media print {
@@ -340,6 +440,15 @@ body {
     visibility: visible;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
+  }
+  .print-page {
+    page: a4;
+    width: 595pt;
+    height: 842pt;
+    position: relative;
+    overflow: hidden;
+    break-after: page;
+    break-inside: avoid;
   }
   .print-slide {
     width: 1920px;

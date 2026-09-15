@@ -1,5 +1,7 @@
 import type { ImagePos, Slide, SlideContent } from "./schema";
-import { ensureId, PRIMARY_ARRAY } from "./schema";
+import { ensureId, isPage, PRIMARY_ARRAY } from "./schema";
+import { MAX_BLOCKS_PER_PAGE, PAGE_BLOCK_LIMITS, type PageBlockType } from "./pages/schema";
+import { defaultBlock, newPageItem } from "./pages/presets";
 import { newItem, defaultContent } from "./defaults";
 import { tierDefaultGrid } from "./layouts/tables";
 import type { BrandId } from "./brand";
@@ -11,8 +13,19 @@ interface Snapshot {
 
 const HISTORY_LIMIT = 50;
 
+/**
+ * What the deck produces. "slides" is the 16:9 deck; "two-pager" is the A4
+ * print piece, available on the Digital Inclusion brand only. A deck is one or
+ * the other, decided while it is still empty.
+ */
+export type DeckFormat = "slides" | "two-pager";
+
+/** The only brand the two-pager template exists for. */
+export const TWO_PAGER_BRAND = "inclusion";
+
 export interface DeckState {
   brandId: BrandId;
+  format: DeckFormat;
   brief: string;
   count: number;
   /**
@@ -33,6 +46,7 @@ export interface DeckState {
 
 export const initialDeckState: DeckState = {
   brandId: "did",
+  format: "slides",
   brief: "",
   count: 8,
   chapters: false,
@@ -47,6 +61,7 @@ export const initialDeckState: DeckState = {
 export type DeckAction =
   | { type: "HYDRATE"; state: Partial<DeckState> }
   | { type: "SET_BRAND"; brandId: BrandId }
+  | { type: "SET_FORMAT"; format: DeckFormat }
   | { type: "SET_BRIEF"; brief: string }
   | { type: "SET_COUNT"; count: number }
   | { type: "SET_CHAPTERS"; chapters: boolean }
@@ -55,18 +70,21 @@ export type DeckAction =
   | { type: "REPLACE_SLIDE"; index: number; content: SlideContent }
   | { type: "GENERATION_DONE"; usage?: { inputTokens: number; outputTokens: number } }
   | { type: "INSERT_TIERS" }
-  | { type: "SET_IMAGE_POS"; index: number; pos: ImagePos }
+  | { type: "SET_IMAGE_POS"; index: number; pos: ImagePos; path?: string }
   | { type: "SET_LOGO_TONE"; id: string; tone: "light" | "dark" }
-  | { type: "SET_ICON"; index: number; block: number; icon: string }
+  | { type: "SET_ICON"; index: number; block: number; icon: string; path?: string }
   | { type: "INSERT_SLIDES"; at: number | null; contents: SlideContent[]; agenda?: string[] }
   | { type: "GENERATION_ERROR"; error: string }
   | { type: "EDIT_FIELD"; index: number; path: string; value: string }
   | { type: "DELETE_ITEM"; index: number; path: string }
-  | { type: "ADD_ITEM"; index: number }
+  | { type: "ADD_ITEM"; index: number; path?: string }
+  | { type: "ADD_BLOCK"; index: number; at: number; blockType: PageBlockType }
+  | { type: "DELETE_BLOCK"; index: number; block: number }
+  | { type: "MOVE_BLOCK"; index: number; from: number; to: number }
   | { type: "TOGGLE_CELL"; index: number; row: number; col: number }
   | { type: "SET_BARS"; index: number; bars: { label: string; value: number }[] }
   | { type: "SET_LOGO"; index: number; slug: string; dataUrl: string }
-  | { type: "SET_IMAGE"; index: number; dataUrl: string }
+  | { type: "SET_IMAGE"; index: number; dataUrl: string; path?: string }
   | { type: "SET_MAP"; index: number; slug: string | null }
   | { type: "MOVE"; from: number; to: number }
   | { type: "DUPLICATE"; index: number }
@@ -79,7 +97,7 @@ export type DeckAction =
   | { type: "CLEAR" };
 
 /** Set a dotted path ("blocks.2.body") inside a slide, immutably. */
-export function setPath(slide: Slide, path: string, value: string): Slide {
+export function setPath(slide: Slide, path: string, value: unknown): Slide {
   const keys = path.split(".");
   const clone: Slide = structuredClone(slide);
   let node: unknown = clone;
@@ -93,6 +111,16 @@ export function setPath(slide: Slide, path: string, value: string): Slide {
   if (Array.isArray(node)) node[Number(last)] = value;
   else (node as Record<string, unknown>)[last] = value;
   return clone;
+}
+
+/** Read a dotted path off a slide; the counterpart of setPath. */
+export function readPath(slide: Slide, path: string): unknown {
+  let node: unknown = slide;
+  for (const key of path.split(".")) {
+    if (node == null) return undefined;
+    node = Array.isArray(node) ? node[Number(key)] : (node as Record<string, unknown>)[key];
+  }
+  return node;
 }
 
 /** Push the current slides onto the undo stack (called before a mutation). */
@@ -152,7 +180,23 @@ function reduce(state: DeckState, action: DeckAction): DeckState {
         future: [],
       };
     case "SET_BRAND":
+      // A two-pager only exists on the Digital Inclusion brand. The guard is
+      // here rather than only in the sidebar so no other path can strand a
+      // cyan print piece on the Giga palette.
+      if (state.format === "two-pager" && action.brandId !== TWO_PAGER_BRAND) return state;
       return { ...state, brandId: action.brandId };
+    case "SET_FORMAT":
+      // Only while the deck is empty: the two formats do not mix, and the
+      // switch is a decision about the document, not a view toggle.
+      if (state.slides.length > 0 || state.format === action.format) return state;
+      return {
+        ...state,
+        format: action.format,
+        brandId: action.format === "two-pager" ? TWO_PAGER_BRAND : state.brandId,
+        // A two-pager is a two-pager: the name is the spec. The slide default
+        // (8) would ask the model for an eight-page brief.
+        count: action.format === "two-pager" ? 2 : initialDeckState.count,
+      };
     case "SET_BRIEF":
       return { ...state, brief: action.brief };
     case "SET_COUNT":
@@ -233,6 +277,21 @@ function reduce(state: DeckState, action: DeckAction): DeckState {
           };
         }
       }
+      // On a page the editable array belongs to a block, not to the slide.
+      if (isPage(slide)) {
+        const m = /^stack\.(\d+)\.items\.(\d+)$/.exec(action.path);
+        if (!m) return state;
+        const [b, i] = [Number(m[1]), Number(m[2])];
+        const block = slide.stack?.[b];
+        const limits = block && PAGE_BLOCK_LIMITS[block.type];
+        const arr = block?.items ?? [];
+        if (!limits || arr.length <= limits[0]) return state;
+        const clone = structuredClone(slide);
+        clone.stack![b].items!.splice(i, 1);
+        const slides = [...state.slides];
+        slides[action.index] = clone;
+        return { ...state, ...remember(state), slides };
+      }
       const spec = PRIMARY_ARRAY[slide.layoutId];
       if (!spec || spec.field !== field) return state;
       const arr = slide[spec.field];
@@ -259,14 +318,14 @@ function reduce(state: DeckState, action: DeckAction): DeckState {
     }
     case "SET_BARS": {
       const slide = state.slides[action.index];
-      if (!slide) return state;
+      if (!slide || isPage(slide)) return state;
       const slides = [...state.slides];
       slides[action.index] = { ...structuredClone(slide), bars: action.bars };
       return { ...state, ...remember(state), slides };
     }
     case "SET_LOGO": {
       const slide = state.slides[action.index];
-      if (!slide) return state;
+      if (!slide || isPage(slide)) return state;
       const clone = structuredClone(slide);
       clone.logos = { ...clone.logos, [action.slug]: action.dataUrl };
       const slides = [...state.slides];
@@ -279,6 +338,12 @@ function reduce(state: DeckState, action: DeckAction): DeckState {
     case "SET_IMAGE": {
       const slide = state.slides[action.index];
       if (!slide) return state;
+      // A page carries several images, each addressed by its own path.
+      if (action.path && action.path !== "image") {
+        const slides = [...state.slides];
+        slides[action.index] = setPath(slide, action.path, action.dataUrl);
+        return { ...state, ...remember(state), slides };
+      }
       const clone = structuredClone(slide);
       clone.image = action.dataUrl;
       delete clone.map;
@@ -288,7 +353,7 @@ function reduce(state: DeckState, action: DeckAction): DeckState {
     }
     case "SET_MAP": {
       const slide = state.slides[action.index];
-      if (!slide) return state;
+      if (!slide || isPage(slide)) return state;
       const clone = structuredClone(slide);
       if (action.slug === null) {
         delete clone.map;
@@ -305,12 +370,23 @@ function reduce(state: DeckState, action: DeckAction): DeckState {
       const slide = state.slides[action.index];
       if (!slide) return state;
       const slides = [...state.slides];
-      slides[action.index] = { ...slide, imagePos: action.pos };
+      // The reframe is reported against the image's path; its position lives
+      // in the sibling field ("…items.0.image" -> "…items.0.imagePos").
+      if (action.path && action.path !== "image") {
+        slides[action.index] = setPath(slide, action.path.replace(/image$/, "imagePos"), action.pos);
+      } else {
+        slides[action.index] = { ...slide, imagePos: action.pos };
+      }
       return { ...state, ...remember(state), slides };
     }
     case "SET_ICON": {
       const slide = state.slides[action.index];
       if (!slide) return state;
+      if (action.path) {
+        const slides = [...state.slides];
+        slides[action.index] = setPath(slide, action.path, action.icon);
+        return { ...state, ...remember(state), slides };
+      }
       const clone = structuredClone(slide);
       clone.icons ??= [];
       clone.icons[action.block] = action.icon;
@@ -342,7 +418,9 @@ function reduce(state: DeckState, action: DeckAction): DeckState {
     }
     case "INSERT_TIERS": {
       // Partnership decks get the two fixed partnership-tier slides, inserted
-      // before a closing thank-you. No-op if the deck already has them.
+      // before a closing thank-you. No-op if the deck already has them, and
+      // never on a two-pager: the tier tables are slide geometry.
+      if (state.format === "two-pager") return state;
       if (state.slides.some((s) => s.layoutId === "tiers-1" || s.layoutId === "tiers-2")) return state;
       const slides = [...state.slides];
       const at =
@@ -368,12 +446,65 @@ function reduce(state: DeckState, action: DeckAction): DeckState {
         slides.splice(at, 0, ensureId({ layoutId: "section-divider", title: "New chapter" }));
         return { ...state, ...remember(state), slides };
       }
+      if (isPage(slide)) {
+        const m = /^stack\.(\d+)$/.exec(action.path ?? "");
+        if (!m) return state;
+        const b = Number(m[1]);
+        const block = slide.stack?.[b];
+        const limits = block && PAGE_BLOCK_LIMITS[block.type];
+        if (!block || !limits) return state;
+        const items = block.items ?? [];
+        if (items.length >= limits[1]) return state;
+        const clone = structuredClone(slide);
+        (clone.stack![b].items ??= []).push(newPageItem(block.type));
+        const slides = [...state.slides];
+        slides[action.index] = clone;
+        return { ...state, ...remember(state), slides };
+      }
       const spec = PRIMARY_ARRAY[slide.layoutId];
       if (!spec) return state;
       const arr = (slide[spec.field] ?? []) as unknown[];
       if (arr.length >= spec.max) return state;
       const clone = structuredClone(slide);
       ((clone[spec.field] ??= [] as never) as unknown[]).push(newItem(spec.field));
+      const slides = [...state.slides];
+      slides[action.index] = clone;
+      return { ...state, ...remember(state), slides };
+    }
+    case "ADD_BLOCK": {
+      const slide = state.slides[action.index];
+      if (!slide || !isPage(slide)) return state;
+      const stack = slide.stack ?? [];
+      if (stack.length >= MAX_BLOCKS_PER_PAGE) return state;
+      const clone = structuredClone(slide);
+      const at = Math.max(0, Math.min(action.at, stack.length));
+      (clone.stack ??= []).splice(at, 0, defaultBlock(action.blockType));
+      const slides = [...state.slides];
+      slides[action.index] = clone;
+      return { ...state, ...remember(state), slides };
+    }
+    case "DELETE_BLOCK": {
+      const slide = state.slides[action.index];
+      if (!slide || !isPage(slide)) return state;
+      const stack = slide.stack ?? [];
+      // A page is never empty: deleting the last block would leave nothing to
+      // click on, and the page itself is what you delete instead.
+      if (stack.length <= 1) return state;
+      const clone = structuredClone(slide);
+      clone.stack!.splice(action.block, 1);
+      const slides = [...state.slides];
+      slides[action.index] = clone;
+      return { ...state, ...remember(state), slides };
+    }
+    case "MOVE_BLOCK": {
+      const slide = state.slides[action.index];
+      if (!slide || !isPage(slide)) return state;
+      const stack = slide.stack ?? [];
+      const { from, to } = action;
+      if (from === to || from < 0 || to < 0 || from >= stack.length || to >= stack.length) return state;
+      const clone = structuredClone(slide);
+      const [moved] = clone.stack!.splice(from, 1);
+      clone.stack!.splice(to, 0, moved);
       const slides = [...state.slides];
       slides[action.index] = clone;
       return { ...state, ...remember(state), slides };
@@ -404,7 +535,9 @@ function reduce(state: DeckState, action: DeckAction): DeckState {
       };
     }
     case "INSERT": {
-      const at = action.index ?? state.activeIndex + 1;
+      // Clamped: on an empty deck activeIndex + 1 is past the end, which used
+      // to leave the canvas blank with the filmstrip showing the new slide.
+      const at = Math.min(action.index ?? state.activeIndex + 1, state.slides.length);
       const slides = [...state.slides];
       slides.splice(at, 0, ensureId(action.content));
       return { ...state, ...remember(state), slides, activeIndex: at };
@@ -443,6 +576,7 @@ function reduce(state: DeckState, action: DeckAction): DeckState {
         ...initialDeckState,
         ...remember(state),
         brandId: state.brandId,
+        format: state.format,
         brief: state.brief,
         count: state.count,
         chapters: state.chapters,

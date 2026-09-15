@@ -2,13 +2,17 @@
 
 import { useEffect, useReducer, useRef, useState } from "react";
 import { BRANDS } from "@/lib/slides/brand";
-import { deckReducer, initialDeckState } from "@/lib/slides/state";
-import { normalizeSlide, PRIMARY_ARRAY, type LayoutId, type SlideContent } from "@/lib/slides/schema";
+import { deckReducer, initialDeckState, readPath } from "@/lib/slides/state";
+import { isPage, normalizeSlide, PRIMARY_ARRAY, type LayoutId, type SlideContent } from "@/lib/slides/schema";
 import { renderSlide, LAYOUTS } from "@/lib/slides/layouts";
+import { A4_PX } from "@/lib/slides/pages/a4";
+import { PAGE_BLOCK_LIMITS, type PageBlock } from "@/lib/slides/pages/schema";
 import { defaultContent } from "@/lib/slides/defaults";
+import { presetStack } from "@/lib/slides/pages/presets";
 import { clearSaved, openSession, saveDeck } from "@/lib/slides/storage";
 import { markSeen, seenOnboarding, type TourPhase } from "@/lib/slides/onboarding";
 import { exportHtmlDeck } from "@/lib/slides/export-html";
+import { exportPageDoc } from "@/lib/slides/export-page-html";
 import { parseDeckFile } from "@/lib/slides/deck-file";
 import { computeLogoTone, FULL_BLEED_TONE, RIGHT_PANEL_TONE, type ToneGeometry } from "@/lib/slides/logo-tone";
 import { ICON_LIBRARY, ICON_NAMES } from "@/lib/slides/icons";
@@ -16,6 +20,7 @@ import Sidebar from "@/components/Sidebar";
 import SlideFrame, { readImageFile } from "@/components/SlideFrame";
 import ChartDataPanel from "@/components/ChartDataPanel";
 import ImagePickerModal from "@/components/ImagePickerModal";
+import { mapSlotFor } from "@/lib/giga-maps/slot";
 import ThumbStrip from "@/components/ThumbStrip";
 import PrintRoot from "@/components/PrintRoot";
 import Tour, { type TourStep } from "@/components/Tour";
@@ -122,12 +127,16 @@ export default function Studio() {
   const [state, dispatch] = useReducer(deckReducer, initialDeckState);
   const [hydrated, setHydrated] = useState(false);
   const [dataPanelOpen, setDataPanelOpen] = useState(false);
+  /** Which block of a two-pager page the pill's actions apply to. */
+  const [focusedBlock, setFocusedBlock] = useState(0);
   /** Last session's deck, offered on the empty state. Never applied on its own. */
   const [previous, setPrevious] = useState<Partial<DeckState> | null>(null);
   /** The running tour: its steps, and the phases finishing it marks as seen. */
   const [tour, setTour] = useState<{ steps: TourStep[]; phases: TourPhase[] } | null>(null);
   const abortRef = useRef<AbortController | null>(null);
   const theme = BRANDS[state.brandId];
+  const twoPager = state.format === "two-pager";
+  const pageSize = twoPager ? A4_PX : { w: 1920, h: 1080 };
   const active = state.slides[state.activeIndex];
 
   // Open empty. The editor used to restore the last deck silently, which meant
@@ -223,6 +232,32 @@ export default function Studio() {
    * model occasionally emits an agenda or a divider anyway, and one stray
    * chapter slide is exactly what the user turned the toggle off to avoid.
    */
+  /**
+   * Give a rewritten page back the photos the old one carried. Matching is by
+   * block type and order, which is imperfect by nature — a rewrite that drops
+   * a photo block loses that photo — but it beats losing all of them.
+   */
+  function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent {
+    if (!old?.length || !content.stack?.length) return content;
+    const pool = old.filter((b) => b.image || b.items?.some((i) => i.image));
+    const used = new Set<number>();
+    const stack = content.stack.map((block) => {
+      const j = pool.findIndex((b, k) => !used.has(k) && b.type === block.type);
+      if (j < 0) return block;
+      used.add(j);
+      const from = pool[j];
+      return {
+        ...block,
+        ...(from.image ? { image: from.image, imagePos: from.imagePos } : {}),
+        items: block.items?.map((it, i) => {
+          const src = from.items?.[i];
+          return src?.image ? { ...it, image: src.image, imagePos: src.imagePos } : it;
+        }),
+      };
+    });
+    return { ...content, stack };
+  }
+
   async function runGeneration(
     body: Record<string, unknown>,
     opts: {
@@ -231,6 +266,13 @@ export default function Studio() {
       collectInsert?: boolean;
       preserve?: Partial<SlideContent>;
       dropChapters?: boolean;
+      /**
+       * The stack of the page being rewritten. Its photos cannot travel in
+       * `preserve` (they live inside blocks the model just replaced), so they
+       * are re-attached by position and block type: block i of the new stack
+       * takes the image of the first unused old block of the same type.
+       */
+      mergeImages?: PageBlock[];
     },
   ): Promise<number> {
     abortRef.current?.abort();
@@ -264,7 +306,16 @@ export default function Studio() {
           if (!line.trim()) continue;
           const event = JSON.parse(line);
           if (event.type === "slide") {
-            const content = normalizeSlide(event.slide);
+            // A two-pager streams pages, not slides: the model writes a block
+            // stack and the page shell is ours.
+            const raw = twoPager
+              ? {
+                  layoutId: "a4-page",
+                  stack: (event.slide as { blocks?: unknown[] }).blocks,
+                  footerLabel: (event.slide as { footerLabel?: string }).footerLabel ?? "",
+                }
+              : event.slide;
+            const content = normalizeSlide(raw);
             if (!content) continue;
             if (opts.dropChapters && CHAPTER_LAYOUTS.has(content.layoutId)) continue;
             if (opts.collectInsert) {
@@ -273,7 +324,7 @@ export default function Studio() {
               dispatch({
                 type: "REPLACE_SLIDE",
                 index: opts.targetIndex,
-                content: { ...content, ...opts.preserve },
+                content: { ...reattachImages(content, opts.mergeImages), ...opts.preserve },
               });
             } else {
               dispatch({ type: "APPEND_SLIDE", content });
@@ -311,7 +362,15 @@ export default function Studio() {
   const onGenerate = async () => {
     const brief = state.brief;
     const received = await runGeneration(
-      { mode: "generate", brief, brandLabel: theme.label, chapters: state.chapters },
+      {
+        mode: "generate",
+        brief,
+        brandLabel: theme.label,
+        chapters: state.chapters,
+        format: state.format,
+        // A two-pager is a fixed-length piece, so the count is the user's.
+        ...(twoPager ? { count: state.count } : {}),
+      },
       { replace: true, dropChapters: !state.chapters },
     );
     // The two fixed partnership-tier slides are added only when the brief
@@ -329,6 +388,27 @@ export default function Studio() {
   const lightSlide = ({ id: _id, image: _im, imagePos: _ip, logoTone: _lt, logos: _lg, grid: _gr, map: _mp, ...content }: (typeof state.slides)[number]) =>
     content;
 
+  /**
+   * The same job for a page, one level down: its images live inside the block
+   * stack, so a shallow strip would still put every photo's data URL into the
+   * prompt.
+   */
+  const lightPage = (slide: (typeof state.slides)[number]): SlideContent => {
+    const content = structuredClone(lightSlide(slide));
+    for (const block of content.stack ?? []) {
+      delete block.image;
+      delete block.imagePos;
+      for (const it of block.items ?? []) {
+        delete it.image;
+        delete it.imagePos;
+        delete it.icon;
+      }
+    }
+    return content;
+  };
+  const light = (slide: (typeof state.slides)[number]) =>
+    isPage(slide) ? lightPage(slide) : lightSlide(slide);
+
   const onAddMore = (instruction: string, count: number) =>
     runGeneration(
       {
@@ -338,7 +418,8 @@ export default function Studio() {
         count,
         brandLabel: theme.label,
         chapters: state.chapters,
-        existingSlides: state.slides.map(lightSlide),
+        format: state.format,
+        existingSlides: state.slides.map(light),
       },
       { replace: false, collectInsert: true, dropChapters: !state.chapters },
     );
@@ -350,14 +431,18 @@ export default function Studio() {
         mode: "regenerate",
         brief: state.brief,
         brandLabel: theme.label,
-        targetSlide: lightSlide(active),
+        targetSlide: light(active),
         instruction,
+        format: state.format,
       },
       {
         replace: false,
         targetIndex: state.activeIndex,
         // uploaded assets survive the AI rewrite
-        preserve: { image: active.image, imagePos: active.imagePos, logos: active.logos, grid: active.grid, icons: active.icons, map: active.map },
+        preserve: isPage(active)
+          ? { footerLabel: active.footerLabel }
+          : { image: active.image, imagePos: active.imagePos, logos: active.logos, grid: active.grid, icons: active.icons, map: active.map },
+        mergeImages: isPage(active) ? active.stack : undefined,
       },
     );
   };
@@ -367,19 +452,40 @@ export default function Studio() {
     onDeckArrived();
   };
 
-  const canAddItem =
-    !!active &&
-    !!PRIMARY_ARRAY[active.layoutId] &&
-    ((active[PRIMARY_ARRAY[active.layoutId]!.field] as unknown[] | undefined)?.length ?? 0) <
-      PRIMARY_ARRAY[active.layoutId]!.max;
-  const onAddItem = () => dispatch({ type: "ADD_ITEM", index: state.activeIndex });
+  // On a page the editable array belongs to the block you are working in, so
+  // "Add element" needs to know which one that is.
+  const activePage = active && isPage(active) ? active : null;
+  const stack = activePage?.stack ?? [];
+  const block = stack[Math.min(focusedBlock, stack.length - 1)];
+  const blockLimits = block ? PAGE_BLOCK_LIMITS[block.type] : null;
+  const canAddItem = activePage
+    ? !!blockLimits && (block?.items?.length ?? 0) < blockLimits[1]
+    : !!active &&
+      !!PRIMARY_ARRAY[active.layoutId] &&
+      ((active[PRIMARY_ARRAY[active.layoutId]!.field] as unknown[] | undefined)?.length ?? 0) <
+        PRIMARY_ARRAY[active.layoutId]!.max;
+  const onAddItem = () =>
+    dispatch(
+      activePage
+        ? { type: "ADD_ITEM", index: state.activeIndex, path: `stack.${focusedBlock}` }
+        : { type: "ADD_ITEM", index: state.activeIndex },
+    );
 
   const isChart = active?.layoutId === "chart-bars" || active?.layoutId === "donut-chart";
-  const activeHtml = active ? renderSlide(active, theme) : "";
+  const activeHtml = active
+    ? renderSlide(active, theme, { index: state.activeIndex, total: state.slides.length })
+    : "";
   const hasImage = activeHtml.includes("data-image");
 
   const onExportHtml = () => {
-    exportHtmlDeck(state, theme, state.slides[0]?.title ?? "giga-deck").catch((err) =>
+    // A two-pager is a printed piece: its HTML file is the pages stacked down
+    // the screen, not the fullscreen deck runner. Both carry the same state
+    // payload, which is what makes the file the save file.
+    const name = twoPager
+      ? (active?.footerLabel || theme.footerLabel)
+      : (state.slides[0]?.title ?? "giga-deck");
+    const run = twoPager ? exportPageDoc : exportHtmlDeck;
+    run(state, theme, name).catch((err) =>
       dispatch({ type: "GENERATION_ERROR", error: `Export failed: ${err.message}` }),
     );
   };
@@ -463,8 +569,12 @@ export default function Studio() {
   };
 
   // Icon picker: block index of the active slide's icon being changed
-  const [iconPicker, setIconPicker] = useState<number | null>(null);
-  const [imagePicker, setImagePicker] = useState(false);
+  // The icon picker is keyed by whatever [data-icon-pick] carried: a block
+  // index on a slide, a state path on a two-pager page.
+  const [iconPicker, setIconPicker] = useState<string | null>(null);
+  // The image picker knows which slot it was opened for: a page has several.
+  const [imagePicker, setImagePicker] = useState<string | null>(null);
+  const pendingImagePath = useRef<string>("image");
   const slideImageInputRef = useRef<HTMLInputElement>(null);
 
   return (
@@ -505,22 +615,31 @@ export default function Studio() {
             animated with a transform, and a transformed ancestor becomes the
             containing block for position:fixed, which pinned the modal to the
             pill instead of the viewport. */}
-        {imagePicker && active && (
+        {imagePicker != null && active && (
           <ImagePickerModal
             current={active.map}
+            slot={mapSlotFor(active.layoutId, imagePicker)}
             onUpload={() => {
-              setImagePicker(false);
+              pendingImagePath.current = imagePicker;
+              setImagePicker(null);
               slideImageInputRef.current?.click();
             }}
             onPickMap={(slug) => {
               dispatch({ type: "SET_MAP", index: state.activeIndex, slug });
-              setImagePicker(false);
+              setImagePicker(null);
+            }}
+            onPickGenerated={(dataUrl) => {
+              // A generated map is an image, not a map slug: it was rendered at
+              // the slot's own size, so cover-fit shows it whole and the user
+              // can still reframe it like a photo.
+              dispatch({ type: "SET_IMAGE", index: state.activeIndex, dataUrl, path: imagePicker });
+              setImagePicker(null);
             }}
             onClearMap={() => {
               dispatch({ type: "SET_MAP", index: state.activeIndex, slug: null });
-              setImagePicker(false);
+              setImagePicker(null);
             }}
-            onClose={() => setImagePicker(false)}
+            onClose={() => setImagePicker(null)}
           />
         )}
         <input
@@ -537,6 +656,7 @@ export default function Studio() {
                 type: "SET_IMAGE",
                 index: state.activeIndex,
                 dataUrl: await readImageFile(file),
+                path: pendingImagePath.current,
               });
             } catch {
               // unreadable file — ignore
@@ -564,6 +684,7 @@ export default function Studio() {
               onExportPdf={() => window.print()}
               onExportHtml={onExportHtml}
               onOpenDeckFile={openDeckFilePicker}
+              twoPager={twoPager}
             />
             {dataPanelOpen && active && isChart && (
               <ChartDataPanel
@@ -588,22 +709,46 @@ export default function Studio() {
                     onToggleCell={(row, col) =>
                       dispatch({ type: "TOGGLE_CELL", index: state.activeIndex, row, col })
                     }
-                    onPickIcon={(block) => setIconPicker(block)}
+                    onPickIcon={(target) => setIconPicker(target)}
+                    size={pageSize}
+                    variant={twoPager ? "page" : "slide"}
+                    onPickImage={twoPager ? (path) => setImagePicker(path) : null}
+                    onFocusBlock={twoPager ? setFocusedBlock : null}
+                    focusedBlock={twoPager ? focusedBlock : null}
+                    onMoveBlock={
+                      twoPager
+                        ? (from, to) => dispatch({ type: "MOVE_BLOCK", index: state.activeIndex, from, to })
+                        : null
+                    }
+                    onDeleteBlock={
+                      twoPager
+                        ? (b) => dispatch({ type: "DELETE_BLOCK", index: state.activeIndex, block: b })
+                        : null
+                    }
                     onUploadLogo={(slug, dataUrl) =>
                       dispatch({ type: "SET_LOGO", index: state.activeIndex, slug, dataUrl })
                     }
                     onImagePos={
                       hasImage
-                        ? (pos) => dispatch({ type: "SET_IMAGE_POS", index: state.activeIndex, pos })
+                        ? (pos, path) =>
+                            dispatch({ type: "SET_IMAGE_POS", index: state.activeIndex, pos, path })
                         : null
                     }
                     className="h-full w-full rounded-xl shadow-stripe-lg"
                   />
                   {iconPicker != null && (
                     <IconPickerModal
-                      current={active.icons?.[iconPicker]}
+                      current={
+                        /^\d+$/.test(iconPicker)
+                          ? active.icons?.[Number(iconPicker)]
+                          : (readPath(active, iconPicker) as string | undefined)
+                      }
                       onPick={(icon) => {
-                        dispatch({ type: "SET_ICON", index: state.activeIndex, block: iconPicker, icon });
+                        dispatch(
+                          /^\d+$/.test(iconPicker)
+                            ? { type: "SET_ICON", index: state.activeIndex, block: Number(iconPicker), icon }
+                            : { type: "SET_ICON", index: state.activeIndex, block: 0, icon, path: iconPicker },
+                        );
                         setIconPicker(null);
                       }}
                       onClose={() => setIconPicker(null)}
@@ -618,7 +763,7 @@ export default function Studio() {
                     onAddItem={onAddItem}
                     onEditData={() => setDataPanelOpen((v) => !v)}
                     canChangeImage={hasImage}
-                    onChangeImage={() => setImagePicker(true)}
+                    onChangeImage={() => setImagePicker("image")}
                     onDuplicate={() => dispatch({ type: "DUPLICATE", index: state.activeIndex })}
                     onDelete={() => dispatch({ type: "DELETE", index: state.activeIndex })}
                   />
@@ -636,6 +781,15 @@ export default function Studio() {
           activeIndex={state.activeIndex}
           dispatch={dispatch}
           onInsertLayout={onInsertLayout}
+          twoPager={twoPager}
+          onInsertPage={(presetId) => {
+            dispatch({
+              type: "INSERT",
+              content: { layoutId: "a4-page", stack: presetStack(presetId), footerLabel: "" },
+            });
+            setFocusedBlock(0);
+            onDeckArrived();
+          }}
         />
       </div>
 
@@ -824,6 +978,7 @@ function Toolbar({
   onExportPdf,
   onExportHtml,
   onOpenDeckFile,
+  twoPager = false,
 }: {
   index: number;
   total: number;
@@ -835,6 +990,7 @@ function Toolbar({
   onExportPdf: () => void;
   onExportHtml: () => void;
   onOpenDeckFile: () => void;
+  twoPager?: boolean;
 }) {
   const [exportOpen, setExportOpen] = useState(false);
   useEffect(() => {
@@ -908,7 +1064,9 @@ function Toolbar({
                 className="block w-full rounded-lg px-3 py-2 text-left text-xs font-semibold text-ink transition-colors duration-100 hover:bg-giga-tint"
               >
                 PDF
-                <span className="mt-0.5 block font-normal text-ink-muted">Print-ready, one page per slide</span>
+                <span className="mt-0.5 block font-normal text-ink-muted">
+                  {twoPager ? "Print-ready, one A4 page each" : "Print-ready, one page per slide"}
+                </span>
               </button>
               <button
                 onClick={() => {
@@ -917,9 +1075,11 @@ function Toolbar({
                 }}
                 className="block w-full rounded-lg px-3 py-2 text-left text-xs font-semibold text-ink transition-colors duration-100 hover:bg-giga-tint"
               >
-                HTML deck
+                {twoPager ? "HTML file" : "HTML deck"}
                 <span className="mt-0.5 block font-normal text-ink-muted">
-                  Standalone file, reopen it here to keep editing
+                  {twoPager
+                    ? "The save file: reopen it here to keep editing"
+                    : "Standalone file, reopen it here to keep editing"}
                 </span>
               </button>
               {/* PPTX export is parked: item stays visible but disabled */}

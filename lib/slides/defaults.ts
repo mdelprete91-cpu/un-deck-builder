@@ -1,4 +1,5 @@
 import type { ArrayField, LayoutId, SlideContent } from "./schema";
+import { presetStack } from "./pages/presets";
 import { DEFAULT_CHANNELS } from "./schema";
 import { PARTNER_NAMES } from "./partners";
 
@@ -189,5 +190,9 @@ export function defaultContent(layoutId: LayoutId): SlideContent {
     case "tiers-1":
     case "tiers-2":
       return { layoutId, title: "Partnership tiers" };
+    // A two-pager page is inserted through the preset picker, which passes the
+    // stack it built; this is the bare fallback for any other caller.
+    case "a4-page":
+      return { layoutId, stack: presetStack("blank"), footerLabel: "" };
   }
 }

@@ -1,12 +1,16 @@
 import { CATALOG } from "./catalog";
+import { PAGE_CATALOG } from "./page-catalog";
 import { AI_LAYOUT_IDS, type SlideContent } from "./schema";
+import { AI_BLOCK_TYPES } from "./pages/schema";
+import type { DeckFormat } from "./state";
 import { PARTNER_NAMES } from "./partners";
 
 /**
  * System prompt: layout catalog + brand voice. Kept tight — prompt size
  * drives latency and cost on every generation.
  */
-export function buildSystemPrompt(): string {
+export function buildSystemPrompt(format: DeckFormat = "slides"): string {
+  if (format === "two-pager") return buildPagePrompt();
   const catalogLines = CATALOG.map((c) => `- ${c.id}: ${c.usage}. Fields: ${c.fields}`).join("\n");
   return `You are the slide planner for the Giga deck builder. Giga is the UNICEF-ITU initiative connecting every school in the world to the internet. You turn a brief into a slide deck by picking layouts from a fixed template library and writing the text that fills them. You never design slides — you only choose layoutIds from the catalog and fill their fields.
 
@@ -26,8 +30,39 @@ RULES:
 - Every slide object includes every field of the output schema. Set fields the chosen layout does not use to "" (strings) or [] (arrays) — never invent content for them.`;
 }
 
+/**
+ * The two-pager planner. Same contract as the slide one: the model picks
+ * blocks from an approved catalog and writes the text, and never touches
+ * geometry. The one thing it has to keep track of that a slide planner does
+ * not is how full the sheet is, since a page is a fixed A4 box.
+ */
+function buildPagePrompt(): string {
+  const catalogLines = PAGE_CATALOG.map(
+    (c) => `- ${c.type} (weight ${c.weight}): ${c.usage}. Fields: ${c.fields}`,
+  ).join("\n");
+  return `You are the page planner for the UNICEF Digital Inclusion two-pager: a printed A4 brief, not a slide deck. You turn a brief into pages by stacking blocks from a fixed, approved catalog and writing the text that fills them. You never design a page — you only choose block types and fill their fields.
+
+BLOCK CATALOG (type: when to use. fields with hard word limits):
+${catalogLines}
+
+RULES:
+- A page is a vertical stack of blocks, in reading order. Output pages in reading order.
+- THE PAGE IS A FIXED SHEET. The weights of the blocks on one page must add up to 100 or less. Text that does not fit is cut off, so keep well inside the limit rather than at it.
+- The first page starts with a "title" block, which also brings the masthead. Later pages do NOT start with a title.
+- Use "rail-prose" for most content: its rail label is what gives a printed page its structure. Every rail label on a page must be different.
+- A page carries 3 to 6 blocks. Never two blocks of the same type in a row, except "rail-prose".
+- Put "contacts" (preceded by "divider") only at the end of the last page, and only if the brief names people. Never invent a name or an address.
+- Respect every word limit strictly. Numbers do the talking: prefer concrete figures over adjectives.
+- Voice: plain, declarative, infrastructural, public-good. Sentence case everywhere (never Title Case in body text). Banned words: leveraging, synergies, cutting-edge, revolutionary, empower, unlock.
+- Write in the same language as the brief.
+- Only state facts given in the brief or well-known Giga facts (2.2M+ schools mapped, 146 countries, giga.global). Never invent statistics, names, or emails.
+- Every page carries "footerLabel": the piece's name, <=5 words, identical on every page.
+- Every block object includes every field of the output schema. Set fields the chosen block does not use to "" or [] — never invent content for them.`;
+}
+
 interface GenerateBody {
   mode: "generate" | "add" | "regenerate";
+  format?: DeckFormat;
   brief: string;
   count?: number;
   brandLabel?: string;
@@ -47,6 +82,7 @@ const NO_CHAPTERS =
   '\n- This deck has NO chapters: never use the "agenda" or "section-divider" layouts. Carry the structure with the content slides themselves and let each one stand on its own.';
 
 export function buildUserMessage(body: GenerateBody): string {
+  if (body.format === "two-pager") return buildPageUserMessage(body);
   const brand = body.brandLabel ? ` The deck is branded "${body.brandLabel}".` : "";
   const noChapters = body.chapters === false ? NO_CHAPTERS : "";
   switch (body.mode) {
@@ -58,6 +94,19 @@ export function buildUserMessage(body: GenerateBody): string {
       return `Current slide (JSON): ${JSON.stringify(body.targetSlide)}\n\nDeck brief: ${body.brief}${brand}\n\nRewrite this single slide.${body.instruction ? ` Instruction: ${body.instruction}` : " Improve the copy."} You may switch to a more appropriate layout if the instruction calls for it. Return exactly one slide.`;
     default:
       return `Brief: ${body.brief}${brand}\n\nCreate the deck that best tells this story. Choose the number of slides yourself (typically 8-14); if the brief asks for a specific count, honor it exactly.${noChapters}`;
+  }
+}
+
+function buildPageUserMessage(body: GenerateBody): string {
+  switch (body.mode) {
+    case "add": {
+      const n = body.count ?? 1;
+      return `Existing pages (JSON): ${JSON.stringify(body.existingSlides ?? [])}\n\nBrief: ${body.brief}\n\nRequest: ${body.instruction?.trim() || "continue the piece"}\n\nAdd exactly ${n} new page${n === 1 ? "" : "s"} fulfilling the request. Return ONLY the new pages, never repeat an existing one, and do not start them with a "title" block.\n- Set "insertAfter" to the 1-based index of the existing page the new ones belong after (0 = before the first).`;
+    }
+    case "regenerate":
+      return `Current page (JSON): ${JSON.stringify(body.targetSlide)}\n\nBrief: ${body.brief}\n\nRewrite this single page.${body.instruction ? ` Instruction: ${body.instruction}` : " Improve the copy."} Keep the same kind of blocks unless the instruction asks otherwise, and return exactly one page.`;
+    default:
+      return `Brief: ${body.brief}\n\nWrite the two-pager that tells this story in ${body.count ?? 2} page${(body.count ?? 2) === 1 ? "" : "s"}. The first page opens with a title block.`;
   }
 }
 
@@ -161,6 +210,77 @@ export const ADD_OUTPUT_SCHEMA = {
     slides: SLIDES_OUTPUT_SCHEMA.properties.slides,
   },
   required: ["insertAfter", "agenda", "slides"],
+  additionalProperties: false,
+} as const;
+
+/**
+ * Output schema for two-pager pages. Same philosophy as the slide one: one
+ * flat block object, every field required, an enum for the type and no
+ * `oneOf` — a discriminated union per block type is exactly the grammar that
+ * returns "Schema is too complex" on Haiku.
+ */
+export const PAGES_OUTPUT_SCHEMA = {
+  type: "object",
+  properties: {
+    pages: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          // The running footer is the piece's name and is the same on every
+          // page. It sits on the page rather than beside `pages` so it is set
+          // as each page streams in, instead of arriving after the last one.
+          footerLabel: { type: "string" },
+          blocks: {
+            type: "array",
+            items: {
+              type: "object",
+              properties: {
+                type: { type: "string", enum: [...AI_BLOCK_TYPES] },
+                rail: { type: "string" },
+                heading: { type: "string" },
+                sub: { type: "string" },
+                lead: { type: "string" },
+                body: { type: "string" },
+                accent: { type: "integer" },
+                tag: { type: "string" },
+                items: {
+                  type: "array",
+                  items: {
+                    type: "object",
+                    properties: {
+                      kind: { type: "string", enum: ["para", "bullet", "number"] },
+                      label: { type: "string" },
+                      body: { type: "string" },
+                      extra: { type: "string" },
+                    },
+                    required: ["kind", "label", "body", "extra"],
+                    additionalProperties: false,
+                  },
+                },
+              },
+              required: ["type", "rail", "heading", "sub", "lead", "body", "accent", "tag", "items"],
+              additionalProperties: false,
+            },
+          },
+        },
+        required: ["footerLabel", "blocks"],
+        additionalProperties: false,
+      },
+    },
+  },
+  required: ["pages"],
+  additionalProperties: false,
+} as const;
+
+/** "add" mode for pages: the new pages plus where they go. */
+export const ADD_PAGES_OUTPUT_SCHEMA = {
+  type: "object",
+  properties: {
+    insertAfter: { type: "integer" },
+    pages: PAGES_OUTPUT_SCHEMA.properties.pages,
+  },
+  required: ["insertAfter", "pages"],
   additionalProperties: false,
 } as const;
 

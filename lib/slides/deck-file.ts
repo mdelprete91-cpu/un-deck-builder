@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { isBrandId } from "./brand";
 import { isCountryMap } from "./country-maps";
-import { ensureId, normalizeSlide } from "./schema";
+import { ensureId, isPage, normalizeSlide } from "./schema";
 import type { Slide, SlideContent } from "./schema";
 import type { DeckState } from "./state";
 
@@ -15,7 +15,11 @@ import type { DeckState } from "./state";
  * different trust model (we wrote it, this tab, seconds ago). Do not merge them.
  */
 
-export const DECK_FILE_VERSION = 1;
+/**
+ * 2 added `deck.format` (slides or two-pager). Files written by version 1 have
+ * no such field and read as "slides"; only a *newer* version is an error.
+ */
+export const DECK_FILE_VERSION = 2;
 const FORMAT = "giga-deck";
 
 const OPEN = `<script id="giga-deck-state" type="application/json">`;
@@ -37,6 +41,9 @@ const envelopeSchema = z.object({
   version: z.number(),
   deck: z.object({
     brandId: z.unknown().optional(),
+    // Not the envelope's `format` above (which names the file type): this is
+    // what the deck produces, slides or A4 two-pager pages.
+    format: z.unknown().optional(),
     brief: z.string().optional(),
     count: z.number().optional(),
     chapters: z.boolean().optional(),
@@ -62,6 +69,7 @@ export function deckStateScript(state: DeckState): string {
     exportedAt: new Date().toISOString(),
     deck: {
       brandId: state.brandId,
+      format: state.format,
       brief: state.brief,
       count: state.count,
       chapters: state.chapters,
@@ -79,6 +87,15 @@ export function deckStateScript(state: DeckState): string {
 /** Drop an asset field that did not come from an upload, keeping the slide. */
 function safeAssets(slide: SlideContent): void {
   if (slide.image !== undefined && !SAFE_ASSET.test(slide.image)) delete slide.image;
+  // A two-pager page holds its images inside the block stack, so the same
+  // check has to walk it: miss this and a hand-edited file has a clear path
+  // into an `img src` that SlideFrame injects with innerHTML.
+  for (const block of slide.stack ?? []) {
+    if (block.image !== undefined && !SAFE_ASSET.test(block.image)) delete block.image;
+    for (const it of block.items ?? []) {
+      if (it.image !== undefined && !SAFE_ASSET.test(it.image)) delete it.image;
+    }
+  }
   // A map is a slug we resolve to a path we own, so it only has to be one we
   // actually ship: a file from an older build can name a country we dropped.
   if (slide.map !== undefined && !isCountryMap(slide.map)) delete slide.map;
@@ -164,6 +181,11 @@ export function parseDeckFile(html: string): DeckFileResult {
   };
   // An unknown brand leaves the current one alone rather than picking for the user.
   if (isBrandId(raw.brandId)) state.brandId = raw.brandId;
+  // The slides are the content, so they decide the format: a v1 file has no
+  // `format` at all, and a file whose envelope disagrees with what it carries
+  // is trusted about the pages, not about the label.
+  state.format = slides.some((s) => isPage(s)) ? "two-pager" : "slides";
+  if (state.format === "two-pager") state.brandId = "inclusion";
 
   return { ok: true, state, dropped };
 }

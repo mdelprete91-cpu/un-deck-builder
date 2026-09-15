@@ -33,6 +33,12 @@ Do not change these without asking Mario first. They are decisions, not defaults
    (`deep` is the same cyan as `accent`), the tinted surface (`light`) is plain white, Section +
    image is a white slide, and the template's green quote slide is cyan here too. Chart series are
    tints of the same cyan, never a second hue.
+
+   **On paper this rule has one documented exception.** The approved A4 boards use a small print
+   palette on top of the cyan: `#D14807` for status and attention, its peach border `#E8B8A2` and
+   10% tint, panel grey `#EFF2F5`, hairline `#E6E6E6`. It lives in `PALETTE` in
+   `lib/slides/pages/a4.ts` and deliberately **not** on `BrandTheme`, so no slide renderer can
+   reach it. Anything beyond that list is still a question for Mario.
 3. **No black.** No solid black or near-black background anywhere, in the chrome or on a slide.
    This is why `section-image-dark` was retired. Dark surfaces are Giga blue, not black.
 4. **One accent.** Giga Blue `#277AFF` and its tints, or `#01AEEF` and its tints on the Digital
@@ -170,6 +176,81 @@ drop an image). `seenOnboarding`/`markSeen` in `lib/slides/onboarding.ts` gate b
 - Errors are translated to plain language for the user, including the 529 overloaded case. Keep that
   behavior when touching the route.
 
+## Two-pagers
+
+A deck is one of two formats, carried on `DeckState.format`: `slides` (16:9) or `two-pager`, the
+A4 portrait print piece. The switch appears in the sidebar on **UNICEF Digital Inclusion only**,
+and only while the deck is empty — the formats do not mix, and `SET_FORMAT` enforces that in the
+reducer rather than only in the UI.
+
+**A page is a slide.** It lives in `state.slides` with `layoutId: "a4-page"` and its content in
+`stack: PageBlock[]`. That is what makes reorder, duplicate, delete, undo, redo, autosave and the
+deck file work on pages with no changes at all. `isPage()` is the guard; the slide-only actions
+(`SET_MAP`, `SET_BARS`, `TOGGLE_CELL`, `SET_LOGO`, `INSERT_TIERS`) no-op on one.
+
+**A page is a stack of blocks, not a layout.** The fourteen block types in
+`lib/slides/pages/schema.ts` come from the ten signed-off A4 boards, and so do the grid and the
+type scale in `pages/a4.ts`. "Add page" offers presets — a starting composition, not a fixed
+layout — and blocks can then be added, removed and reordered inside the page.
+
+**The page renderer works in points, 1:1 with Figma** (`595pt x 842pt` = A4), so printing needs no
+scale factor anywhere. Two consequences that fail silently if you forget them:
+
+- **`data-fit` budgets stay in px.** `autofit.ts` reads `getComputedStyle().fontSize` and
+  `scrollHeight`, which are px whatever unit the markup uses. A budget left in pt is a third too
+  generous, so the text overlaps instead of shrinking. Use `edP()` / `fitAttr()`; never write a
+  `data-fit` literal.
+- **Line-heights are unitless.** Autofit only remembers a line-height it can parse as px, so a pt
+  one stays put while the font shrinks underneath it.
+
+**`data-item` and `data-fit` must never sit on the same node.** The ✕ is injected *inside* the
+`[data-item]` element and hangs past its right edge, which makes `scrollWidth` exceed
+`clientWidth` — and that is exactly what autofit reads as overflow. It shrank whole paragraphs to
+the 40% floor before this was understood. Blocks emit a separate empty `hit()` span for the ✕.
+
+**Block heights are estimated, not measured.** A renderer is a pure string function, so
+`lineCount()` guesses how many lines a string takes from the average glyph advance measured over
+the boards' own text (0.457em for Open Sans), deliberately erring long. Autofit is the backstop
+when the guess is short.
+
+**A page that overruns is clipped, on purpose.** The stacker sums block heights and marks the
+section `data-page-overflow` when it passes the content zone; nothing reflows onto a page the user
+did not ask for. The generation-side guard is the `weight` in `page-catalog.ts` and the prompt rule
+that a page's weights sum to 100 or less — the print twin of the fit-budget/word-limit pairing, and
+it has to be re-checked whenever a block's geometry changes.
+
+**Printing uses a named `@page` rule.** `@page a4` sits beside the unnamed slide rule, and
+`PrintRoot` picks `.print-page` for a page. Two unnamed rules would silently overwrite each other,
+and the size must be written in the same units as the box (`595pt 842pt`, not the `A4` keyword) or
+Chrome emits a blank sheet after every real page.
+
+**Images and icons are addressed by path.** A page holds several of each, so `SET_IMAGE`,
+`SET_IMAGE_POS` and `SET_ICON` take a `path` and write through `setPath`; `framedImage()` now
+carries its path in `data-image`. Every photo slot also gets its own upload button, because the
+toolbar action can only ever mean one of them.
+
+**The slides decide the format.** `storage.read` and `parseDeckFile` both derive it from the
+content rather than trusting the stored field, so a session or a file saved before the field
+existed still opens as a two-pager. `format` is *not* hydrated as a setting: it belongs to the
+document, and hydrating it would open an empty editor in two-pager mode.
+
+**The HTML file is a scrolling A4 document**, not the fullscreen deck runner
+(`export-page-html.ts`), and it carries the identical `deckStateScript` payload — it is still the
+save file. PPTX stays parked.
+
+### Adding or changing a block
+
+1. `lib/slides/pages/schema.ts`: the type in `PAGE_BLOCK_TYPES`, and an entry in
+   `PAGE_BLOCK_LIMITS` if it has a repeating array.
+2. `lib/slides/page-catalog.ts`: usage line, field spec with hard word limits, and a `weight`.
+   A compile-time check enforces that every AI-selectable block has an entry.
+3. `lib/slides/pages/blocks.ts`: the renderer, geometry from the boards, `edP()` / `fitAttr()` /
+   `hit()` / `esc()`, inline styles only, and it must return its own height.
+4. `SPACE_BEFORE` in the same file, and `BOXED` if it is a framed block.
+5. `lib/slides/pages/presets.ts`: a default, and a preset if it starts a page.
+6. Check the block at its `PAGE_BLOCK_LIMITS` minimum and maximum with text at the catalog limit,
+   and check a page of them still fits inside 842pt.
+
 ## Adding or changing a layout
 
 Touch all of these, in this order:
@@ -226,6 +307,31 @@ the list, and `isCountryMap` guards it against a deck file naming a country we n
   upscales and never crops a dot away.
 - The model does not choose maps: the user picks one from the picker behind the "Image" action. It
   is stripped from what the model sees (`lightSlide`) and restored via `preserve` on regenerate.
+
+**Live maps** (`components/LiveMapPanel.tsx`, `lib/giga-maps/`) are the newer path and the default
+behind the "Maps" card; the 54 screenshots stay as a fallback link. The map is rendered in the
+browser with MapLibre from the public Giga Maps vector tiles (schools, health centers, or both;
+dark or light basemap; no place names, no roads, only national borders) and inserted through
+`SET_IMAGE` as a JPEG data URL, exactly like an uploaded photo. Things that follow from that:
+
+- **A live map is an `image`, not a `map`.** It is rendered at the pixel size of the layout's slot
+  (`lib/giga-maps/slot.ts`, geometry from the `framedImage` / `photoPanel` calls), so cover-fit shows
+  it whole and `imagePos` still works. Nothing new in the schema, the deck file or `storage.ts`.
+- **It costs what a photo costs** in localStorage: 1720x572 JPEG at q0.85, usually 100 to 250 KB.
+  The same quota caveat as uploads applies.
+- **Tiles go through `app/api/giga-maps/tiles`** because the Giga backend sends no CORS headers; the
+  route sends no `Accept` header on purpose (the backend answers 406 otherwise). `countries` proxies
+  the v2 country list with school and health center counts.
+- **maplibre-gl stays on 5.x.** 6.x resolves its worker through `import.meta.url`, which never
+  loads under Next, and the map silently stays empty.
+- **The preview renders on its own** whenever country, facilities or style change (250 ms debounce,
+  a token discards superseded renders). MapLibre draws on `requestAnimationFrame`, which browsers
+  pause in background tabs, so a render started in a hidden tab completes when the tab is visible
+  again; the modal is on screen while this runs, so in practice it is never noticed.
+- **While the map is rendering the preview is a canvas-colored skeleton**, not a dark slab: the
+  near-black basemap is slide content and only appears once the image exists.
+- Only the Gambia has health centers in the backend as of September 2026; the panel says so per
+  country instead of showing an empty map without explanation.
 
 ## The deck file
 

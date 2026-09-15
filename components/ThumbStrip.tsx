@@ -5,6 +5,8 @@ import { AI_LAYOUT_IDS, MANUAL_LAYOUT_IDS, type LayoutId, type Slide } from "@/l
 import type { BrandTheme } from "@/lib/slides/brand";
 import { renderSlide, LAYOUTS } from "@/lib/slides/layouts";
 import { defaultContent } from "@/lib/slides/defaults";
+import { A4_PX } from "@/lib/slides/pages/a4";
+import { PAGE_PRESETS, presetStack } from "@/lib/slides/pages/presets";
 import SlideFrame from "./SlideFrame";
 import type { DeckAction } from "@/lib/slides/state";
 
@@ -83,15 +85,101 @@ function LayoutPickerModal({
   );
 }
 
+/**
+ * "Add page" for two-pagers: the presets, rendered live. A preset is a
+ * starting composition, not a layout — every block in it can be moved,
+ * removed or added to afterwards.
+ */
+function PagePresetModal({
+  theme,
+  onPick,
+  onClose,
+}: {
+  theme: BrandTheme;
+  onPick: (presetId: string) => void;
+  onClose: () => void;
+}) {
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
+
+  const previews = useMemo(
+    () =>
+      PAGE_PRESETS.map((preset) => ({
+        id: preset.id,
+        label: preset.label,
+        html: renderSlide(
+          { id: `preview-${preset.id}`, layoutId: "a4-page", stack: presetStack(preset.id) },
+          theme,
+          { index: 0, total: 1 },
+        ),
+      })),
+    [theme],
+  );
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-8" onClick={onClose}>
+      <div className="absolute inset-0 bg-ink/45" />
+      <div
+        className="pop-in relative flex max-h-[85vh] w-full max-w-5xl flex-col rounded-2xl bg-white shadow-float"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between border-b border-hairline px-6 py-4">
+          <div>
+            <h2 className="font-manrope text-lg font-bold text-ink">Add a page</h2>
+            <p className="text-xs text-ink-muted">
+              Pick a starting composition. You can add, remove and reorder blocks afterwards.
+            </p>
+          </div>
+          <button
+            onClick={onClose}
+            title="Close (Esc)"
+            className="flex h-9 w-9 items-center justify-center rounded-full text-ink-muted transition-colors duration-150 hover:bg-giga-tint hover:text-ink"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+              <path d="M18 6 6 18M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+        <div className="grid flex-1 grid-cols-4 gap-4 overflow-y-auto p-6">
+          {previews.map(({ id, label, html }) => (
+            <button key={id} onClick={() => onPick(id)} className="group text-left">
+              <div className="pointer-events-none overflow-hidden rounded-lg border-2 border-hairline transition-colors duration-150 group-hover:border-giga">
+                <SlideFrame html={html} size={A4_PX} className="aspect-[595/842] w-full" />
+              </div>
+              <div className="mt-1.5 text-[11px] font-semibold text-ink group-hover:text-giga">{label}</div>
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 interface ThumbStripProps {
   slides: Slide[];
   theme: BrandTheme;
   activeIndex: number;
   dispatch: (action: DeckAction) => void;
   onInsertLayout: (layoutId: LayoutId) => void;
+  /** Two-pager decks add pages from presets and are A4-shaped. */
+  twoPager?: boolean;
+  onInsertPage?: (presetId: string) => void;
 }
 
-export default function ThumbStrip({ slides, theme, activeIndex, dispatch, onInsertLayout }: ThumbStripProps) {
+export default function ThumbStrip({
+  slides,
+  theme,
+  activeIndex,
+  dispatch,
+  onInsertLayout,
+  twoPager = false,
+  onInsertPage,
+}: ThumbStripProps) {
   const [layoutsOpen, setLayoutsOpen] = useState(false);
   const [dragIndex, setDragIndex] = useState<number | null>(null);
   /** Insertion point: "insert before slide index j" (0..slides.length). */
@@ -164,7 +252,11 @@ export default function ThumbStrip({ slides, theme, activeIndex, dispatch, onIns
           onClick={() => dispatch({ type: "SET_ACTIVE", index: i })}
         >
           <div className="pointer-events-none">
-            <SlideFrame html={renderSlide(slide, theme)} className="aspect-video w-full" />
+            <SlideFrame
+              html={renderSlide(slide, theme, { index: i, total: slides.length })}
+              size={twoPager ? A4_PX : undefined}
+              className={`${twoPager ? "aspect-[595/842]" : "aspect-video"} w-full`}
+            />
           </div>
           <div className="absolute left-1 top-1 rounded-md bg-white/90 px-1.5 py-0.5 text-[10px] font-semibold text-ink shadow-stripe">
             {i + 1} · {LAYOUTS[slide.layoutId]?.label ?? slide.layoutId}
@@ -193,8 +285,8 @@ export default function ThumbStrip({ slides, theme, activeIndex, dispatch, onIns
       {/* New-slide tile: opens the layout picker modal */}
       <button
         onClick={() => setLayoutsOpen(true)}
-        title="Insert a slide layout"
-        className={`flex aspect-video w-full shrink-0 items-center justify-center rounded-lg border-2 border-dashed text-giga transition-all duration-150 ${
+        title={twoPager ? "Add a page" : "Insert a slide layout"}
+        className={`flex ${twoPager ? "aspect-[595/842]" : "aspect-video"} w-full shrink-0 items-center justify-center rounded-lg border-2 border-dashed text-giga transition-all duration-150 ${
           layoutsOpen
             ? "border-giga bg-giga/15"
             : "border-giga/50 bg-giga/5 hover:border-giga hover:bg-giga/15 hover:shadow-stripe"
@@ -205,7 +297,17 @@ export default function ThumbStrip({ slides, theme, activeIndex, dispatch, onIns
         </svg>
       </button>
 
-      {layoutsOpen && (
+      {layoutsOpen && twoPager && (
+        <PagePresetModal
+          theme={theme}
+          onPick={(id) => {
+            onInsertPage?.(id);
+            setLayoutsOpen(false);
+          }}
+          onClose={() => setLayoutsOpen(false)}
+        />
+      )}
+      {layoutsOpen && !twoPager && (
         <LayoutPickerModal
           theme={theme}
           onPick={(id) => {

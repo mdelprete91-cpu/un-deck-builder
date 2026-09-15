@@ -93,6 +93,39 @@ const DECK_JS = `
   fit();show(i);
 })();`;
 
+/** Fonts as data URIs: shared with the A4 document export. */
+export async function inlineFontCss(): Promise<string> {
+  const [manropeLatin, manropeExt, openSansLatin, openSansExt] = await Promise.all(
+    FONT_FILES.map(toDataUri),
+  );
+  return (
+    fontFace("Manrope", "200 800", manropeExt, LATIN_EXT) +
+    fontFace("Manrope", "200 800", manropeLatin, LATIN) +
+    fontFace("Open Sans", "300 800", openSansExt, LATIN_EXT) +
+    fontFace("Open Sans", "300 800", openSansLatin, LATIN)
+  );
+}
+
+/**
+ * Replace every app-relative `src` in rendered markup with a data URI, so the
+ * file works with no network. Never run this over the state payload: it
+ * rewrites any `src="/…"` it finds, including one a user typed into a title.
+ */
+export async function inlineAssets(body: string): Promise<string> {
+  let out = body;
+  const assetPaths = new Set<string>();
+  for (const match of out.matchAll(/src="(\/[^"]+)"/g)) assetPaths.add(match[1]);
+  for (const path of assetPaths) {
+    try {
+      const uri = await toDataUri(path);
+      out = out.split(`src="${path}"`).join(`src="${uri}"`);
+    } catch {
+      // missing asset — the markup's onerror fallback shows the text instead
+    }
+  }
+  return out;
+}
+
 export async function exportHtmlDeck(
   state: DeckState,
   theme: BrandTheme,
