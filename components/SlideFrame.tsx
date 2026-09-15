@@ -416,7 +416,12 @@ export default function SlideFrame({
     // container is first measured — re-wire once the real size lands.
   }, [html, editable, onAddItem, box.w, size.w, focusedBlock]);
 
-  const scale = Math.min(box.w / size.w, box.h / size.h);
+  // Fit, then overscan by two source pixels: a fractional container width
+  // otherwise leaves a sub-pixel sliver of the container showing along one
+  // edge, which reads as a white hairline on a colored slide. The overflow
+  // clip hides the extra pixel on each side.
+  const fit = Math.min(box.w / size.w, box.h / size.h);
+  const scale = fit > 0 ? fit + 2 / size.w : 0;
 
   return (
     <div ref={containerRef} className={`relative overflow-hidden ${className ?? ""}`}>

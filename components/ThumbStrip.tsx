@@ -14,24 +14,21 @@ const PICKER_LAYOUT_IDS = [...AI_LAYOUT_IDS, ...MANUAL_LAYOUT_IDS];
 
 /**
  * The picker modal, in the register of ChatGPT's "Add from library": the
- * title and the close button on one row, a borderless search under them, a
- * hairline, then a three-column grid of rounded cards. Both pickers (slide
+ * title and the close button on one row, a hairline, then a three-column grid
+ * of rounded cards with no captions (the name is the tooltip). Both pickers (slide
  * layouts, A4 page presets) are this one component with different items.
  */
 function PickerModal({
   title,
-  searchPlaceholder,
   items,
   onPick,
   onClose,
 }: {
   title: string;
-  searchPlaceholder: string;
   items: { id: string; label: string; html: string; size?: { w: number; h: number }; aspect: string }[];
   onPick: (id: string) => void;
   onClose: () => void;
 }) {
-  const [query, setQuery] = useState("");
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
@@ -39,8 +36,6 @@ function PickerModal({
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
-  const q = query.trim().toLowerCase();
-  const shown = q ? items.filter((i) => i.label.toLowerCase().includes(q)) : items;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-8" onClick={onClose}>
@@ -49,39 +44,36 @@ function PickerModal({
         className="pop-in relative flex max-h-[85vh] w-full max-w-4xl flex-col rounded-3xl bg-white shadow-float"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="border-b border-hairline-light px-7 pt-6">
-          <div className="flex items-center justify-between">
-            <h2 className="text-xl font-medium text-ink">{title}</h2>
-            <button
-              onClick={onClose}
-              title="Close (Esc)"
-              className="-mr-2 flex h-9 w-9 items-center justify-center rounded-full text-ink transition-colors duration-150 hover:bg-mist"
-            >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                <path d="M18 6 6 18M6 6l12 12" />
-              </svg>
-            </button>
-          </div>
-          <input
-            autoFocus
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder={searchPlaceholder}
-            className="block h-14 w-full bg-transparent text-base text-ink outline-none placeholder:text-ink-faint"
-          />
+        <div className="flex items-center justify-between border-b border-hairline-light px-7 py-5">
+          <h2 className="text-xl font-medium text-ink">{title}</h2>
+          <button
+            onClick={onClose}
+            title="Close (Esc)"
+            className="-mr-2 flex h-9 w-9 items-center justify-center rounded-full text-ink transition-colors duration-150 hover:bg-mist"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+              <path d="M18 6 6 18M6 6l12 12" />
+            </svg>
+          </button>
         </div>
+        {/* The preview is the whole card: no caption, the name is the tooltip. */}
         <div className="grid flex-1 grid-cols-3 gap-6 overflow-y-auto p-7">
-          {shown.map(({ id, label, html, size, aspect }) => (
-            <button key={id} onClick={() => onPick(id)} className="group text-left">
-              <div className="pointer-events-none overflow-hidden rounded-2xl border border-hairline-light shadow-stripe transition-[box-shadow,border-color] duration-150 group-hover:border-hairline group-hover:shadow-float">
+          {items.map(({ id, label, html, size, aspect }) => (
+            <button
+              key={id}
+              onClick={() => onPick(id)}
+              title={label}
+              aria-label={label}
+              className="group block w-full rounded-2xl text-left transition-transform duration-150 active:scale-[0.99] focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-giga/30"
+            >
+              {/* A <button> is not a block container: a percentage-width child
+                  shrinks to fit and aspect-ratio has nothing to work from, so
+                  the preview sits in a plain div. */}
+              <div className="pointer-events-none overflow-hidden rounded-2xl shadow-stripe transition-shadow duration-150 group-hover:shadow-float">
                 <SlideFrame html={html} size={size} className={`${aspect} w-full`} />
               </div>
-              <div className="mt-2 text-[13px] text-ink-muted transition-colors duration-150 group-hover:text-ink">{label}</div>
             </button>
           ))}
-          {shown.length === 0 && (
-            <p className="col-span-3 py-10 text-center text-sm text-ink-muted">No layout matches “{query}”.</p>
-          )}
         </div>
       </div>
     </div>
@@ -110,7 +102,6 @@ function LayoutPickerModal({
   return (
     <PickerModal
       title="Add a slide"
-      searchPlaceholder="Search layouts"
       items={items}
       onPick={(id) => onPick(id as LayoutId)}
       onClose={onClose}
@@ -150,7 +141,6 @@ function PagePresetModal({
   return (
     <PickerModal
       title="Add a page"
-      searchPlaceholder="Search page presets"
       items={items}
       onPick={onPick}
       onClose={onClose}
@@ -242,7 +232,7 @@ export default function ThumbStrip({
             e.stopPropagation();
             handleDrop();
           }}
-          className={`group relative shrink-0 cursor-grab overflow-hidden rounded-lg border-2 transition-colors duration-150 active:cursor-grabbing ${
+          className={`group relative shrink-0 cursor-grab overflow-hidden rounded-lg border transition-colors duration-150 active:cursor-grabbing ${
             i === activeIndex ? "border-ink" : "border-hairline hover:border-ink/30"
           } ${dragIndex === i ? "opacity-40" : ""} ${
             dropAt === i ? "border-t-4 !border-t-giga" : ""
@@ -284,7 +274,7 @@ export default function ThumbStrip({
       <button
         onClick={() => setLayoutsOpen(true)}
         title={twoPager ? "Add a page" : "Insert a slide layout"}
-        className={`flex ${twoPager ? "aspect-[595/842]" : "aspect-video"} w-full shrink-0 items-center justify-center rounded-lg border-2 border-dashed text-ink-muted transition-colors duration-150 ${
+        className={`flex ${twoPager ? "aspect-[595/842]" : "aspect-video"} w-full shrink-0 items-center justify-center rounded-lg border border-dashed text-ink-muted transition-colors duration-150 ${
           layoutsOpen
             ? "border-ink/30 bg-mist text-ink"
             : "border-hairline hover:border-ink/30 hover:bg-mist hover:text-ink"
