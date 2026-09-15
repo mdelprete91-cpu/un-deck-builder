@@ -116,10 +116,11 @@ export default function SlideFrame({
   useLayoutEffect(() => {
     const el = containerRef.current;
     if (!el) return;
-    const update = () => {
-      const rect = el.getBoundingClientRect();
-      setBox({ w: rect.width, h: rect.height });
-    };
+    // Layout size, not getBoundingClientRect: an ancestor mid-transform (the
+    // picker's pop-in starts at scale 0.98) shrinks the rect but not the
+    // layout, and ResizeObserver never fires for a transform, so the slide
+    // stayed at 98% with a white strip on two sides.
+    const update = () => setBox({ w: el.offsetWidth, h: el.offsetHeight });
     update();
     const ro = new ResizeObserver(update);
     ro.observe(el);
