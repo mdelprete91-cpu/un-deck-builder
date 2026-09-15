@@ -172,9 +172,10 @@ export default function PromptBox({
                   : "text-ink-muted hover:bg-mist hover:text-ink"
               }`}
             >
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M8 6h13M8 12h13M8 18h13" />
-                <path d="M3 6h.01M3 12h.01M3 18h.01" />
+              {/* The glyph is the state: a ticked circle on, an empty one off. */}
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                <circle cx="12" cy="12" r="9" />
+                {chapters && <path d="m8.5 12.5 2.5 2.5 5-5" />}
               </svg>
               Chapters
             </button>
