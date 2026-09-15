@@ -1,6 +1,6 @@
 "use client";
 
-import { ChartColumn, ChevronDown, Copy, Image as ImageIcon, LoaderCircle, Plus, Redo2, Sparkles, Trash2, Undo2, Upload, X } from "lucide-react";
+import { ChartColumn, ChevronDown, Copy, Image as ImageIcon, LoaderCircle, Plus, Redo2, Trash2, Undo2, Upload, X } from "lucide-react";
 import { useEffect, useReducer, useRef, useState } from "react";
 import { BRANDS } from "@/lib/slides/brand";
 import { deckReducer, initialDeckState, readPath } from "@/lib/slides/state";
@@ -1191,7 +1191,6 @@ function SlideActions({
           </div>
         ) : aiOpen ? (
           <>
-            <Sparkles size={16} className="ml-2.5 shrink-0" aria-hidden />
             <input
               autoFocus
               value={instruction}
@@ -1217,7 +1216,6 @@ function SlideActions({
         ) : (
           <>
             <button onClick={() => setAiOpen(true)} disabled={busy} className={`${action} text-giga hover:bg-mist`}>
-              <Sparkles size={16} aria-hidden />
               Edit with AI
             </button>
             <span className="h-5 w-px bg-hairline" />
