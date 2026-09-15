@@ -270,19 +270,19 @@ export default function ThumbStrip({
         </div>
       ))}
 
-      {/* New-slide tile: opens the layout picker modal */}
+      {/* The add action is a real button, not a ghost tile: on the grey rail a
+          dashed outline all but disappeared. Same secondary pill as Upload. */}
       <button
         onClick={() => setLayoutsOpen(true)}
         title={twoPager ? "Add a page" : "Insert a slide layout"}
-        className={`flex ${twoPager ? "aspect-[595/842]" : "aspect-video"} w-full shrink-0 items-center justify-center rounded-lg border border-dashed text-ink-muted transition-colors duration-150 ${
-          layoutsOpen
-            ? "border-ink/30 bg-mist text-ink"
-            : "border-hairline hover:border-ink/30 hover:bg-mist hover:text-ink"
+        className={`flex h-9 w-full shrink-0 items-center justify-center gap-1.5 rounded-full border border-hairline bg-white text-sm font-medium text-ink transition-colors duration-150 hover:bg-mist focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-giga/15 ${
+          layoutsOpen ? "bg-mist" : ""
         }`}
       >
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" aria-hidden>
           <path d="M12 5v14M5 12h14" />
         </svg>
+        {twoPager ? "Add page" : "Add slide"}
       </button>
 
       {layoutsOpen && twoPager && (
