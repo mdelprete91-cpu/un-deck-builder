@@ -253,16 +253,15 @@ export function chartBars(s: Slide, t: BrandTheme): string {
 /** Donut chart with legend, 2–5 segments (template 13). */
 export function donutChart(s: Slide, t: BrandTheme): string {
   const segments = (s.bars ?? []).slice(0, 5);
-  const shades = chartShades(t, segments.length);
+  // One hue per segment where the brand has a categorical series; tints of
+  // the accent otherwise. Segments meet edge to edge, no white gaps.
+  const shades = t.chartSeries ?? chartShades(t, segments.length);
   const total = segments.reduce((sum, seg) => sum + numeric(seg.value), 0) || 1;
-  const GAP = 3;
   let angle = 0;
   const stops: string[] = [];
   segments.forEach((seg, i) => {
-    const sweep = (numeric(seg.value) / total) * 360;
-    const end = angle + sweep;
-    stops.push(`${shades[i % shades.length]} ${angle.toFixed(1)}deg ${Math.max(angle, end - GAP).toFixed(1)}deg`);
-    stops.push(`#FFFFFF ${Math.max(angle, end - GAP).toFixed(1)}deg ${end.toFixed(1)}deg`);
+    const end = angle + (numeric(seg.value) / total) * 360;
+    stops.push(`${shades[i % shades.length]} ${angle.toFixed(1)}deg ${end.toFixed(1)}deg`);
     angle = end;
   });
   const legend = segments

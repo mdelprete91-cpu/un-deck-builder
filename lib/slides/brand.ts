@@ -15,6 +15,12 @@ export interface BrandTheme {
   panelLightStroke: string;
   /** Bar chart shades, darkest→lightest */
   barShades: [string, string, string, string, string];
+  /**
+   * Categorical series for the donut, one hue per segment. Absent, the donut
+   * falls back to `barShades`. On the UNICEF brands it is the qualitative
+   * scheme of the UNICEF Brand Book (Mario, 15 Sep 2026).
+   */
+  chartSeries?: string[];
   /** Quote slide: the template's green surface, and the author line on it */
   quoteBg: string;
   quoteAuthor: string;
@@ -90,6 +96,8 @@ const CYAN_PALETTE = {
   panelLightStroke: UNICEF_CYAN,
   // Charts still need separable values: tints of the same cyan, no second hue.
   barShades: [UNICEF_CYAN, "#39C0F3", "#67CEF5", "#94DDF8", "#C0EBFB"],
+  // UNICEF Brand Book secondary colours, in the order the segments get them.
+  chartSeries: [UNICEF_CYAN, "#0058AB", "#80BD41", "#F26A21", "#FFC20E", "#6A1E74"],
   // The template's green quote surface is a colored surface too, so here it is
   // cyan like every other one; the author line goes dimmed white on it.
   quoteBg: UNICEF_CYAN,

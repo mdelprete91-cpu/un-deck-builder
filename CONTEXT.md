@@ -32,8 +32,9 @@ Do not change these without asking Mario first. They are decisions, not defaults
 2. **The two Digital sub-brands are two-surface brands.** Every colored surface is exactly UNICEF
    cyan `#01AEEF`; anything that is not that cyan is white. So there is no second darker blue
    (`deep` is the same cyan as `accent`), the tinted surface (`light`) is plain white, Section +
-   image is a white slide, and the template's green quote slide is cyan here too. Chart series are
-   tints of the same cyan, never a second hue.
+   image is a white slide, and the template's green quote slide is cyan here too. Bar chart series
+   are tints of the same cyan. The one multi-hue element is the donut, which uses the UNICEF Brand
+   Book's secondary colours (`chartSeries` in `brand.ts`, Mario's call, 15 Sep 2026).
 
    **On paper this rule has one documented exception.** The approved A4 boards use a small print
    palette on top of the cyan: `#D14807` for status and attention, its peach border `#E8B8A2` and
