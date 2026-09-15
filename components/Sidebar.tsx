@@ -111,7 +111,6 @@ export default function Sidebar({
           the dividers: an agenda without chapters is a broken state, not an
           option. */}
       <div>
-        <Eyebrow>Prompt</Eyebrow>
         <PromptBox
           brief={state.brief}
           onBrief={(brief) => dispatch({ type: "SET_BRIEF", brief })}
