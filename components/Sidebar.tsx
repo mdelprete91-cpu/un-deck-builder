@@ -1,6 +1,6 @@
 "use client";
 
-import { CircleHelp, Plus, Trash2 } from "lucide-react";
+import { CircleHelp, Plus } from "lucide-react";
 import { useState } from "react";
 import { BRANDS, PICKER_BRAND_IDS, type BrandId } from "@/lib/slides/brand";
 import type { DeckState, DeckAction } from "@/lib/slides/state";
@@ -219,17 +219,6 @@ export default function Sidebar({
         <Button variant="ghost" icon={CircleHelp} onClick={onHowItWorks}>
           How it works
         </Button>
-        {hasSlides && (
-          <Button
-            variant="danger"
-            icon={Trash2}
-            onClick={() => {
-              if (confirm("Delete the current deck?")) dispatch({ type: "CLEAR" });
-            }}
-          >
-            Delete deck
-          </Button>
-        )}
         {(state.usage.inputTokens > 0 || state.usage.outputTokens > 0) && (
           <p className="text-center text-[10px] text-ink-muted/80">
             Session: {state.usage.inputTokens.toLocaleString()} in ·{" "}

@@ -743,6 +743,9 @@ export default function Studio() {
               onExportPdf={() => window.print()}
               onExportHtml={onExportHtml}
               onOpenDeckFile={openDeckFilePicker}
+              onDeleteDeck={() => {
+                if (confirm("Delete the current deck?")) dispatch({ type: "CLEAR" });
+              }}
               twoPager={twoPager}
             />
             {dataPanelOpen && active && isChart && (
@@ -1019,6 +1022,7 @@ function EmptyState({
 }
 
 function Toolbar({
+  onDeleteDeck,
   canUndo,
   canRedo,
   onUndo,
@@ -1035,6 +1039,8 @@ function Toolbar({
   onExportPdf: () => void;
   onExportHtml: () => void;
   onOpenDeckFile: () => void;
+  /** Clears the deck; the menu asks first. It lives here, with the other deck-level actions. */
+  onDeleteDeck: () => void;
   twoPager?: boolean;
 }) {
   const [exportOpen, setExportOpen] = useState(false);
@@ -1108,6 +1114,17 @@ function Toolbar({
               >
                 PowerPoint
                 <span className="block text-xs text-ink-muted">Not available at the moment</span>
+              </button>
+              <div className="my-1.5 border-t border-hairline-light" />
+              <button
+                onClick={() => {
+                  setExportOpen(false);
+                  onDeleteDeck();
+                }}
+                className="block w-full rounded-[10px] px-2.5 py-1.5 text-left text-sm text-status-red transition-colors duration-100 hover:bg-status-red-bg"
+              >
+                Delete deck
+                <span className="block text-xs text-ink-muted">Clears every slide on screen</span>
               </button>
             </div>
           </>
