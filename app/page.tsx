@@ -1084,7 +1084,7 @@ function Toolbar({
   // Undo and redo are one pair: same pill, same stroke. Disabled only changes
   // the ink, not the shape, so the two never look like different controls.
   const iconBtn =
-    "flex h-8 w-8 items-center justify-center rounded-full border border-hairline bg-white text-ink transition-colors duration-150 hover:bg-mist disabled:pointer-events-none disabled:border-hairline-light disabled:text-ink-faint";
+    "flex h-8 items-center gap-1.5 rounded-full border border-hairline bg-white px-3 text-[13px] text-ink transition-colors duration-150 hover:bg-mist disabled:pointer-events-none disabled:border-hairline-light disabled:text-ink-faint";
   return (
     <div className="flex items-center gap-3 border-b border-hairline bg-white px-6 py-2.5">
       <span className="rounded-full bg-mist px-2.5 py-0.5 text-[13px] text-ink-muted">
@@ -1096,12 +1096,14 @@ function Toolbar({
             <path d="M9 14 4 9l5-5" />
             <path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11" />
           </svg>
+          Undo
         </button>
         <button onClick={onRedo} disabled={!canRedo} title="Redo (Cmd+Shift+Z)" className={iconBtn}>
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="m15 14 5-5-5-5" />
             <path d="M20 9H9.5a5.5 5.5 0 0 0 0 11H13" />
           </svg>
+          Redo
         </button>
       </div>
       <div className="ml-auto flex shrink-0 items-center gap-2" data-tour="download">
