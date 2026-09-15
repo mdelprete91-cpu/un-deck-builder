@@ -20,6 +20,7 @@ import Sidebar from "@/components/Sidebar";
 import SlideFrame, { readImageFile } from "@/components/SlideFrame";
 import ChartDataPanel from "@/components/ChartDataPanel";
 import ImagePickerModal from "@/components/ImagePickerModal";
+import { mapSlotFor } from "@/lib/giga-maps/slot";
 import ThumbStrip from "@/components/ThumbStrip";
 import PrintRoot from "@/components/PrintRoot";
 import Tour, { type TourStep } from "@/components/Tour";
@@ -617,6 +618,7 @@ export default function Studio() {
         {imagePicker != null && active && (
           <ImagePickerModal
             current={active.map}
+            slot={mapSlotFor(active.layoutId, imagePicker)}
             onUpload={() => {
               pendingImagePath.current = imagePicker;
               setImagePicker(null);
@@ -624,6 +626,13 @@ export default function Studio() {
             }}
             onPickMap={(slug) => {
               dispatch({ type: "SET_MAP", index: state.activeIndex, slug });
+              setImagePicker(null);
+            }}
+            onPickGenerated={(dataUrl) => {
+              // A generated map is an image, not a map slug: it was rendered at
+              // the slot's own size, so cover-fit shows it whole and the user
+              // can still reframe it like a photo.
+              dispatch({ type: "SET_IMAGE", index: state.activeIndex, dataUrl, path: imagePicker });
               setImagePicker(null);
             }}
             onClearMap={() => {

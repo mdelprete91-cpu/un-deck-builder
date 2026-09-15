@@ -308,6 +308,27 @@ the list, and `isCountryMap` guards it against a deck file naming a country we n
 - The model does not choose maps: the user picks one from the picker behind the "Image" action. It
   is stripped from what the model sees (`lightSlide`) and restored via `preserve` on regenerate.
 
+**Live maps** (`components/LiveMapPanel.tsx`, `lib/giga-maps/`) are the newer path and the default
+behind the "Maps" card; the 54 screenshots stay as a fallback link. The map is rendered in the
+browser with MapLibre from the public Giga Maps vector tiles (schools, health centers, or both;
+dark or light basemap; no place names, no roads, only national borders) and inserted through
+`SET_IMAGE` as a JPEG data URL, exactly like an uploaded photo. Things that follow from that:
+
+- **A live map is an `image`, not a `map`.** It is rendered at the pixel size of the layout's slot
+  (`lib/giga-maps/slot.ts`, geometry from the `framedImage` / `photoPanel` calls), so cover-fit shows
+  it whole and `imagePos` still works. Nothing new in the schema, the deck file or `storage.ts`.
+- **It costs what a photo costs** in localStorage: 1720x572 JPEG at q0.85, usually 100 to 250 KB.
+  The same quota caveat as uploads applies.
+- **Tiles go through `app/api/giga-maps/tiles`** because the Giga backend sends no CORS headers; the
+  route sends no `Accept` header on purpose (the backend answers 406 otherwise). `countries` proxies
+  the v2 country list with school and health center counts.
+- **maplibre-gl stays on 5.x.** 6.x resolves its worker through `import.meta.url`, which never
+  loads under Next, and the map silently stays empty.
+- **Rendering needs a visible tab.** MapLibre draws on `requestAnimationFrame`, which browsers pause
+  in background tabs, so generation is an explicit "Render map" button, never automatic on open.
+- Only the Gambia has health centers in the backend as of September 2026; the panel says so per
+  country instead of showing an empty map without explanation.
+
 ## The deck file
 
 There is no server and no account, so the exported HTML doubles as the save file: `lib/slides/deck-file.ts`
