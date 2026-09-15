@@ -724,6 +724,9 @@ export default function Studio() {
           <EmptyState
             generating={state.status === "generating"}
             onOpenDeckFile={openDeckFilePicker}
+            onWriteBrief={() =>
+              document.querySelector<HTMLTextAreaElement>('[data-tour="prompt"] textarea')?.focus()
+            }
             previous={previous}
             onRestorePrevious={onRestorePrevious}
             onDismissPrevious={onDismissPrevious}
@@ -941,12 +944,15 @@ function IconPickerModal({
 function EmptyState({
   generating,
   onOpenDeckFile,
+  onWriteBrief,
   previous,
   onRestorePrevious,
   onDismissPrevious,
 }: {
   generating: boolean;
   onOpenDeckFile: () => void;
+  /** Puts the caret in the prompt box: the primary action lives in the sidebar. */
+  onWriteBrief: () => void;
   previous: Partial<DeckState> | null;
   onRestorePrevious: () => void;
   onDismissPrevious: () => void;
@@ -965,22 +971,48 @@ function EmptyState({
         </>
       ) : (
         <>
-          <h1 className="text-2xl font-medium text-ink">
-            What deck are we making?
-          </h1>
-          <p className="max-w-xs text-center text-sm leading-relaxed text-ink-muted">
-            Describe the story in the prompt box. Slides appear here as they are written.
+          {/* Three ghost slides: what this space is for, before it has anything
+              in it. Pure chrome, nothing from the template. */}
+          <div aria-hidden className="relative mb-2 h-[88px] w-[200px]">
+            {[
+              "left-0 top-3 -rotate-6",
+              "left-1/2 top-0 -translate-x-1/2 z-10",
+              "right-0 top-3 rotate-6",
+            ].map((pos) => (
+              <div
+                key={pos}
+                className={`absolute aspect-video w-[120px] rounded-lg border border-hairline bg-white p-2.5 shadow-stripe ${pos}`}
+              >
+                <div className="h-2 w-2/3 rounded-full bg-mist-deep" />
+                <div className="mt-2 h-1.5 w-full rounded-full bg-canvas-2" />
+                <div className="mt-1 h-1.5 w-5/6 rounded-full bg-canvas-2" />
+              </div>
+            ))}
+          </div>
+          <h1 className="text-2xl font-medium text-ink">What deck are we making?</h1>
+          <p className="max-w-sm text-center text-sm leading-relaxed text-ink-muted">
+            Describe the story in the prompt box on the left. The slides appear here one by one,
+            ready to edit.
           </p>
-          <p className="max-w-xs text-center text-sm leading-relaxed text-ink-muted">
-            Already have a deck?{" "}
+          <div className="mt-2 flex items-center gap-2">
+            <button
+              onClick={onWriteBrief}
+              className="flex h-10 items-center gap-1.5 rounded-full bg-giga px-5 text-sm font-medium text-white transition-all duration-150 hover:bg-giga-deep active:scale-[0.98]"
+            >
+              Write the brief
+            </button>
             <button
               onClick={onOpenDeckFile}
-              className="font-medium text-giga underline-offset-2 transition-colors duration-150 hover:underline"
+              className="flex h-10 items-center gap-1.5 rounded-full border border-hairline bg-white px-4 text-sm font-medium text-ink transition-colors duration-150 hover:bg-mist"
             >
-              Open the HTML file you exported
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 16V4M8 8l4-4 4 4" />
+                <path d="M4 16v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" />
+              </svg>
+              Open a deck
             </button>
-            , or drop it here.
-          </p>
+          </div>
+          <p className="text-xs text-ink-faint">You can also drop an HTML deck you downloaded anywhere here.</p>
           {/* The editor no longer restores the last deck on its own, so the
               deck is offered here instead of appearing under the user. */}
           {count > 0 && (
