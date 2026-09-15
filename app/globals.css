@@ -91,6 +91,13 @@
   background: transparent;
 }
 
+/* Optical alignment: a Lucide icon beside a label is centered on the line
+   box, which reads half a pixel high next to Inter's caps. Nudge it down.
+   Icon-only buttons (the icon is the only child) are left alone. */
+button > svg.lucide:first-child:not(:only-child) {
+  transform: translateY(0.5px);
+}
+
 /* Lucide markup inside the chrome SlideFrame injects into a slide: the icon
    is sized by its button, so one SVG string serves every scale. */
 .slide-root .item-delete svg { width: 50%; height: 50%; flex: none; }
