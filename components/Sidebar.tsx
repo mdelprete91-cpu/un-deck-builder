@@ -5,6 +5,7 @@ import { BRANDS, BRAND_IDS, type BrandId } from "@/lib/slides/brand";
 import type { DeckState, DeckAction } from "@/lib/slides/state";
 import type { Attachment } from "@/lib/slides/attachments";
 import PromptBox from "@/components/PromptBox";
+import Select from "@/components/Select";
 
 interface SidebarProps {
   state: DeckState;
@@ -65,75 +66,37 @@ export default function Sidebar({
         />
       </div>
 
-      {/* Logo lockup: colors stay Giga on every option, only logo and footer change */}
-      <div>
-        <Eyebrow>Logo</Eyebrow>
-        <div className="relative">
-          <select
+      {/* Settings rows in the ChatGPT register: label left, value right, a
+          hairline between. Logo lockup: colors stay Giga on every option,
+          only logo and footer change. Template only on Digital Inclusion,
+          the one brand the A4 two-pager exists for, and only while the deck
+          is empty: the formats do not mix, and the reducer enforces that. */}
+      <div className="flex flex-col">
+        <div className="flex h-12 items-center justify-between gap-3 border-b border-hairline-light">
+          <span className="text-sm text-ink">Logo</span>
+          <Select
+            ariaLabel="Logo lockup"
             value={state.brandId}
-            onChange={(e) => dispatch({ type: "SET_BRAND", brandId: e.target.value as BrandId })}
-            className="w-full cursor-pointer appearance-none rounded-lg border border-hairline bg-white px-3 py-2.5 pr-9 text-sm font-medium text-ink outline-none transition-shadow duration-150 hover:border-ink/20 focus:border-giga focus:ring-[3px] focus:ring-giga/15"
-          >
-            {BRAND_IDS.map((id: BrandId) => (
-              <option key={id} value={id}>
-                {BRANDS[id].label}
-              </option>
-            ))}
-          </select>
-          <svg
-            width="14"
-            height="14"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-ink-muted"
-          >
-            <path d="m6 9 6 6 6-6" />
-          </svg>
+            options={BRAND_IDS.map((id: BrandId) => ({ value: id, label: BRANDS[id].label }))}
+            onChange={(brandId) => dispatch({ type: "SET_BRAND", brandId })}
+          />
         </div>
-      </div>
-
-      {/* Template. Only on Digital Inclusion, which is the one brand the A4
-          two-pager exists for, and only while the deck is empty: the two
-          formats do not mix, and the reducer enforces that too. */}
-      {state.brandId === "inclusion" && (
-        <div>
-          <Eyebrow>Template</Eyebrow>
-          <div className="flex rounded-full bg-mist p-0.5">
-            {(
-              [
-                ["slides", "Slides"],
-                ["two-pager", "Two-pager"],
-              ] as const
-            ).map(([id, label]) => (
-              <button
-                key={id}
-                disabled={state.slides.length > 0 && state.format !== id}
-                onClick={() => dispatch({ type: "SET_FORMAT", format: id })}
-                title={
-                  state.slides.length > 0
-                    ? "Delete the deck to switch template"
-                    : id === "two-pager"
-                      ? "A4 pages, made to be printed"
-                      : "16:9 slides"
-                }
-                className={`flex-1 rounded-full px-3 py-1.5 text-xs font-medium transition-colors duration-150 ${
-                  state.format === id
-                    ? "bg-white text-ink shadow-stripe"
-                    : state.slides.length > 0
-                      ? "text-ink-muted/50"
-                      : "text-ink-muted hover:text-ink"
-                }`}
-              >
-                {label}
-              </button>
-            ))}
+        {state.brandId === "inclusion" && (
+          <div className="flex h-12 items-center justify-between gap-3 border-b border-hairline-light">
+            <span className="text-sm text-ink">Template</span>
+            <Select
+              ariaLabel="Template"
+              value={state.format}
+              disabled={state.slides.length > 0}
+              options={[
+                { value: "slides", label: "Slides", hint: "16:9 slides" },
+                { value: "two-pager", label: "Two-pager", hint: "A4 pages, made to be printed" },
+              ]}
+              onChange={(format) => dispatch({ type: "SET_FORMAT", format })}
+            />
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
       {/* Brief. The composer holds everything one Generate press sends: the
           text, the files, the Chapters toggle and the button itself. Agenda

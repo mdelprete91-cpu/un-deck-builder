@@ -1108,16 +1108,16 @@ function Toolbar({
         {exportOpen && (
           <>
             <div className="fixed inset-0 z-10" onClick={() => setExportOpen(false)} />
-            <div className="pop-in absolute right-0 z-20 mt-1.5 w-48 rounded-xl border border-hairline bg-white p-1 shadow-float">
+            <div className="pop-in absolute right-0 z-20 mt-1.5 w-56 rounded-2xl bg-white p-1.5 shadow-menu">
               <button
                 onClick={() => {
                   setExportOpen(false);
                   onExportPdf();
                 }}
-                className="block w-full rounded-lg px-3 py-2 text-left text-xs font-medium text-ink transition-colors duration-100 hover:bg-mist"
+                className="block w-full rounded-[10px] px-2.5 py-1.5 text-left text-sm text-ink transition-colors duration-100 hover:bg-black/[0.04]"
               >
                 PDF
-                <span className="mt-0.5 block font-normal text-ink-muted">
+                <span className="block text-xs text-ink-muted">
                   {twoPager ? "Print-ready, one A4 page each" : "Print-ready, one page per slide"}
                 </span>
               </button>
@@ -1126,10 +1126,10 @@ function Toolbar({
                   setExportOpen(false);
                   onExportHtml();
                 }}
-                className="block w-full rounded-lg px-3 py-2 text-left text-xs font-medium text-ink transition-colors duration-100 hover:bg-mist"
+                className="block w-full rounded-[10px] px-2.5 py-1.5 text-left text-sm text-ink transition-colors duration-100 hover:bg-black/[0.04]"
               >
                 {twoPager ? "HTML file" : "HTML deck"}
-                <span className="mt-0.5 block font-normal text-ink-muted">
+                <span className="block text-xs text-ink-muted">
                   {twoPager
                     ? "The save file: reopen it here to keep editing"
                     : "Standalone file, reopen it here to keep editing"}
@@ -1138,10 +1138,10 @@ function Toolbar({
               {/* PPTX export is parked: item stays visible but disabled */}
               <button
                 disabled
-                className="block w-full rounded-lg px-3 py-2 text-left text-xs font-medium text-ink opacity-50"
+                className="block w-full rounded-[10px] px-2.5 py-1.5 text-left text-sm text-ink opacity-50"
               >
                 PowerPoint
-                <span className="mt-0.5 block font-normal text-ink-muted">Not available at the moment</span>
+                <span className="block text-xs text-ink-muted">Not available at the moment</span>
               </button>
             </div>
           </>
