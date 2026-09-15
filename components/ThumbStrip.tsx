@@ -60,7 +60,7 @@ function PickerModal({
             title="Close (Esc)"
             className="-mr-2 flex h-9 w-9 items-center justify-center rounded-full text-ink transition-colors duration-150 hover:bg-mist"
           >
-            <X size={20} aria-hidden />
+            <X size={16} aria-hidden />
           </button>
         </div>
         {/* The preview is the whole card: no caption, the name is the tooltip. */}

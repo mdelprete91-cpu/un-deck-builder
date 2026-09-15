@@ -1180,7 +1180,7 @@ function SlideActions({
   const pill =
     "flex h-9 items-center rounded-full border border-hairline bg-white text-sm font-medium text-ink transition-colors duration-150 hover:bg-mist disabled:pointer-events-none disabled:border-hairline-light disabled:text-ink-faint";
   // ChatGPT Library: icon+text pills pad 12px, text-only 16px, icon-only are
-  // 36px squares with a 20px icon.
+  // 36px squares with the same 16px icon.
   const action = `${pill} gap-1.5 px-3`;
   const textAction = `${pill} px-4`;
   // Icon-only pills get their own padding: "px-0" after "px-3" loses in
@@ -1219,7 +1219,7 @@ function SlideActions({
               {busy ? "Working…" : "Regenerate"}
             </button>
             <button onClick={() => setAiOpen(false)} title="Close" className="flex h-10 w-10 items-center justify-center rounded-full text-ink-muted transition-colors duration-150 hover:bg-mist hover:text-ink">
-              <X size={20} aria-hidden />
+              <X size={16} aria-hidden />
             </button>
           </>
         ) : (
@@ -1244,7 +1244,7 @@ function SlideActions({
               </button>
             )}
             <button onClick={onDuplicate} title="Duplicate slide" aria-label="Duplicate slide" className={iconAction}>
-              <Copy size={20} aria-hidden />
+              <Copy size={16} aria-hidden />
             </button>
             <button
               onClick={onDelete}
@@ -1252,7 +1252,7 @@ function SlideActions({
               aria-label="Delete slide"
               className={`${iconAction} text-ink-muted hover:bg-status-red-bg hover:text-status-red`}
             >
-              <Trash2 size={20} aria-hidden />
+              <Trash2 size={16} aria-hidden />
             </button>
           </>
         )}

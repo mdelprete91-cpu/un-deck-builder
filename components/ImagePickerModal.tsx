@@ -95,7 +95,7 @@ export default function ImagePickerModal({
                   aria-label="Back"
                   className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-ink transition-colors duration-150 hover:bg-mist focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-giga/15"
                 >
-                  <ChevronLeft size={20} aria-hidden />
+                  <ChevronLeft size={16} aria-hidden />
                 </button>
                 <span className="text-base font-medium text-ink">Country map</span>
               </div>
@@ -113,7 +113,7 @@ export default function ImagePickerModal({
                 title="Back"
                 className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-ink transition-colors duration-150 hover:bg-mist"
               >
-                <ChevronLeft size={20} aria-hidden />
+                <ChevronLeft size={16} aria-hidden />
               </button>
               <input
                 autoFocus
