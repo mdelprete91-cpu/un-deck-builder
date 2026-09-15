@@ -44,14 +44,14 @@ function LayoutPickerModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-8" onClick={onClose}>
-      <div className="absolute inset-0 bg-ink/45" />
+      <div className="absolute inset-0 bg-scrim" />
       <div
         className="pop-in relative flex max-h-[85vh] w-full max-w-5xl flex-col rounded-2xl bg-white shadow-float"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between border-b border-hairline px-6 py-4">
           <div>
-            <h2 className="font-manrope text-lg font-semibold tracking-[-0.02em] text-ink">
+            <h2 className="text-lg font-medium text-ink">
               Choose a layout
             </h2>
             <p className="mt-0.5 text-xs text-ink-muted">
@@ -61,7 +61,7 @@ function LayoutPickerModal({
           <button
             onClick={onClose}
             title="Close (Esc)"
-            className="flex h-9 w-9 items-center justify-center rounded-full text-ink-muted transition-colors duration-150 hover:bg-giga-tint hover:text-ink"
+            className="flex h-9 w-9 items-center justify-center rounded-full text-ink-muted transition-colors duration-150 hover:bg-mist hover:text-ink"
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
               <path d="M18 6 6 18M6 6l12 12" />
@@ -71,10 +71,10 @@ function LayoutPickerModal({
         <div className="grid flex-1 grid-cols-4 gap-4 overflow-y-auto p-6">
           {previews.map(({ id, html }) => (
             <button key={id} onClick={() => onPick(id)} className="group text-left">
-              <div className="pointer-events-none overflow-hidden rounded-lg border-2 border-hairline transition-colors duration-150 group-hover:border-giga">
+              <div className="pointer-events-none overflow-hidden rounded-lg border-2 border-hairline transition-colors duration-150 group-hover:border-ink">
                 <SlideFrame html={html} className="aspect-video w-full" />
               </div>
-              <div className="mt-1.5 text-[11px] font-semibold text-ink group-hover:text-giga">
+              <div className="mt-1.5 text-[11px] font-medium text-ink">
                 {LAYOUTS[id].label}
               </div>
             </button>
@@ -123,14 +123,14 @@ function PagePresetModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-8" onClick={onClose}>
-      <div className="absolute inset-0 bg-ink/45" />
+      <div className="absolute inset-0 bg-scrim" />
       <div
         className="pop-in relative flex max-h-[85vh] w-full max-w-5xl flex-col rounded-2xl bg-white shadow-float"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between border-b border-hairline px-6 py-4">
           <div>
-            <h2 className="font-manrope text-lg font-bold text-ink">Add a page</h2>
+            <h2 className="text-lg font-semibold text-ink">Add a page</h2>
             <p className="text-xs text-ink-muted">
               Pick a starting composition. You can add, remove and reorder blocks afterwards.
             </p>
@@ -138,7 +138,7 @@ function PagePresetModal({
           <button
             onClick={onClose}
             title="Close (Esc)"
-            className="flex h-9 w-9 items-center justify-center rounded-full text-ink-muted transition-colors duration-150 hover:bg-giga-tint hover:text-ink"
+            className="flex h-9 w-9 items-center justify-center rounded-full text-ink-muted transition-colors duration-150 hover:bg-mist hover:text-ink"
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
               <path d="M18 6 6 18M6 6l12 12" />
@@ -148,10 +148,10 @@ function PagePresetModal({
         <div className="grid flex-1 grid-cols-4 gap-4 overflow-y-auto p-6">
           {previews.map(({ id, label, html }) => (
             <button key={id} onClick={() => onPick(id)} className="group text-left">
-              <div className="pointer-events-none overflow-hidden rounded-lg border-2 border-hairline transition-colors duration-150 group-hover:border-giga">
+              <div className="pointer-events-none overflow-hidden rounded-lg border-2 border-hairline transition-colors duration-150 group-hover:border-ink">
                 <SlideFrame html={html} size={A4_PX} className="aspect-[595/842] w-full" />
               </div>
-              <div className="mt-1.5 text-[11px] font-semibold text-ink group-hover:text-giga">{label}</div>
+              <div className="mt-1.5 text-[11px] font-medium text-ink">{label}</div>
             </button>
           ))}
         </div>
@@ -245,7 +245,7 @@ export default function ThumbStrip({
             handleDrop();
           }}
           className={`group relative shrink-0 cursor-grab overflow-hidden rounded-lg border-2 transition-colors duration-150 active:cursor-grabbing ${
-            i === activeIndex ? "border-giga" : "border-hairline hover:border-giga-100"
+            i === activeIndex ? "border-ink" : "border-hairline hover:border-ink/30"
           } ${dragIndex === i ? "opacity-40" : ""} ${
             dropAt === i ? "border-t-4 !border-t-giga" : ""
           } ${dropAt === i + 1 && i === slides.length - 1 ? "border-b-4 !border-b-giga" : ""}`}
@@ -258,7 +258,7 @@ export default function ThumbStrip({
               className={`${twoPager ? "aspect-[595/842]" : "aspect-video"} w-full`}
             />
           </div>
-          <div className="absolute left-1 top-1 rounded-md bg-white/90 px-1.5 py-0.5 text-[10px] font-semibold text-ink shadow-stripe">
+          <div className="absolute left-1 top-1 rounded-md bg-white/90 px-1.5 py-0.5 text-[10px] font-medium text-ink shadow-stripe">
             {i + 1} · {LAYOUTS[slide.layoutId]?.label ?? slide.layoutId}
           </div>
           <div className="absolute bottom-1 right-1 hidden gap-1 group-hover:flex">
@@ -286,10 +286,10 @@ export default function ThumbStrip({
       <button
         onClick={() => setLayoutsOpen(true)}
         title={twoPager ? "Add a page" : "Insert a slide layout"}
-        className={`flex ${twoPager ? "aspect-[595/842]" : "aspect-video"} w-full shrink-0 items-center justify-center rounded-lg border-2 border-dashed text-giga transition-all duration-150 ${
+        className={`flex ${twoPager ? "aspect-[595/842]" : "aspect-video"} w-full shrink-0 items-center justify-center rounded-lg border-2 border-dashed text-ink-muted transition-colors duration-150 ${
           layoutsOpen
-            ? "border-giga bg-giga/15"
-            : "border-giga/50 bg-giga/5 hover:border-giga hover:bg-giga/15 hover:shadow-stripe"
+            ? "border-ink/30 bg-mist text-ink"
+            : "border-hairline hover:border-ink/30 hover:bg-mist hover:text-ink"
         }`}
       >
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
@@ -334,7 +334,7 @@ function ThumbButton({
     <button
       title={title}
       onClick={onClick}
-      className="rounded-md bg-white/95 px-1.5 py-0.5 text-[11px] font-semibold text-ink shadow-stripe transition-colors duration-150 hover:bg-giga hover:text-white"
+      className="rounded-md bg-white/95 px-1.5 py-0.5 text-[11px] font-medium text-ink shadow-stripe transition-colors duration-150 hover:bg-ink hover:text-white"
     >
       {label}
     </button>

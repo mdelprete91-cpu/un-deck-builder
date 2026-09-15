@@ -48,14 +48,14 @@ export default function ImagePickerModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-ink/45 p-6"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-scrim p-6"
       onClick={onClose}
     >
       <div
         className="pop-in flex max-h-[88vh] w-full max-w-3xl flex-col rounded-2xl bg-white p-5 shadow-stripe-lg"
         onClick={(e) => e.stopPropagation()}
       >
-        <span className="font-manrope mb-3 block text-[10px] font-bold uppercase tracking-[0.18em] text-giga">
+        <span className="mb-3 block text-[13px] font-normal text-ink-faint">
           Slide image
         </span>
 
@@ -63,29 +63,29 @@ export default function ImagePickerModal({
           <div className="grid grid-cols-2 gap-3">
             <button
               onClick={onUpload}
-              className="flex flex-col items-center gap-2 rounded-xl border border-hairline bg-white px-4 py-8 text-center transition-colors duration-150 hover:border-giga-100 hover:bg-giga-tint"
+              className="flex flex-col items-center gap-2 rounded-xl border border-hairline bg-white px-4 py-8 text-center transition-colors duration-150 hover:bg-mist"
             >
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#277AFF" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M12 16V4M8 8l4-4 4 4" />
                 <path d="M4 16v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" />
               </svg>
-              <span className="text-sm font-semibold text-ink">Upload image</span>
+              <span className="text-sm font-medium text-ink">Upload image</span>
               <span className="text-xs text-ink-muted">A photo from your computer</span>
             </button>
             <button
               onClick={() => setTab("live")}
-              className="flex flex-col items-center gap-2 rounded-xl border border-hairline bg-white px-4 py-8 text-center transition-colors duration-150 hover:border-giga-100 hover:bg-giga-tint"
+              className="flex flex-col items-center gap-2 rounded-xl border border-hairline bg-white px-4 py-8 text-center transition-colors duration-150 hover:bg-mist"
             >
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#277AFF" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2-6-2Z" />
                 <path d="M9 4v14M15 6v14" />
               </svg>
-              <span className="text-sm font-semibold text-ink">Maps</span>
+              <span className="text-sm font-medium text-ink">Maps</span>
               <span className="text-xs text-ink-muted">Schools and health centers, any country, live from Giga Maps</span>
             </button>
             <button
               onClick={() => setTab("maps")}
-              className="col-span-2 justify-self-start rounded-full px-3 py-2 text-xs font-semibold text-ink-muted transition-colors duration-150 hover:bg-giga-tint hover:text-ink"
+              className="col-span-2 justify-self-start rounded-full px-3 py-2 text-[13px] font-normal text-ink-faint transition-colors duration-150 hover:bg-mist hover:text-ink"
             >
               Or pick one of the {COUNTRY_MAPS.length} pre-made screenshots
             </button>
@@ -98,13 +98,13 @@ export default function ImagePickerModal({
                   onClick={() => setTab("choose")}
                   title="Back"
                   aria-label="Back"
-                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-ink transition-colors duration-150 hover:bg-giga-tint focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-giga/15"
+                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-ink transition-colors duration-150 hover:bg-mist focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-giga/15"
                 >
                   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M15 18l-6-6 6-6" />
                   </svg>
                 </button>
-                <span className="font-manrope text-base font-semibold tracking-[-0.03em] text-ink">Country map</span>
+                <span className="text-base font-medium text-ink">Country map</span>
               </div>
               <span className="text-xs text-ink-muted">
                 Live from Giga Maps · fits this slide at {slot.width} × {slot.height}
@@ -118,7 +118,7 @@ export default function ImagePickerModal({
               <button
                 onClick={() => setTab("choose")}
                 title="Back"
-                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-ink transition-colors duration-150 hover:bg-giga-tint"
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-ink transition-colors duration-150 hover:bg-mist"
               >
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M15 18l-6-6 6-6" />
@@ -129,7 +129,7 @@ export default function ImagePickerModal({
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Search a country"
-                className="h-10 w-full rounded-lg border border-hairline bg-white px-3 text-sm text-ink outline-none transition-shadow duration-150 placeholder:text-ink-muted/70 focus:border-giga focus:ring-[3px] focus:ring-giga/15"
+                className="h-10 w-full rounded-lg border border-hairline bg-white px-3 text-sm text-ink outline-none transition-shadow duration-150 placeholder:text-ink-faint focus:border-giga focus:ring-[3px] focus:ring-giga/15"
               />
               <span className="shrink-0 text-xs text-ink-muted">{matches.length}</span>
             </div>
@@ -155,7 +155,7 @@ export default function ImagePickerModal({
                     loading="lazy"
                     className="h-24 w-full bg-[#1C1C1C] object-contain transition-transform duration-150 group-hover:scale-[1.03]"
                   />
-                  <span className="block truncate px-2 pt-1.5 text-xs font-semibold text-ink">
+                  <span className="block truncate px-2 pt-1.5 text-xs font-medium text-ink">
                     {c.name}
                   </span>
                   {/* Say it here rather than after the pick: an empty country
@@ -176,7 +176,7 @@ export default function ImagePickerModal({
             {current && (
               <button
                 onClick={onClearMap}
-                className="mt-3 self-start rounded-full px-3 py-2 text-xs font-semibold text-status-red transition-colors duration-150 hover:bg-status-red/5"
+                className="mt-3 self-start rounded-full px-3 py-2 text-xs font-medium text-status-red transition-colors duration-150 hover:bg-status-red/5"
               >
                 Remove the map from this slide
               </button>

@@ -50,7 +50,7 @@ export default function ChartDataPanel({ slide, onChange, onClose }: ChartDataPa
   return (
     <div className="absolute right-8 top-16 z-20 w-80 rounded-2xl border border-hairline bg-white p-4 shadow-stripe-lg">
       <div className="mb-3 flex items-center justify-between">
-        <span className="font-manrope text-sm font-semibold tracking-[-0.01em] text-ink">Chart data</span>
+        <span className="text-sm font-medium text-ink">Chart data</span>
         <button
           onClick={onClose}
           className="rounded-full px-2 py-0.5 text-sm text-ink-muted transition-colors duration-150 hover:text-ink"
@@ -66,14 +66,14 @@ export default function ChartDataPanel({ slide, onChange, onClose }: ChartDataPa
               value={row.label}
               onChange={(e) => apply(rows.map((r, j) => (j === i ? { ...r, label: e.target.value } : r)))}
               placeholder="Label"
-              className="w-0 flex-1 rounded-lg border border-hairline px-2.5 py-1.5 text-sm text-ink outline-none transition-shadow duration-150 placeholder:text-ink-muted/70 focus:border-giga focus:ring-[3px] focus:ring-giga/15"
+              className="w-0 flex-1 rounded-lg border border-hairline px-2.5 py-1.5 text-sm text-ink outline-none transition-shadow duration-150 placeholder:text-ink-faint focus:border-giga focus:ring-[3px] focus:ring-giga/15"
             />
             <input
               value={row.value}
               onChange={(e) => apply(rows.map((r, j) => (j === i ? { ...r, value: e.target.value } : r)))}
               placeholder="Value"
               inputMode="decimal"
-              className="w-24 rounded-lg border border-hairline px-2.5 py-1.5 text-right text-sm text-ink outline-none transition-shadow duration-150 placeholder:text-ink-muted/70 focus:border-giga focus:ring-[3px] focus:ring-giga/15"
+              className="w-24 rounded-lg border border-hairline px-2.5 py-1.5 text-right text-sm text-ink outline-none transition-shadow duration-150 placeholder:text-ink-faint focus:border-giga focus:ring-[3px] focus:ring-giga/15"
             />
             <button
               onClick={() => apply(rows.filter((_, j) => j !== i))}
@@ -89,7 +89,7 @@ export default function ChartDataPanel({ slide, onChange, onClose }: ChartDataPa
       <button
         onClick={() => apply([...rows, { label: `Item ${rows.length + 1}`, value: "0" }])}
         disabled={rows.length >= MAX_ROWS}
-        className="mt-3 w-full rounded-lg border border-dashed border-hairline px-3 py-1.5 text-sm font-semibold text-ink-muted transition-colors duration-150 hover:border-giga hover:text-giga disabled:opacity-30"
+        className="mt-3 w-full rounded-lg border border-dashed border-hairline px-3 py-1.5 text-sm font-medium text-ink-muted transition-colors duration-150 hover:border-giga hover:text-giga disabled:opacity-30"
       >
         + Add row
       </button>
