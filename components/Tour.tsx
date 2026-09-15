@@ -169,7 +169,7 @@ export default function Tour({ steps, onDone }: { steps: TourStep[]; onDone: () 
       <div className="mt-5 flex shrink-0 items-center justify-between gap-3">
         <button
           onClick={onDone}
-          className="rounded-full px-3 py-1.5 text-sm font-medium text-ink-muted transition-colors duration-150 hover:text-ink"
+          className="flex h-9 items-center rounded-full px-4 text-sm font-medium text-ink-muted transition-colors duration-150 hover:bg-mist hover:text-ink"
         >
           Skip
         </button>
@@ -185,7 +185,7 @@ export default function Tour({ steps, onDone }: { steps: TourStep[]; onDone: () 
           <button
             autoFocus
             onClick={next}
-            className="h-9 rounded-full bg-giga px-5 text-sm font-medium text-white transition-all duration-150 hover:bg-giga-deep active:scale-[0.98]"
+            className="h-9 rounded-full bg-giga px-4 text-sm font-medium text-white transition-all duration-150 hover:bg-giga-deep active:scale-[0.98]"
           >
             {i === steps.length - 1 ? "Done" : "Next"}
           </button>

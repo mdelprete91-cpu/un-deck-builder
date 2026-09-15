@@ -978,13 +978,13 @@ function EmptyState({
           <div className="mt-2 flex items-center gap-2">
             <button
               onClick={onWriteBrief}
-              className="flex h-9 items-center gap-1.5 rounded-full bg-giga px-5 text-sm font-medium text-white transition-all duration-150 hover:bg-giga-deep active:scale-[0.98]"
+              className="flex h-9 items-center rounded-full bg-giga px-4 text-sm font-medium text-white transition-all duration-150 hover:bg-giga-deep active:scale-[0.98]"
             >
               Write the brief
             </button>
             <button
               onClick={onOpenDeckFile}
-              className="flex h-9 items-center gap-1.5 rounded-full border border-hairline bg-white px-3.5 text-sm font-medium text-ink transition-colors duration-150 hover:bg-mist"
+              className="flex h-9 items-center gap-1.5 rounded-full border border-hairline bg-white px-3 text-sm font-medium text-ink transition-colors duration-150 hover:bg-mist"
             >
               <Upload size={16} aria-hidden />
               Open a deck
@@ -1017,7 +1017,7 @@ function EmptyState({
                 </button>
                 <button
                   onClick={onDismissPrevious}
-                  className="flex h-9 items-center rounded-full px-3.5 text-sm font-medium text-ink-muted transition-colors duration-150 hover:bg-mist hover:text-ink"
+                  className="flex h-9 items-center rounded-full px-4 text-sm font-medium text-ink-muted transition-colors duration-150 hover:bg-mist hover:text-ink"
                 >
                   Discard
                 </button>
@@ -1061,7 +1061,7 @@ function Toolbar({
   // Undo and redo are one pair: same pill, same stroke. Disabled only changes
   // the ink, not the shape, so the two never look like different controls.
   const iconBtn =
-    "flex h-9 items-center gap-1.5 rounded-full border border-hairline bg-white px-3.5 text-sm font-medium text-ink transition-colors duration-150 hover:bg-mist disabled:pointer-events-none disabled:border-hairline-light disabled:text-ink-faint";
+    "flex h-9 items-center gap-1.5 rounded-full border border-hairline bg-white px-3 text-sm font-medium text-ink transition-colors duration-150 hover:bg-mist disabled:pointer-events-none disabled:border-hairline-light disabled:text-ink-faint";
   return (
     <div className="flex items-center gap-3 border-b border-hairline bg-white px-6 py-2.5">
       <div className="flex items-center gap-1.5">
@@ -1078,7 +1078,7 @@ function Toolbar({
         <button
           onClick={onOpenDeckFile}
           title="Open a deck you downloaded earlier"
-          className="flex h-9 items-center gap-1.5 rounded-full border border-hairline bg-white px-3.5 text-sm font-medium text-ink transition-colors duration-150 hover:bg-mist"
+          className="flex h-9 items-center gap-1.5 rounded-full border border-hairline bg-white px-3 text-sm font-medium text-ink transition-colors duration-150 hover:bg-mist"
         >
           <Upload size={16} aria-hidden />
           Upload
@@ -1086,7 +1086,7 @@ function Toolbar({
         <div className="relative">
         <button
           onClick={() => setExportOpen((v) => !v)}
-          className="flex h-9 items-center gap-1.5 rounded-full bg-giga px-3.5 text-sm font-medium text-white transition-all duration-150 hover:bg-giga-deep active:scale-[0.98]"
+          className="flex h-9 items-center gap-1.5 rounded-full bg-giga px-3 text-sm font-medium text-white transition-all duration-150 hover:bg-giga-deep active:scale-[0.98]"
         >
           Download
           <ChevronDown size={16} className={`transition-transform duration-150 ${exportOpen ? "rotate-180" : ""}`} aria-hidden />
@@ -1179,8 +1179,11 @@ function SlideActions({
   // an icon and a word; no dividers, the gap does the separating.
   const pill =
     "flex h-9 items-center rounded-full border border-hairline bg-white text-sm font-medium text-ink transition-colors duration-150 hover:bg-mist disabled:pointer-events-none disabled:border-hairline-light disabled:text-ink-faint";
-  const action = `${pill} gap-1.5 px-3.5`;
-  // Icon-only pills get their own padding: "px-0" after "px-3.5" loses in
+  // ChatGPT Library: icon+text pills pad 12px, text-only 16px, icon-only are
+  // 36px squares with a 20px icon.
+  const action = `${pill} gap-1.5 px-3`;
+  const textAction = `${pill} px-4`;
+  // Icon-only pills get their own padding: "px-0" after "px-3" loses in
   // Tailwind's ordering, and the icon was being squeezed to 6px.
   const iconAction = `${pill} w-9 justify-center`;
   return (
@@ -1216,12 +1219,12 @@ function SlideActions({
               {busy ? "Working…" : "Regenerate"}
             </button>
             <button onClick={() => setAiOpen(false)} title="Close" className="flex h-10 w-10 items-center justify-center rounded-full text-ink-muted transition-colors duration-150 hover:bg-mist hover:text-ink">
-              <X size={16} aria-hidden />
+              <X size={20} aria-hidden />
             </button>
           </>
         ) : (
           <>
-            <button onClick={() => setAiOpen(true)} disabled={busy} className={`${action} text-giga hover:bg-mist`}>
+            <button onClick={() => setAiOpen(true)} disabled={busy} className={textAction}>
               Edit with AI
             </button>
             <button onClick={onAddItem} disabled={!canAddItem} title="Add an element to this slide" className={action}>
@@ -1241,7 +1244,7 @@ function SlideActions({
               </button>
             )}
             <button onClick={onDuplicate} title="Duplicate slide" aria-label="Duplicate slide" className={iconAction}>
-              <Copy size={16} aria-hidden />
+              <Copy size={20} aria-hidden />
             </button>
             <button
               onClick={onDelete}
@@ -1249,7 +1252,7 @@ function SlideActions({
               aria-label="Delete slide"
               className={`${iconAction} text-ink-muted hover:bg-status-red-bg hover:text-status-red`}
             >
-              <Trash2 size={16} aria-hidden />
+              <Trash2 size={20} aria-hidden />
             </button>
           </>
         )}

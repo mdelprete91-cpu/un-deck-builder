@@ -75,7 +75,7 @@ export default function Select<T extends string>({
         aria-label={ariaLabel}
         disabled={disabled}
         onClick={() => setOpen((v) => !v)}
-        className="flex h-9 max-w-full items-center gap-1 rounded-lg px-2 text-sm text-ink transition-colors duration-150 hover:bg-mist focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-giga/15 disabled:pointer-events-none disabled:opacity-50"
+        className="flex h-9 max-w-full items-center gap-1 rounded-lg px-2.5 text-sm text-ink transition-colors duration-150 hover:bg-mist focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-giga/15 disabled:pointer-events-none disabled:opacity-50"
       >
         <span className="truncate">{current?.label ?? value}</span>
         <ChevronDown size={16} className="shrink-0 text-ink-muted" aria-hidden />

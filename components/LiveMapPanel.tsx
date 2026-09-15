@@ -297,7 +297,7 @@ export default function LiveMapPanel({
             type="button"
             onClick={() => preview && onUse(preview)}
             disabled={!preview || busy}
-            className="inline-flex h-10 items-center gap-2 whitespace-nowrap rounded-full bg-giga px-[18px] text-sm font-medium text-white transition-[background-color,transform,opacity] duration-150 hover:bg-giga-deep focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-giga/25 active:scale-[0.98] disabled:opacity-45 disabled:hover:bg-giga"
+            className="inline-flex h-10 items-center gap-2 whitespace-nowrap rounded-full bg-giga px-4 text-sm font-medium text-white transition-[background-color,transform,opacity] duration-150 hover:bg-giga-deep focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-giga/25 active:scale-[0.98] disabled:opacity-45 disabled:hover:bg-giga"
           >
             <Check size={16} aria-hidden />
             Use this map

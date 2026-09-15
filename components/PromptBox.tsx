@@ -133,7 +133,7 @@ export default function PromptBox({
             {reading ? (
               <Spinner />
             ) : (
-              <Plus size={16} aria-hidden />
+              <Plus size={20} aria-hidden />
             )}
           </button>
           <input
@@ -189,7 +189,7 @@ export default function PromptBox({
                 <Spinner />
               ) : (
                 <>
-                  <ArrowUp size={16} aria-hidden />
+                  <ArrowUp size={20} aria-hidden />
                 </>
               )}
             </button>
