@@ -99,11 +99,10 @@ const CYAN_PALETTE = {
   sectionImage: { bg: "#FFFFFF", title: UNICEF_CYAN, body: "#161616", surface: "light" },
 } satisfies Partial<BrandTheme>;
 
-// Key order drives the Logo select: Digital Impact Division first.
 export const BRANDS: Record<BrandId, BrandTheme> = {
   did: {
     id: "did",
-    label: "Digital Impact Division",
+    label: "UNICEF Digital Impact Division",
     ...CYAN_PALETTE,
     footerLabel: "Digital Impact Division",
     // Unboxed lockup (no cyan square), slightly scaled up to match the others
@@ -144,6 +143,13 @@ export const BRANDS: Record<BrandId, BrandTheme> = {
 };
 
 export const BRAND_IDS = Object.keys(BRANDS) as BrandId[];
+
+/**
+ * What the Logo menu offers, in this order. "giga" is not on it (Mario, 15 Sep
+ * 2026): it stays in BRANDS so a deck saved with that lockup still opens and
+ * renders, but nobody starts a new one with it.
+ */
+export const PICKER_BRAND_IDS: BrandId[] = ["inclusion", "did", "unicef"];
 
 /** Narrow untrusted input (a reopened deck file) to a brand we actually ship. */
 export function isBrandId(value: unknown): value is BrandId {

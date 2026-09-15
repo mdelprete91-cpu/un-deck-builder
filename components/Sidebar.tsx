@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { BRANDS, BRAND_IDS, type BrandId } from "@/lib/slides/brand";
+import { BRANDS, PICKER_BRAND_IDS, type BrandId } from "@/lib/slides/brand";
 import type { DeckState, DeckAction } from "@/lib/slides/state";
 import type { Attachment } from "@/lib/slides/attachments";
 import PromptBox from "@/components/PromptBox";
@@ -29,6 +29,13 @@ function Eyebrow({ children }: { children: React.ReactNode }) {
     </span>
   );
 }
+
+/**
+ * The two-pager is not ready (Mario, 15 Sep 2026: still buggy), so the row that
+ * starts one is hidden. Everything behind it stays: a saved two-pager still
+ * opens, because the format is derived from the slides, not from this switch.
+ */
+const SHOW_TEMPLATE_SWITCH = false;
 
 const SECONDARY_BTN =
   "h-10 rounded-full border border-hairline bg-white px-4 text-sm font-medium text-ink transition-colors duration-150 hover:bg-mist disabled:pointer-events-none disabled:opacity-40";
@@ -77,11 +84,11 @@ export default function Sidebar({
           <Select
             ariaLabel="Logo lockup"
             value={state.brandId}
-            options={BRAND_IDS.map((id: BrandId) => ({ value: id, label: BRANDS[id].label }))}
+            options={PICKER_BRAND_IDS.map((id: BrandId) => ({ value: id, label: BRANDS[id].label }))}
             onChange={(brandId) => dispatch({ type: "SET_BRAND", brandId })}
           />
         </div>
-        {state.brandId === "inclusion" && (
+        {SHOW_TEMPLATE_SWITCH && state.brandId === "inclusion" && (
           <div className="flex h-12 items-center justify-between gap-3 border-b border-hairline-light">
             <span className="text-sm text-ink">Template</span>
             <Select

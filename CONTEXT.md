@@ -25,7 +25,8 @@ Deployed on Vercel as `un-deck-builder`. One env var: `ANTHROPIC_API_KEY`.
 Do not change these without asking Mario first. They are decisions, not defaults.
 
 1. **Two palettes, split by brand family, and both are fixed.** Giga and UNICEF run on the Giga
-   palette; Digital Impact Division and Digital Inclusion share the cyan one. Switching within a
+   palette (the Giga lockup is no longer offered in the Logo menu, see `PICKER_BRAND_IDS`, but
+   decks saved with it still render); Digital Impact Division and Digital Inclusion share the cyan one. Switching within a
    family changes the logo lockup and the footer label only, never the colors. See the comment in
    `lib/slides/brand.ts`.
 2. **The two Digital sub-brands are two-surface brands.** Every colored surface is exactly UNICEF
