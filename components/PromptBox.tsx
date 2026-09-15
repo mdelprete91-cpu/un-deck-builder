@@ -172,7 +172,7 @@ export default function PromptBox({
               }`}
             >
               {/* The glyph is the state: a ticked circle on, an empty one off. */}
-              {chapters ? <CircleCheck size={16} aria-hidden /> : <Circle size={16} aria-hidden />}
+              {chapters ? <CircleCheck size={14} aria-hidden /> : <Circle size={14} aria-hidden />}
               Chapters
             </button>
 

@@ -986,7 +986,7 @@ function EmptyState({
               onClick={onOpenDeckFile}
               className="flex h-9 items-center gap-1.5 rounded-full border border-hairline bg-white px-3 text-sm font-medium text-ink transition-colors duration-150 hover:bg-mist"
             >
-              <Upload size={16} aria-hidden />
+              <Upload size={14} aria-hidden />
               Open a deck
             </button>
           </div>
@@ -1066,11 +1066,11 @@ function Toolbar({
     <div className="flex items-center gap-3 border-b border-hairline bg-white px-6 py-2.5">
       <div className="flex items-center gap-1.5">
         <button onClick={onUndo} disabled={!canUndo} title="Undo (Cmd+Z)" className={iconBtn}>
-          <Undo2 size={16} aria-hidden />
+          <Undo2 size={14} aria-hidden />
           Undo
         </button>
         <button onClick={onRedo} disabled={!canRedo} title="Redo (Cmd+Shift+Z)" className={iconBtn}>
-          <Redo2 size={16} aria-hidden />
+          <Redo2 size={14} aria-hidden />
           Redo
         </button>
       </div>
@@ -1080,7 +1080,7 @@ function Toolbar({
           title="Open a deck you downloaded earlier"
           className="flex h-9 items-center gap-1.5 rounded-full border border-hairline bg-white px-3 text-sm font-medium text-ink transition-colors duration-150 hover:bg-mist"
         >
-          <Upload size={16} aria-hidden />
+          <Upload size={14} aria-hidden />
           Upload
         </button>
         <div className="relative">
@@ -1228,18 +1228,18 @@ function SlideActions({
               Edit with AI
             </button>
             <button onClick={onAddItem} disabled={!canAddItem} title="Add an element to this slide" className={action}>
-              <Plus size={16} aria-hidden />
+              <Plus size={14} aria-hidden />
               Element
             </button>
             {canEditData && (
               <button onClick={onEditData} title="Edit the chart data in a table" className={action}>
-                <ChartColumn size={16} aria-hidden />
+                <ChartColumn size={14} aria-hidden />
                 Data
               </button>
             )}
             {canChangeImage && (
               <button onClick={onChangeImage} title="Change the image on this slide" className={action}>
-                <ImageIcon size={16} aria-hidden />
+                <ImageIcon size={14} aria-hidden />
                 Image
               </button>
             )}

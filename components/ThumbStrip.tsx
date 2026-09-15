@@ -286,7 +286,7 @@ export default function ThumbStrip({
           layoutsOpen ? "bg-mist" : ""
         }`}
       >
-        <Plus size={16} aria-hidden />
+        <Plus size={14} aria-hidden />
         {twoPager ? "Add page" : "Add slide"}
       </button>
 

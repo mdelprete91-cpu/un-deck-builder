@@ -147,7 +147,7 @@ export default function Sidebar({
           disabled={generating}
           className={`${SECONDARY_BTN} flex items-center justify-center gap-1.5`}
         >
-          <Plus size={16} aria-hidden />
+          <Plus size={14} aria-hidden />
           Add slides
         </button>
       )}
@@ -224,7 +224,7 @@ export default function Sidebar({
           onClick={onHowItWorks}
           className="flex h-9 items-center justify-center gap-1.5 rounded-full px-3 text-sm font-medium text-ink-muted transition-colors duration-150 hover:bg-mist hover:text-ink"
         >
-          <CircleHelp size={16} aria-hidden />
+          <CircleHelp size={14} aria-hidden />
           How it works
         </button>
         {hasSlides && (
@@ -234,7 +234,7 @@ export default function Sidebar({
             }}
             className="flex h-9 items-center justify-center gap-1.5 rounded-full px-3 text-sm font-medium text-status-red transition-colors duration-150 hover:bg-status-red-bg"
           >
-            <Trash2 size={16} aria-hidden />
+            <Trash2 size={14} aria-hidden />
             Delete deck
           </button>
         )}
