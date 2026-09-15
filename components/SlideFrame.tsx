@@ -39,6 +39,12 @@ interface SlideFrameProps {
   /** Editor chrome is sized for the 1920 stage; a page needs the small set. */
   variant?: "slide" | "page";
   className?: string;
+  /**
+   * Classes for the frame that hugs the scaled slide (rounded corners, shadow).
+   * The outer container can be any size; the frame is always exactly the
+   * slide, so nothing decorative ever shows outside the slide's edges.
+   */
+  frameClassName?: string;
 }
 
 /** Downscale an uploaded image to ≤1920px and return a JPEG data URL (keeps localStorage small). */
@@ -87,6 +93,7 @@ export default function SlideFrame({
   size = { w: 1920, h: 1080 },
   variant = "slide",
   className,
+  frameClassName,
 }: SlideFrameProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
@@ -426,19 +433,29 @@ export default function SlideFrame({
   return (
     <div ref={containerRef} className={`relative overflow-hidden ${className ?? ""}`}>
       <div
-        ref={stageRef}
-        className={variant === "page" ? "slide-root page-root" : "slide-root"}
+        className={`absolute overflow-hidden ${frameClassName ?? ""}`}
         style={{
-          position: "absolute",
-          width: size.w,
-          height: size.h,
+          width: size.w * scale,
+          height: size.h * scale,
           left: (box.w - size.w * scale) / 2,
           top: (box.h - size.h * scale) / 2,
-          transform: `scale(${scale})`,
-          transformOrigin: "top left",
           visibility: scale > 0 ? "visible" : "hidden",
         }}
-      />
+      >
+        <div
+          ref={stageRef}
+          className={variant === "page" ? "slide-root page-root" : "slide-root"}
+          style={{
+            position: "absolute",
+            width: size.w,
+            height: size.h,
+            left: 0,
+            top: 0,
+            transform: `scale(${scale})`,
+            transformOrigin: "top left",
+          }}
+        />
+      </div>
       {editable && (
         <>
           <input

@@ -794,7 +794,8 @@ export default function Studio() {
                             dispatch({ type: "SET_IMAGE_POS", index: state.activeIndex, pos, path })
                         : null
                     }
-                    className="h-full w-full rounded-xl shadow-stripe-lg"
+                    className="h-full w-full"
+                    frameClassName="rounded-xl shadow-stripe-lg"
                   />
                   {iconPicker != null && (
                     <IconPickerModal
