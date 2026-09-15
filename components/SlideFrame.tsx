@@ -428,10 +428,16 @@ export default function SlideFrame({
   // edge, which reads as a white hairline on a colored slide. The overflow
   // clip hides the extra pixel on each side.
   const fit = Math.min(box.w / size.w, box.h / size.h);
-  const scale = fit > 0 ? fit + 2 / size.w : 0;
+  // With a decorated frame the frame is sized to the slide exactly and clips
+  // it itself, so there is no gap to hide and no overscan: the container
+  // stays open so the frame's shadow can fall outside the slide.
+  const scale = fit > 0 ? (frameClassName ? fit : fit + 2 / size.w) : 0;
 
   return (
-    <div ref={containerRef} className={`relative overflow-hidden ${className ?? ""}`}>
+    <div
+      ref={containerRef}
+      className={`relative ${frameClassName ? "" : "overflow-hidden "}${className ?? ""}`}
+    >
       <div
         className={`absolute overflow-hidden ${frameClassName ?? ""}`}
         style={{
