@@ -1016,7 +1016,7 @@ function EmptyState({
           {/* The editor no longer restores the last deck on its own, so the
               deck is offered here instead of appearing under the user. */}
           {count > 0 && (
-            <div className="pop-in mt-4 w-full max-w-sm rounded-2xl border border-hairline bg-white p-4">
+            <div className="pop-in mt-4 w-full max-w-sm rounded-2xl border border-hairline-light bg-white p-4 shadow-float">
               <span className="mb-1 block text-[13px] font-normal text-ink-faint">
                 Last session
               </span>
