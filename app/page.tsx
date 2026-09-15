@@ -1236,17 +1236,16 @@ function SlideActions({
                 Image
               </button>
             )}
-            <button onClick={onDuplicate} title="Duplicate slide" className={action}>
+            <button onClick={onDuplicate} title="Duplicate slide" aria-label="Duplicate slide" className={`${action} w-9 justify-center px-0`}>
               <Copy size={16} aria-hidden />
-              Duplicate
             </button>
             <button
               onClick={onDelete}
               title="Delete slide"
-              className={`${action} text-ink-muted hover:bg-status-red-bg hover:text-status-red`}
+              aria-label="Delete slide"
+              className={`${action} w-9 justify-center px-0 text-ink-muted hover:bg-status-red-bg hover:text-status-red`}
             >
               <Trash2 size={16} aria-hidden />
-              Delete
             </button>
           </>
         )}
