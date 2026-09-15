@@ -73,13 +73,13 @@ export default function Sidebar({
         />
       </div>
 
-      {/* Settings rows in the ChatGPT register: label left, value right, a
-          hairline between. Logo lockup: colors stay Giga on every option,
+      {/* Settings rows in the ChatGPT register: label left, value right, no
+          rule between them. Logo lockup: colors stay Giga on every option,
           only logo and footer change. Template only on Digital Inclusion,
           the one brand the A4 two-pager exists for, and only while the deck
           is empty: the formats do not mix, and the reducer enforces that. */}
       <div className="flex flex-col">
-        <div className="flex h-12 items-center justify-between gap-3 border-b border-hairline-light">
+        <div className="flex h-9 items-center justify-between gap-3">
           <span className="text-sm text-ink">Logo</span>
           <Select
             ariaLabel="Logo lockup"
@@ -89,7 +89,7 @@ export default function Sidebar({
           />
         </div>
         {SHOW_TEMPLATE_SWITCH && state.brandId === "inclusion" && (
-          <div className="flex h-12 items-center justify-between gap-3 border-b border-hairline-light">
+          <div className="flex h-9 items-center justify-between gap-3">
             <span className="text-sm text-ink">Template</span>
             <Select
               ariaLabel="Template"
