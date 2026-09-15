@@ -734,8 +734,6 @@ export default function Studio() {
         ) : (
           <>
             <Toolbar
-              index={state.activeIndex}
-              total={state.slides.length}
               layoutLabel={active ? LAYOUTS[active.layoutId]?.label : ""}
               canUndo={state.past.length > 0}
               canRedo={state.future.length > 0}
@@ -1054,8 +1052,6 @@ function EmptyState({
 }
 
 function Toolbar({
-  index,
-  total,
   layoutLabel,
   canUndo,
   canRedo,
@@ -1066,8 +1062,6 @@ function Toolbar({
   onOpenDeckFile,
   twoPager = false,
 }: {
-  index: number;
-  total: number;
   layoutLabel: string;
   canUndo: boolean;
   canRedo: boolean;
@@ -1087,17 +1081,16 @@ function Toolbar({
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [exportOpen]);
+  // Undo and redo are one pair: same pill, same stroke. Disabled only changes
+  // the ink, not the shape, so the two never look like different controls.
   const iconBtn =
-    "flex h-8 w-8 items-center justify-center rounded-full text-ink transition-colors duration-150 hover:bg-mist disabled:pointer-events-none disabled:opacity-30";
+    "flex h-8 w-8 items-center justify-center rounded-full border border-hairline bg-white text-ink transition-colors duration-150 hover:bg-mist disabled:pointer-events-none disabled:border-hairline-light disabled:text-ink-faint";
   return (
     <div className="flex items-center gap-3 border-b border-hairline bg-white px-6 py-2.5">
-      <span className="shrink-0 whitespace-nowrap text-sm font-medium text-ink">
-        Slide {index + 1} / {total}
-      </span>
-      <span className="rounded-full bg-mist px-2.5 py-0.5 text-[13px] font-normal text-ink-faint">
+      <span className="rounded-full bg-mist px-2.5 py-0.5 text-[13px] text-ink-muted">
         {layoutLabel}
       </span>
-      <div className="flex items-center">
+      <div className="flex items-center gap-1.5">
         <button onClick={onUndo} disabled={!canUndo} title="Undo (Cmd+Z)" className={iconBtn}>
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M9 14 4 9l5-5" />
@@ -1111,11 +1104,6 @@ function Toolbar({
           </svg>
         </button>
       </div>
-      {/* The hint is the first thing to go: with Upload next to Download the
-          row wraps on a laptop, and a wrapped toolbar reads as broken. */}
-      <span className="hidden truncate text-xs text-ink-muted xl:block">
-        Click text to edit · drag a photo to reframe, scroll to zoom
-      </span>
       <div className="ml-auto flex shrink-0 items-center gap-2" data-tour="download">
         <button
           onClick={onOpenDeckFile}
