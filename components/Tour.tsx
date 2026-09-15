@@ -185,7 +185,7 @@ export default function Tour({ steps, onDone }: { steps: TourStep[]; onDone: () 
           <button
             autoFocus
             onClick={next}
-            className="h-10 rounded-full bg-giga px-5 text-sm font-medium text-white transition-all duration-150 hover:bg-giga-deep active:scale-[0.98]"
+            className="h-9 rounded-full bg-giga px-5 text-sm font-medium text-white transition-all duration-150 hover:bg-giga-deep active:scale-[0.98]"
           >
             {i === steps.length - 1 ? "Done" : "Next"}
           </button>

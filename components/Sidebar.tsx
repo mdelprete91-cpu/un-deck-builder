@@ -39,7 +39,7 @@ function Eyebrow({ children }: { children: React.ReactNode }) {
 const SHOW_TEMPLATE_SWITCH = false;
 
 const SECONDARY_BTN =
-  "h-10 rounded-full border border-hairline bg-white px-4 text-sm font-medium text-ink transition-colors duration-150 hover:bg-mist disabled:pointer-events-none disabled:opacity-40";
+  "h-9 rounded-full border border-hairline bg-white px-3.5 text-sm font-medium text-ink transition-colors duration-150 hover:bg-mist disabled:pointer-events-none disabled:opacity-40";
 
 export default function Sidebar({
   state,
@@ -222,9 +222,9 @@ export default function Sidebar({
       <div className="mt-auto flex flex-col gap-2">
         <button
           onClick={onHowItWorks}
-          className="flex h-9 items-center justify-center gap-1.5 rounded-full px-4 text-[13px] font-normal text-ink-faint transition-colors duration-150 hover:bg-mist hover:text-ink"
+          className="flex h-9 items-center justify-center gap-1.5 rounded-full px-3.5 text-sm font-medium text-ink-muted transition-colors duration-150 hover:bg-mist hover:text-ink"
         >
-          <CircleHelp size={14} aria-hidden />
+          <CircleHelp size={16} aria-hidden />
           How it works
         </button>
         {hasSlides && (
@@ -232,9 +232,9 @@ export default function Sidebar({
             onClick={() => {
               if (confirm("Delete the current deck?")) dispatch({ type: "CLEAR" });
             }}
-            className="flex h-9 items-center justify-center gap-1.5 rounded-full px-4 text-xs font-medium text-status-red transition-colors duration-150 hover:bg-status-red/5"
+            className="flex h-9 items-center justify-center gap-1.5 rounded-full px-3.5 text-sm font-medium text-status-red transition-colors duration-150 hover:bg-status-red-bg"
           >
-            <Trash2 size={14} aria-hidden />
+            <Trash2 size={16} aria-hidden />
             Delete deck
           </button>
         )}

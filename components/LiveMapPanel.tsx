@@ -281,7 +281,7 @@ export default function LiveMapPanel({
         <button
           type="button"
           onClick={onLibrary}
-          className="rounded-full px-3 py-2 text-[13px] font-normal text-ink-faint transition-colors duration-150 hover:bg-mist hover:text-ink focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-giga/15"
+          className="rounded-full px-3 py-2 text-sm font-normal text-ink-faint transition-colors duration-150 hover:bg-mist hover:text-ink focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-giga/15"
         >
           Use a pre-made screenshot instead
         </button>
@@ -289,7 +289,7 @@ export default function LiveMapPanel({
           <button
             type="button"
             onClick={onCancel}
-            className="h-10 whitespace-nowrap rounded-full border border-hairline bg-white px-4 text-sm font-medium text-ink transition-colors duration-150 hover:bg-mist focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-giga/15"
+            className="h-9 whitespace-nowrap rounded-full border border-hairline bg-white px-4 text-sm font-medium text-ink transition-colors duration-150 hover:bg-mist focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-giga/15"
           >
             Cancel
           </button>
@@ -343,7 +343,7 @@ function CountryRow({
       role="option"
       aria-selected={active}
       onClick={onPick}
-      className={`flex w-full items-center justify-between rounded-lg px-2.5 py-2 text-left text-[13px] transition-colors duration-150 hover:bg-mist focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-giga/15 ${
+      className={`flex w-full items-center justify-between rounded-lg px-2.5 py-2 text-left text-sm transition-colors duration-150 hover:bg-mist focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-giga/15 ${
         active ? "bg-mist font-medium text-ink" : muted ? "text-ink-muted" : "text-ink"
       }`}
     >

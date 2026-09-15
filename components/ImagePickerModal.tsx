@@ -167,7 +167,7 @@ export default function ImagePickerModal({
             {current && (
               <button
                 onClick={onClearMap}
-                className="mt-3 self-start rounded-full px-3 py-2 text-xs font-medium text-status-red transition-colors duration-150 hover:bg-status-red/5"
+                className="mt-3 self-start rounded-full px-3 py-2 text-sm font-medium text-status-red transition-colors duration-150 hover:bg-status-red/5"
               >
                 Remove the map from this slide
               </button>
