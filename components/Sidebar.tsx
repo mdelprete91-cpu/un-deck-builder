@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { BRANDS, BRAND_IDS, type BrandId } from "@/lib/slides/brand";
 import type { DeckState, DeckAction } from "@/lib/slides/state";
+import type { Attachment } from "@/lib/slides/attachments";
+import AttachmentsRow from "@/components/AttachmentsRow";
 
 interface SidebarProps {
   state: DeckState;
@@ -11,6 +13,11 @@ interface SidebarProps {
   onAddMore: (instruction: string, count: number) => void;
   /** Reopens the welcome card, which is the only place the brief rules live. */
   onHowItWorks: () => void;
+  /** Reference files for the brief; session state in page.tsx, never in the deck. */
+  attachments: Attachment[];
+  onAttach: (files: File[]) => Promise<void> | void;
+  onRemoveAttachment: (id: string) => void;
+  attachError: string | null;
 }
 
 /** Sidebar section label — the BAG eyebrow at product scale. */
@@ -84,7 +91,12 @@ export default function Sidebar({
   onGenerate,
   onAddMore,
   onHowItWorks,
+  attachments,
+  onAttach,
+  onRemoveAttachment,
+  attachError,
 }: SidebarProps) {
+  const [dragging, setDragging] = useState(false);
   const [addBrief, setAddBrief] = useState("");
   const [addCount, setAddCount] = useState(2);
   const [addOpen, setAddOpen] = useState(false);
@@ -183,9 +195,27 @@ export default function Sidebar({
           chapters is a broken state, not an option. */}
       <div>
         <Eyebrow>Prompt</Eyebrow>
+        {/* Files dropped on the box become attachments; stopPropagation keeps
+            them away from <main>, which would turn an image into a slide. */}
         <div
           data-tour="prompt"
-          className="rounded-lg border border-hairline bg-white transition-shadow duration-150 focus-within:border-giga focus-within:ring-[3px] focus-within:ring-giga/15"
+          onDragOver={(e) => {
+            if (!e.dataTransfer.types.includes("Files")) return;
+            e.preventDefault();
+            e.stopPropagation();
+            setDragging(true);
+          }}
+          onDragLeave={() => setDragging(false)}
+          onDrop={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            setDragging(false);
+            const files = Array.from(e.dataTransfer.files);
+            if (files.length) void onAttach(files);
+          }}
+          className={`rounded-lg border bg-white transition-shadow duration-150 focus-within:border-giga focus-within:ring-[3px] focus-within:ring-giga/15 ${
+            dragging ? "border-giga ring-[3px] ring-giga/15" : "border-hairline"
+          }`}
         >
           <textarea
             value={state.brief}
@@ -193,6 +223,12 @@ export default function Sidebar({
             placeholder="E.g. A partnership pitch for a telecom operator in East Africa: what Giga does, the opportunity, what we ask, what they get, impact numbers…"
             rows={7}
             className="block w-full resize-y rounded-t-lg bg-transparent p-3 text-sm text-ink outline-none placeholder:text-ink-muted/70"
+          />
+          <AttachmentsRow
+            attachments={attachments}
+            disabled={generating}
+            onAdd={onAttach}
+            onRemove={onRemoveAttachment}
           />
           <SwitchRow
             tourTarget="chapters"
@@ -203,9 +239,13 @@ export default function Sidebar({
             onChange={(chapters) => dispatch({ type: "SET_CHAPTERS", chapters })}
           />
         </div>
+        {attachError && (
+          <p className="mt-1.5 text-xs leading-relaxed text-status-red">{attachError}</p>
+        )}
         <p className="mt-1.5 text-xs leading-relaxed text-ink-muted">
           Describe the story. The AI picks the right template slides, decides how many the story
-          needs (ask for a count if you want one) and fills them in.
+          needs (ask for a count if you want one) and fills them in. Attach a PDF, Word, PowerPoint
+          or text file and it draws the facts from there.
         </p>
         {/* The switch only takes effect on the next generation, so say so
             exactly when the deck on screen disagrees with it. */}
@@ -220,7 +260,7 @@ export default function Sidebar({
       <button
         data-tour="generate"
         onClick={onGenerate}
-        disabled={generating || !state.brief.trim()}
+        disabled={generating || (!state.brief.trim() && attachments.length === 0)}
         className="font-manrope h-12 rounded-full bg-giga px-6 text-sm font-semibold text-white shadow-stripe-md transition-all duration-150 hover:bg-giga-deep active:scale-[0.98] disabled:pointer-events-none disabled:opacity-40"
       >
         {generating ? "Generating…" : hasSlides ? "Regenerate deck" : "Generate deck"}

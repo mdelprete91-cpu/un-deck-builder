@@ -1,4 +1,6 @@
 import { CATALOG } from "./catalog";
+import type { Attachment } from "@/lib/slides/attachments";
+import type { ContentBlockParam } from "@anthropic-ai/sdk/resources/messages";
 import { PAGE_CATALOG } from "./page-catalog";
 import { AI_LAYOUT_IDS, type SlideContent } from "./schema";
 import { AI_BLOCK_TYPES } from "./pages/schema";
@@ -62,6 +64,8 @@ RULES:
 
 interface GenerateBody {
   mode: "generate" | "add" | "regenerate";
+  /** Reference material attached to the brief; never persisted, see lib/slides/attachments.ts */
+  attachments?: Attachment[];
   format?: DeckFormat;
   brief: string;
   count?: number;
@@ -80,6 +84,45 @@ interface GenerateBody {
  */
 const NO_CHAPTERS =
   '\n- This deck has NO chapters: never use the "agenda" or "section-divider" layouts. Carry the structure with the content slides themselves and let each one stand on its own.';
+
+/**
+ * How the attached files relate to the brief. Goes at the end of the text so
+ * the instructions about layouts and counts stay where they always were.
+ */
+function attachmentsNote(body: GenerateBody): string {
+  const n = body.attachments?.length ?? 0;
+  if (n === 0) return "";
+  const names = body.attachments!.map((a) => `"${a.name}"`).join(", ");
+  return `\n\nAttached reference material (${n} file${n === 1 ? "" : "s"}: ${names}) precedes this message. Treat it as the source of facts, figures, names and structure for the ${body.format === "two-pager" ? "pages" : "deck"}; the brief says what to make of it and wins on any conflict. Quote numbers exactly as they appear, never invent what is not there, and do not copy long passages verbatim.`;
+}
+
+/**
+ * The full user turn: attachments first (PDFs and images as native blocks,
+ * extracted text as labelled text blocks), then the brief and instructions.
+ * Without attachments this is a single text block equal to buildUserMessage.
+ */
+export function buildUserContent(body: GenerateBody): ContentBlockParam[] {
+  const blocks: ContentBlockParam[] = [];
+  for (const a of body.attachments ?? []) {
+    if (a.kind === "pdf") {
+      blocks.push({
+        type: "document",
+        source: { type: "base64", media_type: "application/pdf", data: a.data },
+        title: a.name,
+      });
+    } else if (a.kind === "image") {
+      blocks.push({ type: "text", text: `Attached image: "${a.name}"` });
+      blocks.push({ type: "image", source: { type: "base64", media_type: a.mediaType, data: a.data } });
+    } else {
+      blocks.push({
+        type: "text",
+        text: `Attached file "${a.name}"${a.truncated ? " (truncated)" : ""}:\n<<<\n${a.text}\n>>>`,
+      });
+    }
+  }
+  blocks.push({ type: "text", text: buildUserMessage(body) + attachmentsNote(body) });
+  return blocks;
+}
 
 export function buildUserMessage(body: GenerateBody): string {
   if (body.format === "two-pager") return buildPageUserMessage(body);

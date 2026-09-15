@@ -20,6 +20,15 @@ import Sidebar from "@/components/Sidebar";
 import SlideFrame, { readImageFile } from "@/components/SlideFrame";
 import ChartDataPanel from "@/components/ChartDataPanel";
 import ImagePickerModal from "@/components/ImagePickerModal";
+import {
+  AttachmentError,
+  MAX_ATTACHMENTS,
+  MAX_REQUEST_BYTES,
+  MAX_TEXT_TOTAL,
+  readAttachment,
+  totalAttachmentBytes,
+  type Attachment,
+} from "@/lib/slides/attachments";
 import { mapSlotFor } from "@/lib/giga-maps/slot";
 import ThumbStrip from "@/components/ThumbStrip";
 import PrintRoot from "@/components/PrintRoot";
@@ -359,12 +368,55 @@ export default function Studio() {
     }
   }
 
+  // Reference files for the brief. Session state on purpose: they ride along
+  // with generate and add requests and are never written to the deck, the
+  // deck file or localStorage (a single PDF would blow the quota).
+  const [attachments, setAttachments] = useState<Attachment[]>([]);
+  const [attachError, setAttachError] = useState<string | null>(null);
+
+  const onAttach = async (files: File[]) => {
+    setAttachError(null);
+    const next = [...attachments];
+    const problems: string[] = [];
+    for (const file of files) {
+      if (next.length >= MAX_ATTACHMENTS) {
+        problems.push(`At most ${MAX_ATTACHMENTS} files per brief.`);
+        break;
+      }
+      try {
+        const a = await readAttachment(file);
+        const textTotal = next
+          .concat(a)
+          .filter((x) => x.kind === "text")
+          .reduce((n, x) => n + x.bytes, 0);
+        if (totalAttachmentBytes(next.concat(a)) > MAX_REQUEST_BYTES) {
+          problems.push(`"${file.name}" does not fit: attachments can total 4 MB per brief.`);
+          continue;
+        }
+        if (textTotal > MAX_TEXT_TOTAL) {
+          problems.push(`"${file.name}" does not fit: too much text across the attached files.`);
+          continue;
+        }
+        next.push(a);
+      } catch (err) {
+        problems.push(err instanceof AttachmentError ? err.message : `Could not read "${file.name}".`);
+      }
+    }
+    setAttachments(next);
+    if (problems.length) setAttachError(problems.join(" "));
+  };
+  const onRemoveAttachment = (id: string) => {
+    setAttachments((list) => list.filter((a) => a.id !== id));
+    setAttachError(null);
+  };
+
   const onGenerate = async () => {
     const brief = state.brief;
     const received = await runGeneration(
       {
         mode: "generate",
         brief,
+        attachments,
         brandLabel: theme.label,
         chapters: state.chapters,
         format: state.format,
@@ -414,6 +466,7 @@ export default function Studio() {
       {
         mode: "add",
         brief: state.brief,
+        attachments,
         instruction,
         count,
         brandLabel: theme.label,
@@ -541,7 +594,7 @@ export default function Studio() {
         dispatch({
           type: "GENERATION_ERROR",
           error:
-            "Drop an image to add it as a slide, or an HTML deck exported from here to reopen it. PDF and PowerPoint files can't be imported yet.",
+            "Drop an image to add it as a slide, or an HTML deck exported from here to reopen it. To use a PDF, Word or PowerPoint file as reference, drop it on the prompt box.",
         });
       }
       return;
@@ -585,6 +638,10 @@ export default function Studio() {
         onGenerate={onGenerate}
         onAddMore={onAddMore}
         onHowItWorks={onHowItWorks}
+        attachments={attachments}
+        onAttach={onAttach}
+        onRemoveAttachment={onRemoveAttachment}
+        attachError={attachError}
       />
 
       {/* Drop handling lives on <main> so it also works with an empty deck —

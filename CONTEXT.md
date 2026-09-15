@@ -176,6 +176,29 @@ drop an image). `seenOnboarding`/`markSeen` in `lib/slides/onboarding.ts` gate b
 - Errors are translated to plain language for the user, including the 529 overloaded case. Keep that
   behavior when touching the route.
 
+## Attachments to the brief
+
+The prompt box takes reference files (PDF, Word, PowerPoint, text, images) via "Attach files" or a
+drop on the box. They exist to give the model the facts; they are **not** deck content.
+
+- **Session state only.** `attachments` lives in `app/page.tsx` state and travels in the
+  `generate` and `add` request bodies. It is never written to deck state, the deck file or
+  localStorage: a single PDF would blow the quota that photos already strain. Reloading the page
+  drops them, by design.
+- **What the model receives** (`buildUserContent` in `lib/slides/prompt.ts`): PDFs as native
+  `document` blocks, images as `image` blocks, everything else as text. Word and PowerPoint are
+  reduced to text **in the browser** (`lib/slides/attachments.ts`, jszip over the OOXML parts,
+  speaker notes included) so the request stays small and readable. A closing note in the user
+  turn tells the model the brief wins on any conflict and that numbers must be quoted as written.
+- **Limits, enforced twice.** Client side in `onAttach` for the UX, server side in
+  `lib/slides/attachments-server.ts` as the guarantee: 6 files, 4 MB of body in total (Vercel's
+  request ceiling is 4.5 MB), 60k characters of text per file and 120k across files. A brief may
+  be empty when files are attached; the route substitutes "Build it from the attached material."
+- **`regenerate` does not carry attachments.** It already gets the brief and the slide; re-sending
+  a PDF for every single-slide rewrite would multiply the cost for little gain.
+- Chips use the toolbar chip vocabulary (`bg-giga-tint`, `text-giga`, inline SVG glyphs); the
+  prompt box keeps `data-tour="prompt"` on its outer node so the tour still frames the whole thing.
+
 ## Two-pagers
 
 A deck is one of two formats, carried on `DeckState.format`: `slides` (16:9) or `two-pager`, the
