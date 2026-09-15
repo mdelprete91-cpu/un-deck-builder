@@ -154,7 +154,7 @@ export default function LiveMapPanel({
               {CONNECTIVITY_LEGEND.slice(0, 2).map((item) => (
                 <span
                   key={item.label}
-                  className="inline-flex items-center gap-1.5 rounded-full bg-white/95 px-2.5 py-1 text-[11px] font-semibold text-ink shadow-stripe"
+                  className="inline-flex items-center gap-1.5 rounded-full bg-white/95 px-2.5 py-1 text-[11px] font-medium text-ink shadow-stripe"
                 >
                   <span className="h-2 w-2 rounded-full" style={{ background: item.color }} />
                   {item.label}
@@ -163,7 +163,7 @@ export default function LiveMapPanel({
             </div>
           )}
           {preview && busy && (
-            <span className="absolute right-3 top-3 rounded-full bg-white/95 px-2.5 py-1 text-[11px] font-semibold text-ink shadow-stripe">
+            <span className="absolute right-3 top-3 rounded-full bg-white/95 px-2.5 py-1 text-[11px] font-medium text-ink shadow-stripe">
               Updating…
             </span>
           )}
@@ -193,10 +193,10 @@ export default function LiveMapPanel({
               className="flex h-10 w-full items-center justify-between gap-2 rounded-lg border border-hairline bg-white pl-2 pr-2.5 text-left transition-[box-shadow,border-color] duration-150 hover:border-ink/20 focus-visible:border-giga focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-giga/15 disabled:opacity-60"
             >
               <span className="flex min-w-0 items-center gap-2">
-                <span className="font-manrope rounded bg-mist px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.08em] text-ink-muted">
+                <span className="rounded bg-mist px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-ink-muted">
                   {country?.code ?? "…"}
                 </span>
-                <span className="truncate text-sm font-semibold text-ink">
+                <span className="truncate text-sm font-medium text-ink">
                   {country?.name ?? (countriesError ? "Unavailable" : "Loading…")}
                 </span>
               </span>
@@ -218,7 +218,7 @@ export default function LiveMapPanel({
                     }
                   }}
                   placeholder="Search a country"
-                  className="h-9 w-full rounded-lg border border-hairline bg-white px-3 text-sm text-ink outline-none transition-shadow duration-150 placeholder:text-ink-muted/70 focus:border-giga focus:ring-[3px] focus:ring-giga/15"
+                  className="h-9 w-full rounded-lg border border-hairline bg-white px-3 text-sm text-ink outline-none transition-shadow duration-150 placeholder:text-ink-faint focus:border-giga focus:ring-[3px] focus:ring-giga/15"
                 />
                 <div className="max-h-64 overflow-y-auto">
                   {withData.length > 0 && <GroupLabel>With Giga data</GroupLabel>}
@@ -282,7 +282,7 @@ export default function LiveMapPanel({
         <button
           type="button"
           onClick={onLibrary}
-          className="rounded-full px-3 py-2 text-xs font-semibold text-ink-muted transition-colors duration-150 hover:bg-mist hover:text-ink focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-giga/15"
+          className="rounded-full px-3 py-2 text-[13px] font-normal text-ink-faint transition-colors duration-150 hover:bg-mist hover:text-ink focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-giga/15"
         >
           Use a pre-made screenshot instead
         </button>
@@ -290,7 +290,7 @@ export default function LiveMapPanel({
           <button
             type="button"
             onClick={onCancel}
-            className="font-manrope h-10 whitespace-nowrap rounded-full border border-hairline bg-white px-4 text-sm font-semibold text-ink transition-colors duration-150 hover:bg-mist focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-giga/15"
+            className="h-10 whitespace-nowrap rounded-full border border-hairline bg-white px-4 text-sm font-medium text-ink transition-colors duration-150 hover:bg-mist focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-giga/15"
           >
             Cancel
           </button>
@@ -298,7 +298,7 @@ export default function LiveMapPanel({
             type="button"
             onClick={() => preview && onUse(preview)}
             disabled={!preview || busy}
-            className="font-manrope inline-flex h-10 items-center gap-2 whitespace-nowrap rounded-full bg-giga px-[18px] text-sm font-semibold text-white transition-[background-color,transform,opacity] duration-150 hover:bg-giga-deep focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-giga/25 active:scale-[0.98] disabled:opacity-45 disabled:hover:bg-giga"
+            className="inline-flex h-10 items-center gap-2 whitespace-nowrap rounded-full bg-giga px-[18px] text-sm font-medium text-white transition-[background-color,transform,opacity] duration-150 hover:bg-giga-deep focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-giga/25 active:scale-[0.98] disabled:opacity-45 disabled:hover:bg-giga"
           >
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M20 6L9 17l-5-5" />
@@ -313,7 +313,7 @@ export default function LiveMapPanel({
 
 function Eyebrow({ children }: { children: React.ReactNode }) {
   return (
-    <span className="font-manrope text-xs font-semibold text-ink-muted">{children}</span>
+    <span className="text-[13px] font-normal text-ink-faint">{children}</span>
   );
 }
 
@@ -323,7 +323,7 @@ function Caption({ children }: { children: React.ReactNode }) {
 
 function GroupLabel({ children }: { children: React.ReactNode }) {
   return (
-    <span className="font-manrope block px-2 pb-0.5 pt-1.5 text-[10px] font-bold uppercase tracking-[0.18em] text-ink-muted">
+    <span className="block px-2 pb-0.5 pt-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-ink-muted">
       {children}
     </span>
   );
@@ -347,7 +347,7 @@ function CountryRow({
       aria-selected={active}
       onClick={onPick}
       className={`flex w-full items-center justify-between rounded-lg px-2.5 py-2 text-left text-[13px] transition-colors duration-150 hover:bg-mist focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-giga/15 ${
-        active ? "bg-mist font-semibold text-ink" : muted ? "text-ink-muted" : "text-ink"
+        active ? "bg-mist font-medium text-ink" : muted ? "text-ink-muted" : "text-ink"
       }`}
     >
       <span className="truncate">{c.name}</span>
@@ -378,7 +378,7 @@ function Segmented<T extends string>({
           type="button"
           aria-pressed={value === o.key}
           onClick={() => onChange(o.key)}
-          className={`font-manrope flex items-center justify-center gap-1.5 whitespace-nowrap rounded-full text-xs font-semibold transition-colors duration-150 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-giga/15 ${
+          className={`flex items-center justify-center gap-1.5 whitespace-nowrap rounded-full text-xs font-medium transition-colors duration-150 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-giga/15 ${
             value === o.key ? "bg-white text-ink shadow-stripe" : "text-ink-muted hover:text-ink"
           }`}
         >

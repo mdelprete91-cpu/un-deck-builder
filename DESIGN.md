@@ -8,27 +8,33 @@ colors:
   giga-blue-tint: "#EAF2FF"
   ink: "#0D0D0D"
   muted-ink: "#5D5D5D"
-  hairline: "#E6E6E6"
-  canvas: "#F9F9F9"
-  mist: "#F0F0F0"
+  faint-ink: "#8F8F8F"
+  hairline: "rgba(0,0,0,0.10)"
+  hairline-light: "rgba(0,0,0,0.05)"
+  canvas: "#FCFCFC"
+  canvas-2: "#F3F3F3"
+  mist: "rgba(0,0,0,0.05)"
   mist-deep: "#E3E3E3"
+  scrim: "rgba(0,0,0,0.50)"
   surface: "#FFFFFF"
-  status-red: "#ED1C24"
+  status-red: "#FF002A"
+  status-red-bg: "#FFF0F0"
+  status-red-border: "#FFE1E0"
 typography:
   title:
-    fontFamily: "Manrope, sans-serif"
+    fontFamily: "Inter, sans-serif"
     fontSize: "1.25rem"
-    fontWeight: 600
-    letterSpacing: "-0.03em"
+    fontWeight: 500
+    letterSpacing: "0"
   body:
-    fontFamily: "Open Sans, sans-serif"
+    fontFamily: "Inter, sans-serif"
     fontSize: "0.875rem"
     fontWeight: 400
     lineHeight: 1.6
   label:
-    fontFamily: "Manrope, sans-serif"
-    fontSize: "0.75rem"
-    fontWeight: 600
+    fontFamily: "Inter, sans-serif"
+    fontSize: "0.8125rem"
+    fontWeight: 400
     letterSpacing: "0"
 rounded:
   md: "8px"
@@ -50,22 +56,21 @@ The chrome is neutral and flat, in the register of a chat composer: white and wa
 
 ## Rules
 
-- **One accent.** Giga Blue `#277AFF` is the only accent, and it is spent on few things: the primary action (Generate, Download, Next), the "Edit with AI" entry, the active Chapters pill, attachment chips, links. Hover and selection on everything else are grey (`mist`), never a blue tint. Red `#ED1C24` is for destructive/error only, always paired with text.
-- **Neutral greys, no blue cast.** Text is Ink `#0D0D0D`, secondary text Muted Ink `#5D5D5D`. Surfaces: the stage is white; the sidebar and the filmstrip are Canvas `#F9F9F9`; hover and selected rows are Mist `#F0F0F0`. No black or near-black *background* anywhere: Ink is a text and border color, and the 40% overlay under modals is the only place it covers a surface.
-- **Hairline borders** `#E6E6E6`, 1px only. Active thumbnails and picked layouts use an Ink border, not the accent.
-- **Flat by default.** Buttons carry no shadow. `shadow-stripe` (a whisper) sits on the composer and on white pills over grey; `shadow-float` lifts menus and the slide bar; `shadow-stripe-lg` is for modals and the slide on the stage. All shadows are neutral. Nothing glows, nothing bobs.
-- **Labels are quiet.** Sidebar section labels and modal titles at small size are Manrope 600, 12px, sentence case, Muted Ink. No uppercase tracking.
-- **Typography.** Manrope 500-700 with negative tracking for headings/labels/buttons; Open Sans for body and inputs. No third typeface.
+- **The palette is ChatGPT's light theme, verbatim, minus its accent.** Every value in the front matter was read off chatgpt.com's CSS variables on 15 Sep 2026: text primary/secondary/tertiary, sidebar `#FCFCFC`, tertiary surface `#F3F3F3`, borders at 10% and 5% black, hover at 5% black, control grey `#E3E3E3`, scrim at 50%, and the error trio. The one substitution is the accent: their `#3A83F7` is Giga Blue `#277AFF` here. Do not tune these by eye; if ChatGPT changes, re-read them.
+- **One accent.** Giga Blue is spent on few things: the primary action (Generate, Download, Next), "Edit with AI", the active Chapters pill, attachment chips, links. Hover and selection on everything else are Mist (5% black), never a blue tint. Status red is for destructive and error only, always with text.
+- **No black background.** Ink is text, icon and border color; the 50% scrim under modals is the only place it covers a surface. Active thumbnails and picked layouts use an Ink border, not the accent.
+- **Flat by default.** Buttons carry no shadow. `shadow-stripe` (a 5% ring plus a whisper) sits on the composer and on white pills over grey; `shadow-float` lifts menus and the slide bar; `shadow-stripe-lg` is for modals and the slide on the stage. All shadows are neutral. Nothing glows, nothing bobs.
+- **Inter, regular.** The chrome is Inter (variable, self-hosted in `public/fonts`), weight 400 by default. Buttons, labels and thumbnail badges are 500; the empty-state headline and modal titles are 500 or 600. No negative tracking, no uppercase labels. Section labels are 13px, regular, Faint Ink, like ChatGPT's "Recents". Slides keep Manrope and Open Sans, which never appear in the chrome, and Inter never appears on a slide.
 - **Buttons are pills.** Primary: Giga Blue fill, white text, hover deepens to `#0050E6`, `:active` scales 0.98, no shadow. Secondary: white fill, hairline border, Ink text, hover washes Mist. Tertiary (icon and text buttons): no border, hover washes Mist.
 - **Segmented controls** are a Mist track with the selected option as a white pill with `shadow-stripe`.
-- **Inputs.** White surface, hairline border, 8px radius, Ink text, Muted Ink placeholder. Focus: Giga Blue border plus a soft 3px ring at low alpha.
+- **Inputs.** White surface, hairline border, 8px radius, Ink text, Faint Ink placeholder. Focus: Giga Blue border plus a soft 3px ring at low alpha.
 - **Motion.** 150-250ms, ease-out, state-conveying only. No entrance choreography in the chrome.
 
 ## Editor-specific vocabulary
 
-- **Shell.** White stage between two Canvas rails: the sidebar (340px) and the filmstrip (200px), separated by hairlines. The slide preview sits on the stage with `shadow-stripe-lg` and 12px radius.
-- **Composer** (`components/PromptBox.tsx`). One 24px-radius white surface with `shadow-stripe`; focus deepens the shadow and darkens the border, no colored ring. Text on top and grows with it (up to 280px, then scrolls); attachment chips under the text; a bottom bar with the "+" (attach) on the left and, on the right, the Chapters pill toggle and the Generate button: a 36px Giga Blue circle with an arrow, which widens into a "Regenerate" pill once a deck exists and shows a spinner while generating. ⌘↵ generates. Nothing sits under it: the tour and the placeholder carry the guidance.
-- **Toolbar.** White band with bottom hairline. Slide counter in Manrope 600 Ink; layout name as a Mist chip in Muted Ink; icon buttons are borderless and wash Mist on hover.
+- **Shell.** White stage between two Canvas rails: the sidebar (340px) and the filmstrip (200px), each separated from the stage by a 5% hairline. The slide preview sits on the stage with `shadow-stripe-lg` and 12px radius.
+- **Composer** (`components/PromptBox.tsx`). One 28px-radius white surface with a 5% border and `shadow-stripe`; focus deepens the shadow and takes the border to 10%, no colored ring. Text on top and grows with it (up to 280px, then scrolls); attachment chips under the text; a bottom bar with the "+" (attach) on the left and, on the right, the Chapters pill toggle and the Generate button: a 36px Giga Blue circle with an arrow, which widens into a "Regenerate" pill once a deck exists and shows a spinner while generating. ⌘↵ generates. Nothing sits under it: the tour and the placeholder carry the guidance.
+- **Toolbar.** White band with bottom hairline. Slide counter in Inter 500 Ink; layout name as a Mist chip in Muted Ink; icon buttons are borderless and wash Mist on hover.
 - **Filmstrip thumbnails.** 8px radius, 2px border: Ink when active, hairline otherwise. Index badge is a white chip with Ink text. Hover actions are white chips that turn Ink on hover. The add tile is a dashed hairline box that washes Mist.
 - **Slide bar.** A white pill with a hairline border and `shadow-float`, centered under the slide. "Edit with AI" is the one accent-colored item in it.
-- **Empty state.** A Manrope headline ("What deck are we making?") over two lines of Muted Ink body, nothing else. The last-session card is a white card with a hairline border.
+- **Empty state.** An Inter headline ("What deck are we making?") over two lines of Muted Ink body, nothing else. The last-session card is a white card with a hairline border.

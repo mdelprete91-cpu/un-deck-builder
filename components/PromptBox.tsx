@@ -67,8 +67,8 @@ export default function PromptBox({
   };
 
   const active = dragging
-    ? "border-ink/30 shadow-stripe-lg"
-    : "border-hairline focus-within:border-ink/20 focus-within:shadow-stripe-lg";
+    ? "border-hairline shadow-stripe-lg"
+    : "border-hairline-light focus-within:border-hairline focus-within:shadow-stripe-lg";
 
   return (
     <div>
@@ -93,7 +93,7 @@ export default function PromptBox({
           // The whole surface is the input: a click on padding focuses the text.
           if (e.target === e.currentTarget) textRef.current?.focus();
         }}
-        className={`rounded-[24px] border bg-white shadow-stripe transition-[box-shadow,border-color] duration-150 ${active}`}
+        className={`rounded-[28px] border bg-white shadow-stripe transition-[box-shadow,border-color] duration-150 ${active}`}
       >
         <textarea
           ref={textRef}
@@ -107,7 +107,7 @@ export default function PromptBox({
           }}
           placeholder="Describe the deck you need…"
           rows={3}
-          className="block w-full resize-none rounded-t-[24px] bg-transparent px-4 pt-3.5 pb-1 text-sm leading-relaxed text-ink outline-none placeholder:text-ink-muted/70"
+          className="block w-full resize-none rounded-t-[28px] bg-transparent px-4 pt-3.5 pb-1 text-sm leading-relaxed text-ink outline-none placeholder:text-ink-faint"
         />
 
         {attachments.length > 0 && (
@@ -166,7 +166,7 @@ export default function PromptBox({
                   ? "Chapters on: agenda slide and section dividers"
                   : "Chapters off: the deck runs straight through"
               }
-              className={`flex h-9 items-center gap-1.5 rounded-full px-3 text-xs font-semibold transition-colors duration-150 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-giga/15 disabled:pointer-events-none disabled:opacity-40 ${
+              className={`flex h-9 items-center gap-1.5 rounded-full px-3 text-xs font-medium transition-colors duration-150 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-giga/15 disabled:pointer-events-none disabled:opacity-40 ${
                 chapters
                   ? "bg-giga-tint text-giga"
                   : "text-ink-muted hover:bg-mist hover:text-ink"
@@ -187,7 +187,7 @@ export default function PromptBox({
               disabled={!canSend}
               aria-label={generating ? "Generating" : hasSlides ? "Regenerate deck" : "Generate deck"}
               title={hasSlides ? "Regenerate the deck (⌘↵)" : "Generate the deck (⌘↵)"}
-              className={`font-manrope flex h-9 shrink-0 items-center justify-center gap-1.5 rounded-full bg-giga text-sm font-semibold text-white transition-all duration-150 hover:bg-giga-deep active:scale-[0.96] focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-giga/30 disabled:pointer-events-none disabled:opacity-40 ${
+              className={`flex h-9 shrink-0 items-center justify-center gap-1.5 rounded-full bg-giga text-sm font-medium text-white transition-all duration-150 hover:bg-giga-deep active:scale-[0.96] focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-giga/30 disabled:pointer-events-none disabled:opacity-40 ${
                 hasSlides && !generating ? "pl-3.5 pr-3" : "w-9"
               }`}
             >

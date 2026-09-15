@@ -22,7 +22,7 @@ export default function AttachmentsRow({
         <span
           key={a.id}
           title={a.kind === "text" && a.truncated ? `${a.name} (long file, first part only)` : a.name}
-          className="group inline-flex h-7 max-w-full items-center gap-1.5 rounded-full bg-giga-tint pl-2 pr-1 text-xs font-semibold text-giga"
+          className="group inline-flex h-7 max-w-full items-center gap-1.5 rounded-full bg-giga-tint pl-2 pr-1 text-xs font-medium text-giga"
         >
           <FileGlyph kind={a.kind} />
           <span className="max-w-[150px] truncate">{a.name}</span>

@@ -59,8 +59,8 @@ const CHAPTER_LAYOUTS = new Set<string>(["agenda", "section-divider"]);
  */
 function BriefExample() {
   return (
-    <div className="mt-3 rounded-xl border border-hairline bg-canvas p-3">
-      <span className="font-manrope mb-0.5 block text-xs font-semibold text-ink-muted">
+    <div className="mt-3 rounded-xl bg-canvas-2 p-3">
+      <span className="mb-0.5 block text-[13px] font-normal text-ink-faint">
         A brief that works
       </span>
       <p className="text-xs leading-relaxed text-ink">
@@ -831,7 +831,7 @@ export default function Studio() {
         )}
       </main>
 
-      <div className="w-[200px] shrink-0 border-l border-hairline bg-canvas">
+      <div className="w-[200px] shrink-0 border-l border-hairline-light bg-canvas">
         <ThumbStrip
           slides={state.slides}
           theme={theme}
@@ -879,7 +879,7 @@ function IconPickerModal({
   const names = q ? ICON_NAMES.filter((n) => n.includes(q)) : ICON_NAMES;
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 p-6"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-scrim p-6"
       onClick={onClose}
     >
       <div
@@ -887,7 +887,7 @@ function IconPickerModal({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mb-3 flex items-baseline justify-between">
-          <p className="font-manrope text-xs font-semibold text-ink-muted">
+          <p className="text-[13px] font-normal text-ink-faint">
             Choose an icon
           </p>
           <span className="text-[11px] text-ink-muted">
@@ -899,7 +899,7 @@ function IconPickerModal({
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Search icons… (e.g. satellite, school, rocket)"
-          className="mb-3 w-full rounded-lg border border-hairline bg-white px-3 py-2 text-sm text-ink outline-none transition-shadow duration-150 placeholder:text-ink-muted/70 focus:border-giga focus:ring-[3px] focus:ring-giga/15"
+          className="mb-3 w-full rounded-lg border border-hairline bg-white px-3 py-2 text-sm text-ink outline-none transition-shadow duration-150 placeholder:text-ink-faint focus:border-giga focus:ring-[3px] focus:ring-giga/15"
         />
         <div className="grid max-h-[52vh] grid-cols-9 gap-1 overflow-y-auto pr-1">
           {names.map((name) => (
@@ -965,7 +965,7 @@ function EmptyState({
         </>
       ) : (
         <>
-          <h1 className="font-manrope text-2xl font-semibold tracking-[-0.02em] text-ink">
+          <h1 className="text-2xl font-medium text-ink">
             What deck are we making?
           </h1>
           <p className="max-w-xs text-center text-sm leading-relaxed text-ink-muted">
@@ -975,7 +975,7 @@ function EmptyState({
             Already have a deck?{" "}
             <button
               onClick={onOpenDeckFile}
-              className="font-semibold text-giga underline-offset-2 transition-colors duration-150 hover:underline"
+              className="font-medium text-giga underline-offset-2 transition-colors duration-150 hover:underline"
             >
               Open the HTML file you exported
             </button>
@@ -985,7 +985,7 @@ function EmptyState({
               deck is offered here instead of appearing under the user. */}
           {count > 0 && (
             <div className="pop-in mt-4 w-full max-w-sm rounded-2xl border border-hairline bg-white p-4">
-              <span className="font-manrope mb-1 block text-xs font-semibold text-ink-muted">
+              <span className="mb-1 block text-[13px] font-normal text-ink-faint">
                 Last session
               </span>
               <p className="text-sm leading-relaxed text-ink">
@@ -1001,13 +1001,13 @@ function EmptyState({
               <div className="mt-3 flex items-center gap-2">
                 <button
                   onClick={onRestorePrevious}
-                  className="font-manrope h-9 rounded-full bg-giga px-4 text-xs font-semibold text-white transition-all duration-150 hover:bg-giga-deep active:scale-[0.98]"
+                  className="h-9 rounded-full bg-giga px-4 text-xs font-medium text-white transition-all duration-150 hover:bg-giga-deep active:scale-[0.98]"
                 >
                   Pick it up
                 </button>
                 <button
                   onClick={onDismissPrevious}
-                  className="rounded-full px-3 py-2 text-xs font-semibold text-ink-muted transition-colors duration-150 hover:text-ink"
+                  className="rounded-full px-3 py-2 text-[13px] font-normal text-ink-faint transition-colors duration-150 hover:text-ink"
                 >
                   Discard
                 </button>
@@ -1058,10 +1058,10 @@ function Toolbar({
     "flex h-8 w-8 items-center justify-center rounded-full text-ink transition-colors duration-150 hover:bg-mist disabled:pointer-events-none disabled:opacity-30";
   return (
     <div className="flex items-center gap-3 border-b border-hairline bg-white px-6 py-2.5">
-      <span className="font-manrope shrink-0 whitespace-nowrap text-sm font-semibold tracking-[-0.01em] text-ink">
+      <span className="shrink-0 whitespace-nowrap text-sm font-medium text-ink">
         Slide {index + 1} / {total}
       </span>
-      <span className="rounded-full bg-mist px-2.5 py-0.5 text-xs font-medium text-ink-muted">
+      <span className="rounded-full bg-mist px-2.5 py-0.5 text-[13px] font-normal text-ink-faint">
         {layoutLabel}
       </span>
       <div className="flex items-center">
@@ -1087,7 +1087,7 @@ function Toolbar({
         <button
           onClick={onOpenDeckFile}
           title="Open a deck you downloaded earlier"
-          className="font-manrope flex h-9 items-center gap-1.5 rounded-full border border-hairline bg-white px-4 text-xs font-semibold text-ink transition-colors duration-150 hover:bg-mist"
+          className="flex h-9 items-center gap-1.5 rounded-full border border-hairline bg-white px-4 text-xs font-medium text-ink transition-colors duration-150 hover:bg-mist"
         >
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M12 16V4M8 8l4-4 4 4" />
@@ -1098,7 +1098,7 @@ function Toolbar({
         <div className="relative">
         <button
           onClick={() => setExportOpen((v) => !v)}
-          className="font-manrope flex h-9 items-center gap-1.5 rounded-full bg-giga px-4 text-xs font-semibold text-white transition-all duration-150 hover:bg-giga-deep active:scale-[0.98]"
+          className="flex h-9 items-center gap-1.5 rounded-full bg-giga px-4 text-xs font-medium text-white transition-all duration-150 hover:bg-giga-deep active:scale-[0.98]"
         >
           Download
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className={`transition-transform duration-150 ${exportOpen ? "rotate-180" : ""}`}>
@@ -1114,7 +1114,7 @@ function Toolbar({
                   setExportOpen(false);
                   onExportPdf();
                 }}
-                className="block w-full rounded-lg px-3 py-2 text-left text-xs font-semibold text-ink transition-colors duration-100 hover:bg-mist"
+                className="block w-full rounded-lg px-3 py-2 text-left text-xs font-medium text-ink transition-colors duration-100 hover:bg-mist"
               >
                 PDF
                 <span className="mt-0.5 block font-normal text-ink-muted">
@@ -1126,7 +1126,7 @@ function Toolbar({
                   setExportOpen(false);
                   onExportHtml();
                 }}
-                className="block w-full rounded-lg px-3 py-2 text-left text-xs font-semibold text-ink transition-colors duration-100 hover:bg-mist"
+                className="block w-full rounded-lg px-3 py-2 text-left text-xs font-medium text-ink transition-colors duration-100 hover:bg-mist"
               >
                 {twoPager ? "HTML file" : "HTML deck"}
                 <span className="mt-0.5 block font-normal text-ink-muted">
@@ -1138,7 +1138,7 @@ function Toolbar({
               {/* PPTX export is parked: item stays visible but disabled */}
               <button
                 disabled
-                className="block w-full rounded-lg px-3 py-2 text-left text-xs font-semibold text-ink opacity-50"
+                className="block w-full rounded-lg px-3 py-2 text-left text-xs font-medium text-ink opacity-50"
               >
                 PowerPoint
                 <span className="mt-0.5 block font-normal text-ink-muted">Not available at the moment</span>
@@ -1190,7 +1190,7 @@ function SlideActions({
     setAiOpen(false);
   };
   const action =
-    "flex h-10 items-center gap-1.5 rounded-full px-3.5 text-[13px] font-semibold text-ink transition-colors duration-150 hover:bg-mist disabled:pointer-events-none disabled:opacity-30";
+    "flex h-10 items-center gap-1.5 rounded-full px-3.5 text-[13px] font-medium text-ink transition-colors duration-150 hover:bg-mist disabled:pointer-events-none disabled:opacity-30";
   return (
     <div className="float-in pointer-events-none absolute inset-x-0 bottom-12 z-20 flex justify-center">
       <div className="pointer-events-auto relative">
@@ -1199,7 +1199,7 @@ function SlideActions({
           className="relative flex items-center gap-0.5 rounded-full border border-hairline bg-white p-1.5 shadow-float"
         >
         {busy ? (
-          <div className="flex h-10 items-center gap-2.5 px-4 text-[13px] font-semibold text-giga">
+          <div className="flex h-10 items-center gap-2.5 px-4 text-[13px] font-medium text-giga">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" className="animate-spin">
               <path d="M21 12a9 9 0 1 1-6.2-8.56" />
             </svg>
@@ -1220,12 +1220,12 @@ function SlideActions({
                 if (e.key === "Escape") setAiOpen(false);
               }}
               placeholder="Describe how to redo this slide…"
-              className="w-80 bg-transparent px-2 text-sm text-ink outline-none placeholder:text-ink-muted/70"
+              className="w-80 bg-transparent px-2 text-sm text-ink outline-none placeholder:text-ink-faint"
             />
             <button
               onClick={submit}
               disabled={busy}
-              className="font-manrope h-10 rounded-full bg-giga px-4 text-xs font-semibold text-white transition-all duration-150 hover:bg-giga-deep active:scale-[0.98] disabled:pointer-events-none disabled:opacity-40"
+              className="h-10 rounded-full bg-giga px-4 text-xs font-medium text-white transition-all duration-150 hover:bg-giga-deep active:scale-[0.98] disabled:pointer-events-none disabled:opacity-40"
             >
               {busy ? "Working…" : "Regenerate"}
             </button>

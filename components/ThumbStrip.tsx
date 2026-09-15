@@ -44,14 +44,14 @@ function LayoutPickerModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-8" onClick={onClose}>
-      <div className="absolute inset-0 bg-ink/40" />
+      <div className="absolute inset-0 bg-scrim" />
       <div
         className="pop-in relative flex max-h-[85vh] w-full max-w-5xl flex-col rounded-2xl bg-white shadow-float"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between border-b border-hairline px-6 py-4">
           <div>
-            <h2 className="font-manrope text-lg font-semibold tracking-[-0.02em] text-ink">
+            <h2 className="text-lg font-medium text-ink">
               Choose a layout
             </h2>
             <p className="mt-0.5 text-xs text-ink-muted">
@@ -74,7 +74,7 @@ function LayoutPickerModal({
               <div className="pointer-events-none overflow-hidden rounded-lg border-2 border-hairline transition-colors duration-150 group-hover:border-ink">
                 <SlideFrame html={html} className="aspect-video w-full" />
               </div>
-              <div className="mt-1.5 text-[11px] font-semibold text-ink">
+              <div className="mt-1.5 text-[11px] font-medium text-ink">
                 {LAYOUTS[id].label}
               </div>
             </button>
@@ -123,14 +123,14 @@ function PagePresetModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-8" onClick={onClose}>
-      <div className="absolute inset-0 bg-ink/40" />
+      <div className="absolute inset-0 bg-scrim" />
       <div
         className="pop-in relative flex max-h-[85vh] w-full max-w-5xl flex-col rounded-2xl bg-white shadow-float"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between border-b border-hairline px-6 py-4">
           <div>
-            <h2 className="font-manrope text-lg font-bold text-ink">Add a page</h2>
+            <h2 className="text-lg font-semibold text-ink">Add a page</h2>
             <p className="text-xs text-ink-muted">
               Pick a starting composition. You can add, remove and reorder blocks afterwards.
             </p>
@@ -151,7 +151,7 @@ function PagePresetModal({
               <div className="pointer-events-none overflow-hidden rounded-lg border-2 border-hairline transition-colors duration-150 group-hover:border-ink">
                 <SlideFrame html={html} size={A4_PX} className="aspect-[595/842] w-full" />
               </div>
-              <div className="mt-1.5 text-[11px] font-semibold text-ink">{label}</div>
+              <div className="mt-1.5 text-[11px] font-medium text-ink">{label}</div>
             </button>
           ))}
         </div>
@@ -258,7 +258,7 @@ export default function ThumbStrip({
               className={`${twoPager ? "aspect-[595/842]" : "aspect-video"} w-full`}
             />
           </div>
-          <div className="absolute left-1 top-1 rounded-md bg-white/90 px-1.5 py-0.5 text-[10px] font-semibold text-ink shadow-stripe">
+          <div className="absolute left-1 top-1 rounded-md bg-white/90 px-1.5 py-0.5 text-[10px] font-medium text-ink shadow-stripe">
             {i + 1} · {LAYOUTS[slide.layoutId]?.label ?? slide.layoutId}
           </div>
           <div className="absolute bottom-1 right-1 hidden gap-1 group-hover:flex">
@@ -334,7 +334,7 @@ function ThumbButton({
     <button
       title={title}
       onClick={onClick}
-      className="rounded-md bg-white/95 px-1.5 py-0.5 text-[11px] font-semibold text-ink shadow-stripe transition-colors duration-150 hover:bg-ink hover:text-white"
+      className="rounded-md bg-white/95 px-1.5 py-0.5 text-[11px] font-medium text-ink shadow-stripe transition-colors duration-150 hover:bg-ink hover:text-white"
     >
       {label}
     </button>

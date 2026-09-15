@@ -23,14 +23,14 @@ interface SidebarProps {
 /** Sidebar section label — the BAG eyebrow at product scale. */
 function Eyebrow({ children }: { children: React.ReactNode }) {
   return (
-    <span className="font-manrope mb-2 block text-xs font-semibold text-ink-muted">
+    <span className="mb-2 block text-[13px] font-normal text-ink-faint">
       {children}
     </span>
   );
 }
 
 const SECONDARY_BTN =
-  "h-10 rounded-full border border-hairline bg-white px-4 text-sm font-semibold text-ink transition-colors duration-150 hover:bg-mist disabled:pointer-events-none disabled:opacity-40";
+  "h-10 rounded-full border border-hairline bg-white px-4 text-sm font-medium text-ink transition-colors duration-150 hover:bg-mist disabled:pointer-events-none disabled:opacity-40";
 
 export default function Sidebar({
   state,
@@ -54,7 +54,7 @@ export default function Sidebar({
   const chaptersPending = hasSlides && deckHasChapters !== state.chapters;
 
   return (
-    <aside className="flex h-full w-[340px] shrink-0 flex-col gap-6 overflow-y-auto border-r border-hairline bg-canvas p-6 *:shrink-0">
+    <aside className="flex h-full w-[340px] shrink-0 flex-col gap-6 overflow-y-auto border-r border-hairline-light bg-canvas p-6 *:shrink-0">
       <div>
         {/* Same colored lockup as the Brand Asset Generator header */}
         {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -72,7 +72,7 @@ export default function Sidebar({
           <select
             value={state.brandId}
             onChange={(e) => dispatch({ type: "SET_BRAND", brandId: e.target.value as BrandId })}
-            className="w-full cursor-pointer appearance-none rounded-lg border border-hairline bg-white px-3 py-2.5 pr-9 text-sm font-semibold text-ink outline-none transition-shadow duration-150 hover:border-ink/20 focus:border-giga focus:ring-[3px] focus:ring-giga/15"
+            className="w-full cursor-pointer appearance-none rounded-lg border border-hairline bg-white px-3 py-2.5 pr-9 text-sm font-medium text-ink outline-none transition-shadow duration-150 hover:border-ink/20 focus:border-giga focus:ring-[3px] focus:ring-giga/15"
           >
             {BRAND_IDS.map((id: BrandId) => (
               <option key={id} value={id}>
@@ -120,7 +120,7 @@ export default function Sidebar({
                       ? "A4 pages, made to be printed"
                       : "16:9 slides"
                 }
-                className={`flex-1 rounded-full px-3 py-1.5 text-xs font-semibold transition-colors duration-150 ${
+                className={`flex-1 rounded-full px-3 py-1.5 text-xs font-medium transition-colors duration-150 ${
                   state.format === id
                     ? "bg-white text-ink shadow-stripe"
                     : state.slides.length > 0
@@ -186,7 +186,7 @@ export default function Sidebar({
 
       {addOpen && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 p-6"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-scrim p-6"
           onClick={() => setAddOpen(false)}
         >
           <div
@@ -207,7 +207,7 @@ export default function Sidebar({
               }}
               placeholder="E.g. team structure: vertical teams (Tech, Finance, Product) plus cross-cutting functions"
               rows={4}
-              className="w-full resize-y rounded-lg border border-hairline bg-white p-3 text-sm text-ink outline-none transition-shadow duration-150 placeholder:text-ink-muted/70 focus:border-giga focus:ring-[3px] focus:ring-giga/15"
+              className="w-full resize-y rounded-lg border border-hairline bg-white p-3 text-sm text-ink outline-none transition-shadow duration-150 placeholder:text-ink-faint focus:border-giga focus:ring-[3px] focus:ring-giga/15"
             />
             <div className="mt-3 flex items-center justify-between gap-2">
               <label className="flex items-center gap-2 text-xs text-ink-muted">
@@ -235,7 +235,7 @@ export default function Sidebar({
                     setAddOpen(false);
                   }}
                   disabled={generating || !addBrief.trim()}
-                  className="font-manrope h-10 rounded-full bg-giga px-5 text-sm font-semibold text-white transition-all duration-150 hover:bg-giga-deep active:scale-[0.98] disabled:pointer-events-none disabled:opacity-40"
+                  className="h-10 rounded-full bg-giga px-5 text-sm font-medium text-white transition-all duration-150 hover:bg-giga-deep active:scale-[0.98] disabled:pointer-events-none disabled:opacity-40"
                 >
                   Add slides
                 </button>
@@ -246,7 +246,7 @@ export default function Sidebar({
       )}
 
       {state.status === "error" && (
-        <div className="rounded-lg border border-status-red/30 bg-status-red/5 p-3 text-xs leading-relaxed text-status-red">
+        <div className="rounded-lg border border-status-red-border bg-status-red-bg p-3 text-xs leading-relaxed text-status-red">
           {state.error}
         </div>
       )}
@@ -254,7 +254,7 @@ export default function Sidebar({
       <div className="mt-auto flex flex-col gap-2">
         <button
           onClick={onHowItWorks}
-          className="flex h-9 items-center justify-center gap-1.5 rounded-full px-4 text-xs font-semibold text-ink-muted transition-colors duration-150 hover:bg-mist hover:text-ink"
+          className="flex h-9 items-center justify-center gap-1.5 rounded-full px-4 text-[13px] font-normal text-ink-faint transition-colors duration-150 hover:bg-mist hover:text-ink"
         >
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <circle cx="12" cy="12" r="9" />
@@ -268,7 +268,7 @@ export default function Sidebar({
             onClick={() => {
               if (confirm("Delete the current deck?")) dispatch({ type: "CLEAR" });
             }}
-            className="flex h-9 items-center justify-center gap-1.5 rounded-full px-4 text-xs font-semibold text-status-red transition-colors duration-150 hover:bg-status-red/5"
+            className="flex h-9 items-center justify-center gap-1.5 rounded-full px-4 text-xs font-medium text-status-red transition-colors duration-150 hover:bg-status-red/5"
           >
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6M10 11v6M14 11v6" />

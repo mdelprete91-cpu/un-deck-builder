@@ -43,8 +43,9 @@ Do not change these without asking Mario first. They are decisions, not defaults
    This is why `section-image-dark` was retired. Dark surfaces are Giga blue, not black.
 4. **One accent.** Giga Blue `#277AFF` and its tints, or `#01AEEF` and its tints on the Digital
    sub-brands. Red only for destructive and error states.
-5. **Typography never varies.** Manrope plus Open Sans, self-hosted in `public/fonts`. No third
-   typeface, in the chrome or in a slide.
+5. **Slide typography never varies.** Manrope plus Open Sans, self-hosted in `public/fonts`, on
+   every slide and page. The editor chrome is a separate matter: it is set in Inter (Mario's call,
+   15 Sep 2026, self-hosted too), regular weight by default, and Inter never reaches a slide.
 6. **Slide markup is verbatim from the template.** The renderers in `lib/slides/layouts/` reproduce
    approved geometry at 1920x1080. Do not "improve" spacing, sizes, or hierarchy on your own
    judgment. If a slide looks wrong, the fix is usually the fit budget or the word limit, not the
