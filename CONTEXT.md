@@ -324,8 +324,12 @@ dark or light basemap; no place names, no roads, only national borders) and inse
   the v2 country list with school and health center counts.
 - **maplibre-gl stays on 5.x.** 6.x resolves its worker through `import.meta.url`, which never
   loads under Next, and the map silently stays empty.
-- **Rendering needs a visible tab.** MapLibre draws on `requestAnimationFrame`, which browsers pause
-  in background tabs, so generation is an explicit "Render map" button, never automatic on open.
+- **The preview renders on its own** whenever country, facilities or style change (250 ms debounce,
+  a token discards superseded renders). MapLibre draws on `requestAnimationFrame`, which browsers
+  pause in background tabs, so a render started in a hidden tab completes when the tab is visible
+  again; the modal is on screen while this runs, so in practice it is never noticed.
+- **While the map is rendering the preview is a canvas-colored skeleton**, not a dark slab: the
+  near-black basemap is slide content and only appears once the image exists.
 - Only the Gambia has health centers in the backend as of September 2026; the panel says so per
   country instead of showing an empty map without explanation.
 

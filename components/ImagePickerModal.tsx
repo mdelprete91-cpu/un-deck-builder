@@ -52,7 +52,7 @@ export default function ImagePickerModal({
       onClick={onClose}
     >
       <div
-        className="pop-in flex max-h-[82vh] w-full max-w-3xl flex-col rounded-2xl bg-white p-5 shadow-stripe-lg"
+        className="pop-in flex max-h-[88vh] w-full max-w-3xl flex-col rounded-2xl bg-white p-5 shadow-stripe-lg"
         onClick={(e) => e.stopPropagation()}
       >
         <span className="font-manrope mb-3 block text-[10px] font-bold uppercase tracking-[0.18em] text-giga">
@@ -92,19 +92,25 @@ export default function ImagePickerModal({
           </div>
         ) : tab === "live" ? (
           <>
-            <div className="mb-3 flex items-center gap-2">
-              <button
-                onClick={() => setTab("choose")}
-                title="Back"
-                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-ink transition-colors duration-150 hover:bg-giga-tint"
-              >
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M15 18l-6-6 6-6" />
-                </svg>
-              </button>
-              <span className="text-sm font-semibold text-ink">Live map</span>
+            <div className="mb-3.5 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setTab("choose")}
+                  title="Back"
+                  aria-label="Back"
+                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-ink transition-colors duration-150 hover:bg-giga-tint focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-giga/15"
+                >
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M15 18l-6-6 6-6" />
+                  </svg>
+                </button>
+                <span className="font-manrope text-base font-semibold tracking-[-0.03em] text-ink">Country map</span>
+              </div>
+              <span className="text-xs text-ink-muted">
+                Live from Giga Maps · fits this slide at {slot.width} × {slot.height}
+              </span>
             </div>
-            <LiveMapPanel slot={slot} onUse={onPickGenerated} />
+            <LiveMapPanel slot={slot} onUse={onPickGenerated} onCancel={onClose} onLibrary={() => setTab("maps")} />
           </>
         ) : (
           <>
