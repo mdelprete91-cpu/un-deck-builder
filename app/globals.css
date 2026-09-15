@@ -91,6 +91,27 @@
   background: transparent;
 }
 
+/* Lucide markup inside the chrome SlideFrame injects into a slide: the icon
+   is sized by its button, so one SVG string serves every scale. */
+.slide-root .item-delete svg { width: 50%; height: 50%; flex: none; }
+.slide-root .item-add,
+.slide-root .logo-upload,
+.slide-root .image-upload {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45em;
+}
+.slide-root .item-add svg,
+.slide-root .logo-upload svg,
+.slide-root .image-upload svg { width: 1em; height: 1em; flex: none; }
+.page-root .block-chrome button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+.page-root .block-chrome button svg { width: 12px; height: 12px; }
+
 /* Self-hosted fonts. Inter is the chrome; Manrope and Open Sans are the
    slide template and must stay, the renderers reference them inline. */
 @font-face {

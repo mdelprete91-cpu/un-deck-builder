@@ -1,5 +1,6 @@
 "use client";
 
+import { Copy, Plus, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AI_LAYOUT_IDS, MANUAL_LAYOUT_IDS, type LayoutId, type Slide } from "@/lib/slides/schema";
 import type { BrandTheme } from "@/lib/slides/brand";
@@ -59,9 +60,7 @@ function PickerModal({
             title="Close (Esc)"
             className="-mr-2 flex h-9 w-9 items-center justify-center rounded-full text-ink transition-colors duration-150 hover:bg-mist"
           >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-              <path d="M18 6 6 18M6 6l12 12" />
-            </svg>
+            <X size={16} aria-hidden />
           </button>
         </div>
         {/* The preview is the whole card: no caption, the name is the tooltip. */}
@@ -259,7 +258,7 @@ export default function ThumbStrip({
           </div>
           <div className="absolute bottom-1 right-1 hidden gap-1 group-hover:flex">
             <ThumbButton
-              label="⧉"
+              icon={<Copy size={12} aria-hidden />}
               title="Duplicate"
               onClick={(e) => {
                 e.stopPropagation();
@@ -267,7 +266,7 @@ export default function ThumbStrip({
               }}
             />
             <ThumbButton
-              label="✕"
+              icon={<X size={12} aria-hidden />}
               title="Delete"
               onClick={(e) => {
                 e.stopPropagation();
@@ -287,9 +286,7 @@ export default function ThumbStrip({
           layoutsOpen ? "bg-mist" : ""
         }`}
       >
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" aria-hidden>
-          <path d="M12 5v14M5 12h14" />
-        </svg>
+        <Plus size={14} aria-hidden />
         {twoPager ? "Add page" : "Add slide"}
       </button>
 
@@ -318,11 +315,11 @@ export default function ThumbStrip({
 }
 
 function ThumbButton({
-  label,
+  icon,
   title,
   onClick,
 }: {
-  label: string;
+  icon: React.ReactNode;
   title: string;
   onClick: (e: React.MouseEvent) => void;
 }) {
@@ -330,9 +327,9 @@ function ThumbButton({
     <button
       title={title}
       onClick={onClick}
-      className="rounded-md bg-white/95 px-1.5 py-0.5 text-[11px] font-medium text-ink shadow-stripe transition-colors duration-150 hover:bg-ink hover:text-white"
+      className="flex h-6 w-6 items-center justify-center rounded-md bg-white/95 text-ink shadow-stripe transition-colors duration-150 hover:bg-ink hover:text-white"
     >
-      {label}
+      {icon}
     </button>
   );
 }

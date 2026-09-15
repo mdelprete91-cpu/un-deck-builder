@@ -1,5 +1,6 @@
 "use client";
 
+import { File as FileIcon, FileText, Image as ImageIcon, X } from "lucide-react";
 import { formatBytes, type Attachment } from "@/lib/slides/attachments";
 
 /**
@@ -34,9 +35,7 @@ export default function AttachmentsRow({
             aria-label={`Remove ${a.name}`}
             className="flex h-5 w-5 items-center justify-center rounded-full text-giga transition-colors duration-150 hover:bg-white focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-giga/15 disabled:opacity-40"
           >
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round">
-              <path d="M18 6L6 18M6 6l12 12" />
-            </svg>
+            <X size={12} aria-hidden />
           </button>
         </span>
       ))}
@@ -45,30 +44,7 @@ export default function AttachmentsRow({
 }
 
 function FileGlyph({ kind }: { kind: Attachment["kind"] }) {
-  const common = {
-    width: 12,
-    height: 12,
-    viewBox: "0 0 24 24",
-    fill: "none",
-    stroke: "currentColor",
-    strokeWidth: 2,
-    strokeLinecap: "round" as const,
-    strokeLinejoin: "round" as const,
-  };
-  if (kind === "image") {
-    return (
-      <svg {...common}>
-        <rect x="3" y="4" width="18" height="16" rx="2" />
-        <circle cx="9" cy="10" r="1.6" />
-        <path d="M21 16l-5-5-9 9" />
-      </svg>
-    );
-  }
-  return (
-    <svg {...common}>
-      <path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z" />
-      <path d="M14 3v5h5" />
-      {kind === "text" && <path d="M9 13h6M9 17h6" />}
-    </svg>
-  );
+  if (kind === "image") return <ImageIcon size={12} aria-hidden />;
+  if (kind === "text") return <FileText size={12} aria-hidden />;
+  return <FileIcon size={12} aria-hidden />;
 }

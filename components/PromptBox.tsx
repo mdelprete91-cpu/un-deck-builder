@@ -1,5 +1,6 @@
 "use client";
 
+import { ArrowUp, Circle, CircleCheck, LoaderCircle, Plus } from "lucide-react";
 import { useLayoutEffect, useRef, useState } from "react";
 import { ATTACHMENT_ACCEPT, type Attachment } from "@/lib/slides/attachments";
 import AttachmentsRow from "@/components/AttachmentsRow";
@@ -132,9 +133,7 @@ export default function PromptBox({
             {reading ? (
               <Spinner />
             ) : (
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                <path d="M12 5v14M5 12h14" />
-              </svg>
+              <Plus size={16} aria-hidden />
             )}
           </button>
           <input
@@ -173,10 +172,7 @@ export default function PromptBox({
               }`}
             >
               {/* The glyph is the state: a ticked circle on, an empty one off. */}
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-                <circle cx="12" cy="12" r="9" />
-                {chapters && <path d="m8.5 12.5 2.5 2.5 5-5" />}
-              </svg>
+              {chapters ? <CircleCheck size={16} aria-hidden /> : <Circle size={16} aria-hidden />}
               Chapters
             </button>
 
@@ -193,9 +189,7 @@ export default function PromptBox({
                 <Spinner />
               ) : (
                 <>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M12 19V5M5 12l7-7 7 7" />
-                  </svg>
+                  <ArrowUp size={16} aria-hidden />
                 </>
               )}
             </button>
@@ -208,18 +202,6 @@ export default function PromptBox({
 
 function Spinner() {
   return (
-    <svg
-      width="16"
-      height="16"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2.4"
-      strokeLinecap="round"
-      className="animate-spin"
-      aria-hidden
-    >
-      <path d="M12 3a9 9 0 1 0 9 9" />
-    </svg>
+    <LoaderCircle size={16} className="animate-spin" aria-hidden />
   );
 }

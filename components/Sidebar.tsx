@@ -1,5 +1,6 @@
 "use client";
 
+import { CircleHelp, Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { BRANDS, PICKER_BRAND_IDS, type BrandId } from "@/lib/slides/brand";
 import type { DeckState, DeckAction } from "@/lib/slides/state";
@@ -146,9 +147,7 @@ export default function Sidebar({
           disabled={generating}
           className={`${SECONDARY_BTN} flex items-center justify-center gap-1.5`}
         >
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
-            <path d="M12 5v14M5 12h14" />
-          </svg>
+          <Plus size={16} aria-hidden />
           Add slides
         </button>
       )}
@@ -225,11 +224,7 @@ export default function Sidebar({
           onClick={onHowItWorks}
           className="flex h-9 items-center justify-center gap-1.5 rounded-full px-4 text-[13px] font-normal text-ink-faint transition-colors duration-150 hover:bg-mist hover:text-ink"
         >
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <circle cx="12" cy="12" r="9" />
-            <path d="M9.5 9a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.7v.2" />
-            <path d="M12 17h.01" />
-          </svg>
+          <CircleHelp size={14} aria-hidden />
           How it works
         </button>
         {hasSlides && (
@@ -239,9 +234,7 @@ export default function Sidebar({
             }}
             className="flex h-9 items-center justify-center gap-1.5 rounded-full px-4 text-xs font-medium text-status-red transition-colors duration-150 hover:bg-status-red/5"
           >
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6M10 11v6M14 11v6" />
-            </svg>
+            <Trash2 size={14} aria-hidden />
             Delete deck
           </button>
         )}

@@ -1,5 +1,6 @@
 "use client";
 
+import { Check, ChevronDown } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 export interface SelectOption<T extends string> {
@@ -77,9 +78,7 @@ export default function Select<T extends string>({
         className="flex h-9 max-w-full items-center gap-1 rounded-lg px-2 text-sm text-ink transition-colors duration-150 hover:bg-mist focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-giga/15 disabled:pointer-events-none disabled:opacity-50"
       >
         <span className="truncate">{current?.label ?? value}</span>
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 text-ink-muted" aria-hidden>
-          <path d="m6 9 6 6 6-6" />
-        </svg>
+        <ChevronDown size={16} className="shrink-0 text-ink-muted" aria-hidden />
       </button>
 
       {open && (
@@ -132,9 +131,7 @@ export default function Select<T extends string>({
                   {o.hint && <span className="block text-xs text-ink-muted">{o.hint}</span>}
                 </span>
                 {selected && (
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0" aria-hidden>
-                    <path d="m5 12 5 5L20 7" />
-                  </svg>
+                  <Check size={16} className="shrink-0" aria-hidden />
                 )}
               </div>
             );

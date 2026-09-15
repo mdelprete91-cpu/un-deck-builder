@@ -57,3 +57,17 @@ export const DEFAULT_ICONS = ["globe", "wifi", "school", "chart-column"];
 export function iconInner(name: string | undefined, position: number): string {
   return ICON_LIBRARY[name ?? ""] ?? ICON_LIBRARY[DEFAULT_ICONS[position % DEFAULT_ICONS.length]];
 }
+
+/**
+ * A complete Lucide SVG as a string, for the editing chrome that SlideFrame
+ * injects into a slide's DOM (delete, block arrows, upload buttons). The
+ * chrome is Lucide everywhere, and this is the one place React cannot help.
+ */
+export function lucideSvg(name: string): string {
+  // No width/height: the button's CSS sizes the icon relative to itself, so
+  // the same markup works at slide scale (56px ✕) and at page scale (22px).
+  return (
+    `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" ` +
+    `stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICON_LIBRARY[name] ?? ""}</svg>`
+  );
+}

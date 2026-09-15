@@ -1,10 +1,11 @@
 "use client";
 
+import { ChartColumn, ChevronDown, Copy, Image as ImageIcon, LoaderCircle, Plus, Redo2, Sparkles, Trash2, Undo2, Upload, X } from "lucide-react";
 import { useEffect, useReducer, useRef, useState } from "react";
 import { BRANDS } from "@/lib/slides/brand";
 import { deckReducer, initialDeckState, readPath } from "@/lib/slides/state";
 import { isPage, normalizeSlide, PRIMARY_ARRAY, type LayoutId, type SlideContent } from "@/lib/slides/schema";
-import { renderSlide, LAYOUTS } from "@/lib/slides/layouts";
+import { renderSlide } from "@/lib/slides/layouts";
 import { A4_PX } from "@/lib/slides/pages/a4";
 import { PAGE_BLOCK_LIMITS, type PageBlock } from "@/lib/slides/pages/schema";
 import { defaultContent } from "@/lib/slides/defaults";
@@ -734,7 +735,6 @@ export default function Studio() {
         ) : (
           <>
             <Toolbar
-              layoutLabel={active ? LAYOUTS[active.layoutId]?.label : ""}
               canUndo={state.past.length > 0}
               canRedo={state.future.length > 0}
               onUndo={() => dispatch({ type: "UNDO" })}
@@ -970,24 +970,6 @@ function EmptyState({
         </>
       ) : (
         <>
-          {/* Three ghost slides: what this space is for, before it has anything
-              in it. Pure chrome, nothing from the template. */}
-          <div aria-hidden className="relative mb-2 h-[88px] w-[200px]">
-            {[
-              "left-0 top-3 -rotate-6",
-              "left-1/2 top-0 -translate-x-1/2 z-10",
-              "right-0 top-3 rotate-6",
-            ].map((pos) => (
-              <div
-                key={pos}
-                className={`absolute aspect-video w-[120px] rounded-lg border border-hairline bg-white p-2.5 shadow-stripe ${pos}`}
-              >
-                <div className="h-2 w-2/3 rounded-full bg-mist-deep" />
-                <div className="mt-2 h-1.5 w-full rounded-full bg-canvas-2" />
-                <div className="mt-1 h-1.5 w-5/6 rounded-full bg-canvas-2" />
-              </div>
-            ))}
-          </div>
           <h1 className="text-2xl font-medium text-ink">What deck are we making?</h1>
           <p className="max-w-sm text-center text-sm leading-relaxed text-ink-muted">
             Describe the story in the prompt box on the left. The slides appear here one by one,
@@ -1004,10 +986,7 @@ function EmptyState({
               onClick={onOpenDeckFile}
               className="flex h-10 items-center gap-1.5 rounded-full border border-hairline bg-white px-4 text-sm font-medium text-ink transition-colors duration-150 hover:bg-mist"
             >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M12 16V4M8 8l4-4 4 4" />
-                <path d="M4 16v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" />
-              </svg>
+              <Upload size={16} aria-hidden />
               Open a deck
             </button>
           </div>
@@ -1052,7 +1031,6 @@ function EmptyState({
 }
 
 function Toolbar({
-  layoutLabel,
   canUndo,
   canRedo,
   onUndo,
@@ -1062,7 +1040,6 @@ function Toolbar({
   onOpenDeckFile,
   twoPager = false,
 }: {
-  layoutLabel: string;
   canUndo: boolean;
   canRedo: boolean;
   onUndo: () => void;
@@ -1087,22 +1064,13 @@ function Toolbar({
     "flex h-8 items-center gap-1.5 rounded-full border border-hairline bg-white px-3 text-[13px] text-ink transition-colors duration-150 hover:bg-mist disabled:pointer-events-none disabled:border-hairline-light disabled:text-ink-faint";
   return (
     <div className="flex items-center gap-3 border-b border-hairline bg-white px-6 py-2.5">
-      <span className="rounded-full bg-mist px-2.5 py-0.5 text-[13px] text-ink-muted">
-        {layoutLabel}
-      </span>
       <div className="flex items-center gap-1.5">
         <button onClick={onUndo} disabled={!canUndo} title="Undo (Cmd+Z)" className={iconBtn}>
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M9 14 4 9l5-5" />
-            <path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11" />
-          </svg>
+          <Undo2 size={16} aria-hidden />
           Undo
         </button>
         <button onClick={onRedo} disabled={!canRedo} title="Redo (Cmd+Shift+Z)" className={iconBtn}>
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="m15 14 5-5-5-5" />
-            <path d="M20 9H9.5a5.5 5.5 0 0 0 0 11H13" />
-          </svg>
+          <Redo2 size={16} aria-hidden />
           Redo
         </button>
       </div>
@@ -1112,10 +1080,7 @@ function Toolbar({
           title="Open a deck you downloaded earlier"
           className="flex h-9 items-center gap-1.5 rounded-full border border-hairline bg-white px-4 text-xs font-medium text-ink transition-colors duration-150 hover:bg-mist"
         >
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M12 16V4M8 8l4-4 4 4" />
-            <path d="M4 16v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" />
-          </svg>
+          <Upload size={14} aria-hidden />
           Upload
         </button>
         <div className="relative">
@@ -1124,9 +1089,7 @@ function Toolbar({
           className="flex h-9 items-center gap-1.5 rounded-full bg-giga px-4 text-xs font-medium text-white transition-all duration-150 hover:bg-giga-deep active:scale-[0.98]"
         >
           Download
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className={`transition-transform duration-150 ${exportOpen ? "rotate-180" : ""}`}>
-            <path d="m6 9 6 6 6-6" />
-          </svg>
+          <ChevronDown size={14} className={`transition-transform duration-150 ${exportOpen ? "rotate-180" : ""}`} aria-hidden />
         </button>
         {exportOpen && (
           <>
@@ -1223,17 +1186,12 @@ function SlideActions({
         >
         {busy ? (
           <div className="flex h-10 items-center gap-2.5 px-4 text-[13px] font-medium text-giga">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" className="animate-spin">
-              <path d="M21 12a9 9 0 1 1-6.2-8.56" />
-            </svg>
+            <LoaderCircle size={16} className="animate-spin" aria-hidden />
             Generating…
           </div>
         ) : aiOpen ? (
           <>
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#277AFF" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="ml-2.5 shrink-0">
-              <path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9L12 3z" />
-              <path d="M19 15l.9 2.1L22 18l-2.1.9L19 21l-.9-2.1L16 18l2.1-.9L19 15z" />
-            </svg>
+            <Sparkles size={16} className="ml-2.5 shrink-0" aria-hidden />
             <input
               autoFocus
               value={instruction}
@@ -1253,56 +1211,38 @@ function SlideActions({
               {busy ? "Working…" : "Regenerate"}
             </button>
             <button onClick={() => setAiOpen(false)} title="Close" className="flex h-10 w-10 items-center justify-center rounded-full text-ink-muted transition-colors duration-150 hover:bg-mist hover:text-ink">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                <path d="M18 6 6 18M6 6l12 12" />
-              </svg>
+              <X size={16} aria-hidden />
             </button>
           </>
         ) : (
           <>
             <button onClick={() => setAiOpen(true)} disabled={busy} className={`${action} text-giga hover:bg-mist`}>
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9L12 3z" />
-                <path d="M19 15l.9 2.1L22 18l-2.1.9L19 21l-.9-2.1L16 18l2.1-.9L19 15z" />
-              </svg>
+              <Sparkles size={16} aria-hidden />
               Edit with AI
             </button>
             <span className="h-5 w-px bg-hairline" />
             <button onClick={onAddItem} disabled={!canAddItem} title="Add an element to this slide" className={action}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                <path d="M12 5v14M5 12h14" />
-              </svg>
+              <Plus size={16} aria-hidden />
               Element
             </button>
             {canEditData && (
               <button onClick={onEditData} title="Edit the chart data in a table" className={action}>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                  <path d="M4 20V4M4 20h16M8 16v-5M12 16V8M16 16v-8" />
-                </svg>
+                <ChartColumn size={16} aria-hidden />
                 Data
               </button>
             )}
             {canChangeImage && (
               <button onClick={onChangeImage} title="Change the image on this slide" className={action}>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <rect x="3" y="3" width="18" height="18" rx="2" />
-                  <circle cx="9" cy="9" r="2" />
-                  <path d="m21 15-3.1-3.1a2 2 0 0 0-2.8 0L6 21" />
-                </svg>
+                <ImageIcon size={16} aria-hidden />
                 Image
               </button>
             )}
             <span className="h-5 w-px bg-hairline" />
             <button onClick={onDuplicate} title="Duplicate slide" className={`${action} w-10 justify-center px-0`}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <rect x="8" y="8" width="13" height="13" rx="2" />
-                <path d="M16 4H6a2 2 0 0 0-2 2v10" />
-              </svg>
+              <Copy size={16} aria-hidden />
             </button>
             <button onClick={onDelete} title="Delete slide" className="flex h-10 w-10 items-center justify-center rounded-full text-ink-muted transition-colors duration-150 hover:bg-status-red/10 hover:text-status-red">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6M10 11v6M14 11v6" />
-              </svg>
+              <Trash2 size={16} aria-hidden />
             </button>
           </>
         )}

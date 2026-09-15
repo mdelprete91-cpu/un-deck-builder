@@ -1,5 +1,6 @@
 "use client";
 
+import { Check, ChevronsUpDown } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { DataLayer, GigaMapCountry, MapTheme } from "@/lib/giga-maps/config";
 import { CONNECTIVITY_LEGEND } from "@/lib/giga-maps/config";
@@ -200,9 +201,7 @@ export default function LiveMapPanel({
                   {country?.name ?? (countriesError ? "Unavailable" : "Loading…")}
                 </span>
               </span>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#5c7187" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M8 9l4-4 4 4M8 15l4 4 4-4" />
-              </svg>
+              <ChevronsUpDown size={16} aria-hidden />
             </button>
             {pickerOpen && (
               <div role="listbox" className="pop-in absolute left-0 top-full z-10 mt-1 flex w-[300px] flex-col gap-1.5 rounded-xl border border-hairline bg-white p-2 shadow-stripe-lg">
@@ -300,9 +299,7 @@ export default function LiveMapPanel({
             disabled={!preview || busy}
             className="inline-flex h-10 items-center gap-2 whitespace-nowrap rounded-full bg-giga px-[18px] text-sm font-medium text-white transition-[background-color,transform,opacity] duration-150 hover:bg-giga-deep focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-giga/25 active:scale-[0.98] disabled:opacity-45 disabled:hover:bg-giga"
           >
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M20 6L9 17l-5-5" />
-            </svg>
+            <Check size={16} aria-hidden />
             Use this map
           </button>
         </div>

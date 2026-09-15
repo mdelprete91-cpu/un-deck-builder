@@ -1,5 +1,6 @@
 "use client";
 
+import { lucideSvg } from "@/lib/slides/icons";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { autofitAll, autofitNode } from "@/lib/slides/autofit";
 import type { ImagePos } from "@/lib/slides/schema";
@@ -189,7 +190,7 @@ export default function SlideFrame({
         btn.className = "item-delete";
         btn.type = "button";
         btn.title = "Delete element";
-        btn.textContent = "✕";
+        btn.innerHTML = lucideSvg("x");
         // The ✕ overhangs the item's top-right corner (-24px). Keep it inside
         // when the item clips itself (partner logos) or when a clipping
         // ancestor would cut the overhang off (callout rows in the flex zone).
@@ -306,7 +307,7 @@ export default function SlideFrame({
         btn.className = "logo-upload";
         btn.type = "button";
         btn.title = "Upload the partner logo (SVG — rendered white automatically)";
-        btn.textContent = "⬆ SVG";
+        btn.innerHTML = `${lucideSvg("upload")}<span>SVG</span>`;
         btn.addEventListener("click", (e) => {
           e.stopPropagation();
           pendingLogoSlug.current = cell.getAttribute("data-logo");
@@ -333,11 +334,11 @@ export default function SlideFrame({
         });
         const bar = document.createElement("div");
         bar.className = "block-chrome";
-        const button = (label: string, title: string, fn: () => void, disabled = false) => {
+        const button = (icon: string, title: string, fn: () => void, disabled = false) => {
           const b = document.createElement("button");
           b.type = "button";
           b.title = title;
-          b.textContent = label;
+          b.innerHTML = lucideSvg(icon);
           b.disabled = disabled;
           b.addEventListener("click", (e) => {
             e.stopPropagation();
@@ -345,9 +346,9 @@ export default function SlideFrame({
           });
           bar.appendChild(b);
         };
-        button("↑", "Move this block up", () => pageRef.current.onMoveBlock?.(i, i - 1), i === 0);
-        button("↓", "Move this block down", () => pageRef.current.onMoveBlock?.(i, i + 1), i === blocks.length - 1);
-        button("✕", "Remove this block", () => pageRef.current.onDeleteBlock?.(i), blocks.length <= 1);
+        button("arrow-up", "Move this block up", () => pageRef.current.onMoveBlock?.(i, i - 1), i === 0);
+        button("arrow-down", "Move this block down", () => pageRef.current.onMoveBlock?.(i, i + 1), i === blocks.length - 1);
+        button("x", "Remove this block", () => pageRef.current.onDeleteBlock?.(i), blocks.length <= 1);
         node.appendChild(bar);
       });
     }
@@ -364,7 +365,7 @@ export default function SlideFrame({
         btn.className = "image-upload";
         btn.type = "button";
         btn.title = "Change this image";
-        btn.textContent = "Image";
+        btn.innerHTML = `${lucideSvg("image")}<span>Image</span>`;
         btn.addEventListener("click", (e) => {
           e.stopPropagation();
           pageRef.current.onPickImage?.(img.getAttribute("data-image") || "image");
@@ -407,7 +408,7 @@ export default function SlideFrame({
       btn.className = "item-add";
       btn.type = "button";
       btn.title = "Add an element to this slide";
-      btn.textContent = "+ Add element";
+      btn.innerHTML = `${lucideSvg("plus")}<span>Add element</span>`;
       btn.addEventListener("click", (e) => {
         e.stopPropagation();
         onAddItemRef.current?.();

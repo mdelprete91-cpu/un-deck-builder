@@ -66,6 +66,7 @@ The chrome is neutral and flat, in the register of a chat composer: white and wa
 - **Segmented controls** are a Mist track with the selected option as a white pill with `shadow-stripe`.
 - **Inputs.** White surface, hairline border, 8px radius, Ink text, Faint Ink placeholder. Focus: Giga Blue border plus a soft 3px ring at low alpha.
 - **Motion.** 150-250ms, ease-out, state-conveying only. No entrance choreography in the chrome.
+- **Icons are Lucide, only Lucide.** `lucide-react` in the chrome, the `lucide` markup (`lucideSvg` in `lib/slides/icons.ts`) for the buttons SlideFrame injects into a slide. No hand-drawn SVG, no text glyphs standing in for icons; where Lucide has no fitting icon, the control is text.
 
 ## Editor-specific vocabulary
 
@@ -74,4 +75,4 @@ The chrome is neutral and flat, in the register of a chat composer: white and wa
 - **Toolbar.** White band with bottom hairline. Slide counter in Inter 500 Ink; layout name as a Mist chip in Muted Ink; icon buttons are borderless and wash Mist on hover.
 - **Filmstrip thumbnails.** 8px radius, 2px border: Ink when active, hairline otherwise. Index badge is a white chip with Ink text. Hover actions are white chips that turn Ink on hover. The add tile is a dashed hairline box that washes Mist.
 - **Slide bar.** A white pill with a hairline border and `shadow-float`, centered under the slide. "Edit with AI" is the one accent-colored item in it.
-- **Empty state.** An Inter headline ("What deck are we making?") over two lines of Muted Ink body, nothing else. The last-session card is a white card with a hairline border.
+- **Empty state.** An Inter headline ("What deck are we making?") over one line of Muted Ink body, then Write the brief and Open a deck. No illustration: the chrome's only pictures are Lucide icons. The last-session card is a white card with a hairline border.

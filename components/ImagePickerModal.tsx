@@ -1,5 +1,6 @@
 "use client";
 
+import { ChevronLeft, Map as MapIcon, Upload } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { COUNTRY_MAPS, countryMapThumb } from "@/lib/slides/country-maps";
 import LiveMapPanel from "@/components/LiveMapPanel";
@@ -65,10 +66,7 @@ export default function ImagePickerModal({
               onClick={onUpload}
               className="flex flex-col items-center gap-2 rounded-xl border border-hairline bg-white px-4 py-8 text-center transition-colors duration-150 hover:bg-mist"
             >
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#277AFF" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M12 16V4M8 8l4-4 4 4" />
-                <path d="M4 16v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" />
-              </svg>
+              <Upload size={22} aria-hidden />
               <span className="text-sm font-medium text-ink">Upload image</span>
               <span className="text-xs text-ink-muted">A photo from your computer</span>
             </button>
@@ -76,10 +74,7 @@ export default function ImagePickerModal({
               onClick={() => setTab("live")}
               className="flex flex-col items-center gap-2 rounded-xl border border-hairline bg-white px-4 py-8 text-center transition-colors duration-150 hover:bg-mist"
             >
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#277AFF" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2-6-2Z" />
-                <path d="M9 4v14M15 6v14" />
-              </svg>
+              <MapIcon size={22} aria-hidden />
               <span className="text-sm font-medium text-ink">Maps</span>
               <span className="text-xs text-ink-muted">Schools and health centers, any country, live from Giga Maps</span>
             </button>
@@ -100,9 +95,7 @@ export default function ImagePickerModal({
                   aria-label="Back"
                   className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-ink transition-colors duration-150 hover:bg-mist focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-giga/15"
                 >
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M15 18l-6-6 6-6" />
-                  </svg>
+                  <ChevronLeft size={16} aria-hidden />
                 </button>
                 <span className="text-base font-medium text-ink">Country map</span>
               </div>
@@ -120,9 +113,7 @@ export default function ImagePickerModal({
                 title="Back"
                 className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-ink transition-colors duration-150 hover:bg-mist"
               >
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M15 18l-6-6 6-6" />
-                </svg>
+                <ChevronLeft size={16} aria-hidden />
               </button>
               <input
                 autoFocus
