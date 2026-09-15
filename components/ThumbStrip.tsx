@@ -10,7 +10,15 @@ import { PAGE_PRESETS, presetStack } from "@/lib/slides/pages/presets";
 import SlideFrame from "./SlideFrame";
 import type { DeckAction } from "@/lib/slides/state";
 
-const PICKER_LAYOUT_IDS = [...AI_LAYOUT_IDS, ...MANUAL_LAYOUT_IDS];
+/**
+ * Picker order: the AI list, then the manual-only layouts, except that Full
+ * image sits right after Photo, where a person looking for a picture slide
+ * expects to find it.
+ */
+const PICKER_LAYOUT_IDS: LayoutId[] = [
+  ...AI_LAYOUT_IDS.flatMap((id) => (id === "photo" ? [id, "photo-full" as const] : [id])),
+  ...MANUAL_LAYOUT_IDS.filter((id) => id !== "photo-full"),
+];
 
 /**
  * The picker modal, in the register of ChatGPT's "Add from library": the

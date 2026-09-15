@@ -26,7 +26,6 @@ export const CATALOG: CatalogEntry[] = [
   { id: "four-cards", usage: "1-4 labelled cards (4 = 2x2 grid, fewer = wider cards); What/Give/Get/KPIs or similar", fields: "title(<=6 words), blocks(1-4: label 1-2 words, body <=16 words)" },
   { id: "steps", usage: "Numbered process, 3 or 4 steps", fields: "title(<=6 words), blocks(2-4: label <=2 words, body <=8 words)" },
   { id: "body-copy", usage: "Running prose in two columns; only when text truly needs a full slide", fields: 'title(<=6 words), blocks(2: label always "", body 40-60 words each — two halves of one continuous text)' },
-  { id: "map", usage: "World map of mapped schools; use when talking global reach", fields: "title(<=6 words)" },
   { id: "photo", usage: "Full-width photo under a title; visual pause or context", fields: "title(<=6 words)" },
   { id: "icon-cards", usage: "2-4 points with icons (globe, wifi, school, chart)", fields: "title(<=6 words), blocks(2-4: label <=2 words, body <=12 words)" },
   { id: "stat-grid", usage: "Up to six KPI numbers beside a title", fields: "title(<=8 words), stats(1-6: value <=5 chars, label <=5 words)" },

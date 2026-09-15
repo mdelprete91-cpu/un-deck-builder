@@ -16,7 +16,6 @@ export const AI_LAYOUT_IDS = [
   "steps",
   "body-copy",
   "photo",
-  "map",
   "icon-cards",
   "stat-grid",
   "brand-equity",
@@ -40,7 +39,9 @@ export const MANUAL_LAYOUT_IDS = ["tiers-1", "tiers-2", "photo-full"] as const;
  * render (the renderer maps them to brand-safe surfaces). Never offered to the
  * AI or in the insert list. "section-image-dark" violated the Giga no-black rule.
  */
-export const LEGACY_LAYOUT_IDS = ["section-image-dark"] as const;
+// "map" is "photo" with a default world map: same geometry, one more entry
+// in every list (Mario, 15 Sep 2026). Retired; a live map goes on a photo slide.
+export const LEGACY_LAYOUT_IDS = ["section-image-dark", "map"] as const;
 
 /**
  * The two-pager page. Not a slide layout: it is never offered to the AI as a

@@ -28,7 +28,7 @@ export const LAYOUTS: Record<LayoutId, { label: string; render: RenderFn }> = {
   "body-copy": { label: "Body copy", render: basic.bodyCopy },
   photo: { label: "Photo", render: basic.photo },
   "photo-full": { label: "Full image", render: basic.photoFull },
-  map: { label: "World map", render: basic.worldMap },
+  map: { label: "World map", render: basic.worldMap }, // retired, see LEGACY_LAYOUT_IDS
   "icon-cards": { label: "Icon cards", render: cards.iconCards },
   "stat-grid": { label: "Stat grid", render: stats.statGrid },
   "brand-equity": { label: "Stats + intro", render: stats.brandEquity },
