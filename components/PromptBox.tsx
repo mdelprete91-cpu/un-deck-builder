@@ -17,42 +17,6 @@ import AttachmentsRow from "@/components/AttachmentsRow";
 
 const MAX_HEIGHT = 280;
 
-const SUGGESTIONS: { label: string; brief: string; glyph: React.ReactNode }[] = [
-  {
-    label: "Pitch a telecom partner",
-    brief:
-      "A partnership pitch to a Kenyan telecom operator, in 10 slides: what Giga is, the gap in real numbers, our ask, and what they get back.",
-    glyph: (
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M11 17a4 4 0 0 1-4-4V7a4 4 0 0 1 4-4h2a4 4 0 0 1 4 4v6a4 4 0 0 1-4 4" />
-        <path d="M8 21h8M12 17v4" />
-      </svg>
-    ),
-  },
-  {
-    label: "Update donors on progress",
-    brief:
-      "A 6-slide progress update for donors: what was delivered this quarter, the schools connected, what it changed for students, and what comes next.",
-    glyph: (
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M3 3v18h18" />
-        <path d="m7 15 4-4 3 3 6-6" />
-      </svg>
-    ),
-  },
-  {
-    label: "Introduce Giga to a government",
-    brief:
-      "An introduction to Giga for a new government partner: the mission, how school mapping works, the connectivity model, and what we ask of the ministry.",
-    glyph: (
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-        <circle cx="12" cy="12" r="9" />
-        <path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18" />
-      </svg>
-    ),
-  },
-];
-
 export default function PromptBox({
   brief,
   onBrief,
@@ -64,7 +28,6 @@ export default function PromptBox({
   onGenerate,
   generating,
   hasSlides,
-  showSuggestions,
 }: {
   brief: string;
   onBrief: (brief: string) => void;
@@ -76,8 +39,6 @@ export default function PromptBox({
   onGenerate: () => void;
   generating: boolean;
   hasSlides: boolean;
-  /** Example briefs under the box; the parent decides when they earn the space. */
-  showSuggestions: boolean;
 }) {
   const textRef = useRef<HTMLTextAreaElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -243,26 +204,6 @@ export default function PromptBox({
           </div>
         </div>
       </div>
-
-      {showSuggestions && (
-        <ul className="mt-3 flex flex-col">
-          {SUGGESTIONS.map((s) => (
-            <li key={s.label}>
-              <button
-                type="button"
-                onClick={() => {
-                  onBrief(s.brief);
-                  textRef.current?.focus();
-                }}
-                className="flex w-full items-center gap-2.5 rounded-lg px-2 py-2 text-left text-sm text-ink-muted transition-colors duration-150 hover:bg-mist hover:text-ink focus-visible:outline-none focus-visible:bg-mist focus-visible:text-ink"
-              >
-                <span className="shrink-0">{s.glyph}</span>
-                {s.label}
-              </button>
-            </li>
-          ))}
-        </ul>
-      )}
     </div>
   );
 }

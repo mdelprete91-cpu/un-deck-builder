@@ -153,7 +153,6 @@ export default function Sidebar({
           onGenerate={onGenerate}
           generating={generating}
           hasSlides={hasSlides}
-          showSuggestions={!hasSlides && !state.brief.trim() && attachments.length === 0}
         />
         {attachError && (
           <p className="mt-1.5 text-xs leading-relaxed text-status-red">{attachError}</p>
@@ -166,10 +165,6 @@ export default function Sidebar({
             to apply.
           </p>
         )}
-        <p className="mt-2 text-xs leading-relaxed text-ink-muted">
-          The AI picks the template slides the story needs and fills them in. Ask for a count if
-          you want one. Attach a file and it draws the facts from there.
-        </p>
       </div>
 
       {/* Targeted additions live in a modal: what to add + how many; the AI

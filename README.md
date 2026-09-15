@@ -6,7 +6,7 @@ On **UNICEF Digital Inclusion** there is a second template: the **two-pager**, a
 
 ## How it works
 
-- **Sidebar**: logo lockup (Digital Impact Division / Giga / UNICEF / Digital Inclusion) and the prompt box, a chat-style composer: the brief, a "+" to attach reference files, the Chapters toggle and Generate in one surface. On an empty editor three example briefs sit under it. ⌘↵ generates.
+- **Sidebar**: logo lockup (Digital Impact Division / Giga / UNICEF / Digital Inclusion) and the prompt box, a chat-style composer: the brief, a "+" to attach reference files, the Chapters toggle and Generate in one surface. ⌘↵ generates.
 - **Template switch** (Digital Inclusion only, and only on an empty deck): Slides, or Two-pager. A two-pager page is a vertical stack of blocks at A4 — title, labelled text, status callout, stat cards, icon columns, photo cards, two columns, figure, screens, table, numbered asks, contacts. "Add page" starts from a preset composition; inside a page you add, remove and reorder blocks. Everything else behaves the same: inline editing, ✕ to delete an element, duplicate, reorder, undo, regenerate with AI, and per-slot image upload.
 - **Chapters toggle** (in the prompt box next to Generate, off by default): off, the deck is generated with no agenda slide and no section dividers, for when that structure is more than the story needs. It is an input to Generate, not a view option: it shapes the next generation and never edits the deck on screen, and the sidebar says so when the two disagree.
 - **Generation**: Claude Haiku 4.5 returns structured JSON (`layoutId` + text fields) via a streaming API route — slides appear one by one. Fast and cheap (~$0.01 per 12-slide deck).
