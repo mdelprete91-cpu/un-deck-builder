@@ -1,7 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import {
   buildSystemPrompt,
-  buildUserMessage,
+  buildUserContent,
   SLIDES_OUTPUT_SCHEMA,
   ADD_OUTPUT_SCHEMA,
   PAGES_OUTPUT_SCHEMA,
@@ -10,6 +10,7 @@ import {
 } from "@/lib/slides/prompt";
 import type { DeckFormat } from "@/lib/slides/state";
 import { SlideStreamParser } from "@/lib/slides/parse";
+import { sanitizeAttachments } from "@/lib/slides/attachments-server";
 
 export const runtime = "nodejs";
 
@@ -58,8 +59,14 @@ export async function POST(request: Request): Promise<Response> {
   } catch {
     return new Response("Invalid JSON body", { status: 400 });
   }
+  // Everything in the body is client input; attachments are re-validated
+  // here (count, size, media types) before they reach the model.
+  const attachments = sanitizeAttachments(body.attachments);
+  if (typeof attachments === "string") return new Response(attachments, { status: 400 });
+  body = { ...body, attachments };
   if (!body.brief?.trim() && body.mode !== "regenerate") {
-    return new Response("Missing brief", { status: 400 });
+    if (attachments.length === 0) return new Response("Missing brief", { status: 400 });
+    body.brief = "Build it from the attached material.";
   }
   if (!process.env.ANTHROPIC_API_KEY) {
     return new Response("ANTHROPIC_API_KEY is not configured", { status: 500 });
@@ -103,7 +110,7 @@ export async function POST(request: Request): Promise<Response> {
                   : SLIDES_OUTPUT_SCHEMA,
             },
           },
-          messages: [{ role: "user", content: buildUserMessage(body) }],
+          messages: [{ role: "user", content: buildUserContent(body) }],
         });
 
         for await (const event of messageStream) {
