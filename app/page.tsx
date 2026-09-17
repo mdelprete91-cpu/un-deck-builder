@@ -551,6 +551,7 @@ export default function Studio() {
   const [pptxProgress, setPptxProgress] = useState<{ done: number; total: number } | null>(null);
   const onExportPptx = () => {
     if (pptxProgress) return;
+    dispatch({ type: "CLEAR_ERROR" });
     setPptxProgress({ done: 0, total: state.slides.length });
     exportPptxDeck(state.slides, theme, state.slides[0]?.title ?? "giga-deck", (done, total) =>
       setPptxProgress({ done, total }),
@@ -1185,8 +1186,12 @@ function SlideActions({
     setInstruction("");
     setAiOpen(false);
   };
-  // Every action is the same bordered pill as Undo/Redo in the toolbar, with
-  // an icon and a word; no dividers, the gap does the separating.
+  // One Button spec for every action, no dividers: the gap separates, a
+  // slightly wider one sets the slide-level pair (duplicate, delete) apart.
+  // Edit with AI is the bar's one accent, as DESIGN.md says. Actions that do
+  // not apply to this slide are absent, not disabled: Data and Image already
+  // worked that way, Element now matches.
+  const canSend = instruction.trim().length > 0;
   return (
     <div className="float-in pointer-events-none absolute inset-x-0 bottom-12 z-20 flex justify-center">
       <div className="gradient-ring pointer-events-auto relative shadow-float">
@@ -1195,10 +1200,9 @@ function SlideActions({
           className="relative flex items-center gap-2 rounded-full bg-white p-2.5"
         >
         {busy ? (
-          <div className="flex h-10 items-center gap-2.5 px-4 text-[13px] font-medium text-giga">
-            <LoaderCircle size={16} className="animate-spin" aria-hidden />
+          <Button variant="accent" icon={LoaderCircle} iconClassName="animate-spin" aria-busy tabIndex={-1}>
             Generating…
-          </div>
+          </Button>
         ) : aiOpen ? (
           <>
             <input
@@ -1206,14 +1210,15 @@ function SlideActions({
               value={instruction}
               onChange={(e) => setInstruction(e.target.value)}
               onKeyDown={(e) => {
-                if (e.key === "Enter") submit();
+                if (e.key === "Enter" && canSend) submit();
                 if (e.key === "Escape") setAiOpen(false);
               }}
               placeholder="Describe how to redo this slide…"
-              className="w-80 bg-transparent px-2 text-sm text-ink outline-none placeholder:text-ink-faint"
+              aria-label="How to redo this slide"
+              className="h-9 w-80 bg-transparent px-3 text-sm text-ink outline-none placeholder:text-ink-faint"
             />
-            <Button variant="primary" onClick={submit} disabled={busy}>
-              {busy ? "Working…" : "Regenerate"}
+            <Button variant="primary" onClick={submit} disabled={busy || !canSend}>
+              Regenerate
             </Button>
             <Button
               variant="ghost"
@@ -1226,18 +1231,14 @@ function SlideActions({
           </>
         ) : (
           <>
-            <Button variant="secondary" onClick={() => setAiOpen(true)} disabled={busy}>
+            <Button variant="accent" onClick={() => setAiOpen(true)} disabled={busy}>
               Edit with AI
             </Button>
-            <Button
-              variant="secondary"
-              icon={Plus}
-              onClick={onAddItem}
-              disabled={!canAddItem}
-              title="Add an element to this slide"
-            >
-              Element
-            </Button>
+            {canAddItem && (
+              <Button variant="secondary" icon={Plus} onClick={onAddItem} title="Add an element to this slide">
+                Element
+              </Button>
+            )}
             {canEditData && (
               <Button
                 variant="secondary"
@@ -1265,6 +1266,7 @@ function SlideActions({
               onClick={onDuplicate}
               title="Duplicate slide"
               aria-label="Duplicate slide"
+              className="ml-1"
             />
             <Button
               variant="danger"

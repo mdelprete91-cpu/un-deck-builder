@@ -75,6 +75,7 @@ export type DeckAction =
   | { type: "SET_ICON"; index: number; block: number; icon: string; path?: string }
   | { type: "INSERT_SLIDES"; at: number | null; contents: SlideContent[]; agenda?: string[] }
   | { type: "GENERATION_ERROR"; error: string }
+  | { type: "CLEAR_ERROR" }
   | { type: "EDIT_FIELD"; index: number; path: string; value: string }
   | { type: "DELETE_ITEM"; index: number; path: string }
   | { type: "ADD_ITEM"; index: number; path?: string }
@@ -236,6 +237,8 @@ function reduce(state: DeckState, action: DeckAction): DeckState {
             }
           : state.usage,
       };
+    case "CLEAR_ERROR":
+      return state.status === "error" ? { ...state, status: "idle", error: undefined } : state;
     case "GENERATION_ERROR":
       return { ...state, status: "error", error: action.error };
     case "EDIT_FIELD": {
