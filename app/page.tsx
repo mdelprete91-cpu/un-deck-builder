@@ -1084,9 +1084,6 @@ function Toolbar({
                 className="block w-full rounded-[10px] px-2.5 py-1.5 text-left text-sm text-ink transition-colors duration-100 hover:bg-black/[0.04]"
               >
                 PDF
-                <span className="block text-xs text-ink-muted">
-                  {twoPager ? "Print-ready, one A4 page each" : "Print-ready, one page per slide"}
-                </span>
               </button>
               <button
                 onClick={() => {
@@ -1095,11 +1092,12 @@ function Toolbar({
                 }}
                 className="block w-full rounded-[10px] px-2.5 py-1.5 text-left text-sm text-ink transition-colors duration-100 hover:bg-black/[0.04]"
               >
-                {twoPager ? "HTML file" : "HTML deck"}
-                <span className="block text-xs text-ink-muted">
-                  {twoPager
-                    ? "The save file: reopen it here to keep editing"
-                    : "Standalone file, reopen it here to keep editing"}
+                <span className="flex items-center justify-between gap-2">
+                  {twoPager ? "HTML file" : "HTML deck"}
+                  {/* The one file that comes back: Upload reopens it for editing. */}
+                  <span className="shrink-0 rounded-full bg-giga-tint px-1.5 py-0.5 text-[11px] font-medium leading-4 text-giga">
+                    Re-upload to edit
+                  </span>
                 </span>
               </button>
               {/* Slides only: a two-pager is a printed piece, its file is the PDF. */}
@@ -1112,13 +1110,12 @@ function Toolbar({
                 className="block w-full rounded-[10px] px-2.5 py-1.5 text-left text-sm text-ink transition-colors duration-100 hover:bg-black/[0.04] disabled:pointer-events-none disabled:text-ink-faint"
               >
                 PowerPoint
-                <span className="block text-xs text-ink-muted">
-                  {twoPager
-                    ? "Slides only"
-                    : pptxProgress
-                      ? `Exporting ${pptxProgress.done} of ${pptxProgress.total}…`
-                      : "Editable slides, nothing sent to the AI"}
-                </span>
+                {/* No description in the resting state; only why it is busy or off. */}
+                {(twoPager || pptxProgress) && (
+                  <span className="block text-xs text-ink-muted">
+                    {twoPager ? "Slides only" : `Exporting ${pptxProgress!.done} of ${pptxProgress!.total}…`}
+                  </span>
+                )}
               </button>
             </div>
           </>
