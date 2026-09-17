@@ -1,4 +1,5 @@
 import { DEFAULT_CHANNELS, isPage } from "./schema";
+import { DEFAULT_DECK_NAME } from "./state";
 import type { DeckState } from "./state";
 
 const KEY = "giga-deck:session";
@@ -6,6 +7,8 @@ const VERSION = 2;
 
 interface Persisted {
   version: number;
+  /** Added 17 Sep 2026, defaulted on read: additive, so no VERSION bump. */
+  name?: string;
   brandId: DeckState["brandId"];
   format?: DeckState["format"];
   brief: string;
@@ -30,6 +33,7 @@ export function saveDeck(state: DeckState): void {
   try {
     const payload: Persisted = {
       version: VERSION,
+      name: state.name,
       brandId: state.brandId,
       format: state.format,
       brief: state.brief,
@@ -81,6 +85,7 @@ function read(raw: string | null): Partial<DeckState> | null {
     // session saved before the field existed.
     const twoPager = parsed.slides.some((s) => isPage(s));
     return {
+      name: parsed.name?.trim() || DEFAULT_DECK_NAME,
       brandId: twoPager ? "inclusion" : parsed.brandId,
       // Added after VERSION 2 and defaulted, so it is additive and lossless:
       // bumping the version here would log out every returning user instead.

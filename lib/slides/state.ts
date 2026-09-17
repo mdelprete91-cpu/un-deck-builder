@@ -23,7 +23,12 @@ export type DeckFormat = "slides" | "two-pager";
 /** The only brand the two-pager template exists for. */
 export const TWO_PAGER_BRAND = "inclusion";
 
+/** What a deck is called until someone names it. */
+export const DEFAULT_DECK_NAME = "New deck";
+
 export interface DeckState {
+  /** The deck's name: the file name of every download, editable in the toolbar. */
+  name: string;
   brandId: BrandId;
   format: DeckFormat;
   brief: string;
@@ -40,11 +45,19 @@ export interface DeckState {
   error?: string;
   /** Cumulative API usage for the session, for the cost readout. */
   usage: { inputTokens: number; outputTokens: number };
+  /**
+   * The last generation, for the readout under "How it works": what it cost
+   * and how long it took. Session state, never saved.
+   */
+  lastRun?: { seconds: number; inputTokens: number; outputTokens: number };
+  /** When the running generation started, to time it. */
+  startedAt?: number;
   past: Snapshot[];
   future: Snapshot[];
 }
 
 export const initialDeckState: DeckState = {
+  name: DEFAULT_DECK_NAME,
   brandId: "did",
   format: "slides",
   brief: "",
@@ -62,6 +75,7 @@ export type DeckAction =
   | { type: "HYDRATE"; state: Partial<DeckState> }
   | { type: "SET_BRAND"; brandId: BrandId }
   | { type: "SET_FORMAT"; format: DeckFormat }
+  | { type: "RENAME"; name: string }
   | { type: "SET_BRIEF"; brief: string }
   | { type: "SET_COUNT"; count: number }
   | { type: "SET_CHAPTERS"; chapters: boolean }
@@ -198,6 +212,8 @@ function reduce(state: DeckState, action: DeckAction): DeckState {
         // (8) would ask the model for an eight-page brief.
         count: action.format === "two-pager" ? 2 : initialDeckState.count,
       };
+    case "RENAME":
+      return { ...state, name: action.name.trim() || DEFAULT_DECK_NAME };
     case "SET_BRIEF":
       return { ...state, brief: action.brief };
     case "SET_COUNT":
@@ -210,6 +226,7 @@ function reduce(state: DeckState, action: DeckAction): DeckState {
         ...(action.replace && state.slides.length > 0 ? remember(state) : {}),
         status: "generating",
         error: undefined,
+        startedAt: Date.now(),
         slides: action.replace ? [] : state.slides,
         activeIndex: action.replace ? 0 : state.activeIndex,
       };
@@ -230,6 +247,14 @@ function reduce(state: DeckState, action: DeckAction): DeckState {
       return {
         ...state,
         status: "idle",
+        startedAt: undefined,
+        lastRun: action.usage
+          ? {
+              seconds: state.startedAt ? (Date.now() - state.startedAt) / 1000 : 0,
+              inputTokens: action.usage.inputTokens,
+              outputTokens: action.usage.outputTokens,
+            }
+          : state.lastRun,
         usage: action.usage
           ? {
               inputTokens: state.usage.inputTokens + action.usage.inputTokens,

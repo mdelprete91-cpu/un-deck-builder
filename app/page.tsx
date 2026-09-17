@@ -3,7 +3,7 @@
 import { ChartColumn, ChevronDown, Copy, History, Image as ImageIcon, LoaderCircle, Plus, Redo2, Trash2, Undo2, Upload, X } from "lucide-react";
 import { useEffect, useReducer, useRef, useState } from "react";
 import { BRANDS } from "@/lib/slides/brand";
-import { deckReducer, initialDeckState, readPath } from "@/lib/slides/state";
+import { DEFAULT_DECK_NAME, deckReducer, initialDeckState, readPath } from "@/lib/slides/state";
 import { isPage, normalizeSlide, PRIMARY_ARRAY, type LayoutId, type SlideContent } from "@/lib/slides/schema";
 import { renderSlide } from "@/lib/slides/layouts";
 import { A4_PX } from "@/lib/slides/pages/a4";
@@ -35,6 +35,7 @@ import { mapSlotFor } from "@/lib/giga-maps/slot";
 import ThumbStrip from "@/components/ThumbStrip";
 import PrintRoot from "@/components/PrintRoot";
 import Tour, { type TourStep } from "@/components/Tour";
+import DeckName from "@/components/DeckName";
 import type { DeckState } from "@/lib/slides/state";
 
 /**
@@ -527,13 +528,22 @@ export default function Studio() {
     // A two-pager is a printed piece: its HTML file is the pages stacked down
     // the screen, not the fullscreen deck runner. Both carry the same state
     // payload, which is what makes the file the save file.
-    const name = twoPager
-      ? (active?.footerLabel || theme.footerLabel)
-      : (state.slides[0]?.title ?? "giga-deck");
     const run = twoPager ? exportPageDoc : exportHtmlDeck;
-    run(state, theme, name).catch((err) =>
+    run(state, theme, state.name).catch((err) =>
       dispatch({ type: "GENERATION_ERROR", error: `Export failed: ${err.message}` }),
     );
+  };
+
+  // The print dialog proposes the page title as the PDF's file name, so the
+  // deck's name takes the tab for the duration of the dialog.
+  const onExportPdf = () => {
+    const tabTitle = document.title;
+    document.title = state.name;
+    try {
+      window.print();
+    } finally {
+      document.title = tabTitle;
+    }
   };
 
   // PowerPoint: the same renderers, captured, with every editable field laid
@@ -543,7 +553,7 @@ export default function Studio() {
     if (pptxProgress) return;
     dispatch({ type: "CLEAR_ERROR" });
     setPptxProgress({ done: 0, total: state.slides.length });
-    exportPptxDeck(state.slides, theme, state.slides[0]?.title ?? "giga-deck", (done, total) =>
+    exportPptxDeck(state.slides, theme, state.name, (done, total) =>
       setPptxProgress({ done, total }),
     )
       .catch((err) => dispatch({ type: "GENERATION_ERROR", error: `Export failed: ${err.message}` }))
@@ -732,11 +742,13 @@ export default function Studio() {
         ) : (
           <>
             <Toolbar
+              name={state.name}
+              onRename={(name) => dispatch({ type: "RENAME", name })}
               canUndo={state.past.length > 0}
               canRedo={state.future.length > 0}
               onUndo={() => dispatch({ type: "UNDO" })}
               onRedo={() => dispatch({ type: "REDO" })}
-              onExportPdf={() => window.print()}
+              onExportPdf={onExportPdf}
               onExportHtml={onExportHtml}
               onExportPptx={onExportPptx}
               pptxProgress={pptxProgress}
@@ -959,7 +971,8 @@ function EmptyState({
   // On a cover the title is usually the brand lockup and the subtitle carries
   // the subject, which is what makes one parked deck tell itself from another.
   const first = previous?.slides?.[0];
-  const title = (first?.layoutId === "cover" ? first.subtitle : first?.title)?.trim();
+  const named = previous?.name && previous.name !== DEFAULT_DECK_NAME ? previous.name : undefined;
+  const title = named ?? (first?.layoutId === "cover" ? first.subtitle : first?.title)?.trim();
   return (
     <div className="flex flex-1 flex-col items-center justify-center gap-4">
       {generating ? (
@@ -1016,6 +1029,8 @@ function EmptyState({
 }
 
 function Toolbar({
+  name,
+  onRename,
   canUndo,
   canRedo,
   onUndo,
@@ -1027,6 +1042,8 @@ function Toolbar({
   onOpenDeckFile,
   twoPager = false,
 }: {
+  name: string;
+  onRename: (name: string) => void;
   canUndo: boolean;
   canRedo: boolean;
   onUndo: () => void;
@@ -1047,19 +1064,19 @@ function Toolbar({
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [exportOpen]);
-  // Undo and redo are one pair: same pill, same stroke. Disabled only changes
-  // the ink, not the shape, so the two never look like different controls.
+  // The name on the left, every control on the right. Undo and redo are one
+  // pair: same pill, same stroke. Disabled only changes the ink, not the
+  // shape, so the two never look like different controls.
   return (
-    <div className="flex items-center gap-3 border-b border-hairline bg-white px-6 py-2.5">
-      <div className="flex items-center gap-1.5">
+    <div className="flex items-center gap-3 border-b border-hairline bg-white px-4 py-2.5">
+      <DeckName name={name} onRename={onRename} />
+      <div className="ml-auto flex shrink-0 items-center gap-2" data-tour="download">
         <Button variant="secondary" icon={Undo2} onClick={onUndo} disabled={!canUndo} title="Undo (Cmd+Z)">
           Undo
         </Button>
         <Button variant="secondary" icon={Redo2} onClick={onRedo} disabled={!canRedo} title="Redo (Cmd+Shift+Z)">
           Redo
         </Button>
-      </div>
-      <div className="ml-auto flex shrink-0 items-center gap-2" data-tour="download">
         <Button
           variant="secondary"
           icon={Upload}

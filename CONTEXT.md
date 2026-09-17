@@ -404,7 +404,8 @@ Things worth knowing before touching it:
   are clamped, an unknown `brandId` is ignored rather than guessed. Renderers put these straight
   into a `src` and `SlideFrame` injects with `innerHTML`, which wires `onerror` even though it does
   not run `<script>`.
-- **`usage` is not in the file.** Token cost belongs to the session that spent it.
+- **`usage` is not in the file.** Token cost belongs to the session that spent it. `name` is (added
+  17 Sep 2026 without a version bump: optional both ways, an older file opens as "New deck").
 - **The payload doubles the size of a photo-heavy deck** (each image is in the markup and in the
   payload). Accepted: deduplicating would couple the payload to rendered markup.
 - **A `<` never appears literally in the payload** — `deckStateScript` escapes them all, which is

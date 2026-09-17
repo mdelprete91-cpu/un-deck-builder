@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { DEFAULT_DECK_NAME } from "./state";
 import { isBrandId } from "./brand";
 import { isCountryMap } from "./country-maps";
 import { ensureId, isPage, normalizeSlide } from "./schema";
@@ -40,6 +41,9 @@ const envelopeSchema = z.object({
   format: z.literal(FORMAT),
   version: z.number(),
   deck: z.object({
+    // Added 17 Sep 2026 without a version bump: optional both ways, so a
+    // file from before it opens as "New deck" and an older builder ignores it.
+    name: z.string().optional(),
     brandId: z.unknown().optional(),
     // Not the envelope's `format` above (which names the file type): this is
     // what the deck produces, slides or A4 two-pager pages.
@@ -68,6 +72,7 @@ export function deckStateScript(state: DeckState): string {
     version: DECK_FILE_VERSION,
     exportedAt: new Date().toISOString(),
     deck: {
+      name: state.name,
       brandId: state.brandId,
       format: state.format,
       brief: state.brief,
@@ -173,6 +178,7 @@ export function parseDeckFile(html: string): DeckFileResult {
   }
 
   const state: Partial<DeckState> = {
+    name: raw.name?.trim().slice(0, 80) || DEFAULT_DECK_NAME,
     slides,
     activeIndex: Math.min(Math.max(0, Math.trunc(raw.activeIndex ?? 0)), slides.length - 1),
     brief: raw.brief ?? "",
