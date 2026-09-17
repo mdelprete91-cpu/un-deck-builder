@@ -999,7 +999,7 @@ function EmptyState({
           {/* The editor no longer restores the last deck on its own, so the
               deck is offered here instead of appearing under the user. */}
           {count > 0 && (
-            <div className="pop-in mt-4 flex w-full max-w-md items-center gap-3 rounded-2xl border border-hairline-light bg-white py-2 pl-4 pr-2 shadow-float">
+            <div className="pop-in mt-4 flex w-full max-w-md items-center gap-3 rounded-full border border-hairline-light bg-white py-2 pl-5 pr-2 shadow-float">
               <History size={16} className="shrink-0 text-ink-faint" aria-hidden />
               {/* The icon says "last session"; the row says which deck. */}
               <div className="min-w-0 flex-1">
