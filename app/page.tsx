@@ -13,6 +13,7 @@ import { presetStack } from "@/lib/slides/pages/presets";
 import { clearSaved, openSession, saveDeck } from "@/lib/slides/storage";
 import { markSeen, seenOnboarding, type TourPhase } from "@/lib/slides/onboarding";
 import { exportHtmlDeck } from "@/lib/slides/export-html";
+import { exportPptxDeck } from "@/lib/slides/export-pptx";
 import { exportPageDoc } from "@/lib/slides/export-page-html";
 import { parseDeckFile } from "@/lib/slides/deck-file";
 import { computeLogoTone, FULL_BLEED_TONE, RIGHT_PANEL_TONE, type ToneGeometry } from "@/lib/slides/logo-tone";
@@ -545,6 +546,19 @@ export default function Studio() {
     );
   };
 
+  // PowerPoint: the same renderers, captured, with every editable field laid
+  // back as a text box. No model call; it is deterministic client code.
+  const [pptxProgress, setPptxProgress] = useState<{ done: number; total: number } | null>(null);
+  const onExportPptx = () => {
+    if (pptxProgress) return;
+    setPptxProgress({ done: 0, total: state.slides.length });
+    exportPptxDeck(state.slides, theme, state.slides[0]?.title ?? "giga-deck", (done, total) =>
+      setPptxProgress({ done, total }),
+    )
+      .catch((err) => dispatch({ type: "GENERATION_ERROR", error: `Export failed: ${err.message}` }))
+      .finally(() => setPptxProgress(null));
+  };
+
   // Reopen an exported HTML deck. Read and validate first, ask second: nobody
   // should have to answer "this replaces your deck?" for an unreadable file.
   const openDeckFile = async (file: File) => {
@@ -742,10 +756,9 @@ export default function Studio() {
               onRedo={() => dispatch({ type: "REDO" })}
               onExportPdf={() => window.print()}
               onExportHtml={onExportHtml}
+              onExportPptx={onExportPptx}
+              pptxProgress={pptxProgress}
               onOpenDeckFile={openDeckFilePicker}
-              onDeleteDeck={() => {
-                if (confirm("Delete the current deck?")) dispatch({ type: "CLEAR" });
-              }}
               twoPager={twoPager}
             />
             {dataPanelOpen && active && isChart && (
@@ -1022,13 +1035,14 @@ function EmptyState({
 }
 
 function Toolbar({
-  onDeleteDeck,
   canUndo,
   canRedo,
   onUndo,
   onRedo,
   onExportPdf,
   onExportHtml,
+  onExportPptx,
+  pptxProgress,
   onOpenDeckFile,
   twoPager = false,
 }: {
@@ -1038,9 +1052,9 @@ function Toolbar({
   onRedo: () => void;
   onExportPdf: () => void;
   onExportHtml: () => void;
+  onExportPptx: () => void;
+  pptxProgress: { done: number; total: number } | null;
   onOpenDeckFile: () => void;
-  /** Clears the deck; the menu asks first. It lives here, with the other deck-level actions. */
-  onDeleteDeck: () => void;
   twoPager?: boolean;
 }) {
   const [exportOpen, setExportOpen] = useState(false);
@@ -1107,24 +1121,23 @@ function Toolbar({
                     : "Standalone file, reopen it here to keep editing"}
                 </span>
               </button>
-              {/* PPTX export is parked: item stays visible but disabled */}
+              {/* Slides only: a two-pager is a printed piece, its file is the PDF. */}
               <button
-                disabled
-                className="block w-full rounded-[10px] px-2.5 py-1.5 text-left text-sm text-ink opacity-50"
-              >
-                PowerPoint
-                <span className="block text-xs text-ink-muted">Not available at the moment</span>
-              </button>
-              <div className="my-1.5 border-t border-hairline-light" />
-              <button
+                disabled={twoPager || pptxProgress !== null}
                 onClick={() => {
                   setExportOpen(false);
-                  onDeleteDeck();
+                  onExportPptx();
                 }}
-                className="block w-full rounded-[10px] px-2.5 py-1.5 text-left text-sm text-status-red transition-colors duration-100 hover:bg-status-red-bg"
+                className="block w-full rounded-[10px] px-2.5 py-1.5 text-left text-sm text-ink transition-colors duration-100 hover:bg-black/[0.04] disabled:pointer-events-none disabled:text-ink-faint"
               >
-                Delete deck
-                <span className="block text-xs text-ink-muted">Clears every slide on screen</span>
+                PowerPoint
+                <span className="block text-xs text-ink-muted">
+                  {twoPager
+                    ? "Slides only"
+                    : pptxProgress
+                      ? `Exporting ${pptxProgress.done} of ${pptxProgress.total}…`
+                      : "Editable text on the template, one slide each"}
+                </span>
               </button>
             </div>
           </>
@@ -1176,10 +1189,10 @@ function SlideActions({
   // an icon and a word; no dividers, the gap does the separating.
   return (
     <div className="float-in pointer-events-none absolute inset-x-0 bottom-12 z-20 flex justify-center">
-      <div className="pointer-events-auto relative">
+      <div className="gradient-ring pointer-events-auto relative shadow-float">
         <div
           data-tour="slide-bar"
-          className="relative flex items-center gap-1.5 rounded-full border border-hairline-light bg-white p-1.5 shadow-float"
+          className="relative flex items-center gap-2 rounded-full bg-white p-2.5"
         >
         {busy ? (
           <div className="flex h-10 items-center gap-2.5 px-4 text-[13px] font-medium text-giga">

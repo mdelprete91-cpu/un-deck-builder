@@ -266,7 +266,7 @@ document, and hydrating it would open an empty editor in two-pager mode.
 
 **The HTML file is a scrolling A4 document**, not the fullscreen deck runner
 (`export-page-html.ts`), and it carries the identical `deckStateScript` payload — it is still the
-save file. PPTX stays parked.
+save file. There is no PPTX for pages.
 
 ### Adding or changing a block
 
@@ -311,9 +311,17 @@ not a system to sync with.
   Chrome, backgrounds on, scale 100%.
 - **HTML deck**: one self-contained file, fonts and logos inlined as data URIs, arrow-key navigation,
   template entrance animations, autofit script inlined. **It is also the project file** — see below.
-- **PPTX**: the code in `export-pptx.ts` works (renders each slide offscreen, captures to PNG,
-  places it full bleed) but is deliberately **not wired into the UI**. It was parked. Do not
-  re-enable it without asking.
+- **PPTX**: `export-pptx.ts`, live in the Download menu for slide decks (not two-pagers). No
+  model call: each slide is rendered by the same renderer, every `data-edit` field is measured
+  after autofit, those nodes are hidden, the slide is rasterised to a PNG background
+  (`rasterize.ts`: an SVG `foreignObject` with the template fonts and images inlined, drawn on a
+  canvas) and each field comes back as an editable text box in the same place. Two things that
+  fail silently if forgotten: the picture must be loaded as a **data URL**, a blob URL taints the
+  canvas and `toDataURL` throws; and the captured node must be the **inner stage**, not the
+  offscreen host, because the host's `left:-20000px` is copied into the SVG and the picture comes
+  out blank. Manrope and Open Sans are referenced by name, so a machine without them shows a
+  fallback face; semibold weights become regular or bold. Photos, charts, maps, logos, table cells
+  and any text without `data-edit` stay in the picture.
 
 Known limits, on purpose for now: table cells in the tier layouts are not inline-editable, and
 PDF/PPTX import is not implemented.
@@ -423,4 +431,4 @@ Conventions:
 - Never commit `.env.local` or any key. `.env*` and `.omc/` are gitignored.
 - If a change makes `README.md`, `PRODUCT.md` or `DESIGN.md` wrong, update them in the same commit.
 - Ask before: changing template geometry, adding a color or typeface, giving the model more control
-  over layout, re-enabling PPTX, changing the brand-to-palette rule. Mario owns those calls.
+  over layout, changing the brand-to-palette rule. Mario owns those calls.

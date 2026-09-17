@@ -91,6 +91,26 @@
   background: transparent;
 }
 
+/* The slide bar's ring: a 1px conic gradient in the Giga blues, slowly
+   turning, so the bar reads as the live control over the slide without a
+   heavy border. Registered property so the angle itself animates. */
+@property --ring-angle {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 0deg;
+}
+@keyframes ringSpin {
+  to { --ring-angle: 360deg; }
+}
+.gradient-ring {
+  padding: 1px;
+  border-radius: 9999px;
+  background: conic-gradient(from var(--ring-angle), #277aff, #01aeef, #8fb6ff, #277aff);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .gradient-ring { animation: ringSpin 6s linear infinite; }
+}
+
 /* Optical alignment: a Lucide icon beside a label is centered on the line
    box, which reads half a pixel high next to Inter's caps. Nudge it down.
    Icon-only buttons (the icon is the only child) are left alone. */
