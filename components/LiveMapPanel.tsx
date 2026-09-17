@@ -148,7 +148,7 @@ export default function LiveMapPanel({
     <div className="flex min-h-0 flex-1 flex-col">
       {/* Settings as rows, like a settings dialog: the label on the left,
           the value and a chevron on the right, a hairline between rows. */}
-      <div className="grid min-h-0 flex-1 grid-cols-[minmax(0,1fr)_340px] gap-8">
+      <div className="grid min-h-0 flex-1 grid-cols-[240px_minmax(0,1fr)] gap-8">
         <div className="flex min-w-0 flex-col">
           <div ref={pickerRef} className="relative flex h-12 items-center justify-between gap-3 border-b border-hairline-light">
             <span className="text-sm text-ink">Country</span>
@@ -229,34 +229,41 @@ export default function LiveMapPanel({
 
         {/* The preview sits in a frame with one fixed ratio whatever the
             slot's shape, so the dialog never changes shape between layouts.
+            The frame takes all the height it can; the legend lives in the
+            frame's corner, not on the map, so a tall slot never hides it.
             Until the map arrives the frame holds a skeleton, never a dark slab. */}
-        <div className="flex aspect-[4/3] w-full items-center justify-center overflow-hidden rounded-2xl bg-canvas-2 p-4">
-          {preview ? (
-            <div className="relative max-h-full max-w-full" style={{ aspectRatio: `${slot.width} / ${slot.height}`, height: "100%" }}>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={preview} alt={`${country?.name ?? "Country"} map preview`} className="block h-full w-full rounded-lg object-contain" />
-              {!busy && (
-                <div className="absolute bottom-2 left-2 flex gap-1.5">
-                  {CONNECTIVITY_LEGEND.slice(0, 2).map((item) => (
-                    <span
-                      key={item.label}
-                      className="inline-flex items-center gap-1.5 rounded-full bg-white/95 px-2 py-0.5 text-[11px] font-medium text-ink shadow-stripe"
-                    >
-                      <span className="h-2 w-2 rounded-full" style={{ background: item.color }} />
-                      {item.label}
-                    </span>
-                  ))}
-                </div>
-              )}
-              {busy && (
-                <span className="absolute right-2 top-2 rounded-full bg-white/95 px-2 py-0.5 text-[11px] font-medium text-ink shadow-stripe">
-                  Updating…
-                </span>
-              )}
-            </div>
-          ) : (
-            <div className="h-3/4 rounded-xl bg-mist motion-safe:animate-pulse" style={{ aspectRatio: `${slot.width} / ${slot.height}` }} aria-hidden />
-          )}
+        <div className="flex min-h-0 justify-end">
+          <div className="relative flex aspect-[4/3] h-full items-center justify-center overflow-hidden rounded-2xl bg-canvas-2 p-5">
+            {preview ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={preview}
+                alt={`${country?.name ?? "Country"} map preview`}
+                className="block max-h-full max-w-full rounded-lg object-contain"
+                style={{ aspectRatio: `${slot.width} / ${slot.height}`, height: "100%" }}
+              />
+            ) : (
+              <div className="h-3/4 rounded-xl bg-mist motion-safe:animate-pulse" style={{ aspectRatio: `${slot.width} / ${slot.height}` }} aria-hidden />
+            )}
+            {preview && !busy && (
+              <div className="absolute bottom-3 left-3 flex gap-1.5">
+                {CONNECTIVITY_LEGEND.slice(0, 2).map((item) => (
+                  <span
+                    key={item.label}
+                    className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full bg-white px-2.5 py-1 text-xs font-medium text-ink shadow-stripe"
+                  >
+                    <span className="h-2 w-2 rounded-full" style={{ background: item.color }} />
+                    {item.label}
+                  </span>
+                ))}
+              </div>
+            )}
+            {preview && busy && (
+              <span className="absolute right-3 top-3 rounded-full bg-white px-2.5 py-1 text-xs font-medium text-ink shadow-stripe">
+                Updating…
+              </span>
+            )}
+          </div>
         </div>
       </div>
 

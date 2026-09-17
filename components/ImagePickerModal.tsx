@@ -45,7 +45,7 @@ export default function ImagePickerModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-scrim p-6" onClick={onClose}>
       <div
-        className="pop-in flex h-[540px] max-h-[88vh] w-full max-w-4xl overflow-hidden rounded-3xl bg-white shadow-float"
+        className="pop-in flex h-[540px] max-h-[88vh] w-full max-w-5xl overflow-hidden rounded-3xl bg-white shadow-float"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Rail: the close, then the sections as rows. */}
