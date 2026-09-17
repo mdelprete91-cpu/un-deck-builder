@@ -30,6 +30,8 @@ export async function rasterizeSlide(
   stage: HTMLElement,
   width = 1920,
   height = 1080,
+  /** Return only this region of the slide, as a picture of its own size. */
+  crop?: { x: number; y: number; w: number; h: number },
 ): Promise<string> {
   const clone = stage.cloneNode(true) as HTMLElement;
   // Event-handler attributes are not XML and have no job in a picture.
@@ -48,11 +50,14 @@ export async function rasterizeSlide(
   // foreignObject that came from a blob, and toDataURL then throws.
   const img = await loadImage(`data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`);
   const canvas = document.createElement("canvas");
-  canvas.width = width;
-  canvas.height = height;
+  const cw = crop ? Math.max(1, Math.round(crop.w)) : width;
+  const ch = crop ? Math.max(1, Math.round(crop.h)) : height;
+  canvas.width = cw;
+  canvas.height = ch;
   const ctx = canvas.getContext("2d");
   if (!ctx) throw new Error("no 2d canvas context");
-  ctx.drawImage(img, 0, 0, width, height);
+  if (crop) ctx.drawImage(img, crop.x, crop.y, crop.w, crop.h, 0, 0, cw, ch);
+  else ctx.drawImage(img, 0, 0, width, height);
   return canvas.toDataURL("image/png");
 }
 

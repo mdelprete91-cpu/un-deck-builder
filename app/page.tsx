@@ -1127,7 +1127,7 @@ function Toolbar({
                     ? "Slides only"
                     : pptxProgress
                       ? `Exporting ${pptxProgress.done} of ${pptxProgress.total}…`
-                      : "Editable text on the template, one slide each"}
+                      : "Editable slides, nothing sent to the AI"}
                 </span>
               </button>
             </div>

@@ -1,5 +1,6 @@
 import PptxGenJS from "pptxgenjs";
 import { rasterizeSlide } from "./rasterize";
+import { addNativeSlide } from "./pptx-native";
 import type { Slide } from "./schema";
 import type { BrandTheme } from "./brand";
 import { renderSlide } from "./layouts";
@@ -73,13 +74,22 @@ export async function exportPptxDeck(
       host.innerHTML = renderSlide(slides[i], theme, { index: i, total: slides.length });
       await withTimeout(waitForImages(host), 8000, "images");
       autofitAll(host);
-      const boxes = collectTextBoxes(host);
-      // Hide the words, keep their space: the picture is the slide minus its text.
-      boxes.forEach((b) => (b.node.style.visibility = "hidden"));
-      const png = await captureSlide(host, i, slides[i]?.title);
       const slide = pptx.addSlide();
-      slide.addImage({ data: png, x: 0, y: 0, w: SLIDE_W_IN, h: SLIDE_H_IN });
-      for (const b of boxes) slide.addText(runsFor(b.text), textOptions(b));
+      try {
+        // Native objects, read off the DOM. A slide the walker cannot handle
+        // falls back to the picture-plus-text-boxes form below, so one odd
+        // layout never stops the export.
+        await withTimeout(addNativeSlide(pptx, slide, host), 30000, "native conversion");
+      } catch (err) {
+        console.warn(`[pptx] slide ${i + 1}: native conversion failed, using the picture`, err);
+        // pptxgenjs cannot remove a slide: empty what the walker managed to add.
+        (slide as unknown as { _slideObjects: unknown[] })._slideObjects = [];
+        const boxes = collectTextBoxes(host);
+        boxes.forEach((b) => (b.node.style.visibility = "hidden"));
+        const png = await captureSlide(host, i, slides[i]?.title);
+        slide.addImage({ data: png, x: 0, y: 0, w: SLIDE_W_IN, h: SLIDE_H_IN });
+        for (const b of boxes) slide.addText(runsFor(b.text), textOptions(b));
+      }
       onProgress?.(i + 1, slides.length);
     }
     const fileName = `${title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "deck"}.pptx`;

@@ -312,16 +312,27 @@ not a system to sync with.
 - **HTML deck**: one self-contained file, fonts and logos inlined as data URIs, arrow-key navigation,
   template entrance animations, autofit script inlined. **It is also the project file** — see below.
 - **PPTX**: `export-pptx.ts`, live in the Download menu for slide decks (not two-pagers). No
-  model call: each slide is rendered by the same renderer, every `data-edit` field is measured
-  after autofit, those nodes are hidden, the slide is rasterised to a PNG background
-  (`rasterize.ts`: an SVG `foreignObject` with the template fonts and images inlined, drawn on a
-  canvas) and each field comes back as an editable text box in the same place. Two things that
-  fail silently if forgotten: the picture must be loaded as a **data URL**, a blob URL taints the
-  canvas and `toDataURL` throws; and the captured node must be the **inner stage**, not the
-  offscreen host, because the host's `left:-20000px` is copied into the SVG and the picture comes
-  out blank. Manrope and Open Sans are referenced by name, so a machine without them shows a
-  fallback face; semibold weights become regular or bold. Photos, charts, maps, logos, table cells
-  and any text without `data-edit` stay in the picture.
+  model call, and **no second description of the template anywhere**: `pptx-native.ts` walks the
+  slide the renderer just produced (after autofit) and translates each DOM node into a native
+  PowerPoint object. A box with a fill, a border or rounded corners becomes a shape (one side of
+  border becomes a line along that edge); a node whose element children are all inline becomes an
+  editable text box with the computed font, size, weight, colour, alignment, line height and
+  letter spacing; an `<img>` (with its overflow-hidden frame, so crop and zoom survive), an inline
+  SVG icon, and anything CSS draws that PowerPoint has no shape for (a gradient, a `filter`, a
+  scale transform) is rasterised **on its own** and placed as a picture of exactly its size.
+  Change a renderer and the export follows; that is the point of the design, so do not add a
+  layout-specific branch to the walker. Rasterising a single element goes through
+  `rasterize.ts` with a `crop`: the stage is cloned, every node outside that subtree is hidden
+  and the root background cleared, so the picture keeps inherited fonts and CSS variables.
+
+  If the walker throws on a slide, `export-pptx.ts` falls back for that slide to the earlier
+  form (one PNG of the slide with the `data-edit` fields hidden, plus a text box per field), so
+  one odd layout never stops the export. Two things in the rasteriser that fail silently if
+  forgotten: the SVG must be loaded as a **data URL**, a blob URL taints the canvas and
+  `toDataURL` throws; and the captured node must be the **inner stage**, not the offscreen host,
+  because the host's `left:-20000px` is copied into the SVG and the picture comes out blank.
+  Manrope and Open Sans are referenced by name, so a machine without them shows a fallback face;
+  semibold weights become bold. Units: 1920px = 13.333in, so 1px = 0.5pt.
 
 Known limits, on purpose for now: table cells in the tier layouts are not inline-editable, and
 PDF/PPTX import is not implemented.
