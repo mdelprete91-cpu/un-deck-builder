@@ -53,10 +53,10 @@ const TO_BLACK = "brightness(0)";
 const TO_WHITE = "brightness(0) invert(1)";
 
 /**
- * Giga and UNICEF keep the Giga palette: switching between those two changes
- * only the logo lockup and the footer label, never the colors (Mario's rule,
- * 29 Jul 2026). The two Digital sub-brands run on cyan instead, see
- * CYAN_PALETTE.
+ * The Giga palette. Only the retired "giga" lockup still runs on it, so decks
+ * saved with that lockup keep their colors. Every lockup on the Logo menu
+ * (UNICEF, Digital Impact Division, Digital Inclusion) runs on CYAN_PALETTE
+ * (Mario, 17 Sep 2026: UNICEF takes the same colors as the two sub-brands).
  */
 const GIGA_PALETTE = {
   accent: "#277AFF",
@@ -73,12 +73,13 @@ const GIGA_PALETTE = {
   sectionImage: { bg: "#0530AD", title: "#FFFFFF", body: "#FFFFFF", surface: "dark" },
 } satisfies Partial<BrandTheme>;
 
-/** UNICEF cyan: the only colored surface the Digital sub-brands ever use. */
+/** UNICEF cyan: the only colored surface the UNICEF lockups ever use. */
 const UNICEF_CYAN = "#01AEEF";
 
 /**
- * Digital Impact Division and Digital Inclusion share one palette and run on
- * two surfaces, nothing else (Mario's rule, 10 Aug 2026): a colored one,
+ * UNICEF, Digital Impact Division and Digital Inclusion share one palette and
+ * run on two surfaces, nothing else (Mario's rule, 10 Aug 2026, extended to
+ * the UNICEF lockup on 17 Sep 2026): a colored one,
  * always exactly #01AEEF, and white. So there is no second, darker blue here —
  * `deep` is the same cyan as `accent`, and the tinted surface (`light`, the
  * light variant of section-image) is plain white. `soft`/`soft2` only ever
@@ -130,7 +131,7 @@ export const BRANDS: Record<BrandId, BrandTheme> = {
   unicef: {
     id: "unicef",
     label: "UNICEF",
-    ...GIGA_PALETTE,
+    ...CYAN_PALETTE,
     footerLabel: "UNICEF",
     logoLight: { src: UNICEF_LOGO, filter: TO_BLACK },
     logoDark: { src: UNICEF_LOGO, filter: TO_WHITE },

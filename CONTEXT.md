@@ -24,12 +24,13 @@ Deployed on Vercel as `un-deck-builder`. One env var: `ANTHROPIC_API_KEY`.
 
 Do not change these without asking Mario first. They are decisions, not defaults.
 
-1. **Two palettes, split by brand family, and both are fixed.** Giga and UNICEF run on the Giga
-   palette (the Giga lockup is no longer offered in the Logo menu, see `PICKER_BRAND_IDS`, but
-   decks saved with it still render); Digital Impact Division and Digital Inclusion share the cyan one. Switching within a
-   family changes the logo lockup and the footer label only, never the colors. See the comment in
-   `lib/slides/brand.ts`.
-2. **The two Digital sub-brands are two-surface brands.** Every colored surface is exactly UNICEF
+1. **One palette for every lockup on the menu, and it is fixed.** UNICEF, Digital Impact Division
+   and Digital Inclusion all run on the cyan palette (Mario, 17 Sep 2026, when UNICEF moved off the
+   Giga palette). Switching between them changes the logo lockup and the footer label only, never
+   the colors. The Giga palette survives only for the retired Giga lockup, which is no longer
+   offered in the Logo menu (see `PICKER_BRAND_IDS`) but still renders decks saved with it. See
+   the comment in `lib/slides/brand.ts`.
+2. **The UNICEF lockups are two-surface brands.** Every colored surface is exactly UNICEF
    cyan `#01AEEF`; anything that is not that cyan is white. So there is no second darker blue
    (`deep` is the same cyan as `accent`), the tinted surface (`light`) is plain white, Section +
    image is a white slide, and the template's green quote slide is cyan here too. Bar chart series
