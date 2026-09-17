@@ -110,39 +110,16 @@
 /* The slide bar's ring: a 1px conic gradient in the Giga blues, slowly
    turning, so the bar reads as the live control over the slide without a
    heavy border. Registered property so the angle itself animates. */
-/* The AI entry on the slide bar: a white pill with a faint spectrum sheen
-   that sweeps its face about every four seconds, the way "Ask AI" buttons
-   do online: motion says "this one thinks", without a border or a fill. */
-@keyframes aiSheen {
-  0% { transform: translateX(-130%); }
-  28% { transform: translateX(130%); }
-  100% { transform: translateX(130%); }
+/* The AI entry on the slide bar: a flat diagonal blend of blues (light blue
+   into Giga Blue into cyan), white text. Colour and gradient only: no
+   highlight, no glow, no motion (Mario's call). */
+.ai-orb {
+  color: #fff;
+  /* One diagonal blend, no highlight: a corner light reads as a sphere. */
+  background: linear-gradient(120deg, #6fa1ff 0%, #277aff 48%, #1aa3e8 100%);
+  transition: filter 160ms ease-out;
 }
-.ai-sheen {
-  position: relative;
-  overflow: hidden;
-  isolation: isolate;
-}
-.ai-sheen::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  background: linear-gradient(
-    105deg,
-    transparent 30%,
-    rgba(39, 122, 255, 0.16) 42%,
-    rgba(139, 92, 246, 0.16) 50%,
-    rgba(1, 174, 239, 0.16) 58%,
-    transparent 70%
-  );
-  transform: translateX(-130%);
-  pointer-events: none;
-}
-@media (prefers-reduced-motion: no-preference) {
-  .ai-sheen::before { animation: aiSheen 4.2s cubic-bezier(0.22, 1, 0.36, 1) infinite; }
-  .ai-sheen:hover::before { animation-duration: 1.6s; }
-}
+.ai-orb:hover { filter: brightness(1.06) saturate(1.05); }
 
 /* Optical alignment: a Lucide icon beside a label is centered on the line
    box, which reads half a pixel high next to Inter's caps. Nudge it down.

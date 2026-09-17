@@ -22,9 +22,9 @@ const VARIANT: Record<ButtonVariant, string> = {
   danger: "bg-status-red/10 text-status-red hover:bg-status-red/20 disabled:opacity-40",
   /** An "on" state, like the Chapters toggle: tinted, accent text. */
   accent: "bg-giga-tint text-giga hover:bg-giga-100 disabled:opacity-40",
-  // White, Ink text, no border, a faint spectrum sheen sweeping the face
-  // (globals.css): the one AI entry on the slide bar.
-  ai: "ai-sheen bg-white text-ink hover:bg-canvas-2 disabled:text-ink-faint",
+  // A still orb of blues with a soft glow, white text (globals.css): the one
+  // AI entry on the slide bar.
+  ai: "ai-orb active:scale-[0.98] disabled:opacity-40",
 };
 
 export const ICON_SIZE = 14;
