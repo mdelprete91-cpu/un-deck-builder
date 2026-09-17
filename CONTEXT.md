@@ -160,11 +160,12 @@ behind a deck the user has since deleted; Discard calls `clearSaved`.
 **The tour is anchored by `data-tour` attributes.** `components/Tour.tsx` finds its target with
 `document.querySelector('[data-tour="…"]')`, so renaming or removing one of those attributes
 silently drops a step (a missing target is skipped on purpose: half the chrome only renders with
-slides). The steps themselves live in `INTRO_STEPS` and `EDITOR_STEPS` in `app/page.tsx`. Phase one
-runs on an empty editor and stops at Generate; phase two runs from `onDeckArrived`, the single place
-every path that puts slides on screen goes through (generate, restore, open a file, manual insert,
-drop an image). `seenOnboarding`/`markSeen` in `lib/slides/onboarding.ts` gate both, and bumping
-`VERSION` there replays the tour for everyone.
+slides). The steps themselves live in `INTRO_STEPS` and `EDITOR_STEPS` in `app/page.tsx`. **The tour
+never starts on its own** (Mario's call, 17 Sep 2026): the only entry point is "How it works" in the
+sidebar, which runs the intro steps on an empty editor and both phases once a deck exists. There is
+no "seen" flag anywhere, so nothing to bump. `onDeckArrived` stays the single place every path that
+puts slides on screen goes through (generate, restore, open a file, manual insert, drop an image); it
+now only retires the last-session offer.
 
 ## The AI layer
 

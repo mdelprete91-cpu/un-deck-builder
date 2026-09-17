@@ -78,9 +78,10 @@ function place(hole: Hole): React.CSSProperties {
 
 /**
  * The product tour: a spotlight that walks the user through one control at a
- * time. It runs in two phases, defined in app/page.tsx — the brief and the
- * Generate button on an empty editor, then the editing chrome once a deck
- * exists, because most of that chrome does not render before it does.
+ * time. It only runs from "How it works" in the sidebar, never on its own.
+ * The steps are defined in app/page.tsx in two groups: the brief and the
+ * Generate button, then the editing chrome, which only joins once a deck
+ * exists because most of it does not render before it does.
  *
  * A step whose target is missing is skipped rather than shown against an
  * empty ring: half the chrome comes and goes with the deck.

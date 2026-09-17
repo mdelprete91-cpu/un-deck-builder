@@ -11,7 +11,6 @@ import { PAGE_BLOCK_LIMITS, type PageBlock } from "@/lib/slides/pages/schema";
 import { defaultContent } from "@/lib/slides/defaults";
 import { presetStack } from "@/lib/slides/pages/presets";
 import { clearSaved, openSession, saveDeck } from "@/lib/slides/storage";
-import { markSeen, seenOnboarding, type TourPhase } from "@/lib/slides/onboarding";
 import { exportHtmlDeck } from "@/lib/slides/export-html";
 import { exportPptxDeck } from "@/lib/slides/export-pptx";
 import { exportPageDoc } from "@/lib/slides/export-page-html";
@@ -143,8 +142,8 @@ export default function Studio() {
   const [focusedBlock, setFocusedBlock] = useState(0);
   /** Last session's deck, offered on the empty state. Never applied on its own. */
   const [previous, setPrevious] = useState<Partial<DeckState> | null>(null);
-  /** The running tour: its steps, and the phases finishing it marks as seen. */
-  const [tour, setTour] = useState<{ steps: TourStep[]; phases: TourPhase[] } | null>(null);
+  /** The running tour, only ever started from "How it works". */
+  const [tour, setTour] = useState<TourStep[] | null>(null);
   const abortRef = useRef<AbortController | null>(null);
   const theme = BRANDS[state.brandId];
   const twoPager = state.format === "two-pager";
@@ -159,34 +158,25 @@ export default function Studio() {
     const { settings, previous: prev } = openSession();
     if (Object.keys(settings).length > 0) dispatch({ type: "HYDRATE", state: settings });
     setPrevious(prev);
-    if (!seenOnboarding().intro) setTour({ steps: INTRO_STEPS, phases: ["intro"] });
     setHydrated(true);
   }, []);
 
   /**
-   * A deck just landed on screen. The editor phase of the tour points at
-   * chrome that only renders with slides, so this is the earliest it can run.
-   * The previous session also stops being "where you left off" the moment the
-   * user has a deck of their own: the offer goes away rather than resurfacing
-   * behind a deck they have since deleted.
+   * A deck just landed on screen. The previous session stops being "where
+   * you left off" the moment the user has a deck of their own: the offer goes
+   * away rather than resurfacing behind a deck they have since deleted.
    */
-  const onDeckArrived = () => {
-    setPrevious(null);
-    if (!tour && !seenOnboarding().editor) setTour({ steps: EDITOR_STEPS, phases: ["editor"] });
-  };
+  const onDeckArrived = () => setPrevious(null);
 
-  /** Replay from the sidebar: the whole thing when there is a deck to show. */
+  /**
+   * The tour never starts on its own (Mario, 17 Sep 2026): it runs from "How
+   * it works" in the sidebar, and covers the editor chrome only when there is
+   * a deck for it to point at.
+   */
   const onHowItWorks = () =>
-    setTour(
-      state.slides.length > 0
-        ? { steps: [...INTRO_STEPS, ...EDITOR_STEPS], phases: ["intro", "editor"] }
-        : { steps: INTRO_STEPS, phases: ["intro"] },
-    );
+    setTour(state.slides.length > 0 ? [...INTRO_STEPS, ...EDITOR_STEPS] : INTRO_STEPS);
 
-  const onTourDone = () => {
-    if (tour) markSeen(...tour.phases);
-    setTour(null);
-  };
+  const onTourDone = () => setTour(null);
   // Autosave, debounced. Held off while last session's deck is still on offer:
   // that deck IS the saved session, and there is nothing worth saving over it
   // until the user takes it, drops it, or starts a deck of their own.
@@ -861,7 +851,7 @@ export default function Studio() {
         />
       </div>
 
-      {tour && <Tour steps={tour.steps} onDone={onTourDone} />}
+      {tour && <Tour steps={tour} onDone={onTourDone} />}
 
       <PrintRoot slides={state.slides} theme={theme} />
     </div>
