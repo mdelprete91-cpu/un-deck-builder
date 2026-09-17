@@ -147,44 +147,9 @@ export default function LiveMapPanel({
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-5">
-      {/* The preview is the whole point, so it gets the room; the three
-          settings sit beside it as a short column, one status line under
-          them for whatever the map has to say. */}
-      <div className="grid min-h-0 grid-cols-[1fr_240px] gap-6">
-        <div
-          className="relative mx-auto max-h-[440px] overflow-hidden rounded-2xl bg-canvas-2"
-          style={{
-            aspectRatio: `${slot.width} / ${slot.height}`,
-            maxWidth: "100%",
-            width: `calc(440px * ${slot.width / slot.height})`,
-          }}
-        >
-          {preview ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={preview} alt={`${country?.name ?? "Country"} map preview`} className="block h-full w-full object-cover" />
-          ) : (
-            <div className="absolute inset-[10%] rounded-xl bg-mist motion-safe:animate-pulse" aria-hidden />
-          )}
-          {preview && !busy && (
-            <div className="absolute bottom-3 left-3 flex gap-1.5">
-              {CONNECTIVITY_LEGEND.slice(0, 2).map((item) => (
-                <span
-                  key={item.label}
-                  className="inline-flex items-center gap-1.5 rounded-full bg-white/95 px-2.5 py-1 text-xs font-medium text-ink shadow-stripe"
-                >
-                  <span className="h-2 w-2 rounded-full" style={{ background: item.color }} />
-                  {item.label}
-                </span>
-              ))}
-            </div>
-          )}
-          {preview && busy && (
-            <span className="absolute right-3 top-3 rounded-full bg-white/95 px-2.5 py-1 text-xs font-medium text-ink shadow-stripe">
-              Updating…
-            </span>
-          )}
-        </div>
-
+      {/* Settings on the left as a short column with one status line under
+          them; the preview, the whole point, takes the room on the right. */}
+      <div className="grid min-h-0 grid-cols-[240px_1fr] gap-6">
         <div className="flex flex-col gap-4">
           <div className="flex flex-col gap-1.5" ref={pickerRef}>
             <Eyebrow>Country</Eyebrow>
@@ -263,6 +228,40 @@ export default function LiveMapPanel({
           >
             {status}
           </p>
+        </div>
+
+        <div
+          className="relative mx-auto max-h-[440px] overflow-hidden rounded-2xl bg-canvas-2"
+          style={{
+            aspectRatio: `${slot.width} / ${slot.height}`,
+            maxWidth: "100%",
+            width: `calc(440px * ${slot.width / slot.height})`,
+          }}
+        >
+          {preview ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={preview} alt={`${country?.name ?? "Country"} map preview`} className="block h-full w-full object-cover" />
+          ) : (
+            <div className="absolute inset-[10%] rounded-xl bg-mist motion-safe:animate-pulse" aria-hidden />
+          )}
+          {preview && !busy && (
+            <div className="absolute bottom-3 left-3 flex gap-1.5">
+              {CONNECTIVITY_LEGEND.slice(0, 2).map((item) => (
+                <span
+                  key={item.label}
+                  className="inline-flex items-center gap-1.5 rounded-full bg-white/95 px-2.5 py-1 text-xs font-medium text-ink shadow-stripe"
+                >
+                  <span className="h-2 w-2 rounded-full" style={{ background: item.color }} />
+                  {item.label}
+                </span>
+              ))}
+            </div>
+          )}
+          {preview && busy && (
+            <span className="absolute right-3 top-3 rounded-full bg-white/95 px-2.5 py-1 text-xs font-medium text-ink shadow-stripe">
+              Updating…
+            </span>
+          )}
         </div>
       </div>
 
