@@ -11,7 +11,7 @@ import type { LucideIcon } from "lucide-react";
  *
  * Icon-only buttons are 36px squares and must carry an `aria-label`.
  */
-export type ButtonVariant = "primary" | "secondary" | "ghost" | "danger" | "accent";
+export type ButtonVariant = "primary" | "secondary" | "ghost" | "danger" | "accent" | "ring";
 
 const VARIANT: Record<ButtonVariant, string> = {
   primary:
@@ -22,6 +22,9 @@ const VARIANT: Record<ButtonVariant, string> = {
   danger: "bg-status-red/10 text-status-red hover:bg-status-red/20 disabled:opacity-40",
   /** An "on" state, like the Chapters toggle: tinted, accent text. */
   accent: "bg-giga-tint text-giga hover:bg-giga-100 disabled:opacity-40",
+  // White with Ink text inside the turning spectrum ring (globals.css): the
+  // one AI entry on the slide bar. The ring replaces the border.
+  ring: "gradient-ring bg-white text-ink hover:bg-canvas-2 disabled:text-ink-faint",
 };
 
 export const ICON_SIZE = 14;
