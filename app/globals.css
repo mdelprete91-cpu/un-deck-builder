@@ -102,10 +102,20 @@
 @keyframes ringSpin {
   to { --ring-angle: 360deg; }
 }
+/* A full-spectrum ring, turning: Giga Blue into cyan, violet, pink and
+   amber and back, so the rotation reads (a one-hue ring only shimmered). */
 .gradient-ring {
-  padding: 1px;
+  padding: 1.5px;
   border-radius: 9999px;
-  background: conic-gradient(from var(--ring-angle), #277aff, #01aeef, #8fb6ff, #277aff);
+  background: conic-gradient(
+    from var(--ring-angle),
+    #277aff,
+    #01aeef,
+    #8b5cf6,
+    #ec4899,
+    #f59e0b,
+    #277aff
+  );
 }
 @media (prefers-reduced-motion: no-preference) {
   .gradient-ring { animation: ringSpin 6s linear infinite; }
