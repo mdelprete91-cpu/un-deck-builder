@@ -691,26 +691,17 @@ export default function Studio() {
             pill instead of the viewport. */}
         {imagePicker != null && active && (
           <ImagePickerModal
-            current={active.map}
             slot={mapSlotFor(active.layoutId, imagePicker)}
             onUpload={() => {
               pendingImagePath.current = imagePicker;
               setImagePicker(null);
               slideImageInputRef.current?.click();
             }}
-            onPickMap={(slug) => {
-              dispatch({ type: "SET_MAP", index: state.activeIndex, slug });
-              setImagePicker(null);
-            }}
             onPickGenerated={(dataUrl) => {
               // A generated map is an image, not a map slug: it was rendered at
               // the slot's own size, so cover-fit shows it whole and the user
               // can still reframe it like a photo.
               dispatch({ type: "SET_IMAGE", index: state.activeIndex, dataUrl, path: imagePicker });
-              setImagePicker(null);
-            }}
-            onClearMap={() => {
-              dispatch({ type: "SET_MAP", index: state.activeIndex, slug: null });
               setImagePicker(null);
             }}
             onClose={() => setImagePicker(null)}

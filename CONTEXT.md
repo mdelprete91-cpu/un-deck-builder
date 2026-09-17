@@ -343,11 +343,12 @@ the list, and `isCountryMap` guards it against a deck file naming a country we n
   `tools/prepare-country-maps.py` crops each one around its school dots, which is what makes them
   usable at all. Re-run it when new countries arrive and regenerate the list to match. It never
   upscales and never crops a dot away.
-- The model does not choose maps: the user picks one from the picker behind the "Image" action. It
-  is stripped from what the model sees (`lightSlide`) and restored via `preserve` on regenerate.
+- The model does not choose maps, and since 17 Sep 2026 neither does the user: the screenshots are
+  no longer offered in the picker (Mario's call). `slide.map` is kept so decks saved with one still
+  render; it is stripped from what the model sees (`lightSlide`) and restored via `preserve`.
 
-**Live maps** (`components/LiveMapPanel.tsx`, `lib/giga-maps/`) are the newer path and the default
-behind the "Maps" card; the 54 screenshots stay as a fallback link. The map is rendered in the
+**Live maps** (`components/LiveMapPanel.tsx`, `lib/giga-maps/`) are the only path now, behind the
+"Maps" section of the image picker. The map is rendered in the
 browser with MapLibre from the public Giga Maps vector tiles (schools, health centers, or both;
 dark or light basemap; no place names, no roads, only national borders) and inserted through
 `SET_IMAGE` as a JPEG data URL, exactly like an uploaded photo. Things that follow from that:
