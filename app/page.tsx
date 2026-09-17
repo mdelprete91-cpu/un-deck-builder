@@ -990,23 +990,27 @@ function EmptyState({
         <>
           <h1 className="text-2xl font-medium text-ink">What deck are we making?</h1>
           <p className="max-w-sm text-center text-sm leading-relaxed text-ink-muted">
-            Describe the story in the prompt box on the left. The slides appear here one by one,
-            ready to edit.
+            Describe it on the left. Slides land here, ready to edit.
           </p>
           <div className="mt-2 flex items-center gap-2">
             <Button variant="primary" onClick={onWriteBrief}>
               Write the brief
             </Button>
-            <Button variant="secondary" icon={Upload} onClick={onOpenDeckFile}>
+            <Button
+              variant="secondary"
+              icon={Upload}
+              onClick={onOpenDeckFile}
+              title="An HTML deck you downloaded from here. Dropping it anywhere on this page works too."
+            >
               Open a deck
             </Button>
           </div>
-          <p className="text-xs text-ink-faint">You can also drop an HTML deck you downloaded anywhere here.</p>
           {/* The editor no longer restores the last deck on its own, so the
               deck is offered here instead of appearing under the user. */}
           {count > 0 && (
             <div className="pop-in mt-4 flex w-full max-w-md items-center gap-3 rounded-2xl border border-hairline-light bg-white py-2 pl-4 pr-2 shadow-float">
               <History size={16} className="shrink-0 text-ink-faint" aria-hidden />
+              {/* The icon says "last session"; the row says which deck. */}
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-medium text-ink">
                   {title ? `“${title}”` : "Untitled deck"}
@@ -1015,7 +1019,6 @@ function EmptyState({
                     · {count} slide{count === 1 ? "" : "s"}
                   </span>
                 </p>
-                <p className="truncate text-xs text-ink-muted">Left in this browser, not saved.</p>
               </div>
               <Button variant="ghost" onClick={onDismissPrevious}>
                 Discard

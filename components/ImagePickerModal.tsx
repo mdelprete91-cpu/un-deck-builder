@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronLeft, Map as MapIcon, Upload } from "lucide-react";
+import { ChevronLeft, Map as MapIcon, Upload, X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { COUNTRY_MAPS, countryMapThumb } from "@/lib/slides/country-maps";
 import LiveMapPanel from "@/components/LiveMapPanel";
@@ -54,12 +54,28 @@ export default function ImagePickerModal({
       onClick={onClose}
     >
       <div
-        className="pop-in flex max-h-[88vh] w-full max-w-3xl flex-col rounded-2xl bg-white p-5 shadow-stripe-lg"
+        className="pop-in flex max-h-[88vh] w-full max-w-3xl flex-col rounded-3xl bg-white p-6 shadow-float"
         onClick={(e) => e.stopPropagation()}
       >
-        <span className="mb-3 block text-[13px] font-normal text-ink-faint">
-          Slide image
-        </span>
+        {/* One header for every screen: a back chevron where there is a
+            screen to go back to, the title, the close. */}
+        <div className="mb-4 flex items-center gap-2">
+          {tab !== "choose" && (
+            <Button
+              variant="ghost"
+              iconOnly
+              icon={ChevronLeft}
+              onClick={() => setTab("choose")}
+              title="Back"
+              aria-label="Back"
+              className="-ml-2"
+            />
+          )}
+          <h2 className="flex-1 text-xl font-medium text-ink">
+            {tab === "choose" ? "Slide image" : tab === "live" ? "Country map" : "Screenshots"}
+          </h2>
+          <Button variant="ghost" iconOnly icon={X} onClick={onClose} title="Close (Esc)" aria-label="Close" className="-mr-2" />
+        </div>
 
         {tab === "choose" ? (
           <div className="grid grid-cols-2 gap-3">
@@ -77,53 +93,29 @@ export default function ImagePickerModal({
             >
               <MapIcon size={22} aria-hidden />
               <span className="text-sm font-medium text-ink">Maps</span>
-              <span className="text-xs text-ink-muted">Schools and health centers, any country, live from Giga Maps</span>
+              <span className="text-xs text-ink-muted">Live from Giga Maps</span>
             </button>
             <Button
               variant="ghost"
               onClick={() => setTab("maps")}
               className="col-span-2 justify-self-start"
             >
-              Or pick one of the {COUNTRY_MAPS.length} pre-made screenshots
+              Pre-made screenshots
             </Button>
           </div>
         ) : tab === "live" ? (
           <>
-            <div className="mb-3.5 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="ghost"
-                  iconOnly
-                  icon={ChevronLeft}
-                  onClick={() => setTab("choose")}
-                  title="Back"
-                  aria-label="Back"
-                />
-                <span className="text-base font-medium text-ink">Country map</span>
-              </div>
-              <span className="text-xs text-ink-muted">
-                Live from Giga Maps · fits this slide at {slot.width} × {slot.height}
-              </span>
-            </div>
             <LiveMapPanel slot={slot} onUse={onPickGenerated} onCancel={onClose} onLibrary={() => setTab("maps")} />
           </>
         ) : (
           <>
             <div className="mb-3 flex items-center gap-2">
-              <Button
-                variant="ghost"
-                iconOnly
-                icon={ChevronLeft}
-                onClick={() => setTab("choose")}
-                title="Back"
-                aria-label="Back"
-              />
               <input
                 autoFocus
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Search a country"
-                className="h-10 w-full rounded-lg border border-hairline bg-white px-3 text-sm text-ink outline-none transition-shadow duration-150 placeholder:text-ink-faint focus:border-giga focus:ring-[3px] focus:ring-giga/15"
+                className="h-9 w-full rounded-full border border-hairline bg-white px-4 text-sm text-ink outline-none transition-shadow duration-150 placeholder:text-ink-faint focus:border-giga focus:ring-[3px] focus:ring-giga/15"
               />
               <span className="shrink-0 text-xs text-ink-muted">{matches.length}</span>
             </div>
@@ -173,7 +165,7 @@ export default function ImagePickerModal({
                 onClick={onClearMap}
                 className="mt-3 self-start"
               >
-                Remove the map from this slide
+                Remove map
               </Button>
             )}
           </>

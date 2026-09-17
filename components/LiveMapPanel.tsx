@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, ChevronsUpDown } from "lucide-react";
+import { ChevronsUpDown } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { DataLayer, GigaMapCountry, MapTheme } from "@/lib/giga-maps/config";
 import { CONNECTIVITY_LEGEND } from "@/lib/giga-maps/config";
@@ -133,30 +133,44 @@ export default function LiveMapPanel({
     setPreview(null);
   };
 
+  const status = error
+    ? error
+    : countriesError
+      ? countriesError
+      : !country
+        ? "Loading countries…"
+        : nothingToPlot
+          ? "Nothing to plot for this choice yet"
+          : busy || !preview
+            ? `Rendering ${country.name}…`
+            : `${fmt(country.schoolsTotal)} schools${country.healthTotal ? ` · ${fmt(country.healthTotal)} health centers` : ""}`;
+
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-3.5">
-      {/* Preview. Until the map arrives this is a canvas-colored skeleton,
-          never a dark slab: dark surfaces belong to slide content only. */}
-      <div className="flex flex-col gap-1.5">
+    <div className="flex min-h-0 flex-1 flex-col gap-5">
+      {/* The preview is the whole point, so it gets the room; the three
+          settings sit beside it as a short column, one status line under
+          them for whatever the map has to say. */}
+      <div className="grid min-h-0 grid-cols-[1fr_240px] gap-6">
         <div
-          className="relative mx-auto overflow-hidden rounded-xl border border-hairline bg-canvas"
+          className="relative mx-auto max-h-[440px] overflow-hidden rounded-2xl bg-canvas-2"
           style={{
             aspectRatio: `${slot.width} / ${slot.height}`,
-            width: `min(100%, calc(320px * ${slot.width / slot.height}))`,
+            maxWidth: "100%",
+            width: `calc(440px * ${slot.width / slot.height})`,
           }}
         >
           {preview ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={preview} alt={`${country?.name ?? "Country"} map preview`} className="block h-full w-full object-cover" />
           ) : (
-            <div className="absolute inset-[10%] rounded-lg bg-mist motion-safe:animate-pulse" aria-hidden />
+            <div className="absolute inset-[10%] rounded-xl bg-mist motion-safe:animate-pulse" aria-hidden />
           )}
           {preview && !busy && (
             <div className="absolute bottom-3 left-3 flex gap-1.5">
               {CONNECTIVITY_LEGEND.slice(0, 2).map((item) => (
                 <span
                   key={item.label}
-                  className="inline-flex items-center gap-1.5 rounded-full bg-white/95 px-2.5 py-1 text-[11px] font-medium text-ink shadow-stripe"
+                  className="inline-flex items-center gap-1.5 rounded-full bg-white/95 px-2.5 py-1 text-xs font-medium text-ink shadow-stripe"
                 >
                   <span className="h-2 w-2 rounded-full" style={{ background: item.color }} />
                   {item.label}
@@ -165,133 +179,102 @@ export default function LiveMapPanel({
             </div>
           )}
           {preview && busy && (
-            <span className="absolute right-3 top-3 rounded-full bg-white/95 px-2.5 py-1 text-[11px] font-medium text-ink shadow-stripe">
+            <span className="absolute right-3 top-3 rounded-full bg-white/95 px-2.5 py-1 text-xs font-medium text-ink shadow-stripe">
               Updating…
             </span>
           )}
         </div>
-        <p className="min-h-[16px] text-center text-[11px] text-ink-muted" aria-live="polite">
-          {error
-            ? <span className="text-status-red">{error}</span>
-            : busy || !preview
-              ? country
-                ? `Rendering ${country.name} from live Giga Maps data…`
-                : countriesError ?? "Loading countries…"
-              : "Ready. This is exactly what goes on the slide."}
-        </p>
-      </div>
 
-      {/* Controls */}
-      <div className="grid grid-cols-3 gap-3">
-        <div className="flex flex-col gap-1.5" ref={pickerRef}>
-          <Eyebrow>Country</Eyebrow>
-          <div className="relative">
-            <Button
-              variant="secondary"
-              iconRight={ChevronsUpDown}
-              onClick={() => setPickerOpen((o) => !o)}
-              disabled={!country}
-              aria-haspopup="listbox"
-              aria-expanded={pickerOpen}
-              className="w-full justify-between"
-            >
-              <span className="flex min-w-0 items-center gap-2">
-                <span className="rounded bg-mist px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-ink-muted">
-                  {country?.code ?? "…"}
-                </span>
-                <span className="truncate">
+        <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-1.5" ref={pickerRef}>
+            <Eyebrow>Country</Eyebrow>
+            <div className="relative">
+              <Button
+                variant="secondary"
+                iconRight={ChevronsUpDown}
+                onClick={() => setPickerOpen((o) => !o)}
+                disabled={!country}
+                aria-haspopup="listbox"
+                aria-expanded={pickerOpen}
+                className="w-full"
+              >
+                <span className="flex-1 truncate text-left">
                   {country?.name ?? (countriesError ? "Unavailable" : "Loading…")}
                 </span>
-              </span>
-            </Button>
-            {pickerOpen && (
-              <div role="listbox" className="pop-in absolute left-0 top-full z-10 mt-1 flex w-[300px] flex-col gap-1.5 rounded-xl border border-hairline bg-white p-2 shadow-stripe-lg">
-                <input
-                  autoFocus
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                  onKeyDown={(e) => {
-                    // Escape closes the list, not the whole modal.
-                    if (e.key === "Escape") {
-                      e.stopPropagation();
-                      setPickerOpen(false);
-                    }
-                  }}
-                  placeholder="Search a country"
-                  className="h-9 w-full rounded-lg border border-hairline bg-white px-3 text-sm text-ink outline-none transition-shadow duration-150 placeholder:text-ink-faint focus:border-giga focus:ring-[3px] focus:ring-giga/15"
-                />
-                <div className="max-h-64 overflow-y-auto">
-                  {withData.length > 0 && <GroupLabel>With Giga data</GroupLabel>}
-                  {withData.map((c) => (
-                    <CountryRow key={c.code} c={c} active={country?.code === c.code} onPick={() => pick(c)} />
-                  ))}
-                  {without.length > 0 && <GroupLabel>Other countries</GroupLabel>}
-                  {without.map((c) => (
-                    <CountryRow key={c.code} c={c} active={country?.code === c.code} onPick={() => pick(c)} muted />
-                  ))}
-                  {withData.length + without.length === 0 && (
-                    <p className="px-2.5 py-3 text-xs text-ink-muted">No country matches “{query}”.</p>
-                  )}
+              </Button>
+              {pickerOpen && (
+                <div role="listbox" className="pop-in absolute left-0 top-full z-10 mt-1.5 flex w-[300px] flex-col rounded-2xl bg-white p-2 shadow-menu">
+                  <input
+                    autoFocus
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                    onKeyDown={(e) => {
+                      // Escape closes the list, not the whole modal.
+                      if (e.key === "Escape") {
+                        e.stopPropagation();
+                        setPickerOpen(false);
+                      }
+                    }}
+                    placeholder="Search a country"
+                    className="h-9 w-full bg-transparent px-2.5 text-sm text-ink outline-none placeholder:text-ink-faint"
+                  />
+                  <div className="max-h-64 overflow-y-auto border-t border-hairline-light pt-1">
+                    {withData.length > 0 && <GroupLabel>With Giga data</GroupLabel>}
+                    {withData.map((c) => (
+                      <CountryRow key={c.code} c={c} active={country?.code === c.code} onPick={() => pick(c)} />
+                    ))}
+                    {without.length > 0 && <GroupLabel>Other countries</GroupLabel>}
+                    {without.map((c) => (
+                      <CountryRow key={c.code} c={c} active={country?.code === c.code} onPick={() => pick(c)} muted />
+                    ))}
+                    {withData.length + without.length === 0 && (
+                      <p className="px-2.5 py-3 text-xs text-ink-muted">No country matches “{query}”.</p>
+                    )}
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
+            </div>
           </div>
-          <Caption>
-            {countriesError
-              ? countriesError
-              : country
-                ? `${fmt(country.schoolsTotal)} schools · ${country.healthTotal ? `${fmt(country.healthTotal)} health centers` : "no health centers yet"}`
-                : " "}
-          </Caption>
-        </div>
 
-        <div className="flex flex-col gap-1.5">
-          <Eyebrow>Show</Eyebrow>
-          <Segmented
-            options={SHOW_OPTIONS.map((o) => ({ key: o.key, label: o.label }))}
-            value={layer}
-            onChange={change(setLayer)}
-          />
-          <Caption>
-            {nothingToPlot ? (
-              <span className="text-[#D14807]">Nothing to plot for this choice yet</span>
-            ) : layer === "school" ? (
-              "Every mapped school as a dot"
-            ) : (
-              "Health centers draw as squares"
-            )}
-          </Caption>
-        </div>
+          <div className="flex flex-col gap-1.5">
+            <Eyebrow>Show</Eyebrow>
+            <Segmented
+              options={SHOW_OPTIONS.map((o) => ({ key: o.key, label: o.label }))}
+              value={layer}
+              onChange={change(setLayer)}
+            />
+          </div>
 
-        <div className="flex flex-col gap-1.5">
-          <Eyebrow>Style</Eyebrow>
-          <Segmented
-            options={[
-              { key: "dark", label: "Dark", swatch: "#141414" },
-              { key: "light", label: "Light", swatch: "#f4f4f2" },
-            ]}
-            value={theme}
-            onChange={change(setTheme)}
-          />
-          <Caption>Names and roads are hidden</Caption>
+          <div className="flex flex-col gap-1.5">
+            <Eyebrow>Style</Eyebrow>
+            <Segmented
+              options={[
+                { key: "dark", label: "Dark", swatch: "#141414" },
+                { key: "light", label: "Light", swatch: "#f4f4f2" },
+              ]}
+              value={theme}
+              onChange={change(setTheme)}
+            />
+          </div>
+
+          <p
+            className={`mt-auto text-xs ${error || countriesError || nothingToPlot ? "text-status-red" : "text-ink-muted"}`}
+            aria-live="polite"
+          >
+            {status}
+          </p>
         </div>
       </div>
 
-      {/* Footer */}
-      <div className="mt-0.5 flex items-center justify-between border-t border-hairline pt-3">
+      <div className="flex items-center justify-between border-t border-hairline-light pt-4">
         <Button variant="ghost" onClick={onLibrary}>
-          Use a pre-made screenshot instead
+          Use a screenshot instead
         </Button>
         <div className="flex items-center gap-2">
-          <Button variant="secondary" onClick={onCancel}>
+          <Button variant="ghost" onClick={onCancel}>
             Cancel
           </Button>
-          <Button
-            variant="primary"
-            icon={Check}
-            onClick={() => preview && onUse(preview)}
-            disabled={!preview || busy}
-          >
+          <Button variant="primary" onClick={() => preview && onUse(preview)} disabled={!preview || busy}>
             Use this map
           </Button>
         </div>
@@ -306,13 +289,9 @@ function Eyebrow({ children }: { children: React.ReactNode }) {
   );
 }
 
-function Caption({ children }: { children: React.ReactNode }) {
-  return <span className="min-h-[16px] text-[11px] text-ink-muted">{children}</span>;
-}
-
 function GroupLabel({ children }: { children: React.ReactNode }) {
   return (
-    <span className="block px-2 pb-0.5 pt-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-ink-muted">
+    <span className="block px-2.5 pb-1 pt-2 text-xs text-ink-faint">
       {children}
     </span>
   );
