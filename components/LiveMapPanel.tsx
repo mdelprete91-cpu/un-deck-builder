@@ -1,12 +1,13 @@
 "use client";
 
-import { ChevronsUpDown } from "lucide-react";
+import { ChevronDown } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { DataLayer, GigaMapCountry, MapTheme } from "@/lib/giga-maps/config";
 import { CONNECTIVITY_LEGEND } from "@/lib/giga-maps/config";
 import { fetchGigaMapCountries, renderGigaMapDataUrl } from "@/lib/giga-maps/render";
 import type { MapSlot } from "@/lib/giga-maps/slot";
 import Button from "@/components/Button";
+import Select from "@/components/Select";
 
 /**
  * Country map from live Giga Maps data, rendered in the browser at the exact
@@ -31,12 +32,10 @@ export default function LiveMapPanel({
   slot,
   onUse,
   onCancel,
-  onLibrary,
 }: {
   slot: MapSlot;
   onUse: (dataUrl: string) => void;
   onCancel: () => void;
-  onLibrary: () => void;
 }) {
   const [countries, setCountries] = useState<GigaMapCountry[]>([]);
   const [countriesError, setCountriesError] = useState<string | null>(null);
@@ -146,145 +145,130 @@ export default function LiveMapPanel({
             : `${fmt(country.schoolsTotal)} schools${country.healthTotal ? ` · ${fmt(country.healthTotal)} health centers` : ""}`;
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-5">
-      {/* Settings on the left as a short column with one status line under
-          them; the preview, the whole point, takes the room on the right. */}
-      <div className="grid min-h-0 grid-cols-[240px_1fr] gap-6">
-        <div className="flex flex-col gap-4">
-          <div className="flex flex-col gap-1.5" ref={pickerRef}>
-            <Eyebrow>Country</Eyebrow>
-            <div className="relative">
-              <Button
-                variant="secondary"
-                iconRight={ChevronsUpDown}
-                onClick={() => setPickerOpen((o) => !o)}
-                disabled={!country}
-                aria-haspopup="listbox"
-                aria-expanded={pickerOpen}
-                className="w-full"
-              >
-                <span className="flex-1 truncate text-left">
-                  {country?.name ?? (countriesError ? "Unavailable" : "Loading…")}
-                </span>
-              </Button>
-              {pickerOpen && (
-                <div role="listbox" className="pop-in absolute left-0 top-full z-10 mt-1.5 flex w-[300px] flex-col rounded-2xl bg-white p-2 shadow-menu">
-                  <input
-                    autoFocus
-                    value={query}
-                    onChange={(e) => setQuery(e.target.value)}
-                    onKeyDown={(e) => {
-                      // Escape closes the list, not the whole modal.
-                      if (e.key === "Escape") {
-                        e.stopPropagation();
-                        setPickerOpen(false);
-                      }
-                    }}
-                    placeholder="Search a country"
-                    className="h-9 w-full bg-transparent px-2.5 text-sm text-ink outline-none placeholder:text-ink-faint"
-                  />
-                  <div className="max-h-64 overflow-y-auto border-t border-hairline-light pt-1">
-                    {withData.length > 0 && <GroupLabel>With Giga data</GroupLabel>}
-                    {withData.map((c) => (
-                      <CountryRow key={c.code} c={c} active={country?.code === c.code} onPick={() => pick(c)} />
-                    ))}
-                    {without.length > 0 && <GroupLabel>Other countries</GroupLabel>}
-                    {without.map((c) => (
-                      <CountryRow key={c.code} c={c} active={country?.code === c.code} onPick={() => pick(c)} muted />
-                    ))}
-                    {withData.length + without.length === 0 && (
-                      <p className="px-2.5 py-3 text-xs text-ink-muted">No country matches “{query}”.</p>
-                    )}
-                  </div>
+    <div className="flex min-h-0 flex-1 flex-col">
+      {/* Settings as rows, like a settings dialog: the label on the left,
+          the value and a chevron on the right, a hairline between rows. */}
+      <div className="grid min-h-0 flex-1 grid-cols-[minmax(0,1fr)_340px] gap-8">
+        <div className="flex min-w-0 flex-col">
+          <div ref={pickerRef} className="relative flex h-12 items-center justify-between gap-3 border-b border-hairline-light">
+            <span className="text-sm text-ink">Country</span>
+            <Button
+              variant="ghost"
+              iconRight={ChevronDown}
+              onClick={() => setPickerOpen((o) => !o)}
+              disabled={!country}
+              aria-haspopup="listbox"
+              aria-expanded={pickerOpen}
+              className="-mr-2 max-w-[60%]"
+            >
+              <span className="truncate">{country?.name ?? (countriesError ? "Unavailable" : "Loading…")}</span>
+            </Button>
+            {pickerOpen && (
+              <div role="listbox" className="pop-in absolute right-0 top-full z-10 mt-1.5 flex w-[300px] flex-col rounded-2xl bg-white p-2 shadow-menu">
+                <input
+                  autoFocus
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  onKeyDown={(e) => {
+                    // Escape closes the list, not the whole modal.
+                    if (e.key === "Escape") {
+                      e.stopPropagation();
+                      setPickerOpen(false);
+                    }
+                  }}
+                  placeholder="Search a country"
+                  className="h-9 w-full bg-transparent px-2.5 text-sm text-ink outline-none placeholder:text-ink-faint"
+                />
+                <div className="max-h-64 overflow-y-auto border-t border-hairline-light pt-1">
+                  {withData.length > 0 && <GroupLabel>With Giga data</GroupLabel>}
+                  {withData.map((c) => (
+                    <CountryRow key={c.code} c={c} active={country?.code === c.code} onPick={() => pick(c)} />
+                  ))}
+                  {without.length > 0 && <GroupLabel>Other countries</GroupLabel>}
+                  {without.map((c) => (
+                    <CountryRow key={c.code} c={c} active={country?.code === c.code} onPick={() => pick(c)} muted />
+                  ))}
+                  {withData.length + without.length === 0 && (
+                    <p className="px-2.5 py-3 text-xs text-ink-muted">No country matches “{query}”.</p>
+                  )}
                 </div>
-              )}
-            </div>
+              </div>
+            )}
           </div>
 
-          <div className="flex flex-col gap-1.5">
-            <Eyebrow>Show</Eyebrow>
-            <Segmented
-              options={SHOW_OPTIONS.map((o) => ({ key: o.key, label: o.label }))}
+          <div className="flex h-12 items-center justify-between gap-3 border-b border-hairline-light">
+            <span className="text-sm text-ink">Show</span>
+            <Select
+              ariaLabel="What to plot"
               value={layer}
+              options={SHOW_OPTIONS.map((o) => ({ value: o.key, label: o.label }))}
               onChange={change(setLayer)}
             />
           </div>
 
-          <div className="flex flex-col gap-1.5">
-            <Eyebrow>Style</Eyebrow>
-            <Segmented
-              options={[
-                { key: "dark", label: "Dark", swatch: "#141414" },
-                { key: "light", label: "Light", swatch: "#f4f4f2" },
-              ]}
+          <div className="flex h-12 items-center justify-between gap-3 border-b border-hairline-light">
+            <span className="text-sm text-ink">Style</span>
+            <Select
+              ariaLabel="Map style"
               value={theme}
+              options={[
+                { value: "dark", label: "Dark" },
+                { value: "light", label: "Light" },
+              ]}
               onChange={change(setTheme)}
             />
           </div>
 
           <p
-            className={`mt-auto text-xs ${error || countriesError || nothingToPlot ? "text-status-red" : "text-ink-muted"}`}
+            className={`mt-3 text-xs ${error || countriesError || nothingToPlot ? "text-status-red" : "text-ink-muted"}`}
             aria-live="polite"
           >
             {status}
           </p>
         </div>
 
-        <div
-          className="relative mx-auto max-h-[440px] overflow-hidden rounded-2xl bg-canvas-2"
-          style={{
-            aspectRatio: `${slot.width} / ${slot.height}`,
-            maxWidth: "100%",
-            width: `calc(440px * ${slot.width / slot.height})`,
-          }}
-        >
+        {/* The preview sits in a frame with one fixed ratio whatever the
+            slot's shape, so the dialog never changes shape between layouts.
+            Until the map arrives the frame holds a skeleton, never a dark slab. */}
+        <div className="flex aspect-[4/3] w-full items-center justify-center overflow-hidden rounded-2xl bg-canvas-2 p-4">
           {preview ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={preview} alt={`${country?.name ?? "Country"} map preview`} className="block h-full w-full object-cover" />
-          ) : (
-            <div className="absolute inset-[10%] rounded-xl bg-mist motion-safe:animate-pulse" aria-hidden />
-          )}
-          {preview && !busy && (
-            <div className="absolute bottom-3 left-3 flex gap-1.5">
-              {CONNECTIVITY_LEGEND.slice(0, 2).map((item) => (
-                <span
-                  key={item.label}
-                  className="inline-flex items-center gap-1.5 rounded-full bg-white/95 px-2.5 py-1 text-xs font-medium text-ink shadow-stripe"
-                >
-                  <span className="h-2 w-2 rounded-full" style={{ background: item.color }} />
-                  {item.label}
+            <div className="relative max-h-full max-w-full" style={{ aspectRatio: `${slot.width} / ${slot.height}`, height: "100%" }}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={preview} alt={`${country?.name ?? "Country"} map preview`} className="block h-full w-full rounded-lg object-contain" />
+              {!busy && (
+                <div className="absolute bottom-2 left-2 flex gap-1.5">
+                  {CONNECTIVITY_LEGEND.slice(0, 2).map((item) => (
+                    <span
+                      key={item.label}
+                      className="inline-flex items-center gap-1.5 rounded-full bg-white/95 px-2 py-0.5 text-[11px] font-medium text-ink shadow-stripe"
+                    >
+                      <span className="h-2 w-2 rounded-full" style={{ background: item.color }} />
+                      {item.label}
+                    </span>
+                  ))}
+                </div>
+              )}
+              {busy && (
+                <span className="absolute right-2 top-2 rounded-full bg-white/95 px-2 py-0.5 text-[11px] font-medium text-ink shadow-stripe">
+                  Updating…
                 </span>
-              ))}
+              )}
             </div>
-          )}
-          {preview && busy && (
-            <span className="absolute right-3 top-3 rounded-full bg-white/95 px-2.5 py-1 text-xs font-medium text-ink shadow-stripe">
-              Updating…
-            </span>
+          ) : (
+            <div className="h-3/4 rounded-xl bg-mist motion-safe:animate-pulse" style={{ aspectRatio: `${slot.width} / ${slot.height}` }} aria-hidden />
           )}
         </div>
       </div>
 
-      <div className="flex items-center justify-between border-t border-hairline-light pt-4">
-        <Button variant="ghost" onClick={onLibrary}>
-          Use a screenshot instead
+      <div className="mt-5 flex items-center justify-end gap-2 border-t border-hairline-light pt-4">
+        <Button variant="ghost" onClick={onCancel}>
+          Cancel
         </Button>
-        <div className="flex items-center gap-2">
-          <Button variant="ghost" onClick={onCancel}>
-            Cancel
-          </Button>
-          <Button variant="primary" onClick={() => preview && onUse(preview)} disabled={!preview || busy}>
-            Use this map
-          </Button>
-        </div>
+        <Button variant="primary" onClick={() => preview && onUse(preview)} disabled={!preview || busy}>
+          Use this map
+        </Button>
       </div>
     </div>
-  );
-}
-
-function Eyebrow({ children }: { children: React.ReactNode }) {
-  return (
-    <span className="text-[13px] font-normal text-ink-faint">{children}</span>
   );
 }
 
@@ -325,34 +309,3 @@ function CountryRow({
   );
 }
 
-function Segmented<T extends string>({
-  options,
-  value,
-  onChange,
-}: {
-  options: { key: T; label: string; swatch?: string }[];
-  value: T;
-  onChange: (v: T) => void;
-}) {
-  return (
-    <div
-      className="grid rounded-full bg-mist p-[3px]"
-      style={{ gridTemplateColumns: `repeat(${options.length}, minmax(0, 1fr))` }}
-    >
-      {options.map((o) => (
-        <Button
-          key={o.key}
-          variant={value === o.key ? "secondary" : "ghost"}
-          aria-pressed={value === o.key}
-          onClick={() => onChange(o.key)}
-          className="w-full"
-        >
-          {o.swatch && (
-            <span className="h-2.5 w-2.5 rounded-[3px] border border-hairline" style={{ background: o.swatch }} />
-          )}
-          {o.label}
-        </Button>
-      ))}
-    </div>
-  );
-}
