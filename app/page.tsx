@@ -1015,7 +1015,7 @@ function EmptyState({
                     · {count} slide{count === 1 ? "" : "s"}
                   </span>
                 </p>
-                <p className="truncate text-xs text-ink-muted">Left in this browser, not saved to a file.</p>
+                <p className="truncate text-xs text-ink-muted">Left in this browser, not saved.</p>
               </div>
               <Button variant="ghost" onClick={onDismissPrevious}>
                 Discard
