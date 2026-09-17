@@ -1,6 +1,6 @@
 "use client";
 
-import { ChartColumn, ChevronDown, Copy, History, Image as ImageIcon, LoaderCircle, Plus, Redo2, Trash2, Undo2, Upload, X } from "lucide-react";
+import { ArrowUp, ChartColumn, ChevronDown, Copy, History, Image as ImageIcon, LoaderCircle, Plus, Redo2, Trash2, Undo2, Upload, X } from "lucide-react";
 import { useEffect, useLayoutEffect, useReducer, useRef, useState, type CSSProperties } from "react";
 import { BRANDS } from "@/lib/slides/brand";
 import { DEFAULT_DECK_NAME, deckReducer, initialDeckState, readPath } from "@/lib/slides/state";
@@ -1184,8 +1184,16 @@ function SlideActions({
   const [width, setWidth] = useState<number | undefined>(undefined);
   const settled = useRef(false);
   useLayoutEffect(() => {
-    if (contentRef.current) setWidth(contentRef.current.offsetWidth);
-  }, [mode, canAddItem, canEditData, canChangeImage]);
+    const el = contentRef.current;
+    if (!el) return;
+    const measure = () => setWidth(el.offsetWidth);
+    measure();
+    // Content can change without a mode change (an action appearing, a label
+    // edited); the observer keeps the pill exactly as wide as what it holds.
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [mode]);
   useEffect(() => {
     settled.current = true;
   }, []);
@@ -1232,9 +1240,15 @@ function SlideActions({
               aria-label="How to redo this slide"
               className="h-9 w-80 bg-transparent px-3 text-sm text-ink outline-none placeholder:text-ink-faint"
             />
-            <Button variant="primary" onClick={submit} disabled={busy || !canSend}>
-              Regenerate
-            </Button>
+            <Button
+              variant="primary"
+              iconOnly
+              icon={ArrowUp}
+              onClick={submit}
+              disabled={busy || !canSend}
+              title="Regenerate this slide"
+              aria-label="Regenerate this slide"
+            />
             <Button
               variant="ghost"
               iconOnly
@@ -1246,7 +1260,7 @@ function SlideActions({
           </>
         ) : (
           <>
-            <Button variant="ai" onClick={() => setAiOpen(true)} disabled={busy} style={{ "--i": 0 } as CSSProperties}>
+            <Button variant="primary" onClick={() => setAiOpen(true)} disabled={busy} style={{ "--i": 0 } as CSSProperties}>
               Edit with AI
             </Button>
             {canAddItem && (

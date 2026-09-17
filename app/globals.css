@@ -110,17 +110,6 @@
 /* The slide bar's ring: a 1px conic gradient in the Giga blues, slowly
    turning, so the bar reads as the live control over the slide without a
    heavy border. Registered property so the angle itself animates. */
-/* The AI entry on the slide bar: a flat diagonal blend of blues (light blue
-   into Giga Blue into cyan), white text. Colour and gradient only: no
-   highlight, no glow, no motion (Mario's call). */
-.ai-orb {
-  color: #fff;
-  /* One diagonal blend, no highlight: a corner light reads as a sphere. */
-  background: linear-gradient(120deg, #6fa1ff 0%, #277aff 48%, #1aa3e8 100%);
-  transition: filter 160ms ease-out;
-}
-.ai-orb:hover { filter: brightness(1.06) saturate(1.05); }
-
 /* Optical alignment: a Lucide icon beside a label is centered on the line
    box, which reads half a pixel high next to Inter's caps. Nudge it down.
    Icon-only buttons (the icon is the only child) are left alone. */
