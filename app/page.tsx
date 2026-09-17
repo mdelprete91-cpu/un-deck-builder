@@ -1,7 +1,7 @@
 "use client";
 
 import { ChartColumn, ChevronDown, Copy, History, Image as ImageIcon, LoaderCircle, Plus, Redo2, Trash2, Undo2, Upload, X } from "lucide-react";
-import { useEffect, useReducer, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useReducer, useRef, useState, type CSSProperties } from "react";
 import { BRANDS } from "@/lib/slides/brand";
 import { DEFAULT_DECK_NAME, deckReducer, initialDeckState, readPath } from "@/lib/slides/state";
 import { isPage, normalizeSlide, PRIMARY_ARRAY, type LayoutId, type SlideContent } from "@/lib/slides/schema";
@@ -1174,6 +1174,21 @@ function SlideActions({
 }) {
   const [aiOpen, setAiOpen] = useState(false);
   const [instruction, setInstruction] = useState("");
+  // The bar is one object changing mode, so it morphs rather than swaps: the
+  // pill's width is measured from the content it is about to show and
+  // transitioned (see .bar-morph), and the new content fades in behind it
+  // with a short stagger. The first paint keeps `auto` so nothing animates
+  // twice on top of float-in.
+  const mode = busy ? "busy" : aiOpen ? "ai" : "actions";
+  const contentRef = useRef<HTMLDivElement>(null);
+  const [width, setWidth] = useState<number | undefined>(undefined);
+  const settled = useRef(false);
+  useLayoutEffect(() => {
+    if (contentRef.current) setWidth(contentRef.current.offsetWidth);
+  }, [mode, canAddItem, canEditData, canChangeImage]);
+  useEffect(() => {
+    settled.current = true;
+  }, []);
   const submit = () => {
     if (busy) return;
     onRegenerate(instruction);
@@ -1188,10 +1203,16 @@ function SlideActions({
   const canSend = instruction.trim().length > 0;
   return (
     <div className="float-in pointer-events-none absolute inset-x-0 bottom-12 z-20 flex justify-center">
-      <div className="gradient-ring pointer-events-auto relative shadow-float">
+      <div className="pointer-events-auto relative rounded-full shadow-float">
         <div
           data-tour="slide-bar"
-          className="relative flex items-center gap-2 rounded-full bg-white p-2.5"
+          className="bar-morph relative overflow-hidden rounded-full border border-hairline-light bg-white p-2.5"
+          style={{ width, boxSizing: "content-box" }}
+        >
+        <div
+          key={mode}
+          ref={contentRef}
+          className={`flex w-max items-center gap-2 ${settled.current ? "bar-mode" : ""}`}
         >
         {busy ? (
           <Button variant="accent" icon={LoaderCircle} iconClassName="animate-spin" aria-busy tabIndex={-1}>
@@ -1225,7 +1246,13 @@ function SlideActions({
           </>
         ) : (
           <>
-            <Button variant="accent" onClick={() => setAiOpen(true)} disabled={busy}>
+            <Button
+              variant="accent"
+              onClick={() => setAiOpen(true)}
+              disabled={busy}
+              className="gradient-ring"
+              style={{ "--i": 0 } as CSSProperties}
+            >
               Edit with AI
             </Button>
             {canAddItem && (
@@ -1272,6 +1299,7 @@ function SlideActions({
             />
           </>
         )}
+        </div>
         </div>
       </div>
     </div>
