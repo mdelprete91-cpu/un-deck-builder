@@ -48,9 +48,8 @@ export default function ImagePickerModal({
         className="pop-in flex h-[540px] max-h-[88vh] w-full max-w-5xl overflow-hidden rounded-3xl bg-white shadow-float"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Rail: the close, then the sections as rows. */}
-        <aside className="flex w-[200px] shrink-0 flex-col gap-1 border-r border-hairline-light bg-canvas p-3">
-          <Button variant="ghost" iconOnly icon={X} onClick={onClose} title="Close (Esc)" aria-label="Close" className="mb-2" />
+        {/* Rail: the sections as rows. */}
+        <aside className="flex w-[200px] shrink-0 flex-col gap-1 border-r border-hairline-light bg-canvas p-3 pt-5">
           {SECTIONS.map((s) => (
             <Button
               key={s.id}
@@ -66,9 +65,12 @@ export default function ImagePickerModal({
         </aside>
 
         <section className="flex min-w-0 flex-1 flex-col px-7 pt-6 pb-5">
-          <h2 className="text-xl font-medium text-ink">
-            {section === "upload" ? "Upload a photo" : "Country map"}
-          </h2>
+          <div className="flex items-center justify-between">
+            <h2 className="text-xl font-medium text-ink">
+              {section === "upload" ? "Upload a photo" : "Country map"}
+            </h2>
+            <Button variant="ghost" iconOnly icon={X} onClick={onClose} title="Close (Esc)" aria-label="Close" className="-mr-2" />
+          </div>
           <div className="mt-4 mb-5 border-t border-hairline-light" />
 
           {section === "upload" && (
