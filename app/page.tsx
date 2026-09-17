@@ -1246,7 +1246,7 @@ function SlideActions({
           </>
         ) : (
           <>
-            <Button variant="ring" onClick={() => setAiOpen(true)} disabled={busy} style={{ "--i": 0 } as CSSProperties}>
+            <Button variant="ai" onClick={() => setAiOpen(true)} disabled={busy} style={{ "--i": 0 } as CSSProperties}>
               Edit with AI
             </Button>
             {canAddItem && (
