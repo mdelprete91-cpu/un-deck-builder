@@ -42,7 +42,7 @@ export default function Button({
   icon?: LucideIcon;
   /** Lucide icon after the label (a chevron on a menu button). */
   iconRight?: LucideIcon;
-  /** No label: a 36px square. Pass `aria-label`. */
+  /** No label: a 36px square (children, if any, extend it). Pass `aria-label`. */
   iconOnly?: boolean;
   /** Class for the icons themselves, e.g. "animate-spin" on a spinner. */
   iconClassName?: string;
@@ -54,12 +54,16 @@ export default function Button({
     <button
       type={type}
       className={`inline-flex h-9 shrink-0 items-center justify-center gap-1.5 rounded-full text-sm font-medium transition-colors duration-150 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-giga/20 disabled:pointer-events-none ${
-        iconOnly ? "w-9" : "px-3"
+        // A 36px square: min-width does it for borderless variants, and for
+        // the bordered one 10px + 14px icon + 10px + 2px border lands there
+        // too. A child (an expandable label, see the composer's "+") widens
+        // it from there.
+        iconOnly ? "min-w-9 px-[10px]" : "px-3"
       } ${VARIANT[variant]} ${className}`}
       {...rest}
     >
       {Icon && <Icon size={ICON_SIZE} className={iconClassName} aria-hidden />}
-      {!iconOnly && children}
+      {children}
       {IconRight && <IconRight size={ICON_SIZE} className={iconClassName} aria-hidden />}
     </button>
   );

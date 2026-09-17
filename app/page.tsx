@@ -1,6 +1,6 @@
 "use client";
 
-import { ChartColumn, ChevronDown, Copy, Image as ImageIcon, LoaderCircle, Plus, Redo2, Trash2, Undo2, Upload, X } from "lucide-react";
+import { ChartColumn, ChevronDown, Copy, History, Image as ImageIcon, LoaderCircle, Plus, Redo2, Trash2, Undo2, Upload, X } from "lucide-react";
 import { useEffect, useReducer, useRef, useState } from "react";
 import { BRANDS } from "@/lib/slides/brand";
 import { deckReducer, initialDeckState, readPath } from "@/lib/slides/state";
@@ -1005,28 +1005,24 @@ function EmptyState({
           {/* The editor no longer restores the last deck on its own, so the
               deck is offered here instead of appearing under the user. */}
           {count > 0 && (
-            <div className="pop-in mt-4 w-full max-w-sm rounded-2xl border border-hairline-light bg-white p-4 shadow-float">
-              <span className="mb-1 block text-[13px] font-normal text-ink-faint">
-                Last session
-              </span>
-              <p className="text-sm leading-relaxed text-ink">
-                {title ? `“${title}”` : "Untitled deck"}
-                <span className="text-ink-muted">
-                  {" "}
-                  · {count} slide{count === 1 ? "" : "s"}
-                </span>
-              </p>
-              <p className="mt-1 text-xs leading-relaxed text-ink-muted">
-                Left in this browser, not saved to a file.
-              </p>
-              <div className="mt-3 flex items-center gap-2">
-                <Button variant="primary" onClick={onRestorePrevious}>
-                  Pick it up
-                </Button>
-                <Button variant="ghost" onClick={onDismissPrevious}>
-                  Discard
-                </Button>
+            <div className="pop-in mt-4 flex w-full max-w-md items-center gap-3 rounded-2xl border border-hairline-light bg-white py-2 pl-4 pr-2 shadow-float">
+              <History size={16} className="shrink-0 text-ink-faint" aria-hidden />
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-medium text-ink">
+                  {title ? `“${title}”` : "Untitled deck"}
+                  <span className="font-normal text-ink-muted">
+                    {" "}
+                    · {count} slide{count === 1 ? "" : "s"}
+                  </span>
+                </p>
+                <p className="truncate text-xs text-ink-muted">Left in this browser, not saved to a file.</p>
               </div>
+              <Button variant="ghost" onClick={onDismissPrevious}>
+                Discard
+              </Button>
+              <Button variant="primary" onClick={onRestorePrevious}>
+                Pick it up
+              </Button>
             </div>
           )}
         </>

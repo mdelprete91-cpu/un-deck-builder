@@ -1,7 +1,7 @@
 "use client";
 
 import { ArrowUp, Circle, CircleCheck, LoaderCircle, Plus } from "lucide-react";
-import { useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { ATTACHMENT_ACCEPT, type Attachment } from "@/lib/slides/attachments";
 import AttachmentsRow from "@/components/AttachmentsRow";
 import Button from "@/components/Button";
@@ -47,6 +47,24 @@ export default function PromptBox({
   const [dragging, setDragging] = useState(false);
   const [reading, setReading] = useState(false);
   const canSend = !generating && (brief.trim().length > 0 || attachments.length > 0);
+
+  // The "+" introduces itself: on an empty editor the pill widens to say
+  // "Attach" for two seconds, then folds back to the icon. Hover reopens it,
+  // so the affordance stays discoverable after the hint is gone.
+  const [hint, setHint] = useState(false);
+  const [hover, setHover] = useState(false);
+  useEffect(() => {
+    if (hasSlides || attachments.length > 0) return;
+    const show = setTimeout(() => setHint(true), 500);
+    const hide = setTimeout(() => setHint(false), 2500);
+    return () => {
+      clearTimeout(show);
+      clearTimeout(hide);
+    };
+    // Once, when the composer mounts on an empty editor.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  const labelOpen = (hint || hover) && !generating && !reading;
 
   // Grows with the text, like a chat composer, up to a ceiling that leaves
   // the rest of the sidebar reachable. Past it the textarea scrolls.
@@ -128,10 +146,25 @@ export default function PromptBox({
             iconOnly
             icon={Plus}
             onClick={() => fileRef.current?.click()}
+            onMouseEnter={() => setHover(true)}
+            onMouseLeave={() => setHover(false)}
             disabled={generating || reading}
             aria-label={reading ? "Reading files" : "Attach files"}
             title="Attach a PDF, Word, PowerPoint, text file or image"
-          />
+          >
+            {/* The label's width animates through a grid track, never through
+                `width`; folded, the track is 0 and the pill is the 36px square.
+                The -6px cancels the Button gap while folded. */}
+            <span
+              aria-hidden={!labelOpen}
+              className="-ml-1.5 grid transition-[grid-template-columns] duration-250 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none"
+              style={{ gridTemplateColumns: labelOpen ? "1fr" : "0fr" }}
+            >
+              <span className="min-w-0 overflow-hidden whitespace-nowrap">
+                <span className="block pl-3">Attach</span>
+              </span>
+            </span>
+          </Button>
           <input
             ref={fileRef}
             type="file"
