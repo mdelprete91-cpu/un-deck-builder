@@ -1020,7 +1020,7 @@ function EmptyState({
                 Discard
               </Button>
               <Button variant="primary" onClick={onRestorePrevious}>
-                Pick it up
+                Open
               </Button>
             </div>
           )}
