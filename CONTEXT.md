@@ -42,8 +42,10 @@ Do not change these without asking Mario first. They are decisions, not defaults
    10% tint, panel grey `#EFF2F5`, hairline `#E6E6E6`. It lives in `PALETTE` in
    `lib/slides/pages/a4.ts` and deliberately **not** on `BrandTheme`, so no slide renderer can
    reach it. Anything beyond that list is still a question for Mario.
-3. **No black.** No solid black or near-black background anywhere, in the chrome or on a slide.
-   This is why `section-image-dark` was retired. Dark surfaces are Giga blue, not black.
+3. **No black on a slide.** No solid black or near-black background on any slide. This is why
+   `section-image-dark` was retired. Dark surfaces on slides are Giga blue, not black. The one
+   exception is the chrome's dark theme (Mario, 18 Sep 2026): it takes ChatGPT's dark values
+   verbatim, pure black sidebar included, because the chrome is not the brand's output.
 4. **One accent.** Giga Blue `#277AFF` and its tints, or `#01AEEF` and its tints on the Digital
    sub-brands. Red only for destructive and error states.
 5. **Slide typography never varies.** Manrope plus Open Sans, self-hosted in `public/fonts`, on

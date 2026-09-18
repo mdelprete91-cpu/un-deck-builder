@@ -6,6 +6,7 @@ import { BRANDS, PICKER_BRAND_IDS, type BrandId } from "@/lib/slides/brand";
 import type { DeckState, DeckAction } from "@/lib/slides/state";
 import type { Attachment } from "@/lib/slides/attachments";
 import Button from "@/components/Button";
+import ThemeToggle from "@/components/ThemeToggle";
 import PromptBox from "@/components/PromptBox";
 import Select from "@/components/Select";
 
@@ -68,7 +69,8 @@ export default function Sidebar({
         <img
           src="/logos/unicef-digital-impact-unboxed.svg"
           alt="UNICEF Digital Impact Division"
-          className="h-12 w-auto"
+          // The lockup is cyan and black; on the dark chrome it goes all white.
+          className="h-12 w-auto dark:brightness-0 dark:invert"
         />
       </div>
 
@@ -157,7 +159,7 @@ export default function Sidebar({
           onClick={() => setAddOpen(false)}
         >
           <div
-            className="pop-in w-full max-w-md rounded-2xl bg-white p-5 shadow-stripe-lg"
+            className="pop-in w-full max-w-md rounded-2xl bg-surface p-5 shadow-stripe-lg"
             onClick={(e) => e.stopPropagation()}
           >
             <Eyebrow>Add slides</Eyebrow>
@@ -174,7 +176,7 @@ export default function Sidebar({
               }}
               placeholder="E.g. team structure: vertical teams (Tech, Finance, Product) plus cross-cutting functions"
               rows={4}
-              className="w-full resize-y rounded-lg border border-hairline bg-white p-3 text-sm text-ink outline-none transition-shadow duration-150 placeholder:text-ink-faint focus:border-giga focus:ring-[3px] focus:ring-giga/15"
+              className="w-full resize-y rounded-lg border border-hairline bg-surface p-3 text-sm text-ink outline-none transition-shadow duration-150 placeholder:text-ink-faint focus:border-giga focus:ring-[3px] focus:ring-giga/15"
             />
             <div className="mt-3 flex items-center justify-between gap-2">
               <label className="flex items-center gap-2 text-xs text-ink-muted">
@@ -185,7 +187,7 @@ export default function Sidebar({
                   max={6}
                   value={addCount}
                   onChange={(e) => setAddCount(Math.max(1, Math.min(6, Number(e.target.value) || 1)))}
-                  className="h-10 w-16 rounded-lg border border-hairline bg-white px-2 text-center text-sm text-ink outline-none transition-shadow duration-150 focus:border-giga focus:ring-[3px] focus:ring-giga/15"
+                  className="h-10 w-16 rounded-lg border border-hairline bg-surface px-2 text-center text-sm text-ink outline-none transition-shadow duration-150 focus:border-giga focus:ring-[3px] focus:ring-giga/15"
                 />
               </label>
               <div className="flex items-center gap-2">
@@ -216,9 +218,12 @@ export default function Sidebar({
       )}
 
       <div className="mt-auto flex flex-col gap-2">
-        <Button variant="ghost" icon={CircleHelp} onClick={onHowItWorks}>
-          How it works
-        </Button>
+        <div className="flex items-center justify-between gap-2">
+          <Button variant="ghost" icon={CircleHelp} onClick={onHowItWorks}>
+            How it works
+          </Button>
+          <ThemeToggle />
+        </div>
         {state.lastRun && (
           <p
             className="text-center text-xs text-ink-muted"

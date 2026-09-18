@@ -51,7 +51,7 @@ function PickerModal({
     <div className="fixed inset-0 z-50 flex items-center justify-center p-8" onClick={onClose}>
       <div className="absolute inset-0 bg-scrim" />
       <div
-        className="pop-in relative flex max-h-[85vh] w-full max-w-4xl flex-col rounded-3xl bg-white shadow-float"
+        className="pop-in relative flex max-h-[85vh] w-full max-w-4xl flex-col rounded-3xl bg-surface shadow-float"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between border-b border-hairline-light px-7 py-5">
@@ -256,7 +256,7 @@ export default function ThumbStrip({
               className={`${twoPager ? "aspect-[595/842]" : "aspect-video"} w-full`}
             />
           </div>
-          <div className="absolute left-1 top-1 rounded-md bg-white/90 px-1.5 py-0.5 text-[10px] font-medium text-ink shadow-stripe">
+          <div className="absolute left-1 top-1 rounded-md bg-surface/90 px-1.5 py-0.5 text-[10px] font-medium text-ink shadow-stripe">
             {i + 1} · {LAYOUTS[slide.layoutId]?.label ?? slide.layoutId}
           </div>
           <div className="absolute bottom-1 right-1 hidden gap-1 group-hover:flex">

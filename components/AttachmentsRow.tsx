@@ -33,7 +33,7 @@ export default function AttachmentsRow({
             onClick={() => onRemove(a.id)}
             disabled={disabled}
             aria-label={`Remove ${a.name}`}
-            className="flex h-5 w-5 items-center justify-center rounded-full text-giga transition-colors duration-150 hover:bg-white focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-giga/15 disabled:opacity-40"
+            className="flex h-5 w-5 items-center justify-center rounded-full text-giga transition-colors duration-150 hover:bg-surface focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-giga/15 disabled:opacity-40"
           >
             <X size={12} aria-hidden />
           </button>

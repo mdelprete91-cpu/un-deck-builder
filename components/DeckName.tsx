@@ -43,7 +43,7 @@ export default function DeckName({ name, onRename }: { name: string; onRename: (
         }}
         aria-label="Deck name"
         maxLength={80}
-        className="h-9 min-w-0 max-w-[320px] rounded-lg border border-hairline bg-white px-2.5 text-base font-medium text-ink outline-none focus:border-giga focus:ring-[3px] focus:ring-giga/15"
+        className="h-9 min-w-0 max-w-[320px] rounded-lg border border-hairline bg-surface px-2.5 text-base font-medium text-ink outline-none focus:border-giga focus:ring-[3px] focus:ring-giga/15"
       />
     );
   }

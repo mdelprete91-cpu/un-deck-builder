@@ -164,7 +164,7 @@ export default function LiveMapPanel({
               <span className="truncate">{country?.name ?? (countriesError ? "Unavailable" : "Loading…")}</span>
             </Button>
             {pickerOpen && (
-              <div role="listbox" className="pop-in absolute right-0 top-full z-10 mt-1.5 flex w-[300px] flex-col rounded-2xl bg-white p-2 shadow-menu">
+              <div role="listbox" className="pop-in absolute right-0 top-full z-10 mt-1.5 flex w-[300px] flex-col rounded-2xl bg-surface p-2 shadow-menu">
                 <input
                   autoFocus
                   value={query}
@@ -250,7 +250,7 @@ export default function LiveMapPanel({
                 {CONNECTIVITY_LEGEND.slice(0, 2).map((item) => (
                   <span
                     key={item.label}
-                    className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full bg-white px-2.5 py-1 text-xs font-medium text-ink shadow-stripe"
+                    className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full bg-surface px-2.5 py-1 text-xs font-medium text-ink shadow-stripe"
                   >
                     <span className="h-2 w-2 rounded-full" style={{ background: item.color }} />
                     {item.label}
@@ -259,7 +259,7 @@ export default function LiveMapPanel({
               </div>
             )}
             {preview && busy && (
-              <span className="absolute right-3 top-3 rounded-full bg-white px-2.5 py-1 text-xs font-medium text-ink shadow-stripe">
+              <span className="absolute right-3 top-3 rounded-full bg-surface px-2.5 py-1 text-xs font-medium text-ink shadow-stripe">
                 Updating…
               </span>
             )}

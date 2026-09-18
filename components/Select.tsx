@@ -87,7 +87,7 @@ export default function Select<T extends string>({
           ref={listRef}
           role="listbox"
           aria-label={ariaLabel}
-          className={`pop-in absolute top-full z-30 mt-1 min-w-[220px] rounded-2xl bg-white py-1.5 shadow-menu ${
+          className={`pop-in absolute top-full z-30 mt-1 min-w-[220px] rounded-2xl bg-surface py-1.5 shadow-menu ${
             align === "right" ? "right-0" : "left-0"
           }`}
         >
@@ -124,8 +124,8 @@ export default function Select<T extends string>({
                 className={`mx-1.5 flex min-h-9 cursor-pointer items-center justify-between gap-6 rounded-[10px] px-2.5 py-1.5 text-sm text-ink outline-none transition-colors duration-100 ${
                   o.disabled
                     ? "cursor-default text-ink-faint"
-                    : "hover:bg-black/[0.04] focus-visible:bg-black/[0.04]"
-                } ${selected ? "bg-black/[0.04]" : ""}`}
+                    : "hover:bg-mist focus-visible:bg-mist"
+                } ${selected ? "bg-mist" : ""}`}
               >
                 <span className="min-w-0">
                   <span className="block truncate">{o.label}</span>

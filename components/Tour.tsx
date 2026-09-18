@@ -151,7 +151,7 @@ export default function Tour({ steps, onDone }: { steps: TourStep[]; onDone: () 
       role="dialog"
       aria-modal="true"
       aria-label={step.title}
-      className={`pop-in flex flex-col rounded-2xl bg-white p-5 shadow-stripe-lg ${
+      className={`pop-in flex flex-col rounded-2xl bg-surface p-5 shadow-stripe-lg ${
         hole ? "fixed z-[62]" : ""
       }`}
       style={cardStyle}

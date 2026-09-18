@@ -50,7 +50,7 @@ export default function ChartDataPanel({ slide, onChange, onClose }: ChartDataPa
   }, []);
 
   return (
-    <div className="absolute right-8 top-16 z-20 w-80 rounded-2xl border border-hairline bg-white p-4 shadow-stripe-lg">
+    <div className="absolute right-8 top-16 z-20 w-80 rounded-2xl border border-hairline bg-surface p-4 shadow-stripe-lg">
       <div className="mb-3 flex items-center justify-between">
         <span className="text-sm font-medium text-ink">Chart data</span>
         <Button

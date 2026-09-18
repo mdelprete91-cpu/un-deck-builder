@@ -649,7 +649,7 @@ export default function Studio() {
   const slideImageInputRef = useRef<HTMLInputElement>(null);
 
   return (
-    <div className="flex h-screen w-screen overflow-hidden bg-white text-ink">
+    <div className="flex h-screen w-screen overflow-hidden bg-surface text-ink">
       <MobileGate />
       <Sidebar
         state={state}
@@ -898,7 +898,7 @@ function IconPickerModal({
       onClick={onClose}
     >
       <div
-        className="pop-in flex w-full max-w-xl flex-col rounded-2xl bg-white p-5 shadow-stripe-lg"
+        className="pop-in flex w-full max-w-xl flex-col rounded-2xl bg-surface p-5 shadow-stripe-lg"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mb-3 flex items-baseline justify-between">
@@ -914,7 +914,7 @@ function IconPickerModal({
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Search icons… (e.g. satellite, school, rocket)"
-          className="mb-3 w-full rounded-lg border border-hairline bg-white px-3 py-2 text-sm text-ink outline-none transition-shadow duration-150 placeholder:text-ink-faint focus:border-giga focus:ring-[3px] focus:ring-giga/15"
+          className="mb-3 w-full rounded-lg border border-hairline bg-surface px-3 py-2 text-sm text-ink outline-none transition-shadow duration-150 placeholder:text-ink-faint focus:border-giga focus:ring-[3px] focus:ring-giga/15"
         />
         <div className="grid max-h-[52vh] grid-cols-9 gap-1 overflow-y-auto pr-1">
           {names.map((name) => (
@@ -1004,7 +1004,7 @@ function EmptyState({
           {/* The editor no longer restores the last deck on its own, so the
               deck is offered here instead of appearing under the user. */}
           {count > 0 && (
-            <div className="pop-in mt-4 flex w-full max-w-md items-center gap-3 rounded-full border border-hairline-light bg-white py-2 pl-5 pr-2 shadow-float">
+            <div className="pop-in mt-4 flex w-full max-w-md items-center gap-3 rounded-full border border-hairline-light bg-surface py-2 pl-5 pr-2 shadow-float">
               <History size={16} className="shrink-0 text-ink-faint" aria-hidden />
               {/* The icon says "last session"; the row says which deck. */}
               <div className="min-w-0 flex-1">
@@ -1070,7 +1070,7 @@ function Toolbar({
   // pair: same pill, same stroke. Disabled only changes the ink, not the
   // shape, so the two never look like different controls.
   return (
-    <div className="flex items-center gap-3 border-b border-hairline bg-white px-4 py-2.5">
+    <div className="flex items-center gap-3 border-b border-hairline bg-surface px-4 py-2.5">
       <DeckName name={name} onRename={onRename} />
       <div className="ml-auto flex shrink-0 items-center gap-2" data-tour="download">
         <Button variant="secondary" icon={Undo2} onClick={onUndo} disabled={!canUndo} title="Undo (Cmd+Z)">
@@ -1094,13 +1094,13 @@ function Toolbar({
         {exportOpen && (
           <>
             <div className="fixed inset-0 z-10" onClick={() => setExportOpen(false)} />
-            <div className="pop-in absolute right-0 z-20 mt-1.5 w-56 rounded-2xl bg-white p-1.5 shadow-menu">
+            <div className="pop-in absolute right-0 z-20 mt-1.5 w-56 rounded-2xl bg-surface p-1.5 shadow-menu">
               <button
                 onClick={() => {
                   setExportOpen(false);
                   onExportPdf();
                 }}
-                className="block w-full rounded-[10px] px-2.5 py-1.5 text-left text-sm text-ink transition-colors duration-100 hover:bg-black/[0.04]"
+                className="block w-full rounded-[10px] px-2.5 py-1.5 text-left text-sm text-ink transition-colors duration-100 hover:bg-mist"
               >
                 PDF
               </button>
@@ -1109,7 +1109,7 @@ function Toolbar({
                   setExportOpen(false);
                   onExportHtml();
                 }}
-                className="block w-full rounded-[10px] px-2.5 py-1.5 text-left text-sm text-ink transition-colors duration-100 hover:bg-black/[0.04]"
+                className="block w-full rounded-[10px] px-2.5 py-1.5 text-left text-sm text-ink transition-colors duration-100 hover:bg-mist"
               >
                 <span className="flex items-center justify-between gap-2">
                   {twoPager ? "HTML file" : "HTML deck"}
@@ -1126,7 +1126,7 @@ function Toolbar({
                   setExportOpen(false);
                   onExportPptx();
                 }}
-                className="block w-full rounded-[10px] px-2.5 py-1.5 text-left text-sm text-ink transition-colors duration-100 hover:bg-black/[0.04] disabled:pointer-events-none disabled:text-ink-faint"
+                className="block w-full rounded-[10px] px-2.5 py-1.5 text-left text-sm text-ink transition-colors duration-100 hover:bg-mist disabled:pointer-events-none disabled:text-ink-faint"
               >
                 PowerPoint
                 {/* No description in the resting state; only why it is busy or off. */}
@@ -1216,7 +1216,7 @@ function SlideActions({
       <div className="pointer-events-auto relative rounded-full shadow-float">
         <div
           data-tour="slide-bar"
-          className="bar-morph relative overflow-hidden rounded-full border border-hairline-light bg-white p-2.5"
+          className="bar-morph relative overflow-hidden rounded-full border border-hairline-light bg-surface p-2.5"
           style={{ width, boxSizing: "content-box" }}
         >
         <div

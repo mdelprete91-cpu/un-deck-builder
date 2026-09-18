@@ -113,7 +113,7 @@ export default function PromptBox({
           // The whole surface is the input: a click on padding focuses the text.
           if (e.target === e.currentTarget) textRef.current?.focus();
         }}
-        className={`rounded-[28px] border bg-white shadow-stripe transition-[box-shadow,border-color] duration-150 ${active}`}
+        className={`rounded-[28px] border bg-surface shadow-stripe transition-[box-shadow,border-color] duration-150 ${active}`}
       >
         <textarea
           ref={textRef}
