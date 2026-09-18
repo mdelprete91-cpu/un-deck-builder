@@ -36,6 +36,7 @@ import ThumbStrip from "@/components/ThumbStrip";
 import PrintRoot from "@/components/PrintRoot";
 import Tour, { type TourStep } from "@/components/Tour";
 import DeckName from "@/components/DeckName";
+import MobileGate from "@/components/MobileGate";
 import type { DeckState } from "@/lib/slides/state";
 
 /**
@@ -649,6 +650,7 @@ export default function Studio() {
 
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-white text-ink">
+      <MobileGate />
       <Sidebar
         state={state}
         dispatch={dispatch}
