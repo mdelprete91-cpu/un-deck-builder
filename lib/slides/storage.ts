@@ -1,4 +1,4 @@
-import { DEFAULT_CHANNELS, isPage } from "./schema";
+import { channelsFor, isPage } from "./schema";
 import { DEFAULT_DECK_NAME } from "./state";
 import type { DeckState } from "./state";
 
@@ -102,7 +102,7 @@ function read(raw: string | null): Partial<DeckState> | null {
       // Additive and lossless, so it needs no VERSION bump.
       slides: parsed.slides.map((s) =>
         s.layoutId === "thank-you" && !s.channels?.length
-          ? { ...s, channels: DEFAULT_CHANNELS.map((c) => ({ ...c })) }
+          ? { ...s, channels: channelsFor(parsed.brandId) }
           : s,
       ),
       activeIndex: parsed.activeIndex ?? 0,

@@ -159,7 +159,7 @@ export function parseDeckFile(html: string): DeckFileResult {
   for (const item of raw.slides.slice(0, MAX_SLIDES)) {
     // The user's own wording wins on the closing slide: this file is their
     // output, not the model's.
-    const content = normalizeSlide(item, { keepClosingTitle: true });
+    const content = normalizeSlide(item, { keepClosingTitle: true, brandId: isBrandId(raw.brandId) ? raw.brandId : undefined });
     if (!content) {
       dropped++;
       continue;

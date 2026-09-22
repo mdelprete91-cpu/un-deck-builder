@@ -53,6 +53,9 @@ function stripEmptyPage(page: unknown): unknown {
   return { ...(stripEmptyFields(page) as Record<string, unknown>), blocks };
 }
 
+// The output schema cannot pin the slide count: the API accepts minItems of
+// 0 or 1 only (tried 22 Sep 2026). A short deck is topped up client-side
+// instead, see onGenerate in app/page.tsx.
 export async function POST(request: Request): Promise<Response> {
   let body: GenerateBody;
   try {

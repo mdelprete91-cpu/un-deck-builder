@@ -191,6 +191,17 @@ now only retires the last-session offer.
   every call. Keep new catalog lines to one tight line.
 - Three modes share the route: `generate`, `add` (returns new slides plus `insertAfter` plus
   refreshed agenda bullets), `regenerate` (one slide).
+- **The subject comes from the brief and the material, never from the tool.** The system prompt
+  introduces the planner as a tool used by UNICEF and Giga teams, not as Giga's voice; Giga's own
+  figures are allowed only in a deck the brief makes about Giga; the partner roster is used only
+  when the brief names partners; the lockup sentence in the user turn says it sets logo and
+  colours, not subject; `attachmentsNote` says the deck is about the material, with the brief
+  first on everything it states (length, angle, which organisations to feature). Mario's rule,
+  22 Sep 2026: the input is the union of prompt and attachment, the prompt in priority; UNICEF
+  enters the content only if the prompt names it. The closing slide's fallback contact and social
+  row follow the lockup (`channelsFor` in `schema.ts`): Giga's handles only under the Giga lockup.
+  `tools/qa-generate.py` scores a generated deck against its source (drift, coverage, count):
+  run it after touching the prompt.
 - Errors are translated to plain language for the user, including the 529 overloaded case. Keep that
   behavior when touching the route.
 - **The slide count comes from the brief.** `countFromBrief` in `app/page.tsx` reads "20-page",
@@ -218,7 +229,12 @@ drop on the box. They exist to give the model the facts; they are **not** deck c
   turn tells the model the brief wins on any conflict and that numbers must be quoted as written.
 - **Limits, enforced twice.** Client side in `onAttach` for the UX, server side in
   `lib/slides/attachments-server.ts` as the guarantee: 6 files, 4 MB of body in total (Vercel's
-  request ceiling is 4.5 MB), 60k characters of text per file and 120k across files. A brief may
+  request ceiling is 4.5 MB; base64 grows a file by a third, so the user is told 3 MB of files),
+  60k characters of text per file and 120k across files. **A PDF that would not fit is not
+  dropped**: `readPdfAsText` (pdf.js in the browser) sends its text instead, the chip says "text
+  only", and only a PDF with no text layer is refused. A refusal is a red box under the composer
+  and blocks Generate until the file is removed: before 22 Sep 2026 it was a quiet line, a 3.2 MB
+  study was silently dropped, and the model wrote a UNICEF deck from a two-word brief. A brief may
   be empty when files are attached; the route substitutes "Build it from the attached material."
 - **Links in the brief are fetched on the server** (`lib/slides/links-server.ts`, called from the
   route for generate and add): `extractUrls` in `lib/slides/links.ts` takes the first three
@@ -456,7 +472,8 @@ echo "ANTHROPIC_API_KEY=sk-ant-..." > .env.local
 npm run dev
 ```
 
-There is no test suite. "Done" means all of the following:
+There is no test suite; `tools/qa-generate.py` is the one scripted check, for the prompt (it
+calls the real model). "Done" means all of the following:
 
 1. `npm run lint` clean.
 2. `npm run build` clean (type errors surface here).

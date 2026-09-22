@@ -158,6 +158,20 @@ export const DEFAULT_CHANNELS: Channel[] = [
   { label: "LinkedIn", value: "/gigaglobal" },
 ];
 
+/** The UNICEF lockups close on UNICEF's channels, not Giga's (Mario, 22 Sep 2026). */
+export const UNICEF_CHANNELS: Channel[] = [
+  { label: "Website", value: "unicef.org" },
+  { label: "Email", value: "" },
+  { label: "Instagram", value: "@unicef" },
+  { label: "X", value: "@unicef" },
+  { label: "LinkedIn", value: "/unicef" },
+];
+
+/** The social row a closing slide is seeded with, by lockup. */
+export function channelsFor(brandId?: string): Channel[] {
+  return (brandId === "giga" || !brandId ? DEFAULT_CHANNELS : UNICEF_CHANNELS).map((c) => ({ ...c }));
+}
+
 export interface ImagePos {
   x: number;
   y: number;
@@ -298,7 +312,7 @@ export function splitBodyBlocks(body: string): Block[] {
 
 export function normalizeSlide(
   raw: unknown,
-  opts: { keepClosingTitle?: boolean } = {},
+  opts: { keepClosingTitle?: boolean; brandId?: string } = {},
 ): SlideContent | null {
   const parsed = slideContentSchema.safeParse(raw);
   if (!parsed.success) return null;
@@ -328,7 +342,7 @@ export function normalizeSlide(
   // The social row is editable, so it has to exist on the slide: setPath is a
   // silent no-op on a missing array, and the model never writes this field.
   if (slide.layoutId === "thank-you" && !slide.channels?.length) {
-    slide.channels = DEFAULT_CHANNELS.map((c) => ({ ...c }));
+    slide.channels = channelsFor(opts.brandId);
   }
 
   // body-copy moved from one `body` string to 1-2 `blocks`; convert model or

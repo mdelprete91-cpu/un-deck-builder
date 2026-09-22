@@ -14,7 +14,7 @@ import { PARTNER_NAMES } from "./partners";
 export function buildSystemPrompt(format: DeckFormat = "slides"): string {
   if (format === "two-pager") return buildPagePrompt();
   const catalogLines = CATALOG.map((c) => `- ${c.id}: ${c.usage}. Fields: ${c.fields}`).join("\n");
-  return `You are the slide planner for the Giga deck builder. Giga is the UNICEF-ITU initiative connecting every school in the world to the internet. You turn a brief into a slide deck by picking layouts from a fixed template library and writing the text that fills them. You never design slides — you only choose layoutIds from the catalog and fill their fields.
+  return `You are the slide planner for a deck builder used by UNICEF and Giga teams. The deck's subject is whatever the brief and the attached material are about: the organisations behind this tool are not the topic unless the brief makes them one. You turn a brief into a slide deck by picking layouts from a fixed template library and writing the text that fills them. You never design slides — you only choose layoutIds from the catalog and fill their fields.
 
 LAYOUT CATALOG (id: when to use. fields with hard word limits):
 ${catalogLines}
@@ -23,12 +23,12 @@ RULES:
 - Output slides in presentation order. ALWAYS start with "cover" and ALWAYS end with "thank-you" (the user deletes them if unneeded).
 - Use "agenda" right after the cover only for decks of 6+ slides. Agenda bullets MUST mirror the deck's "section-divider" slides one-to-one: same order, same wording (<=5 words each). Every chapter opens with its own section-divider carrying that exact title.
 - Pick the layout that best fits each beat of the story. Never use the same layout for 3 slides in a row. Alternate light and dark surfaces so the deck has rhythm.
-- Respect every word limit strictly. Numbers do the talking: prefer concrete figures over adjectives. A stat value is a number (61%, 2.2M+, $500M), never a word.
-- Voice: plain, declarative, infrastructural, public-good. Sentence case everywhere (never Title Case in body text). Banned words: leveraging, synergies, cutting-edge, revolutionary, empower, unlock.
+- Respect every word limit strictly. Numbers do the talking: prefer concrete figures over adjectives. A stat value is a number (61%, 1.4M, $500M), never a word.
+- Voice: plain, declarative, public-good. Sentence case everywhere (never Title Case in body text). Banned words: leveraging, synergies, cutting-edge, revolutionary, empower, unlock.
 - Write in the same language as the brief.
-- Only state facts given in the brief or well-known Giga facts (2.2M+ schools mapped, 146 countries, giga.global). Never invent statistics, names, or emails — if the brief lacks contacts for thank-you, use name "Giga Team", role "Giga", location "Geneva, Switzerland", email "giga@unicef.org".
+- Only state facts given in the brief or the attached material. Never invent statistics, names, or emails. Giga's own figures (2.2M+ schools mapped, 146 countries, giga.global) belong only in a deck the brief makes about Giga.
 - For chart-bars, values are relative heights 0-100.
-- For "partner", bullets are partner names copied EXACTLY from this list (each maps to a real logo): ${PARTNER_NAMES.join(", ")}. Use all of them unless the brief says otherwise. Never invent partner names or write categories like "Telecom operators" — a name outside the list renders as plain text instead of a logo.
+- For "partner", use it only when the brief names partners, and copy the names EXACTLY from this list (each maps to a real logo): ${PARTNER_NAMES.join(", ")}. Never invent partner names or write categories like "Telecom operators" — a name outside the list renders as plain text instead of a logo.
 - Every slide object includes every field of the output schema. Set fields the chosen layout does not use to "" (strings) or [] (arrays) — never invent content for them.`;
 }
 
@@ -54,10 +54,10 @@ RULES:
 - Use "rail-prose" for most content: its rail label is what gives a printed page its structure. Every rail label on a page must be different.
 - A page carries 3 to 6 blocks. Never two blocks of the same type in a row, except "rail-prose".
 - Put "contacts" (preceded by "divider") only at the end of the last page, and only if the brief names people. Never invent a name or an address.
-- Respect every word limit strictly. Numbers do the talking: prefer concrete figures over adjectives. A stat value is a number (61%, 2.2M+, $500M), never a word.
-- Voice: plain, declarative, infrastructural, public-good. Sentence case everywhere (never Title Case in body text). Banned words: leveraging, synergies, cutting-edge, revolutionary, empower, unlock.
+- Respect every word limit strictly. Numbers do the talking: prefer concrete figures over adjectives. A stat value is a number (61%, 1.4M, $500M), never a word.
+- Voice: plain, declarative, public-good. Sentence case everywhere (never Title Case in body text). Banned words: leveraging, synergies, cutting-edge, revolutionary, empower, unlock.
 - Write in the same language as the brief.
-- Only state facts given in the brief or well-known Giga facts (2.2M+ schools mapped, 146 countries, giga.global). Never invent statistics, names, or emails.
+- The subject is whatever the brief and the attached material are about. Only state facts given there. Never invent statistics, names, or emails. Giga's own figures (2.2M+ schools mapped, 146 countries, giga.global) belong only in a piece the brief makes about Giga.
 - Every page carries "footerLabel": the piece's name, <=5 words, identical on every page.
 - Every block object includes every field of the output schema. Set fields the chosen block does not use to "" or [] — never invent content for them.`;
 }
@@ -93,7 +93,7 @@ function attachmentsNote(body: GenerateBody): string {
   const n = body.attachments?.length ?? 0;
   if (n === 0) return "";
   const names = body.attachments!.map((a) => `"${a.name}"`).join(", ");
-  return `\n\nAttached reference material (${n} item${n === 1 ? "" : "s"}: ${names}) precedes this message. Treat it as the source of facts, figures, names and structure for the ${body.format === "two-pager" ? "pages" : "deck"}; the brief says what to make of it and wins on any conflict. Quote numbers exactly as they appear, never invent what is not there, and do not copy long passages verbatim.`;
+  return `\n\nAttached reference material (${n} item${n === 1 ? "" : "s"}: ${names}) precedes this message. The ${body.format === "two-pager" ? "pages are" : "deck is"} about this material: take the subject, structure, facts, figures and names from it. The brief comes first on everything it says (length, angle, audience, which organisations to feature); where the brief is silent, the material decides. Quote numbers exactly as they appear, never invent what is not there, and do not copy long passages verbatim.`;
 }
 
 /**
@@ -126,7 +126,15 @@ export function buildUserContent(body: GenerateBody): ContentBlockParam[] {
 
 export function buildUserMessage(body: GenerateBody): string {
   if (body.format === "two-pager") return buildPageUserMessage(body);
-  const brand = body.brandLabel ? ` The deck is branded "${body.brandLabel}".` : "";
+  // The lockup sets logo and colours, never the subject. The closing slide's
+  // fallback contact is the brand's team; Giga's own address only for Giga.
+  const brand = body.brandLabel
+    ? ` The deck carries the "${body.brandLabel}" lockup: that sets its logo and colours, not its subject. If the brief gives no contact for thank-you, use ${
+        body.brandLabel === "Giga"
+          ? 'name "Giga Team", role "Giga", location "Geneva, Switzerland", email "giga@unicef.org"'
+          : `name "${body.brandLabel} team" and leave role, location and email empty`
+      }.`
+    : "";
   const noChapters = body.chapters === false ? NO_CHAPTERS : "";
   switch (body.mode) {
     case "add": {

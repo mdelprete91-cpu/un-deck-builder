@@ -1,5 +1,5 @@
 import type { Slide } from "../schema";
-import { DEFAULT_CHANNELS } from "../schema";
+import { channelsFor } from "../schema";
 import type { BrandTheme } from "../brand";
 import {
   MANROPE,
@@ -235,7 +235,7 @@ export function thankYou(s: Slide, t: BrandTheme): string {
     .join("");
   // Decks saved before the row became editable have no `channels`, so fall
   // back to the default for rendering. normalizeSlide seeds the array itself.
-  const channels = (s.channels ?? DEFAULT_CHANNELS)
+  const channels = (s.channels ?? channelsFor(t.id))
     .map(
       (ch, i) =>
         `<div class="ars" style="flex:1;${BODY30}color:#FFFFFF;${dly(26 + i * 4)}">` +
