@@ -996,11 +996,13 @@ function EmptyState({
               variant="secondary"
               icon={Upload}
               onClick={onOpenDeckFile}
-              title="An HTML deck you downloaded from here. Dropping it anywhere on this page works too."
+              title="Dropping the file anywhere on this page works too."
             >
-              Open a deck
+              Open HTML deck
             </Button>
           </div>
+          {/* The one file that comes back is the HTML deck downloaded from here. */}
+          <p className="text-xs text-ink-faint">Only HTML decks downloaded from here can be reopened.</p>
           {/* The editor no longer restores the last deck on its own, so the
               deck is offered here instead of appearing under the user. */}
           {count > 0 && (
