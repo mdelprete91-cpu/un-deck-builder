@@ -990,7 +990,7 @@ function EmptyState({
           </p>
           <div className="mt-2 flex items-center gap-2">
             <Button variant="primary" onClick={onWriteBrief}>
-              Write the brief
+              Create new
             </Button>
             <Button
               variant="secondary"
