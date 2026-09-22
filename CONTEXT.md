@@ -223,7 +223,9 @@ drop on the box. They exist to give the model the facts; they are **not** deck c
 - **Links in the brief are fetched on the server** (`lib/slides/links-server.ts`, called from the
   route for generate and add): `extractUrls` in `lib/slides/links.ts` takes the first three
   http(s) URLs, the page is fetched with an 8 s timeout, private hosts refused, HTML stripped to
-  text and capped like a text attachment, then appended to `attachments` as a text item named by
+  text; a page that yields under 80 characters (built by JavaScript) is fetched again through
+  Jina Reader (`r.jina.ai`, 20 s timeout), which renders it and returns the readable text; the
+  result is capped like a text attachment, then appended to `attachments` as a text item named by
   its URL (`buildUserContent` labels it "Linked page"). A failed fetch is skipped, never an
   error. The composer draws links in Giga Blue through a mirror div under the textarea
   (`splitLinks`), so the user sees the link was recognised.
