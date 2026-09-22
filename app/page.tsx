@@ -1137,7 +1137,7 @@ function Toolbar({
                   {twoPager ? "HTML file" : "HTML deck"}
                   {/* The one file that comes back: Upload reopens it for editing. */}
                   <span className="shrink-0 rounded-full bg-giga-tint px-1.5 py-0.5 text-[11px] font-medium leading-4 text-giga">
-                    Re-upload to edit
+                    To save locally
                   </span>
                 </span>
               </button>
