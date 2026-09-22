@@ -11,6 +11,7 @@ import {
 import type { DeckFormat } from "@/lib/slides/state";
 import { SlideStreamParser } from "@/lib/slides/parse";
 import { sanitizeAttachments } from "@/lib/slides/attachments-server";
+import { fetchLinkedPages } from "@/lib/slides/links-server";
 
 export const runtime = "nodejs";
 
@@ -63,7 +64,11 @@ export async function POST(request: Request): Promise<Response> {
   // here (count, size, media types) before they reach the model.
   const attachments = sanitizeAttachments(body.attachments);
   if (typeof attachments === "string") return new Response(attachments, { status: 400 });
-  body = { ...body, attachments };
+  // Pages the brief links to travel like text attachments (public http(s)
+  // only, three at most, a failed fetch is skipped). Not for regenerate: one
+  // slide's rewrite does not need the whole page again.
+  const linked = body.mode === "regenerate" ? [] : await fetchLinkedPages(body.brief ?? "");
+  body = { ...body, attachments: [...attachments, ...linked] };
   if (!body.brief?.trim() && body.mode !== "regenerate") {
     if (attachments.length === 0) return new Response("Missing brief", { status: 400 });
     body.brief = "Build it from the attached material.";

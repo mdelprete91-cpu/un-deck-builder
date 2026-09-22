@@ -5,6 +5,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { ATTACHMENT_ACCEPT, type Attachment } from "@/lib/slides/attachments";
 import AttachmentsRow from "@/components/AttachmentsRow";
 import Button from "@/components/Button";
+import { splitLinks } from "@/lib/slides/links";
 
 /**
  * The brief composer: one rounded surface that holds everything a Generate
@@ -43,6 +44,7 @@ export default function PromptBox({
   hasSlides: boolean;
 }) {
   const textRef = useRef<HTMLTextAreaElement>(null);
+  const mirrorRef = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const [dragging, setDragging] = useState(false);
   const [reading, setReading] = useState(false);
@@ -115,20 +117,45 @@ export default function PromptBox({
         }}
         className={`rounded-[28px] border bg-surface shadow-stripe transition-[box-shadow,border-color] duration-150 ${active}`}
       >
-        <textarea
-          ref={textRef}
-          value={brief}
-          onChange={(e) => onBrief(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" && (e.metaKey || e.ctrlKey) && canSend) {
-              e.preventDefault();
-              onGenerate();
-            }
-          }}
-          placeholder="Describe the deck you need…"
-          rows={3}
-          className="block w-full resize-none rounded-t-[28px] bg-transparent px-4 pt-3.5 pb-1 text-sm leading-relaxed text-ink outline-none placeholder:text-ink-faint"
-        />
+        {/* A link in the brief turns Giga Blue as it is typed: the words are
+            drawn by a mirror under the textarea (same box, font and wrapping),
+            the textarea itself keeps only the caret and the selection. The
+            route fetches those pages as reference material. */}
+        <div className="relative">
+          <div
+            ref={mirrorRef}
+            aria-hidden
+            className="pointer-events-none absolute inset-0 overflow-hidden whitespace-pre-wrap break-words px-4 pt-3.5 pb-1 text-sm leading-relaxed text-ink"
+          >
+            {splitLinks(brief).map((part, i) =>
+              part.link ? (
+                <span key={i} className="text-giga">
+                  {part.text}
+                </span>
+              ) : (
+                part.text
+              ),
+            )}
+            {"\n"}
+          </div>
+          <textarea
+            ref={textRef}
+            value={brief}
+            onChange={(e) => onBrief(e.target.value)}
+            onScroll={() => {
+              if (mirrorRef.current && textRef.current) mirrorRef.current.scrollTop = textRef.current.scrollTop;
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && (e.metaKey || e.ctrlKey) && canSend) {
+                e.preventDefault();
+                onGenerate();
+              }
+            }}
+            placeholder="Describe the deck you need…"
+            rows={3}
+            className="relative block w-full resize-none rounded-t-[28px] bg-transparent px-4 pt-3.5 pb-1 text-sm leading-relaxed text-transparent caret-ink outline-none placeholder:text-ink-faint"
+          />
+        </div>
 
         {attachments.length > 0 && (
           <div className="px-3 pb-1">

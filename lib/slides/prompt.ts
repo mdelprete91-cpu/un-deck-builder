@@ -23,7 +23,7 @@ RULES:
 - Output slides in presentation order. ALWAYS start with "cover" and ALWAYS end with "thank-you" (the user deletes them if unneeded).
 - Use "agenda" right after the cover only for decks of 6+ slides. Agenda bullets MUST mirror the deck's "section-divider" slides one-to-one: same order, same wording (<=5 words each). Every chapter opens with its own section-divider carrying that exact title.
 - Pick the layout that best fits each beat of the story. Never use the same layout for 3 slides in a row. Alternate light and dark surfaces so the deck has rhythm.
-- Respect every word limit strictly. Numbers do the talking: prefer concrete figures over adjectives.
+- Respect every word limit strictly. Numbers do the talking: prefer concrete figures over adjectives. A stat value is a number (61%, 2.2M+, $500M), never a word.
 - Voice: plain, declarative, infrastructural, public-good. Sentence case everywhere (never Title Case in body text). Banned words: leveraging, synergies, cutting-edge, revolutionary, empower, unlock.
 - Write in the same language as the brief.
 - Only state facts given in the brief or well-known Giga facts (2.2M+ schools mapped, 146 countries, giga.global). Never invent statistics, names, or emails — if the brief lacks contacts for thank-you, use name "Giga Team", role "Giga", location "Geneva, Switzerland", email "giga@unicef.org".
@@ -54,7 +54,7 @@ RULES:
 - Use "rail-prose" for most content: its rail label is what gives a printed page its structure. Every rail label on a page must be different.
 - A page carries 3 to 6 blocks. Never two blocks of the same type in a row, except "rail-prose".
 - Put "contacts" (preceded by "divider") only at the end of the last page, and only if the brief names people. Never invent a name or an address.
-- Respect every word limit strictly. Numbers do the talking: prefer concrete figures over adjectives.
+- Respect every word limit strictly. Numbers do the talking: prefer concrete figures over adjectives. A stat value is a number (61%, 2.2M+, $500M), never a word.
 - Voice: plain, declarative, infrastructural, public-good. Sentence case everywhere (never Title Case in body text). Banned words: leveraging, synergies, cutting-edge, revolutionary, empower, unlock.
 - Write in the same language as the brief.
 - Only state facts given in the brief or well-known Giga facts (2.2M+ schools mapped, 146 countries, giga.global). Never invent statistics, names, or emails.
@@ -93,7 +93,7 @@ function attachmentsNote(body: GenerateBody): string {
   const n = body.attachments?.length ?? 0;
   if (n === 0) return "";
   const names = body.attachments!.map((a) => `"${a.name}"`).join(", ");
-  return `\n\nAttached reference material (${n} file${n === 1 ? "" : "s"}: ${names}) precedes this message. Treat it as the source of facts, figures, names and structure for the ${body.format === "two-pager" ? "pages" : "deck"}; the brief says what to make of it and wins on any conflict. Quote numbers exactly as they appear, never invent what is not there, and do not copy long passages verbatim.`;
+  return `\n\nAttached reference material (${n} item${n === 1 ? "" : "s"}: ${names}) precedes this message. Treat it as the source of facts, figures, names and structure for the ${body.format === "two-pager" ? "pages" : "deck"}; the brief says what to make of it and wins on any conflict. Quote numbers exactly as they appear, never invent what is not there, and do not copy long passages verbatim.`;
 }
 
 /**
@@ -116,7 +116,7 @@ export function buildUserContent(body: GenerateBody): ContentBlockParam[] {
     } else {
       blocks.push({
         type: "text",
-        text: `Attached file "${a.name}"${a.truncated ? " (truncated)" : ""}:\n<<<\n${a.text}\n>>>`,
+        text: `${/^https?:\/\//.test(a.name) ? "Linked page" : "Attached file"} "${a.name}"${a.truncated ? " (truncated)" : ""}:\n<<<\n${a.text}\n>>>`,
       });
     }
   }

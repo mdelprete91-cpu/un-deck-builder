@@ -105,7 +105,11 @@ skips them produces a slide the user cannot edit, with no error anywhere. Use th
 **Fit budgets and word limits are one system.** The `data-fit` value in a renderer and the
 `<=N words` limit in `catalog.ts` were tuned together so that text at the catalog limit still
 renders at full size. Change one and you have to re-check the other, or slides start shrinking
-their own text.
+their own text. Stat values (`stat-grid`, `brand-equity`, `two-stats`) are the special case: they
+wrap to a second line inside a budget sized to the row pitch before they shrink, and they carry
+`data-fit-group="stat"`, so `autofitAll` gives every value on the slide the smallest scale among
+them: six values, one size. The group logic lives twice, in `autofit.ts` and in its ES5 copy
+`AUTOFIT_JS` that the HTML export inlines; change both.
 
 **`dly()` for animation delays.** Never write `animation-delay:.${n}s` by hand. With a single-digit
 n that reads as 0.8s, which is what broke element ordering in the HTML export once already.
@@ -216,6 +220,13 @@ drop on the box. They exist to give the model the facts; they are **not** deck c
   `lib/slides/attachments-server.ts` as the guarantee: 6 files, 4 MB of body in total (Vercel's
   request ceiling is 4.5 MB), 60k characters of text per file and 120k across files. A brief may
   be empty when files are attached; the route substitutes "Build it from the attached material."
+- **Links in the brief are fetched on the server** (`lib/slides/links-server.ts`, called from the
+  route for generate and add): `extractUrls` in `lib/slides/links.ts` takes the first three
+  http(s) URLs, the page is fetched with an 8 s timeout, private hosts refused, HTML stripped to
+  text and capped like a text attachment, then appended to `attachments` as a text item named by
+  its URL (`buildUserContent` labels it "Linked page"). A failed fetch is skipped, never an
+  error. The composer draws links in Giga Blue through a mirror div under the textarea
+  (`splitLinks`), so the user sees the link was recognised.
 - **`regenerate` does not carry attachments.** It already gets the brief and the slide; re-sending
   a PDF for every single-slide rewrite would multiply the cost for little gain.
 - The composer is `components/PromptBox.tsx`: it owns the textarea, the hidden file input behind
