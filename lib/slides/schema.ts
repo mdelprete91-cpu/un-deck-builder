@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { isChartColor } from "./chart-colors";
 import { normalizePage, pageBlockSchema, type PageBlock } from "./pages/schema";
 
 /** Layouts the AI is allowed to pick. */
@@ -76,6 +77,8 @@ export interface Stat {
 export interface Bar {
   label: string;
   value: number; // 0–100
+  /** Hand-picked, one of CHART_COLORS; absent means the brand series decides. */
+  color?: string;
 }
 export interface Contact {
   name: string;
@@ -176,6 +179,12 @@ const statSchema = z.object({
 const barSchema = z.object({
   label: z.string().default(""),
   value: z.coerce.number().min(0).max(100).default(50),
+  // A hand-picked colour, one of CHART_COLORS; anything else is dropped so
+  // no colour outside the brand list can arrive through a file.
+  color: z
+    .string()
+    .optional()
+    .transform((v) => (isChartColor(v) ? v.toUpperCase() : undefined)),
 });
 const channelSchema = z.object({
   label: z.string().default(""),

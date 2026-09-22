@@ -760,6 +760,7 @@ export default function Studio() {
             {dataPanelOpen && active && isChart && (
               <ChartDataPanel
                 slide={active}
+                theme={theme}
                 onChange={(bars) => dispatch({ type: "SET_BARS", index: state.activeIndex, bars })}
                 onClose={() => setDataPanelOpen(false)}
               />

@@ -202,7 +202,9 @@ const fmt = (n: number): string =>
  */
 export function chartBars(s: Slide, t: BrandTheme): string {
   const bars = (s.bars ?? []).slice(0, 5);
-  const shades = chartShades(t, bars.length);
+  const series = chartShades(t, bars.length);
+  // A colour picked by hand (Data panel) beats the brand series.
+  const shades = bars.map((b, i) => b.color ?? series[i % series.length]);
   const AREA = { x: 1042, y: 108, w: 753, h: 705 };
   const colW = AREA.w / bars.length;
   const barW = Math.min(156, Math.round(colW) - 40);
@@ -255,7 +257,8 @@ export function donutChart(s: Slide, t: BrandTheme): string {
   const segments = (s.bars ?? []).slice(0, 5);
   // One hue per segment where the brand has a categorical series; tints of
   // the accent otherwise. Segments meet edge to edge, no white gaps.
-  const shades = t.chartSeries ?? chartShades(t, segments.length);
+  const series = t.chartSeries ?? chartShades(t, segments.length);
+  const shades = segments.map((seg, i) => seg.color ?? series[i % series.length]);
   const total = segments.reduce((sum, seg) => sum + numeric(seg.value), 0) || 1;
   let angle = 0;
   const stops: string[] = [];

@@ -98,7 +98,7 @@ export type DeckAction =
   | { type: "DELETE_BLOCK"; index: number; block: number }
   | { type: "MOVE_BLOCK"; index: number; from: number; to: number }
   | { type: "TOGGLE_CELL"; index: number; row: number; col: number }
-  | { type: "SET_BARS"; index: number; bars: { label: string; value: number }[] }
+  | { type: "SET_BARS"; index: number; bars: { label: string; value: number; color?: string }[] }
   | { type: "SET_LOGO"; index: number; slug: string; dataUrl: string }
   | { type: "SET_IMAGE"; index: number; dataUrl: string; path?: string }
   | { type: "SET_MAP"; index: number; slug: string | null }

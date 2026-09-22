@@ -37,6 +37,11 @@ Do not change these without asking Mario first. They are decisions, not defaults
    are tints of the same cyan. The one multi-hue element is the donut, which uses the UNICEF Brand
    Book's secondary colours (`chartSeries` in `brand.ts`, Mario's call, 15 Sep 2026).
 
+   **Charts have a hand-picked exception.** A bar or a donut segment may be given one of the sixteen
+   colours in `lib/slides/chart-colors.ts` (Giga blues, UNICEF Brand Book secondaries, neutrals)
+   from the Data panel; `bars[i].color` carries it, `normalizeSlide` drops any other hex, and the
+   model never sets it (it is not in the output schema). Absent, the brand series decides.
+
    **On paper this rule has one documented exception.** The approved A4 boards use a small print
    palette on top of the cyan: `#D14807` for status and attention, its peach border `#E8B8A2` and
    10% tint, panel grey `#EFF2F5`, hairline `#E6E6E6`. It lives in `PALETTE` in
