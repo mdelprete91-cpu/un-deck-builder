@@ -14,9 +14,15 @@ import {
   chartShades,
 } from "./shared";
 
-// nowrap: a stat value must never break onto two lines — the autofit shrinks
-// it to fit the column width instead (e.g. "$500M").
-const STAT_VALUE = `font-family:${MANROPE};font-weight:500;font-size:144px;line-height:1;letter-spacing:-.02em;color:var(--accent);white-space:nowrap;`;
+// A value breaks at a space before it shrinks ("Many use" / "cases"): the
+// fit budget holds two lines within the row pitch. A single token ("$500M",
+// "99.9M+") cannot break, so autofit's width check still shrinks it. Every
+// value on the slide is in one fit group, so they shrink together rather than
+// landing in six sizes (Mario, 22 Sep 2026).
+const STAT_VALUE = `font-family:${MANROPE};font-weight:500;font-size:144px;line-height:1;letter-spacing:-.02em;color:var(--accent);overflow-wrap:normal;`;
+const STAT_GROUP = "stat";
+/** Two lines of value plus the label must fit the row pitch (350px up to 4 stats, 272px for 5-6). */
+const valueBudget = (n: number) => (n <= 4 ? 296 : 216);
 
 function statBlock(
   path: string,
@@ -26,11 +32,12 @@ function statBlock(
   value: string,
   label: string,
   delay: number,
+  fit: number,
   labelStyle = BODY32,
 ): string {
   return (
     `<div class="ars" ${item(path)} style="position:absolute;left:${x}px;top:${y}px;width:${width}px;${dly(delay)}">` +
-    `<div ${ed(`${path}.value`, 180)} style="${STAT_VALUE}">${esc(value)}</div>` +
+    `<div ${ed(`${path}.value`, fit, STAT_GROUP)} style="${STAT_VALUE}">${esc(value)}</div>` +
     `<div ${ed(`${path}.label`, 110)} style="margin-top:8px;${labelStyle}color:#000000;">${esc(label)}</div>` +
     `</div>`
   );
@@ -88,7 +95,7 @@ export function statGrid(s: Slide, t: BrandTheme): string {
   const slots = statSlots(stats.length, 920, 1390);
   const rendered = stats
     .map((st, i) =>
-      statBlock(`stats.${i}`, slots[i][0], slots[i][1], 430, st.value, st.label, 8 + i * 4),
+      statBlock(`stats.${i}`, slots[i][0], slots[i][1], 430, st.value, st.label, 8 + i * 4, valueBudget(stats.length)),
     )
     .join("");
   return section(
@@ -113,6 +120,7 @@ export function brandEquity(s: Slide, t: BrandTheme): string {
         st.value,
         st.label,
         10 + i * 4,
+        valueBudget(stats.length),
         `font-family:'Open Sans',sans-serif;font-weight:500;font-size:21px;line-height:1.3;`,
       ),
     )
@@ -136,8 +144,9 @@ export function twoStats(s: Slide, t: BrandTheme): string {
     .map(
       (st, i) =>
         `<div ${item(`stats.${i}`)} style="position:absolute;left:907px;top:${tops[i]}px;width:931px;height:300px;">` +
-        // 500px value slot: a 6-char figure ("99.9M+") fits at full 144px
-        `<div class="ars" ${ed(`stats.${i}.value`, 185)} style="position:absolute;left:0;top:0;width:500px;white-space:nowrap;font-family:${MANROPE};font-weight:400;font-size:144px;line-height:152px;letter-spacing:-.01em;color:var(--accent);${dly(10 + i * 12)}">${esc(st.value)}</div>` +
+        // 500px value slot: a 6-char figure ("99.9M+") fits at full 144px;
+        // words break onto a second line inside the 300px row, then shrink.
+        `<div class="ars" ${ed(`stats.${i}.value`, 300, STAT_GROUP)} style="position:absolute;left:0;top:0;width:500px;overflow-wrap:normal;font-family:${MANROPE};font-weight:400;font-size:144px;line-height:152px;letter-spacing:-.01em;color:var(--accent);${dly(10 + i * 12)}">${esc(st.value)}</div>` +
         `<div class="ars" ${ed(`stats.${i}.label`, 300)} style="position:absolute;left:530px;top:4px;width:401px;${BODY32}color:#000000;${dly(16 + i * 12)}">${esc(st.label)}</div>` +
         `</div>`,
     )

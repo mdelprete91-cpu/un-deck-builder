@@ -2,7 +2,7 @@
 
 import { lucideSvg } from "@/lib/slides/icons";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { autofitAll, autofitNode } from "@/lib/slides/autofit";
+import { autofitAll, refitNode } from "@/lib/slides/autofit";
 import type { ImagePos } from "@/lib/slides/schema";
 
 interface SlideFrameProps {
@@ -168,7 +168,7 @@ export default function SlideFrame({
           node.blur();
         }
       };
-      const onInput = () => autofitNode(node);
+      const onInput = () => refitNode(node);
       node.addEventListener("blur", commit);
       node.addEventListener("keydown", onKeyDown);
       node.addEventListener("input", onInput);

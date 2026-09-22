@@ -9,8 +9,13 @@
  * unclipped, so descenders (g, y, p) of tight line-height titles are never
  * cut off.
  *
+ * Nodes that share a `data-fit-group` are fitted as one: each is fitted on
+ * its own first, then every member takes the smallest scale of the group, so
+ * a row of stat values shrinks together instead of ending up in six sizes.
+ *
  * Runs in the editor preview, in thumbnails, in the print root, and (as an
- * inlined script) in the exported HTML deck.
+ * inlined script) in the exported HTML deck: AUTOFIT_JS below is the ES5
+ * copy of everything here, kept in step by hand.
  */
 export function autofitNode(node: HTMLElement): void {
   const max = Number(node.getAttribute("data-fit"));
@@ -48,8 +53,57 @@ export function autofitNode(node: HTMLElement): void {
   }
 }
 
+/** The scale a fitted node landed on (1 = its original size). */
+function scaleOf(node: HTMLElement): number {
+  const base = parseFloat(node.dataset.fitFs ?? "");
+  return base ? parseFloat(node.style.fontSize) / base : 1;
+}
+
+/** Give every member of `nodes` the smallest scale among them. */
+function equalize(nodes: HTMLElement[]): void {
+  const scale = Math.min(...nodes.map(scaleOf));
+  for (const node of nodes) {
+    const baseFs = parseFloat(node.dataset.fitFs ?? "");
+    if (!baseFs) continue;
+    node.style.fontSize = `${baseFs * scale}px`;
+    if (node.dataset.fitLh) node.style.lineHeight = `${parseFloat(node.dataset.fitLh) * scale}px`;
+    const max = Number(node.getAttribute("data-fit"));
+    if (max && node.scrollHeight > max + 1) {
+      node.style.maxHeight = `${max}px`;
+      node.style.overflow = "hidden";
+    }
+  }
+}
+
+function groupsIn(root: ParentNode): HTMLElement[][] {
+  const groups = new Map<string, HTMLElement[]>();
+  root.querySelectorAll<HTMLElement>("[data-fit-group]").forEach((node) => {
+    const name = node.getAttribute("data-fit-group")!;
+    (groups.get(name) ?? groups.set(name, []).get(name)!).push(node);
+  });
+  return [...groups.values()];
+}
+
 export function autofitAll(root: ParentNode): void {
   root.querySelectorAll<HTMLElement>("[data-fit]").forEach(autofitNode);
+  groupsIn(root).forEach(equalize);
+}
+
+/**
+ * Refit one node and, when it belongs to a group, its whole group: the live
+ * edit path, where typing in one value must move its siblings too. The group
+ * is scoped to the nearest slide root so two slides never share a scale.
+ */
+export function refitNode(node: HTMLElement): void {
+  const name = node.getAttribute("data-fit-group");
+  if (!name) {
+    autofitNode(node);
+    return;
+  }
+  const scope: ParentNode = node.closest("section") ?? node.ownerDocument;
+  const members = [...scope.querySelectorAll<HTMLElement>(`[data-fit-group="${name}"]`)];
+  members.forEach(autofitNode);
+  equalize(members);
 }
 
 /** Standalone ES5 version inlined into the exported HTML deck. */
@@ -78,8 +132,30 @@ function autofitNode(node){
     node.style.overflow = 'hidden';
   }
 }
+function equalize(nodes){
+  var scale = 1, i, node, base;
+  for(i = 0; i < nodes.length; i++){
+    base = parseFloat(nodes[i].dataset.fitFs || '');
+    if(base) scale = Math.min(scale, parseFloat(nodes[i].style.fontSize) / base);
+  }
+  for(i = 0; i < nodes.length; i++){
+    node = nodes[i]; base = parseFloat(node.dataset.fitFs || '');
+    if(!base) continue;
+    node.style.fontSize = (base * scale) + 'px';
+    if(node.dataset.fitLh) node.style.lineHeight = (parseFloat(node.dataset.fitLh) * scale) + 'px';
+    var max = Number(node.getAttribute('data-fit'));
+    if(max && node.scrollHeight > max + 1){ node.style.maxHeight = max + 'px'; node.style.overflow = 'hidden'; }
+  }
+}
 function autofitAll(root){
   var nodes = root.querySelectorAll('[data-fit]');
   for(var i = 0; i < nodes.length; i++) autofitNode(nodes[i]);
+  var grouped = root.querySelectorAll('[data-fit-group]'), groups = {}, names = [];
+  for(var j = 0; j < grouped.length; j++){
+    var name = grouped[j].getAttribute('data-fit-group');
+    if(!groups[name]){ groups[name] = []; names.push(name); }
+    groups[name].push(grouped[j]);
+  }
+  for(var k = 0; k < names.length; k++) equalize(groups[names[k]]);
 }
 `;

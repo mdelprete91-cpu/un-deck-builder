@@ -35,8 +35,8 @@ export function esc(text: string | undefined): string {
  * the editor shrinks the font to keep the text inside it, then clips, so
  * edited text can never overlap the elements below.
  */
-export function ed(path: string, fit?: number): string {
-  return `data-edit="${path}"${fit ? ` data-fit="${fit}"` : ""}`;
+export function ed(path: string, fit?: number, group?: string): string {
+  return `data-edit="${path}"${fit ? ` data-fit="${fit}"` : ""}${group ? ` data-fit-group="${group}"` : ""}`;
 }
 
 /**
