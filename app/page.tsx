@@ -241,7 +241,16 @@ export default function Studio() {
    * block type and order, which is imperfect by nature — a rewrite that drops
    * a photo block loses that photo — but it beats losing all of them.
    */
-  function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent {
+  /** Bar i of a rewritten chart keeps the colour bar i had before. */
+function recolor(content: SlideContent, old?: { color?: string }[]): SlideContent {
+  if (!old?.length || !content.bars?.length) return content;
+  return {
+    ...content,
+    bars: content.bars.map((b, i) => (old[i]?.color ? { ...b, color: old[i].color } : b)),
+  };
+}
+
+function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent {
     if (!old?.length || !content.stack?.length) return content;
     const pool = old.filter((b) => b.image || b.items?.some((i) => i.image));
     const used = new Set<number>();
@@ -277,6 +286,12 @@ export default function Studio() {
        * takes the image of the first unused old block of the same type.
        */
       mergeImages?: PageBlock[];
+      /**
+       * The bars of the chart being rewritten: a hand-picked colour is the
+       * user's, not the model's, so bar i of the new chart keeps the colour
+       * bar i had (the model never sees or sets `color`).
+       */
+      keepColors?: { color?: string }[];
     },
   ): Promise<number> {
     abortRef.current?.abort();
@@ -328,7 +343,10 @@ export default function Studio() {
               dispatch({
                 type: "REPLACE_SLIDE",
                 index: opts.targetIndex,
-                content: { ...reattachImages(content, opts.mergeImages), ...opts.preserve },
+                content: recolor(
+                  { ...reattachImages(content, opts.mergeImages), ...opts.preserve },
+                  opts.keepColors,
+                ),
               });
             } else {
               dispatch({ type: "APPEND_SLIDE", content });
@@ -491,6 +509,7 @@ export default function Studio() {
           ? { footerLabel: active.footerLabel }
           : { image: active.image, imagePos: active.imagePos, logos: active.logos, grid: active.grid, icons: active.icons, map: active.map },
         mergeImages: isPage(active) ? active.stack : undefined,
+        keepColors: active.bars,
       },
     );
   };
@@ -1086,9 +1105,9 @@ function Toolbar({
           variant="secondary"
           icon={Upload}
           onClick={onOpenDeckFile}
-          title="Open a deck you downloaded earlier"
+          title="Open an HTML deck you downloaded earlier"
         >
-          Upload
+          Upload HTML
         </Button>
         <div className="relative">
         <Button variant="primary" iconRight={ChevronDown} onClick={() => setExportOpen((v) => !v)}>

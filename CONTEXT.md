@@ -40,7 +40,8 @@ Do not change these without asking Mario first. They are decisions, not defaults
    **Charts have a hand-picked exception.** A bar or a donut segment may be given one of the sixteen
    colours in `lib/slides/chart-colors.ts` (Giga blues, UNICEF Brand Book secondaries, neutrals)
    from the Data panel; `bars[i].color` carries it, `normalizeSlide` drops any other hex, and the
-   model never sets it (it is not in the output schema). Absent, the brand series decides.
+   model never sets it (it is not in the output schema); a regenerated chart keeps its colours by
+   position (`recolor` in `app/page.tsx`). Absent, the brand series decides.
 
    **On paper this rule has one documented exception.** The approved A4 boards use a small print
    palette on top of the cyan: `#D14807` for status and attention, its peach border `#E8B8A2` and
