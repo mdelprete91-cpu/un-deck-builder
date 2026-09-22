@@ -23,6 +23,8 @@ interface SidebarProps {
   onAttach: (files: File[]) => Promise<void> | void;
   onRemoveAttachment: (id: string) => void;
   attachError: string | null;
+  /** Set when the last generation left chapters out because the brief named too few slides. */
+  chaptersSkipped: number | null;
 }
 
 /** Sidebar section label — the BAG eyebrow at product scale. */
@@ -51,6 +53,7 @@ export default function Sidebar({
   onAttach,
   onRemoveAttachment,
   attachError,
+  chaptersSkipped,
 }: SidebarProps) {
   const [addBrief, setAddBrief] = useState("");
   const [addCount, setAddCount] = useState(2);
@@ -60,7 +63,8 @@ export default function Sidebar({
   const deckHasChapters = state.slides.some(
     (s) => s.layoutId === "agenda" || s.layoutId === "section-divider",
   );
-  const chaptersPending = hasSlides && deckHasChapters !== state.chapters;
+  const chaptersLeftOut = hasSlides && state.chapters && chaptersSkipped !== null;
+  const chaptersPending = hasSlides && !chaptersLeftOut && deckHasChapters !== state.chapters;
 
   return (
     <aside className="flex h-full w-[340px] shrink-0 flex-col gap-6 overflow-y-auto border-r border-hairline-light bg-canvas p-6 *:shrink-0">
@@ -133,6 +137,12 @@ export default function Sidebar({
         )}
         {/* The toggle only takes effect on the next generation, so say so
             exactly when the deck on screen disagrees with it. */}
+        {chaptersLeftOut && (
+          <p className="mt-1.5 text-xs leading-relaxed text-ink-muted">
+            Chapters left out: {chaptersSkipped} slides leave no room for an agenda and section
+            dividers. Ask for eight or more to keep them.
+          </p>
+        )}
         {chaptersPending && (
           <p className="mt-1.5 text-xs leading-relaxed text-ink-muted">
             The deck on screen still has {state.chapters ? "no chapters" : "chapters"}. Regenerate

@@ -22,11 +22,13 @@ ${catalogLines}
 RULES:
 - Output slides in presentation order. ALWAYS start with "cover" and ALWAYS end with "thank-you" (the user deletes them if unneeded).
 - Use "agenda" right after the cover only for decks of 6+ slides. Agenda bullets MUST mirror the deck's "section-divider" slides one-to-one: same order, same wording (<=5 words each). Every chapter opens with its own section-divider carrying that exact title.
-- Pick the layout that best fits each beat of the story. Never use the same layout for 3 slides in a row. Alternate light and dark surfaces so the deck has rhythm.
+- THE BRIEF COMES FIRST. When it prescribes a structure (one slide per item, what each slide is titled, what goes on it, the order), follow it to the letter: every item gets its own slide, in the brief's order; the slide's title is the item's own name, copied as written and shortened only when it exceeds the limit; ONE layout for the whole series, chosen for the item with the most sub-points and repeated on every slide of the series, even ten times in a row. The rhythm rule below does not apply inside such a series.
+- Never drop, merge or renumber a sub-point the brief lists under an item (a KR, a step, a point): one block per sub-point, its label the brief's own (KR1, KR2, ...), its body the sub-point shortened to the limit. If no layout holds them all, use the one that holds the most; shorten bodies, never the list.
+- Outside a prescribed series, pick the layout that best fits each beat of the story, never the same layout for 3 slides in a row, and alternate light and dark surfaces so the deck has rhythm.
 - Respect every word limit strictly. Numbers do the talking: prefer concrete figures over adjectives. A stat value is a number (61%, 1.4M, $500M), never a word.
 - Voice: plain, declarative, public-good. Sentence case everywhere (never Title Case in body text). Banned words: leveraging, synergies, cutting-edge, revolutionary, empower, unlock.
 - Write in the same language as the brief.
-- Only state facts given in the brief or the attached material. Never invent statistics, names, or emails. Giga's own figures (2.2M+ schools mapped, 146 countries, giga.global) belong only in a deck the brief makes about Giga.
+- Only state facts given in the brief or the attached material. Never invent statistics, names, emails or dates: no year, quarter or period the brief does not give, not even in a subtitle. Giga's own figures (2.2M+ schools mapped, 146 countries, giga.global) belong only in a deck the brief makes about Giga.
 - For chart-bars, values are relative heights 0-100.
 - For "partner", use it only when the brief names partners, and copy the names EXACTLY from this list (each maps to a real logo): ${PARTNER_NAMES.join(", ")}. Never invent partner names or write categories like "Telecom operators" — a name outside the list renders as plain text instead of a logo.
 - Every slide object includes every field of the output schema. Set fields the chosen layout does not use to "" (strings) or [] (arrays) — never invent content for them.`;
@@ -57,7 +59,7 @@ RULES:
 - Respect every word limit strictly. Numbers do the talking: prefer concrete figures over adjectives. A stat value is a number (61%, 1.4M, $500M), never a word.
 - Voice: plain, declarative, public-good. Sentence case everywhere (never Title Case in body text). Banned words: leveraging, synergies, cutting-edge, revolutionary, empower, unlock.
 - Write in the same language as the brief.
-- The subject is whatever the brief and the attached material are about. Only state facts given there. Never invent statistics, names, or emails. Giga's own figures (2.2M+ schools mapped, 146 countries, giga.global) belong only in a piece the brief makes about Giga.
+- The subject is whatever the brief and the attached material are about. Only state facts given there. Never invent statistics, names, emails or dates. Giga's own figures (2.2M+ schools mapped, 146 countries, giga.global) belong only in a piece the brief makes about Giga.
 - Every page carries "footerLabel": the piece's name, <=5 words, identical on every page.
 - Every block object includes every field of the output schema. Set fields the chosen block does not use to "" or [] — never invent content for them.`;
 }
@@ -69,6 +71,8 @@ interface GenerateBody {
   format?: DeckFormat;
   brief: string;
   count?: number;
+  /** The brief asks for one slide per item: a named count is then the number of items. */
+  perItem?: boolean;
   brandLabel?: string;
   existingSlides?: SlideContent[];
   targetSlide?: SlideContent;
@@ -146,9 +150,19 @@ export function buildUserMessage(body: GenerateBody): string {
     default: {
       // A count named in the brief arrives as body.count (see countFromBrief
       // in app/page.tsx): demanded exactly, with no competing default.
-      const length =
-        typeof body.count === "number"
-          ? `Produce exactly ${body.count} slides, no more and no fewer, counting the cover and the closing slide${body.chapters === false ? "" : " (agenda and section dividers count too)"}.`
+      // A count with "one slide per item" is the number of items, not a
+      // ceiling: a conditional ("unless the items need more") was obeyed
+      // one time in two by Haiku, so the client decides and the rule is flat.
+      const chaptersCount =
+        body.chapters === false
+          ? ""
+          : " (agenda and section dividers count too; if they would leave no room for the content, leave the chapters out, never the content)";
+      const length = body.perItem
+        ? typeof body.count === "number"
+          ? `The brief asks for one slide per item and names ${body.count}: that is the number of items, not the size of the deck. Make exactly one slide for each item the brief lists, then add the cover and the closing slide on top${body.chapters === false ? "" : ", and the agenda and dividers if the deck has chapters"}.`
+          : `The brief asks for one slide per item: make exactly one slide for each item it lists, plus the cover and the closing slide${body.chapters === false ? "" : ", and the agenda and dividers if the deck has chapters"}.`
+        : typeof body.count === "number"
+          ? `Produce exactly ${body.count} slides, no more and no fewer, counting the cover and the closing slide${chaptersCount}.`
           : "Choose the number of slides yourself (typically 8-14). A \"page\" in the brief means a slide.";
       return `Brief: ${body.brief}${brand}\n\nCreate the deck that best tells this story. ${length}${noChapters}`;
     }

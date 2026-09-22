@@ -86,7 +86,10 @@ export async function POST(request: Request): Promise<Response> {
   const twoPager = body.format === "two-pager";
   // The count is the brief's when it names one, else the biggest reasonable
   // deck; add/regenerate keep count-driven budgets.
-  const count = body.mode === "regenerate" ? 1 : Math.min(Math.max(body.count ?? 20, 1), 20);
+  // With `perItem` the named count is the items, and the cover and the
+  // closing slide come on top of it.
+  const named = typeof body.count === "number" ? body.count + (body.perItem ? 2 : 0) : 20;
+  const count = body.mode === "regenerate" ? 1 : Math.min(Math.max(named, 1), 22);
   // Add mode carries extra output (insertAfter + refreshed agenda bullets).
   // Every slide carries all thirteen required fields, so a content-heavy
   // slide (a PDF behind it) costs 400-700 tokens: 650 keeps twenty of them

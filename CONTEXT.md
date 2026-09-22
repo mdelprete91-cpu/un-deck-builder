@@ -154,6 +154,15 @@ discards any `agenda` or `section-divider` the model emits anyway. Keep both —
 leaks a stray divider often enough to matter. It never edits the deck already on screen, and
 `regenerate` is deliberately exempt so regenerating an existing agenda slide still works.
 
+**A named count under eight overrides the toggle.** Cover, agenda, two dividers, two content
+slides and the closing slide are eight already, so "Six slides" with chapters on cannot hold
+(`MIN_SLIDES_WITH_CHAPTERS` in `page.tsx`). `onGenerate` then sends `chapters: false` and drops
+strays for that generation only, the setting itself is untouched, and the sidebar says "Chapters
+left out" in place of the usual regenerate-to-apply line (`chaptersSkipped`, session state in
+`page.tsx`). For a larger count the model is told that when the count leaves no room for both,
+the chapters go, never the content. Before this (22 Sep 2026) a six-slide OKR brief came back as
+sixteen slides, seven of them agenda and dividers.
+
 **Bump `VERSION` in `storage.ts`** whenever the persisted shape changes, otherwise returning users
 hydrate a broken deck from localStorage.
 
@@ -205,13 +214,31 @@ now only retires the last-session offer.
 - Errors are translated to plain language for the user, including the 529 overloaded case. Keep that
   behavior when touching the route.
 - **The slide count comes from the brief.** `countFromBrief` in `app/page.tsx` reads "20-page",
-  "in 6 slides", "10 diapositive" and sends it as `count`; the user turn then demands exactly that
-  many and the route sizes `max_tokens` to it (650 tokens a slide, all thirteen fields are
-  required). No number in the brief means the model chooses (8-14). When the model still hits
+  "in 6 slides", "Six slides", "10 diapositive" (digits or number words, English and Italian, up
+  to twenty) and sends it as `count`; the user turn then demands exactly that many and the route
+  sizes `max_tokens` to it (650 tokens a slide, all thirteen fields are required). A count
+  followed by per / each / ogni ("one slide per objective") is a structure, not a length, and is
+  passed over, and `seriesFromBrief` sends `perItem: true` instead: the user turn then reads the
+  count as the number of items ("Six slides, one per objective" is six content slides, cover and
+  closing on top), the route budgets two more, and the top-up in `onGenerate` aims at count + 2.
+  This is flat on purpose: as a conditional in the prompt ("unless the items need more") Haiku
+  obeyed "exactly 6" one time in two and dropped two objectives. No number in the brief means the
+  model chooses (8-14). When the model still hits
   `max_tokens` the route says `truncated` and the client shows an error naming how many slides
   arrived, instead of a silently shorter deck. That silent short deck (12 for "20-page") is what
   happened on 22 Sep 2026: the count stayed prose, the prompt offered 8-14, and 400 tokens a slide
-  was not enough.
+  was not enough. Later the same day "Six slides" went unread because it was a word, and the
+  model chose fourteen.
+- **The brief's structure comes first.** When the brief prescribes one slide per item, the titles,
+  or what goes on each slide, the system prompt tells the model to follow it to the letter: every
+  item gets its slide, titles are copied as written, the same layout for the whole series, and the
+  variety rules ("never the same layout three times in a row", alternate surfaces) yield. Items
+  are never dropped, merged or renumbered; if no layout holds them all, the model picks the one
+  that holds the most. Before this rule (22 Sep 2026) an OKR brief with six objectives came back
+  with a different layout per objective, three-word titles and two KRs silently gone. Dates are on
+  the never-invent list too: the same deck got a "2024" subtitle from nowhere. **The catalog has
+  no list layout**: the widest is `four-cards` (4 x 16 words), so a six-item list still loses
+  items until the template gains one (Mario is drawing it, 23 Sep 2026).
 
 ## Attachments to the brief
 
@@ -348,6 +375,12 @@ Touch all of these, in this order:
 
 If a layout is dense approved content that the model would hallucinate (the partnership tiers, for
 example), make it manual-insert only instead of AI-selectable.
+
+**The tier slides have one automatic entry point**, `TIERS_REQUEST` in `app/page.tsx`: after a
+generation, a brief that asks for them by name ("partnership tiers", "tier table", "livelli di
+partnership") gets `INSERT_TIERS`. It used to fire on the bare word "tier", and "API keys by tier"
+in an OKR brief shipped the partnership table uninvited (22 Sep 2026). Keep the pattern about
+the table, never about the word.
 
 ## Exports
 
