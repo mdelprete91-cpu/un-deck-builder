@@ -219,13 +219,13 @@ export default function Sidebar({
       )}
 
       <div className="mt-auto flex flex-col gap-2">
+        {state.lastRun && <GenerationReadout lastRun={state.lastRun} session={state.usage} />}
         <div className="flex items-center justify-between gap-2">
           <Button variant="ghost" icon={CircleHelp} onClick={onHowItWorks}>
             How it works
           </Button>
           <ThemeToggle />
         </div>
-        {state.lastRun && <GenerationReadout lastRun={state.lastRun} session={state.usage} />}
       </div>
     </aside>
   );
