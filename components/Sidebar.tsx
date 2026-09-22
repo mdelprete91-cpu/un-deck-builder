@@ -7,6 +7,7 @@ import type { DeckState, DeckAction } from "@/lib/slides/state";
 import type { Attachment } from "@/lib/slides/attachments";
 import Button from "@/components/Button";
 import ThemeToggle from "@/components/ThemeToggle";
+import GenerationReadout from "@/components/GenerationReadout";
 import PromptBox from "@/components/PromptBox";
 import Select from "@/components/Select";
 
@@ -224,32 +225,8 @@ export default function Sidebar({
           </Button>
           <ThemeToggle />
         </div>
-        {state.lastRun && (
-          <p
-            className="text-center text-xs text-ink-muted"
-            title={`Session so far: ${state.usage.inputTokens.toLocaleString()} in · ${state.usage.outputTokens.toLocaleString()} out tokens, ${formatCost(cost(state.usage))}`}
-          >
-            Last generation: {formatCost(cost(state.lastRun))} · {formatSeconds(state.lastRun.seconds)}
-          </p>
-        )}
+        {state.lastRun && <GenerationReadout lastRun={state.lastRun} session={state.usage} />}
       </div>
     </aside>
   );
-}
-
-/**
- * claude-haiku-4-5 list price: $1 per million input tokens, $5 per million
- * output tokens (September 2026). Update here if the route changes model.
- */
-function cost(u: { inputTokens: number; outputTokens: number }): number {
-  return (u.inputTokens * 1 + u.outputTokens * 5) / 1_000_000;
-}
-
-function formatCost(usd: number): string {
-  if (usd < 0.01) return `$${usd.toFixed(3)}`;
-  return `$${usd.toFixed(2)}`;
-}
-
-function formatSeconds(s: number): string {
-  return s < 10 ? `${s.toFixed(1)} s` : `${Math.round(s)} s`;
 }
