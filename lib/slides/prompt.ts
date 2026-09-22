@@ -135,8 +135,15 @@ export function buildUserMessage(body: GenerateBody): string {
     }
     case "regenerate":
       return `Current slide (JSON): ${JSON.stringify(body.targetSlide)}\n\nDeck brief: ${body.brief}${brand}\n\nRewrite this single slide.${body.instruction ? ` Instruction: ${body.instruction}` : " Improve the copy."} You may switch to a more appropriate layout if the instruction calls for it. Return exactly one slide.`;
-    default:
-      return `Brief: ${body.brief}${brand}\n\nCreate the deck that best tells this story. Choose the number of slides yourself (typically 8-14); if the brief asks for a specific count, honor it exactly.${noChapters}`;
+    default: {
+      // A count named in the brief arrives as body.count (see countFromBrief
+      // in app/page.tsx): demanded exactly, with no competing default.
+      const length =
+        typeof body.count === "number"
+          ? `Produce exactly ${body.count} slides, no more and no fewer, counting the cover and the closing slide${body.chapters === false ? "" : " (agenda and section dividers count too)"}.`
+          : "Choose the number of slides yourself (typically 8-14). A \"page\" in the brief means a slide.";
+      return `Brief: ${body.brief}${brand}\n\nCreate the deck that best tells this story. ${length}${noChapters}`;
+    }
   }
 }
 

@@ -136,6 +136,20 @@ const EDITOR_STEPS: TourStep[] = [
   },
 ];
 
+/**
+ * The slide count named in the brief ("a 20-page deck", "in 6 slides", "10
+ * diapositive"), clamped to the route's 1-20. Undefined when the brief names
+ * none, and then the model chooses the length. Sent as `count` so the prompt
+ * can demand it exactly and the route can budget output tokens for it: left
+ * as prose, the model anchored on its own "typically 8-14" and the budget
+ * for 20 slides truncated the deck around slide 12 (22 Sep 2026).
+ */
+export function countFromBrief(brief: string): number | undefined {
+  const m = /\b(\d{1,2})\s*(?:-\s*)?(?:slides?|pages?|pagine|pagina|diapositive|diapositiva)\b/i.exec(brief);
+  if (!m) return undefined;
+  return Math.min(20, Math.max(1, parseInt(m[1], 10)));
+}
+
 export default function Studio() {
   const [state, dispatch] = useReducer(deckReducer, initialDeckState);
   const [hydrated, setHydrated] = useState(false);
@@ -356,6 +370,14 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
             meta = event;
           } else if (event.type === "done") {
             dispatch({ type: "GENERATION_DONE", usage: event.usage });
+            // The route says when the model hit max_tokens. The slides that
+            // arrived stay; the user is told instead of handed a short deck.
+            if (event.truncated && !opts.collectInsert) {
+              dispatch({
+                type: "GENERATION_ERROR",
+                error: `The deck was cut short at ${received} slide${received === 1 ? "" : "s"}: the model ran out of room. Ask for fewer slides or a shorter brief, or add the rest with Add slides.`,
+              });
+            }
           } else if (event.type === "error") {
             throw new Error(event.message ?? "Generation failed");
           }
@@ -433,8 +455,9 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
         brandLabel: theme.label,
         chapters: state.chapters,
         format: state.format,
-        // A two-pager is a fixed-length piece, so the count is the user's.
-        ...(twoPager ? { count: state.count } : {}),
+        // A two-pager is a fixed-length piece, so the count is the user's;
+        // a slide deck takes the number the brief names, if any.
+        count: twoPager ? state.count : countFromBrief(brief),
       },
       { replace: true, dropChapters: !state.chapters },
     );

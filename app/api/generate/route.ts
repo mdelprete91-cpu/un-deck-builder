@@ -76,14 +76,17 @@ export async function POST(request: Request): Promise<Response> {
   const client = new Anthropic({ maxRetries: 4 });
   const isAdd = body.mode === "add";
   const twoPager = body.format === "two-pager";
-  // The model picks the deck size itself in generate mode, so budget for the
-  // biggest reasonable deck; add/regenerate keep count-driven budgets.
+  // The count is the brief's when it names one, else the biggest reasonable
+  // deck; add/regenerate keep count-driven budgets.
   const count = body.mode === "regenerate" ? 1 : Math.min(Math.max(body.count ?? 20, 1), 20);
-  // Add mode carries extra output (insertAfter + refreshed agenda bullets)
-  // An A4 page of text is worth about four slides, and truncation here is
-  // silent: the parser simply never emits the page.
-  const perItem = twoPager ? 1600 : 400;
-  const maxTokens = Math.min(800 + perItem * count + (isAdd ? 400 : 0), 16000);
+  // Add mode carries extra output (insertAfter + refreshed agenda bullets).
+  // Every slide carries all thirteen required fields, so a content-heavy
+  // slide (a PDF behind it) costs 400-700 tokens: 650 keeps twenty of them
+  // under the ceiling. An A4 page of text is worth about four slides. The
+  // stream reports truncation and the client shows it, but the parser never
+  // emits a slide cut in half, so the budget has to be honest.
+  const perItem = twoPager ? 1600 : 650;
+  const maxTokens = Math.min(800 + perItem * count + (isAdd ? 400 : 0), 20000);
   const encoder = new TextEncoder();
 
   const stream = new ReadableStream({
