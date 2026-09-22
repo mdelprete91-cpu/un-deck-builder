@@ -123,10 +123,13 @@ export default function Sidebar({
           onRemoveAttachment={onRemoveAttachment}
           onGenerate={onGenerate}
           generating={generating}
+          blocked={!!attachError}
           hasSlides={hasSlides}
         />
         {attachError && (
-          <p className="mt-1.5 text-xs leading-relaxed text-status-red">{attachError}</p>
+          <div className="mt-2 rounded-lg border border-status-red-border bg-status-red-bg p-3 text-xs leading-relaxed text-status-red">
+            {attachError}
+          </div>
         )}
         {/* The toggle only takes effect on the next generation, so say so
             exactly when the deck on screen disagrees with it. */}

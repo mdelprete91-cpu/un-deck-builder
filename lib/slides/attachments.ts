@@ -14,7 +14,16 @@ import JSZip from "jszip";
 export type Attachment =
   | { id: string; name: string; kind: "pdf"; mediaType: "application/pdf"; data: string; bytes: number }
   | { id: string; name: string; kind: "image"; mediaType: ImageMediaType; data: string; bytes: number }
-  | { id: string; name: string; kind: "text"; text: string; bytes: number; truncated?: boolean };
+  | {
+      id: string;
+      name: string;
+      kind: "text";
+      text: string;
+      bytes: number;
+      truncated?: boolean;
+      /** Set when the text was pulled out of a PDF too big to send whole: the chip says so. */
+      textOnly?: boolean;
+    };
 
 export type ImageMediaType = "image/jpeg" | "image/png" | "image/webp" | "image/gif";
 
@@ -23,6 +32,12 @@ export const ATTACHMENT_ACCEPT =
 
 /** Vercel functions accept 4.5 MB of body; keep a margin for the brief itself. */
 export const MAX_REQUEST_BYTES = 4 * 1024 * 1024;
+/**
+ * What that body holds in files: base64 grows a file by a third, so 3 MB of
+ * files is the honest limit to tell the user. A PDF past it is not refused,
+ * it travels as its extracted text instead (see readPdfAsText).
+ */
+export const MAX_FILE_BYTES = 3 * 1024 * 1024;
 export const MAX_ATTACHMENTS = 6;
 /** Characters of extracted text kept per file and across all files. */
 export const MAX_TEXT_PER_FILE = 60_000;
@@ -41,24 +56,25 @@ function uid() {
   return Math.random().toString(36).slice(2, 10);
 }
 
-/** Bytes a base64 string will add to a JSON body (roughly its length). */
-export function attachmentBytes(a: Attachment): number {
+/** What the attachment adds to the JSON body: base64 or text length. */
+export function requestBytes(a: Attachment): number {
   return a.kind === "text" ? a.text.length : a.data.length;
 }
 
-export function totalAttachmentBytes(list: Attachment[]): number {
-  return list.reduce((n, a) => n + attachmentBytes(a), 0);
+export function totalRequestBytes(list: Attachment[]): number {
+  return list.reduce((n, a) => n + requestBytes(a), 0);
 }
 
 export async function readAttachment(file: File): Promise<Attachment> {
   const e = ext(file.name);
   if (e === "pdf" || file.type === "application/pdf") {
     const data = await toBase64(file);
-    return { id: uid(), name: file.name, kind: "pdf", mediaType: "application/pdf", data, bytes: data.length };
+    // `bytes` is the file's own size, what the chip shows; the body cost is requestBytes().
+    return { id: uid(), name: file.name, kind: "pdf", mediaType: "application/pdf", data, bytes: file.size };
   }
   if (file.type.startsWith("image/")) {
     const { data, mediaType } = await downscaleImage(file);
-    return { id: uid(), name: file.name, kind: "image", mediaType, data, bytes: data.length };
+    return { id: uid(), name: file.name, kind: "image", mediaType, data, bytes: Math.round(data.length * 0.75) };
   }
   if (e === "docx") {
     return textAttachment(file.name, await extractDocx(await file.arrayBuffer()));
@@ -72,6 +88,32 @@ export async function readAttachment(file: File): Promise<Attachment> {
   throw new AttachmentError(
     `"${file.name}" is not a supported file. Attach PDF, Word, PowerPoint, text or image files.`,
   );
+}
+
+/**
+ * A PDF too big to travel as a document goes as its text: pdf.js reads it in
+ * the browser, page by page, in reading order. A scanned PDF has no text
+ * layer and throws, which is the one case a big PDF is refused.
+ */
+export async function readPdfAsText(file: File): Promise<Attachment> {
+  const pdfjs = await import("pdfjs-dist/legacy/build/pdf.mjs");
+  pdfjs.GlobalWorkerOptions.workerSrc = new URL("pdfjs-dist/legacy/build/pdf.worker.min.mjs", import.meta.url).toString();
+  const doc = await pdfjs.getDocument({ data: await file.arrayBuffer() }).promise;
+  const pages: string[] = [];
+  for (let i = 1; i <= doc.numPages; i++) {
+    const page = await doc.getPage(i);
+    const content = await page.getTextContent();
+    const line = content.items
+      .map((it) => ("str" in it ? it.str + (it.hasEOL ? "\n" : " ") : ""))
+      .join("");
+    pages.push(line.trim());
+    // Past the text cap there is nothing more to keep; stop reading.
+    if (pages.join("\n\n").length > MAX_TEXT_PER_FILE) break;
+  }
+  const text = pages.join("\n\n");
+  if (!text.trim()) throw new AttachmentError(`"${file.name}" is too big to attach whole (files can total 3 MB) and has no text layer to send instead.`);
+  const a = textAttachment(file.name, text);
+  return a.kind === "text" ? { ...a, textOnly: true } : a;
 }
 
 function textAttachment(name: string, raw: string): Attachment {

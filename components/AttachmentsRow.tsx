@@ -22,12 +22,20 @@ export default function AttachmentsRow({
       {attachments.map((a) => (
         <span
           key={a.id}
-          title={a.kind === "text" && a.truncated ? `${a.name} (long file, first part only)` : a.name}
+          title={
+            a.kind === "text" && a.textOnly
+              ? `${a.name}: too big to send whole, its text goes instead${a.truncated ? " (first part only)" : ""}`
+              : a.kind === "text" && a.truncated
+                ? `${a.name} (long file, first part only)`
+                : a.name
+          }
           className="group inline-flex h-7 max-w-full items-center gap-1.5 rounded-full bg-giga-tint pl-2 pr-1 text-xs font-medium text-giga"
         >
           <FileGlyph kind={a.kind} />
           <span className="max-w-[150px] truncate">{a.name}</span>
-          <span className="text-[10px] font-normal text-ink-muted">{formatBytes(a.bytes)}</span>
+          <span className="text-[10px] font-normal text-ink-muted">
+            {a.kind === "text" && a.textOnly ? "text only" : formatBytes(a.bytes)}
+          </span>
           <button
             type="button"
             onClick={() => onRemove(a.id)}

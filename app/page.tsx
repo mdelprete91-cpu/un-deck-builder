@@ -22,15 +22,7 @@ import Sidebar from "@/components/Sidebar";
 import SlideFrame, { readImageFile } from "@/components/SlideFrame";
 import ChartDataPanel from "@/components/ChartDataPanel";
 import ImagePickerModal from "@/components/ImagePickerModal";
-import {
-  AttachmentError,
-  MAX_ATTACHMENTS,
-  MAX_REQUEST_BYTES,
-  MAX_TEXT_TOTAL,
-  readAttachment,
-  totalAttachmentBytes,
-  type Attachment,
-} from "@/lib/slides/attachments";
+import { AttachmentError, MAX_ATTACHMENTS, MAX_REQUEST_BYTES, MAX_TEXT_TOTAL, readAttachment, readPdfAsText, totalRequestBytes, type Attachment } from "@/lib/slides/attachments";
 import { mapSlotFor } from "@/lib/giga-maps/slot";
 import ThumbStrip from "@/components/ThumbStrip";
 import PrintRoot from "@/components/PrintRoot";
@@ -306,6 +298,10 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
        * bar i had (the model never sees or sets `color`).
        */
       keepColors?: { color?: string }[];
+      /** Every slide kept from this run, for a caller that has to follow up on them. */
+      collect?: SlideContent[];
+      /** The stream's closing event, for a caller that must know about truncation. */
+      onDone?: (done: { truncated?: boolean }) => void;
     },
   ): Promise<number> {
     abortRef.current?.abort();
@@ -348,7 +344,7 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
                   footerLabel: (event.slide as { footerLabel?: string }).footerLabel ?? "",
                 }
               : event.slide;
-            const content = normalizeSlide(raw);
+            const content = normalizeSlide(raw, { brandId: state.brandId });
             if (!content) continue;
             if (opts.dropChapters && CHAPTER_LAYOUTS.has(content.layoutId)) continue;
             if (opts.collectInsert) {
@@ -365,11 +361,13 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
             } else {
               dispatch({ type: "APPEND_SLIDE", content });
             }
+            opts.collect?.push(content);
             received++;
           } else if (event.type === "meta") {
             meta = event;
           } else if (event.type === "done") {
             dispatch({ type: "GENERATION_DONE", usage: event.usage });
+            opts.onDone?.(event);
             // The route says when the model hit max_tokens. The slides that
             // arrived stay; the user is told instead of handed a short deck.
             if (event.truncated && !opts.collectInsert) {
@@ -419,13 +417,18 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
         break;
       }
       try {
-        const a = await readAttachment(file);
+        let a = await readAttachment(file);
+        // A PDF that would push the request past the body ceiling goes as
+        // its text instead of being dropped: the deck it feeds is the point.
+        if (a.kind === "pdf" && totalRequestBytes(next.concat(a)) > MAX_REQUEST_BYTES) {
+          a = await readPdfAsText(file);
+        }
         const textTotal = next
           .concat(a)
           .filter((x) => x.kind === "text")
           .reduce((n, x) => n + x.bytes, 0);
-        if (totalAttachmentBytes(next.concat(a)) > MAX_REQUEST_BYTES) {
-          problems.push(`"${file.name}" does not fit: attachments can total 4 MB per brief.`);
+        if (totalRequestBytes(next.concat(a)) > MAX_REQUEST_BYTES) {
+          problems.push(`"${file.name}" does not fit: files can total 3 MB per brief.`);
           continue;
         }
         if (textTotal > MAX_TEXT_TOTAL) {
@@ -447,7 +450,12 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
 
   const onGenerate = async () => {
     const brief = state.brief;
-    const received = await runGeneration(
+    // A two-pager is a fixed-length piece, so the count is the user's; a
+    // slide deck takes the number the brief names, if any.
+    const count = twoPager ? state.count : countFromBrief(brief);
+    const kept: SlideContent[] = [];
+    let truncated = false;
+    let received = await runGeneration(
       {
         mode: "generate",
         brief,
@@ -455,12 +463,38 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
         brandLabel: theme.label,
         chapters: state.chapters,
         format: state.format,
-        // A two-pager is a fixed-length piece, so the count is the user's;
-        // a slide deck takes the number the brief names, if any.
-        count: twoPager ? state.count : countFromBrief(brief),
+        count,
       },
-      { replace: true, dropChapters: !state.chapters },
+      {
+        replace: true,
+        dropChapters: !state.chapters,
+        collect: kept,
+        onDone: (d) => {
+          truncated = !!d.truncated;
+        },
+      },
     );
+    // Haiku lands a slide or two short of a named count under a heavy PDF,
+    // and the output schema cannot pin the length (the API takes minItems of
+    // 0 or 1 only). So a short deck is completed with one add request for the
+    // missing slides; a truncated one is not, the error already says why.
+    if (!twoPager && count && received > 0 && received < count && !truncated) {
+      const missing = count - received;
+      received += await runGeneration(
+        {
+          mode: "add",
+          brief,
+          attachments,
+          instruction: `The deck must have ${count} slides and has ${received}. Add the ${missing} still missing: beats of the brief and the material not yet covered, never a repeat of an existing slide.`,
+          count: missing,
+          brandLabel: theme.label,
+          chapters: state.chapters,
+          format: state.format,
+          existingSlides: kept.map((k) => light(k as (typeof state.slides)[number])),
+        },
+        { replace: false, collectInsert: true, dropChapters: !state.chapters },
+      );
+    }
     // The two fixed partnership-tier slides are added only when the brief
     // asks for them explicitly ("tiers", "tier table", "livelli"); a generic
     // partnership deck must not ship them uninvited.

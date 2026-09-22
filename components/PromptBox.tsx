@@ -30,6 +30,7 @@ export default function PromptBox({
   onRemoveAttachment,
   onGenerate,
   generating,
+  blocked = false,
   hasSlides,
 }: {
   brief: string;
@@ -41,6 +42,8 @@ export default function PromptBox({
   onRemoveAttachment: (id: string) => void;
   onGenerate: () => void;
   generating: boolean;
+  /** A file was refused: Generate waits until the user removes or replaces it. */
+  blocked?: boolean;
   hasSlides: boolean;
 }) {
   const textRef = useRef<HTMLTextAreaElement>(null);
@@ -48,7 +51,7 @@ export default function PromptBox({
   const fileRef = useRef<HTMLInputElement>(null);
   const [dragging, setDragging] = useState(false);
   const [reading, setReading] = useState(false);
-  const canSend = !generating && (brief.trim().length > 0 || attachments.length > 0);
+  const canSend = !generating && !blocked && (brief.trim().length > 0 || attachments.length > 0);
 
   // The "+" introduces itself: on an empty editor the pill widens to say
   // "Attach" for two seconds, then folds back to the icon. Hover reopens it,
@@ -90,7 +93,7 @@ export default function PromptBox({
 
   const active = dragging
     ? "border-hairline shadow-stripe-lg"
-    : "border-hairline-light focus-within:border-hairline focus-within:shadow-stripe-lg";
+    : "border-hairline-light focus-within:border-giga focus-within:shadow-stripe-lg focus-within:ring-[3px] focus-within:ring-giga/15";
 
   return (
     <div>
