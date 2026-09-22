@@ -256,7 +256,7 @@ export function chartBars(s: Slide, t: BrandTheme): string {
     heading80(s.title ?? "", "title", "#000000", 740, 230) +
       legend +
       yAxis +
-      `<div style="position:absolute;left:${AREA.x}px;top:${AREA.y}px;width:${AREA.w}px;height:${AREA.h}px;">${grid}${cols}</div>` +
+      `<div data-chart style="position:absolute;left:${AREA.x}px;top:${AREA.y}px;width:${AREA.w}px;height:${AREA.h}px;">${grid}${cols}</div>` +
       footer(t, "light"),
   );
 }
@@ -285,7 +285,7 @@ export function donutChart(s: Slide, t: BrandTheme): string {
     "#000000",
     heading80(s.title ?? "", "title", "#000000", 950, 240) +
       legend +
-      `<div class="af" style="position:absolute;left:1110px;top:113px;width:715px;height:715px;border-radius:50%;background:conic-gradient(${stops.join(", ")});">` +
+      `<div class="af" data-chart style="position:absolute;left:1110px;top:113px;width:715px;height:715px;border-radius:50%;background:conic-gradient(${stops.join(", ")});">` +
       `<div style="position:absolute;left:178px;top:178px;width:359px;height:359px;border-radius:50%;background:#FFFFFF;"></div>` +
       `</div>` +
       footer(t, "light"),

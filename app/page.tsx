@@ -770,6 +770,13 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
         {imagePicker != null && active && (
           <ImagePickerModal
             slot={mapSlotFor(active.layoutId, imagePicker)}
+            current={
+              (imagePicker === "image" ? active.image : (readPath(active, imagePicker) as string | undefined)) ?? null
+            }
+            onRemove={() => {
+              dispatch({ type: "CLEAR_IMAGE", index: state.activeIndex, path: imagePicker });
+              setImagePicker(null);
+            }}
             onUpload={() => {
               pendingImagePath.current = imagePicker;
               setImagePicker(null);
@@ -860,7 +867,8 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
                     onPickIcon={(target) => setIconPicker(target)}
                     size={pageSize}
                     variant={twoPager ? "page" : "slide"}
-                    onPickImage={twoPager ? (path) => setImagePicker(path) : null}
+                    onPickImage={(path) => setImagePicker(path)}
+                    onChartClick={isChart ? () => setDataPanelOpen(true) : null}
                     onFocusBlock={twoPager ? setFocusedBlock : null}
                     focusedBlock={twoPager ? focusedBlock : null}
                     onMoveBlock={

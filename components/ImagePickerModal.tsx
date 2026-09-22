@@ -1,14 +1,15 @@
 "use client";
 
-import { Map as MapIcon, Upload, X } from "lucide-react";
+import { Image as ImageIcon, Map as MapIcon, Trash2, Upload, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import LiveMapPanel from "@/components/LiveMapPanel";
 import type { MapSlot } from "@/lib/giga-maps/slot";
 import Button from "@/components/Button";
 
-type Section = "upload" | "maps";
+type Section = "current" | "upload" | "maps";
 
 const SECTIONS: { id: Section; label: string; icon: typeof Upload }[] = [
+  { id: "current", label: "Current", icon: ImageIcon },
   { id: "upload", label: "Upload", icon: Upload },
   { id: "maps", label: "Maps", icon: MapIcon },
 ];
@@ -23,16 +24,22 @@ const SECTIONS: { id: Section; label: string; icon: typeof Upload }[] = [
  */
 export default function ImagePickerModal({
   slot,
+  current = null,
+  onRemove,
   onUpload,
   onPickGenerated,
   onClose,
 }: {
   slot: MapSlot;
+  /** The photo in the slot now, if any: shown first, with a way to remove it. */
+  current?: string | null;
+  onRemove?: () => void;
   onUpload: () => void;
   onPickGenerated: (dataUrl: string) => void;
   onClose: () => void;
 }) {
-  const [section, setSection] = useState<Section>("maps");
+  const [section, setSection] = useState<Section>(current ? "current" : "maps");
+  const sections = current ? SECTIONS : SECTIONS.filter((s) => s.id !== "current");
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -50,7 +57,7 @@ export default function ImagePickerModal({
       >
         {/* Rail: the sections as rows. */}
         <aside className="flex w-[200px] shrink-0 flex-col gap-1 border-r border-hairline-light bg-canvas p-3 pt-5">
-          {SECTIONS.map((s) => (
+          {sections.map((s) => (
             <Button
               key={s.id}
               variant={section === s.id ? "secondary" : "ghost"}
@@ -67,11 +74,28 @@ export default function ImagePickerModal({
         <section className="flex min-w-0 flex-1 flex-col px-7 pt-6 pb-5">
           <div className="flex items-center justify-between">
             <h2 className="text-xl font-medium text-ink">
-              {section === "upload" ? "Upload a photo" : "Country map"}
+              {section === "current" ? "Current image" : section === "upload" ? "Upload a photo" : "Country map"}
             </h2>
             <Button variant="ghost" iconOnly icon={X} onClick={onClose} title="Close (Esc)" aria-label="Close" className="-mr-2" />
           </div>
           <div className="mt-4 mb-5 border-t border-hairline-light" />
+
+          {section === "current" && current && (
+            <div className="flex flex-1 flex-col gap-4">
+              <div className="flex min-h-0 flex-1 items-center justify-center rounded-2xl bg-canvas-2 p-5">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={current} alt="" className="max-h-full max-w-full rounded-lg object-contain" />
+              </div>
+              <div className="flex items-center justify-end gap-2">
+                <Button variant="danger" icon={Trash2} onClick={onRemove}>
+                  Remove image
+                </Button>
+                <Button variant="primary" icon={Upload} onClick={onUpload}>
+                  Replace with a photo
+                </Button>
+              </div>
+            </div>
+          )}
 
           {section === "upload" && (
             <div className="flex flex-1 flex-col">

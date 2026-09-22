@@ -18,8 +18,13 @@ interface SlideFrameProps {
    * "stack.2.items.0.image" on a two-pager page).
    */
   onImagePos?: ((pos: ImagePos, path: string) => void) | null;
-  /** When set, every photo slot gets its own upload action. */
+  /**
+   * When set, a click on a photo (without dragging it) opens the image picker
+   * for that slot; on a page every slot also gets its own upload button.
+   */
   onPickImage?: ((path: string) => void) | null;
+  /** When set, a click on a chart ([data-chart]) opens the data panel. */
+  onChartClick?: (() => void) | null;
   /** When set, tier-table [data-cell] nodes cycle check → dimmed → empty on click. */
   onToggleCell?: ((row: number, col: number) => void) | null;
   /**
@@ -87,6 +92,7 @@ export default function SlideFrame({
   onPickIcon,
   onUploadLogo,
   onPickImage,
+  onChartClick,
   onFocusBlock,
   focusedBlock,
   onMoveBlock,
@@ -118,8 +124,8 @@ export default function SlideFrame({
   // The two-pager callbacks travel together in one ref: the wiring effect
   // must not re-run when a parent re-renders, and one ref is one lint waiver
   // rather than four.
-  const pageRef = useRef({ onPickImage, onFocusBlock, onMoveBlock, onDeleteBlock });
-  pageRef.current = { onPickImage, onFocusBlock, onMoveBlock, onDeleteBlock };
+  const pageRef = useRef({ onPickImage, onFocusBlock, onMoveBlock, onDeleteBlock, onChartClick });
+  pageRef.current = { onPickImage, onFocusBlock, onMoveBlock, onDeleteBlock, onChartClick };
 
   useLayoutEffect(() => {
     const el = containerRef.current;
@@ -271,6 +277,8 @@ export default function SlideFrame({
           drag = null;
           img.style.cursor = "grab";
           if (moved) onImagePosRef.current?.(readPos(), path);
+          // A press without a drag is a click: open the picker for this slot.
+          else pageRef.current.onPickImage?.(path);
         };
         const onWheel = (e: WheelEvent) => {
           e.preventDefault();
@@ -356,7 +364,7 @@ export default function SlideFrame({
     // Photo slots: their own upload action, which is what makes a page with
     // several images workable (the toolbar action can only mean one of them).
     stage.querySelectorAll(".image-upload").forEach((b) => b.remove());
-    if (pageRef.current.onPickImage) {
+    if (pageRef.current.onPickImage && variant === "page") {
       stage.querySelectorAll<HTMLElement>("img[data-image]").forEach((img) => {
         const slot = img.parentElement;
         if (!slot) return;
@@ -371,6 +379,22 @@ export default function SlideFrame({
           pageRef.current.onPickImage?.(img.getAttribute("data-image") || "image");
         });
         slot.appendChild(btn);
+      });
+    }
+
+    // Charts: a click on the bars or the donut opens the data panel. The
+    // editable labels inside keep their own click (inline editing).
+    if (pageRef.current.onChartClick) {
+      stage.querySelectorAll<HTMLElement>("[data-chart]").forEach((node) => {
+        node.style.cursor = "pointer";
+        node.title = "Edit the chart data";
+        const onClick = (e: MouseEvent) => {
+          if ((e.target as HTMLElement).closest("[data-edit]")) return;
+          e.stopPropagation();
+          pageRef.current.onChartClick?.();
+        };
+        node.addEventListener("click", onClick);
+        cleanups.push(() => node.removeEventListener("click", onClick));
       });
     }
 

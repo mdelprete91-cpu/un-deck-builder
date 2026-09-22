@@ -391,6 +391,11 @@ in: every school as a dot on a dark basemap. A slide stores `map: "<slug>"`, nev
 so the deck stays small and the HTML export inlines the file once. `lib/slides/country-maps.ts` is
 the list, and `isCountryMap` guards it against a deck file naming a country we no longer ship.
 
+- **A click on the photo opens the picker; a drag reframes it.** `SlideFrame` tells them apart
+  in the pan gesture (`moved`): a press that never moved calls `onPickImage`, so the slide's own
+  photo is the way in, not only the bar's Image button. The picker then opens on "Current", with
+  Remove (`CLEAR_IMAGE`, back to the placeholder) and Replace. Likewise a click on a chart's
+  `[data-chart]` area (bars, donut) opens the Data panel through `onChartClick`.
 - **A photo and a map are alternatives in one slot.** `SET_IMAGE` and `SET_MAP` each clear the
   other. `SET_MAP` also drops `imagePos`, which belongs to the photo.
 - **A map is drawn `contain`, on the basemap grey**, not `cover` like a photo. Cover would crop a

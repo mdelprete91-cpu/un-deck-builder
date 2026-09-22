@@ -101,6 +101,7 @@ export type DeckAction =
   | { type: "SET_BARS"; index: number; bars: { label: string; value: number; color?: string }[] }
   | { type: "SET_LOGO"; index: number; slug: string; dataUrl: string }
   | { type: "SET_IMAGE"; index: number; dataUrl: string; path?: string }
+  | { type: "CLEAR_IMAGE"; index: number; path?: string }
   | { type: "SET_MAP"; index: number; slug: string | null }
   | { type: "MOVE"; from: number; to: number }
   | { type: "DUPLICATE"; index: number }
@@ -375,6 +376,23 @@ function reduce(state: DeckState, action: DeckAction): DeckState {
       }
       const clone = structuredClone(slide);
       clone.image = action.dataUrl;
+      delete clone.map;
+      const slides = [...state.slides];
+      slides[action.index] = clone;
+      return { ...state, ...remember(state), slides };
+    }
+    case "CLEAR_IMAGE": {
+      // Back to the placeholder: the photo, its framing and any map go.
+      const slide = state.slides[action.index];
+      if (!slide) return state;
+      if (action.path && action.path !== "image") {
+        const slides = [...state.slides];
+        slides[action.index] = setPath(slide, action.path, undefined);
+        return { ...state, ...remember(state), slides };
+      }
+      const clone = structuredClone(slide);
+      delete clone.image;
+      delete clone.imagePos;
       delete clone.map;
       const slides = [...state.slides];
       slides[action.index] = clone;
