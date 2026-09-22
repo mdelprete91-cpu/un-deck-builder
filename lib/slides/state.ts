@@ -47,7 +47,8 @@ export interface DeckState {
   usage: { inputTokens: number; outputTokens: number };
   /**
    * The last generation, for the readout under "How it works": what it cost
-   * and how long it took. Session state, never saved.
+   * and how long it took. Saved with the session (not in the deck file), so
+   * it is still there after a reload.
    */
   lastRun?: { seconds: number; inputTokens: number; outputTokens: number };
   /** When the running generation started, to time it. */

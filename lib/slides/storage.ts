@@ -17,6 +17,8 @@ interface Persisted {
   slides: DeckState["slides"];
   activeIndex: number;
   usage: DeckState["usage"];
+  /** Added 22 Sep 2026, optional: the readout under How it works survives a reload. */
+  lastRun?: DeckState["lastRun"];
 }
 
 export interface OpenedSession {
@@ -42,6 +44,7 @@ export function saveDeck(state: DeckState): void {
       slides: state.slides,
       activeIndex: state.activeIndex,
       usage: state.usage,
+      lastRun: state.lastRun,
     };
     localStorage.setItem(KEY, JSON.stringify(payload));
   } catch {
@@ -104,6 +107,7 @@ function read(raw: string | null): Partial<DeckState> | null {
       ),
       activeIndex: parsed.activeIndex ?? 0,
       usage: parsed.usage ?? { inputTokens: 0, outputTokens: 0 },
+      lastRun: parsed.lastRun,
     };
   } catch {
     return null;
