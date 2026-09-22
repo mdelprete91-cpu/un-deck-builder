@@ -218,7 +218,7 @@ export default function Sidebar({
         </div>
       )}
 
-      <div className="mt-auto flex flex-col gap-2">
+      <div className="mt-auto flex flex-col gap-4">
         {state.lastRun && <GenerationReadout lastRun={state.lastRun} session={state.usage} />}
         <div className="flex items-center justify-between gap-2">
           <Button variant="ghost" icon={CircleHelp} onClick={onHowItWorks}>
