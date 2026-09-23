@@ -148,13 +148,16 @@ const EDITOR_STEPS: TourStep[] = [
 /**
  * Number words the brief may use instead of a digit ("Six slides" went
  * unread on 22 Sep 2026 and the model chose fourteen). English and Italian,
- * up to the route's ceiling of twenty.
+ * from two up to the route's ceiling of twenty. One is not here on purpose:
+ * "uno slide deck per UNICEF" and "one slide deck for the board" are
+ * articles, and read as a count of one they produced a cover and a closing
+ * slide and nothing else (23 Sep 2026). A deck of one slide does not exist.
  */
 const NUMBER_WORDS: Record<string, number> = {
-  one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, ten: 10,
+  two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, ten: 10,
   eleven: 11, twelve: 12, thirteen: 13, fourteen: 14, fifteen: 15, sixteen: 16, seventeen: 17,
   eighteen: 18, nineteen: 19, twenty: 20,
-  un: 1, una: 1, uno: 1, due: 2, tre: 3, quattro: 4, cinque: 5, sei: 6, sette: 7, otto: 8, nove: 9,
+  due: 2, tre: 3, quattro: 4, cinque: 5, sei: 6, sette: 7, otto: 8, nove: 9,
   dieci: 10, undici: 11, dodici: 12, tredici: 13, quattordici: 14, quindici: 15, sedici: 16,
   diciassette: 17, diciotto: 18, diciannove: 19, venti: 20,
 };
@@ -168,7 +171,8 @@ const NUMBER_WORDS: Record<string, number> = {
  * budget for 20 slides truncated the deck around slide 12 (22 Sep 2026).
  *
  * "One slide per objective" is a structure, not a length, so a count followed
- * by per / each / ogni is passed over and the search goes on.
+ * by per / each / ogni is passed over and the search goes on. A count under
+ * two ("1 slide on X") is no count either: the model chooses the length.
  */
 export function countFromBrief(brief: string): number | undefined {
   const words = Object.keys(NUMBER_WORDS).join("|");
@@ -179,7 +183,8 @@ export function countFromBrief(brief: string): number | undefined {
   const m = re.exec(brief);
   if (!m) return undefined;
   const n = /^\d/.test(m[1]) ? parseInt(m[1], 10) : NUMBER_WORDS[m[1].toLowerCase()];
-  return Math.min(20, Math.max(1, n));
+  if (!n || n < 2) return undefined;
+  return Math.min(20, n);
 }
 
 /**

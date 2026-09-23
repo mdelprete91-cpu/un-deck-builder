@@ -216,8 +216,9 @@ now only retires the last-session offer.
 - Errors are translated to plain language for the user, including the 529 overloaded case. Keep that
   behavior when touching the route.
 - **The slide count comes from the brief.** `countFromBrief` in `app/page.tsx` reads "20-page",
-  "in 6 slides", "Six slides", "10 diapositive" (digits or number words, English and Italian, up
-  to twenty) and sends it as `count`; the user turn then demands exactly that many and the route
+  "in 6 slides", "Six slides", "10 diapositive" (digits or number words, English and Italian, from
+  two up to twenty) and sends it as `count`; one is never a count, "uno slide deck per UNICEF"
+  read as one slide gave a cover and a closing slide and nothing else (23 Sep 2026); the user turn then demands exactly that many and the route
   sizes `max_tokens` to it (650 tokens a slide, all thirteen fields are required). A count
   followed by per / each / ogni ("one slide per objective") is a structure, not a length, and is
   passed over, and `seriesFromBrief` sends `perItem: true` instead: the user turn then reads the
