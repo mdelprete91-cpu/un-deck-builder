@@ -25,6 +25,8 @@ interface SlideFrameProps {
   onPickImage?: ((path: string) => void) | null;
   /** When set, a click on a chart ([data-chart]) opens the data panel. */
   onChartClick?: (() => void) | null;
+  /** Called after each autofit pass with how many text nodes ended up smaller than drawn. */
+  onAutofit?: ((shrunk: number) => void) | null;
   /** When set, tier-table [data-cell] nodes cycle check → dimmed → empty on click. */
   onToggleCell?: ((row: number, col: number) => void) | null;
   /**
@@ -93,6 +95,7 @@ export default function SlideFrame({
   onUploadLogo,
   onPickImage,
   onChartClick,
+  onAutofit,
   onFocusBlock,
   focusedBlock,
   onMoveBlock,
@@ -147,12 +150,12 @@ export default function SlideFrame({
     // Always re-inject from state: edited values can drive geometry (bar
     // heights, donut segments, partner logos), so the DOM is never kept stale.
     stage.innerHTML = html;
-    autofitAll(stage);
+    onAutofit?.(autofitAll(stage));
     // Web fonts may land after the first measurement and reflow the text;
     // refit once they are ready (no-op when already loaded).
     let alive = true;
     document.fonts.ready.then(() => {
-      if (alive && stageRef.current === stage) autofitAll(stage);
+      if (alive && stageRef.current === stage) onAutofit?.(autofitAll(stage));
     });
     if (!editable) return () => { alive = false; };
 

@@ -6,8 +6,6 @@ import {
   ADD_OUTPUT_SCHEMA,
   PAGES_OUTPUT_SCHEMA,
   ADD_PAGES_OUTPUT_SCHEMA,
-  RELAYOUT_OUTPUT_SCHEMA,
-  RELAYOUT_OPTIONS,
   type GenerateBody,
 } from "@/lib/slides/prompt";
 import type { DeckFormat } from "@/lib/slides/state";
@@ -72,7 +70,7 @@ export async function POST(request: Request): Promise<Response> {
   // Pages the brief links to travel like text attachments (public http(s)
   // only, three at most, a failed fetch is skipped). Not for regenerate: one
   // slide's rewrite does not need the whole page again.
-  const oneSlide = body.mode === "regenerate" || body.mode === "relayout";
+  const oneSlide = body.mode === "regenerate";
   const linked = oneSlide ? [] : await fetchLinkedPages(body.brief ?? "");
   body = { ...body, attachments: [...attachments, ...linked] };
   if (!body.brief?.trim() && !oneSlide) {
@@ -86,15 +84,13 @@ export async function POST(request: Request): Promise<Response> {
   // 4 retries (default 2): rides out transient 529 "overloaded" spikes
   const client = new Anthropic({ maxRetries: 4 });
   const isAdd = body.mode === "add";
-  // The layout switcher: the same slide written in a few other layouts.
-  const isRelayout = body.mode === "relayout";
   const twoPager = body.format === "two-pager";
   // The count is the brief's when it names one, else the biggest reasonable
   // deck; add/regenerate keep count-driven budgets.
   // With `perItem` the named count is the items, and the cover and the
   // closing slide come on top of it.
   const named = typeof body.count === "number" ? body.count + (body.perItem ? 2 : 0) : 20;
-  const count = body.mode === "regenerate" ? 1 : isRelayout ? RELAYOUT_OPTIONS : Math.min(Math.max(named, 1), 22);
+  const count = body.mode === "regenerate" ? 1 : Math.min(Math.max(named, 1), 22);
   // Add mode carries extra output (insertAfter + refreshed agenda bullets).
   // Every slide carries all thirteen required fields, so a content-heavy
   // slide (a PDF behind it) costs 400-700 tokens: 650 keeps twenty of them
@@ -126,9 +122,7 @@ export async function POST(request: Request): Promise<Response> {
                   : PAGES_OUTPUT_SCHEMA
                 : isAdd
                   ? ADD_OUTPUT_SCHEMA
-                  : isRelayout
-                    ? RELAYOUT_OUTPUT_SCHEMA
-                    : SLIDES_OUTPUT_SCHEMA,
+                  : SLIDES_OUTPUT_SCHEMA,
             },
           },
           messages: [{ role: "user", content: buildUserContent(body) }],

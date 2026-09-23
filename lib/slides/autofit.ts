@@ -84,9 +84,16 @@ function groupsIn(root: ParentNode): HTMLElement[][] {
   return [...groups.values()];
 }
 
-export function autofitAll(root: ParentNode): void {
-  root.querySelectorAll<HTMLElement>("[data-fit]").forEach(autofitNode);
+/**
+ * Fits every budgeted node under `root` and returns how many ended up below
+ * their original size: the layout switcher shows "Text shrinks" on a
+ * preview from that count.
+ */
+export function autofitAll(root: ParentNode): number {
+  const nodes = [...root.querySelectorAll<HTMLElement>("[data-fit]")];
+  nodes.forEach(autofitNode);
   groupsIn(root).forEach(equalize);
+  return nodes.filter((node) => scaleOf(node) < 0.999).length;
 }
 
 /**

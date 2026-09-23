@@ -9,6 +9,8 @@ import { renderSlide } from "@/lib/slides/layouts";
 import { A4_PX } from "@/lib/slides/pages/a4";
 import { PAGE_BLOCK_LIMITS, type PageBlock } from "@/lib/slides/pages/schema";
 import { defaultContent } from "@/lib/slides/defaults";
+import { familyOf } from "@/lib/slides/families";
+import { makeRhythm, stripInventedYear } from "@/lib/slides/rhythm";
 import { presetStack } from "@/lib/slides/pages/presets";
 import { clearSaved, openSession, saveDeck } from "@/lib/slides/storage";
 import { exportHtmlDeck } from "@/lib/slides/export-html";
@@ -48,8 +50,6 @@ const LOGO_TONE_LAYOUTS = new Map<string, ToneGeometry>([
 
 /** The two layouts the "Chapters" toggle governs. */
 const CHAPTER_LAYOUTS = new Set<string>(["agenda", "section-divider"]);
-/** The deck's structure: no other layout hosts a cover or a closing slide, so no Layout button. */
-const STRUCTURAL_LAYOUTS = new Set<string>(["cover", "agenda", "section-divider", "thank-you"]);
 
 /**
  * What counts as asking for the partnership-tier slides: the tier table, the
@@ -336,6 +336,12 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
       preserve?: Partial<SlideContent>;
       dropChapters?: boolean;
       /**
+       * A series the brief prescribes: layouts alternate deterministically
+       * as the slides arrive (lib/slides/rhythm.ts), and a year the brief
+       * never gave is stripped from the cover's subtitle.
+       */
+      rhythm?: boolean;
+      /**
        * The stack of the page being rewritten. Its photos cannot travel in
        * `preserve` (they live inside blocks the model just replaced), so they
        * are re-attached by position and block type: block i of the new stack
@@ -358,6 +364,7 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
     const controller = new AbortController();
     abortRef.current = controller;
     dispatch({ type: "GENERATION_START", replace: opts.replace });
+    const rhythm = opts.rhythm ? makeRhythm() : null;
     try {
       const res = await fetch("/api/generate", {
         method: "POST",
@@ -394,9 +401,10 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
                   footerLabel: (event.slide as { footerLabel?: string }).footerLabel ?? "",
                 }
               : event.slide;
-            const content = normalizeSlide(raw, { brandId: state.brandId });
+            let content = normalizeSlide(raw, { brandId: state.brandId });
             if (!content) continue;
             if (opts.dropChapters && CHAPTER_LAYOUTS.has(content.layoutId)) continue;
+            if (rhythm) content = rhythm(stripInventedYear(content, String(body.brief ?? "")));
             if (opts.collectInsert) {
               collected.push(content);
             } else if (opts.targetIndex != null) {
@@ -527,6 +535,7 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
       {
         replace: true,
         dropChapters: !chapters,
+        rhythm: perItem,
         collect: kept,
         onDone: (d) => {
           truncated = !!d.truncated;
@@ -552,7 +561,7 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
           format: state.format,
           existingSlides: kept.map((k) => light(k as (typeof state.slides)[number])),
         },
-        { replace: false, collectInsert: true, dropChapters: !chapters },
+        { replace: false, collectInsert: true, dropChapters: !chapters, rhythm: perItem },
       );
     }
     // The two fixed partnership-tier slides are added only when the brief
@@ -607,7 +616,7 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
       { replace: false, collectInsert: true, dropChapters: !state.chapters },
     );
 
-  const onRegenerateSlide = (instruction: string, layoutId?: LayoutId) => {
+  const onRegenerateSlide = (instruction: string) => {
     if (!active) return;
     runGeneration(
       {
@@ -616,7 +625,6 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
         brandLabel: theme.label,
         targetSlide: light(active),
         instruction,
-        layoutId,
         format: state.format,
       },
       {
@@ -853,14 +861,7 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
           <LayoutSwitcher
             slide={active}
             theme={theme}
-            brandId={state.brandId}
-            brief={state.brief}
-            brandLabel={theme.label}
             onApply={onApplyLayout}
-            onRewriteTo={(layoutId) => {
-              setLayoutSwitcher(false);
-              onRegenerateSlide("", layoutId);
-            }}
             onClose={() => setLayoutSwitcher(false)}
           />
         )}
@@ -1018,7 +1019,7 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
                     onEditData={() => setDataPanelOpen((v) => !v)}
                     canChangeImage={hasImage}
                     onChangeImage={() => setImagePicker("image")}
-                    canChangeLayout={!isPage(active) && !STRUCTURAL_LAYOUTS.has(active.layoutId)}
+                    canChangeLayout={!isPage(active) && familyOf(active.layoutId) !== null}
                     onChangeLayout={() => setLayoutSwitcher(true)}
                     onDuplicate={() => dispatch({ type: "DUPLICATE", index: state.activeIndex })}
                     onDelete={() => dispatch({ type: "DELETE", index: state.activeIndex })}

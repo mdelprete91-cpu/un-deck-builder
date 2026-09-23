@@ -198,19 +198,10 @@ now only retires the last-session offer.
   route strips them in `stripEmptyFields`. Do not "clean this up" by making fields optional.
 - **Prompt size is a cost and latency budget.** The catalog is compiled into the system prompt on
   every call. Keep new catalog lines to one tight line.
-- Four modes share the route: `generate`, `add` (returns new slides plus `insertAfter` plus
-  refreshed agenda bullets), `regenerate` (one slide; with `layoutId` the text is moved into that
-  layout and the layout is not up for discussion), `relayout` (the layout switcher: the same slide
-  written into `RELAYOUT_OPTIONS` other layouts, each with a `reason`). The relayout output schema
-  is the slide object plus `reason`, flat on purpose: the stream parser emits depth-2 objects, so
-  an option nested under `{ layoutId, slide }` would never stream. `layoutsHolding` in `prompt.ts`
-  computes from `PRIMARY_ARRAY` which layouts hold all the slide's items and names them in the
-  user turn; left to itself the model offered a four-card grid for six points. The client
-  (`components/LayoutSwitcher.tsx`) normalises each option with `normalizeSlide`, drops any that
-  came back in the current layout, and applies a pick through `REPLACE_SLIDE` with the same
-  merge as a regenerated slide (uploads, `imagePos`, logos, grid, icons, map, hand-picked chart
-  colours), so one undo step takes it back. The suggestion call is not a deck generation: it
-  never touches `status` or the cost readout.
+- Three modes share the route: `generate`, `add` (returns new slides plus `insertAfter` plus
+  refreshed agenda bullets), `regenerate` (one slide). A fourth, `relayout`, lived for a day (23
+  Sep 2026): the switcher asked the model to write the slide in four other layouts, a deck's worth
+  of tokens per opening. The switcher is model-free now, see "The layout switcher" below.
 - **The subject comes from the brief and the material, never from the tool.** The system prompt
   introduces the planner as a tool used by UNICEF and Giga teams, not as Giga's voice; Giga's own
   figures are allowed only in a deck the brief makes about Giga; the partner roster is used only
@@ -255,12 +246,20 @@ now only retires the last-session offer.
   budgets are whole BODY30 lines per row count (5-6 rows → 2 lines, 4 → 3, fewer → 4) and the
   padding grows as the count drops, so every count ends inside the zone and the type never
   shrinks at the catalog limit. Before it, the widest layout was `four-cards` (4 x 16 words) and
-  a six-KR objective lost two KRs or spilled onto a "continued" slide. **Variety costs
-  fidelity with Haiku**: with the rhythm rule on inside a series, one run in two merged KRs into
-  "KR1–KR2" blocks or left empty ones to make the variety fit (22 Sep 2026). Mario chose variety
-  by default anyway; a uniform series is asked for in the brief. The layout switcher is the
-  per-slide remedy either way, and its first suggestion is always a photo layout when one holds
-  the text (`photoRule` in the relayout prompt).
+  a six-KR objective lost two KRs or spilled onto a "continued" slide. **The rhythm of a series is decided in the client, not by the model.** Six runs with rhythm
+  rules in the prompt (soft and hard, 22-23 Sep 2026) gave six identical slides four times, and
+  the one time the model varied on request it merged KRs into "KR1–KR2" blocks. So `makeRhythm` in
+  `lib/slides/rhythm.ts` runs on every incoming slide of a prescribed series (`rhythm: perItem` in
+  `onGenerate`, generate and top-up): a blocks-family slide that repeats the previous content
+  slide's layout, does not hold all its points, or is a `list` under five points (mostly white
+  space) moves to another layout of its point count. Only layouts whose body budget holds text
+  written for `list` (30 words a point) are used, so nothing shrinks: 1-2 points alternate the two
+  example-image layouts, 3 points four-cards and three-columns, 4 points four-cards and list, 5-6
+  points list only. icon-cards, steps and callout are not automatic alternatives (about fifteen
+  words a body at four columns). The text is never touched, and a uniform series still needs
+  "same layout" in the brief only for the model; the pass runs regardless. `stripInventedYear`,
+  same file, same place: a year in the cover's subtitle that the brief never gave is the model's
+  ("2024", three times with the rule against it), and the subtitle goes.
 
 ## Attachments to the brief
 
@@ -301,6 +300,29 @@ drop on the box. They exist to give the model the facts; they are **not** deck c
   renders the chips (`bg-giga-tint`, `text-giga`, inline SVG glyphs). The outer node keeps
   `data-tour="prompt"`, and the pill and the button carry `data-tour="chapters"` and
   `data-tour="generate"`, so the tour still frames each of them.
+
+## The layout switcher
+
+"Layout" in the slide bar opens `components/LayoutSwitcher.tsx`, which costs nothing: the slide is
+rendered as it is, text and photo included, in every other layout of its **family**, the layouts
+that read the same fields (`LAYOUT_FAMILIES` in `lib/slides/families.ts`: blocks, stats, bars,
+section, hero, photo). A pick is `REPLACE_SLIDE` with the same merge as a regenerated slide
+(`onApplyLayout` in `app/page.tsx`), one undo step. Things that follow:
+
+- **A layout absent from `LAYOUT_FAMILIES` never appears in the switcher**, and the Layout button
+  hides on it (`familyOf` in `page.tsx`). Add every new layout to the table, or it is reachable only
+  through Add slide. Left out on purpose: cover, agenda, section-divider, thank-you, partner, quote,
+  body-copy (its blocks are halves of prose, the labels would vanish), timeline and timeline-phases
+  (their labels are dates), tiers, a4-page.
+- **Order is a rule, not a model**: `switchTargets` puts the photo layouts that hold every item
+  first (a photo is the first thing people reach for against a flat deck), then the other full ones
+  alternating light and dark, then the ones that show fewer, with a red "2 of 4 items" badge. A pick
+  there drops the extra items on apply, as the badge said.
+- **"Text shrinks" is measured, not guessed.** `autofitAll` returns how many budgeted nodes ended
+  below their drawn size; `SlideFrame` reports it through `onAutofit`, which the picker previews
+  already run (they autofit exactly like the editor). The exported deck's `AUTOFIT_JS` ignores the
+  return value and did not change.
+- Moving to a different family (four KRs into a numbers slide, into prose) is Edit with AI's job.
 
 ## Two-pagers
 
@@ -388,7 +410,9 @@ Touch all of these, in this order:
    check that every AI layout has a catalog entry.
 3. `lib/slides/layouts/*.ts` : the renderer, with `ed()`, `item()`, `dly()`, `esc()`, inline styles
    only, geometry from the template.
-4. `lib/slides/layouts/index.ts` : register it in `LAYOUTS` with its human label.
+4. `lib/slides/layouts/index.ts` : register it in `LAYOUTS` with its human label, and
+   `lib/slides/families.ts` : add it to `LAYOUT_FAMILIES` with its family, or the layout switcher
+   never offers it and the Layout button hides on it.
 5. `lib/slides/defaults.ts` : placeholder content for manual insert.
 6. If the photo runs underneath the footer, add the id to `LOGO_TONE_LAYOUTS` in `app/page.tsx`
    with the geometry the tone is sampled from (`RIGHT_PANEL_TONE` or `FULL_BLEED_TONE`). Miss this

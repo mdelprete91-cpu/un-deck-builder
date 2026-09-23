@@ -2,8 +2,7 @@ import { CATALOG } from "./catalog";
 import type { Attachment } from "@/lib/slides/attachments";
 import type { ContentBlockParam } from "@anthropic-ai/sdk/resources/messages";
 import { PAGE_CATALOG } from "./page-catalog";
-import { AI_LAYOUT_IDS, PRIMARY_ARRAY, type LayoutId, type SlideContent } from "./schema";
-import { LAYOUTS } from "./layouts";
+import { AI_LAYOUT_IDS, type SlideContent } from "./schema";
 import { AI_BLOCK_TYPES } from "./pages/schema";
 import type { DeckFormat } from "./state";
 import { PARTNER_NAMES } from "./partners";
@@ -23,7 +22,7 @@ ${catalogLines}
 RULES:
 - Output slides in presentation order. ALWAYS start with "cover" and ALWAYS end with "thank-you" (the user deletes them if unneeded).
 - Use "agenda" right after the cover only for decks of 6+ slides. Agenda bullets MUST mirror the deck's "section-divider" slides one-to-one: same order, same wording (<=5 words each). Every chapter opens with its own section-divider carrying that exact title.
-- THE BRIEF COMES FIRST. When it prescribes a structure (one slide per item, what each slide is titled, what goes on it, the order), follow it to the letter: every item gets its own slide, in the brief's order; the slide's title is the item's own name, copied as written and shortened only when it exceeds the limit. Each slide of such a series takes a layout that holds all of that item's sub-points. Repeat one layout across the series ONLY when the brief asks for it ("same layout", "stesso layout"); otherwise the rhythm rule below applies to the series like to any other slides.
+- THE BRIEF COMES FIRST. When it prescribes a structure (one slide per item, what each slide is titled, what goes on it, the order), follow it to the letter: every item gets its own slide, in the brief's order; the slide's title is the item's own name, copied as written and shortened only when it exceeds the limit. Each slide of such a series takes a layout that holds all of that item's sub-points, and the series ALTERNATES between those layouts, by point count: 5-6 points → "list" (and "list" is NOT allowed under 5 points); 3-4 points → four-cards, icon-cards, steps or callout, never the same as the slide before; 1-2 points → example-image-left, example-image-right, callout or two-column layouts, never "list" and never the same as the slide before. Repeat one layout across the series ONLY when the brief asks for it ("same layout", "stesso layout").
 - Never drop, merge or renumber a sub-point the brief lists under an item (a KR, a step, a point): one block per sub-point, its label the brief's own (KR1, KR2, ...), its body the sub-point shortened to the limit. If no layout holds them all, use the one that holds the most; shorten bodies, never the list.
 - Pick the layout that best fits each beat of the story. Never use the same layout for 3 slides in a row. Alternate light and dark surfaces so the deck has rhythm.
 - Respect every word limit strictly. Numbers do the talking: prefer concrete figures over adjectives. A stat value is a number (61%, 1.4M, $500M), never a word.
@@ -66,7 +65,7 @@ RULES:
 }
 
 interface GenerateBody {
-  mode: "generate" | "add" | "regenerate" | "relayout";
+  mode: "generate" | "add" | "regenerate";
   /** Reference material attached to the brief; never persisted, see lib/slides/attachments.ts */
   attachments?: Attachment[];
   format?: DeckFormat;
@@ -80,32 +79,6 @@ interface GenerateBody {
   instruction?: string;
   /** false = a deck with no agenda slide and no section dividers */
   chapters?: boolean;
-  /** regenerate only: rewrite the slide in this layout, text kept. */
-  layoutId?: LayoutId;
-}
-
-/** Layouts no slide is moved to: they are the deck's structure, not a way to host text. */
-const STRUCTURAL_LAYOUTS = new Set<string>(["cover", "agenda", "section-divider", "thank-you", "partner"]);
-
-/** How many items the slide's editable array holds (0 when the layout has none). */
-function itemCount(slide: SlideContent | undefined): number {
-  if (!slide) return 0;
-  const primary = PRIMARY_ARRAY[slide.layoutId];
-  if (!primary) return 0;
-  return ((slide[primary.field] as unknown[] | undefined) ?? []).length;
-}
-
-/**
- * The layouts whose editable array holds at least `n` items: what "hosts
- * this text" means, computed here rather than left to the model, which
- * otherwise picks a four-card grid for six points and drops two.
- */
-export function layoutsHolding(n: number, except: string): LayoutId[] {
-  return AI_LAYOUT_IDS.filter((id) => {
-    if (id === except || STRUCTURAL_LAYOUTS.has(id)) return false;
-    const primary = PRIMARY_ARRAY[id];
-    return n <= 1 ? true : !!primary && primary.max >= n;
-  });
 }
 
 /**
@@ -172,31 +145,8 @@ export function buildUserMessage(body: GenerateBody): string {
       const n = body.count ?? 3;
       return `Existing deck (JSON): ${JSON.stringify(body.existingSlides ?? [])}\n\nDeck brief: ${body.brief}${brand}\n\nRequest: ${body.instruction?.trim() || "continue and deepen the story"}\n\nAdd exactly ${n} new slide${n === 1 ? "" : "s"} fulfilling the request.\n- Return ONLY the new slides in "slides": never repeat, rewrite or include existing slides, and never add another cover, agenda or thank-you.\n- Set "insertAfter" to the 1-based index of the existing slide the new slides belong after (0 = before the first slide). Pick where they best fit the story, keeping any thank-you last.\n- If the deck has an "agenda" slide, return its updated bullets (reflecting the deck after insertion, <=5 words each) in "agenda"; otherwise return an empty array.${noChapters}`;
     }
-    case "regenerate": {
-      if (body.layoutId) {
-        // The user picked the layout from the switcher: the text moves, it
-        // is not rewritten, and the layout is not up for discussion.
-        return `Current slide (JSON): ${JSON.stringify(body.targetSlide)}\n\nDeck brief: ${body.brief}${brand}\n\nMove this slide to the "${body.layoutId}" layout: return exactly one slide with layoutId "${body.layoutId}". Keep every piece of text: the title as it is, every item with its label as written and its body shortened only as far as the layout's word limit demands. Never drop, merge or renumber an item, never add one; if the layout holds fewer items than the slide has, keep the first ones and shorten nothing else.`;
-      }
+    case "regenerate":
       return `Current slide (JSON): ${JSON.stringify(body.targetSlide)}\n\nDeck brief: ${body.brief}${brand}\n\nRewrite this single slide.${body.instruction ? ` Instruction: ${body.instruction}` : " Improve the copy."} You may switch to a more appropriate layout if the instruction calls for it. Return exactly one slide.`;
-    }
-    case "relayout": {
-      const current = body.targetSlide?.layoutId ?? "";
-      const n = itemCount(body.targetSlide);
-      const holding = layoutsHolding(n, current);
-      const fits =
-        n >= 2
-          ? `\n- Only these layouts hold all ${n} items: ${holding.join(", ")}. Take the options from them. A layout that holds fewer may be offered only if none of these suits the text, at most once, and its reason must say how many items it keeps.`
-          : `\n- Choose from: ${holding.join(", ")}.`;
-      // A photo is the first thing people reach for against a flat deck, so
-      // when a photo layout holds the text it is not left to chance.
-      const photo =
-        holding.find((id) => id.startsWith("example-image")) ??
-        holding.find((id) => id.startsWith("section-image")) ??
-        holding.find((id) => id === "callout");
-      const photoRule = photo ? `\n- The first option is "${photo}", so the user can put a photo on this slide.` : "";
-      return `Current slide (JSON): ${JSON.stringify(body.targetSlide)}\n\nDeck brief: ${body.brief}${brand}\n\nOffer ${RELAYOUT_OPTIONS} alternative layouts for this slide, each written out in full, so the user sees the same text hosted by a different layout and picks one.\n- Keep every piece of text: the title as it is (${LAYOUTS[current as LayoutId]?.label ?? "the current layout"} is what it has now), every item with its label as written (a "KR1" stays "KR1") and its body shortened only as far as the new layout's word limit demands. Never drop, merge or renumber an item, never add one.${fits}${photoRule}\n- Make the options different in kind from each other and from "${current}": one with a photo when a layout with a photo holds the text, one on a dark surface, one built on numbers only when the text has real figures.\n- Never offer ${[...STRUCTURAL_LAYOUTS].join(", ")} or "${current}".\n- "reason": at most 10 words for the user, what this layout does for this text, e.g. "All 4 KRs beside a photo".`;
-    }
     default: {
       // A count named in the brief arrives as body.count (see countFromBrief
       // in app/page.tsx): demanded exactly, with no competing default.
@@ -317,34 +267,6 @@ export const SLIDES_OUTPUT_SCHEMA = {
     },
   },
   required: ["slides"],
-  additionalProperties: false,
-} as const;
-
-/** How many alternatives the layout switcher asks for. */
-export const RELAYOUT_OPTIONS = 4;
-
-/**
- * Output schema for "relayout": the same flat slide object with a "reason"
- * beside it, so the stream parser hands each option over as it completes
- * exactly as it does a slide. Nesting the slide under an "option" object
- * would be a second level of depth the parser does not track.
- */
-export const RELAYOUT_OUTPUT_SCHEMA = {
-  type: "object",
-  properties: {
-    options: {
-      type: "array",
-      items: {
-        ...SLIDES_OUTPUT_SCHEMA.properties.slides.items,
-        properties: {
-          ...SLIDES_OUTPUT_SCHEMA.properties.slides.items.properties,
-          reason: { type: "string" },
-        },
-        required: [...SLIDES_OUTPUT_SCHEMA.properties.slides.items.required, "reason"],
-      },
-    },
-  },
-  required: ["options"],
   additionalProperties: false,
 } as const;
 
