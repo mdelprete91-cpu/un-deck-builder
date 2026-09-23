@@ -24,6 +24,7 @@ export const LAYOUTS: Record<LayoutId, { label: string; render: RenderFn }> = {
   "section-image-light": { label: "Section + image (light)", render: basic.sectionImage("light") },
   "section-image-dark": { label: "Section + image (dark)", render: basic.sectionImage("dark") },
   "four-cards": { label: "Card grid", render: cards.fourCards },
+  list: { label: "List", render: cards.list },
   steps: { label: "Numbered cards", render: cards.steps },
   "body-copy": { label: "Body copy", render: basic.bodyCopy },
   photo: { label: "Photo", render: basic.photo },

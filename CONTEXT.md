@@ -249,9 +249,13 @@ now only retires the last-session offer.
   read as flat). Items are never dropped, merged or renumbered; if no layout holds them all, the
   model picks the one that holds the most. Before this rule (22 Sep 2026) an OKR brief with six objectives came back
   with a different layout per objective, three-word titles and two KRs silently gone. Dates are on
-  the never-invent list too: the same deck got a "2024" subtitle from nowhere. **The catalog has
-  no list layout**: the widest is `four-cards` (4 x 16 words), so a six-item list still loses
-  items until the template gains one (Mario is drawing it, 23 Sep 2026). **Variety costs
+  the never-invent list too: the same deck got a "2024" subtitle from nowhere. **`list` is the layout
+  for this**: drawn 23 Sep 2026 from the callout's row system (template 03) without the photo,
+  full width, 1-6 rows, label in the accent beside the point, a hairline under each row; body
+  budgets are whole BODY30 lines per row count (5-6 rows → 2 lines, 4 → 3, fewer → 4) and the
+  padding grows as the count drops, so every count ends inside the zone and the type never
+  shrinks at the catalog limit. Before it, the widest layout was `four-cards` (4 x 16 words) and
+  a six-KR objective lost two KRs or spilled onto a "continued" slide. **Variety costs
   fidelity with Haiku**: with the rhythm rule on inside a series, one run in two merged KRs into
   "KR1–KR2" blocks or left empty ones to make the variety fit (22 Sep 2026). Mario chose variety
   by default anyway; a uniform series is asked for in the brief. The layout switcher is the

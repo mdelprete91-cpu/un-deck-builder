@@ -223,3 +223,43 @@ export function exampleImage(side: "left" | "right") {
     );
   };
 }
+
+/**
+ * List: one labelled row per point, full width, 1–6 rows. The callout's row
+ * system (template 03) without its photo: the label in the accent at the
+ * left, the point beside it, a hairline under each row. Body budgets are
+ * whole BODY30 lines per row count (5–6 rows → 2 lines, 4 → 3, fewer → 4),
+ * so the type never shrinks at the catalog limit; six rows end at 904, well
+ * above the footer label (966).
+ */
+export function list(s: Slide, t: BrandTheme): string {
+  const blocks = (s.blocks ?? []).slice(0, 6);
+  const n = Math.max(blocks.length, 1);
+  const LINE = 42; // one BODY30 line (30px × 1.36, rounded up)
+  // Fewer rows breathe more: the padding grows as the count drops, and every
+  // count still ends inside the zone (6 → 702, 4 → 700, 3 → 699, 2 → 498).
+  const PAD = n >= 5 ? 16 : n === 4 ? 24 : n === 3 ? 32 : 40;
+  const lines = n >= 5 ? 2 : n === 4 ? 3 : 4;
+  // The body carries 4px of padding-top so its first line sits on the
+  // label's; the budget includes it, or a full two-line body is 2px over
+  // and shrinks. The row aligns to the top: stretched, the label would
+  // fill the row's height and autofit would read that as overflow.
+  const bodyFit = lines * LINE + 8;
+  const rows = blocks
+    .map(
+      (b, i) =>
+        `<div class="ars" ${item(`blocks.${i}`)} style="display:flex;align-items:flex-start;gap:40px;padding:${PAD}px 0;border-bottom:1px solid var(--panel-light-stroke);${dly(8 + i * 6)}">` +
+        `<div ${ed(`blocks.${i}.label`, 50)} style="flex:0 0 220px;${LABEL36}color:var(--accent);">${esc(b.label)}</div>` +
+        `<div ${ed(`blocks.${i}.body`, bodyFit)} style="flex:1;padding-top:4px;${BODY30}color:#000000;">${esc(b.body)}</div>` +
+        `</div>`,
+    )
+    .join("");
+  return section(
+    t,
+    "#FFFFFF",
+    "#000000",
+    heading60(s.title ?? "", "title", "#000000", 100, 1720, 112) +
+      `<div style="position:absolute;left:100px;top:226px;width:1720px;height:710px;display:flex;flex-direction:column;overflow:hidden;">${rows}</div>` +
+      footer(t, "light"),
+  );
+}

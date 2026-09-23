@@ -24,6 +24,7 @@ export const CATALOG: CatalogEntry[] = [
   { id: "section-image-deep", usage: "Section intro with photo, deep blue surface", fields: "title(<=6 words), body(<=45 words)" },
   { id: "section-image-light", usage: "Section intro with photo, light surface", fields: "title(<=6 words), body(<=45 words)" },
   { id: "four-cards", usage: "1-4 labelled cards (4 = 2x2 grid, fewer = wider cards); What/Give/Get/KPIs or similar", fields: "title(<=6 words), blocks(1-4: label 1-2 words, body <=16 words)" },
+  { id: "list", usage: "3-6 labelled points in rows (KRs, requirements, criteria): the slide for an item whose every point must appear", fields: "title(<=10 words), blocks(1-6: label <=2 words e.g. KR1, body <=30 words with 5-6 rows, <=45 with 4, <=60 with fewer)" },
   { id: "steps", usage: "Numbered process, 3 or 4 steps", fields: "title(<=6 words), blocks(2-4: label <=2 words, body <=8 words)" },
   { id: "body-copy", usage: "Running prose in two columns; only when text truly needs a full slide", fields: 'title(<=6 words), blocks(2: label always "", body 40-60 words each — two halves of one continuous text)' },
   { id: "photo", usage: "Full-width photo under a title; visual pause or context", fields: "title(<=6 words)" },

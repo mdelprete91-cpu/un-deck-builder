@@ -14,6 +14,9 @@ export const AI_LAYOUT_IDS = [
   "section-image-deep",
   "section-image-light",
   "four-cards",
+  // Drawn 23 Sep 2026 for briefs that hand over a list per slide (six KRs
+  // under one objective): the callout's rows, full width, up to six.
+  "list",
   "steps",
   "body-copy",
   "photo",
@@ -262,6 +265,7 @@ const ARRAY_LIMITS: Partial<Record<LayoutId, Partial<Record<ArrayField, [number,
   "three-columns": { blocks: [1, 3] },
   callout: { blocks: [1, 4] },
   "four-cards": { blocks: [1, 4] },
+  list: { blocks: [1, 6] },
   steps: { blocks: [1, 4] },
   "icon-cards": { blocks: [1, 4] },
   "stat-grid": { stats: [1, 6] },

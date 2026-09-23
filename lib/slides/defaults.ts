@@ -68,6 +68,19 @@ export function defaultContent(layoutId: LayoutId): SlideContent {
           { label: "KPIs", body: LOREM_BODY },
         ],
       };
+    case "list":
+      return {
+        layoutId,
+        title: "Deploy the multi-sector Connectivity Map",
+        blocks: [
+          { label: "KR1", body: "Add health facility data to the Connectivity Map using government-sourced datasets: 3 datasets (Gambia, Zambia, Sierra Leone) live." },
+          { label: "KR2", body: "Incorporate additional government datasets and open-source health data as an advocacy tool, using the gap between open and verified data to make the case for investment." },
+          { label: "KR3", body: "Pilot real-time telemetry data from health centers on the Map in 3 countries." },
+          { label: "KR4", body: "Backend architecture ready to support additional facility types beyond schools and health." },
+          { label: "KR5", body: "Product and UX design delivers a map experience that generalizes cleanly across facility types, not just schools and health." },
+          { label: "KR6", body: "Lay technical and data groundwork for additional domains: emergency, migration, refugee." },
+        ],
+      };
     case "steps":
       return {
         layoutId,
