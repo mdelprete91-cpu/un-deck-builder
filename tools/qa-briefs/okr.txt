@@ -1,0 +1,43 @@
+Create a Deck. Six slides. Title: Connectivity Map OKRs
+
+The one slide for each objective. The title of the slide should be the objective, then a text box with the KRs
+
+Objective 0: Clarify who the map serves and pathways to long-term sustainability
+
+KR1: Define and document who's using the map for advocacy, for whom they are advocating, and to whom, across all stakeholders.
+KR2: Identify and validate at least one viable long-term owner or funder for the platform.
+
+Objective 1: Deploy Multi-Sector Connectivity Map
+
+KR1: Add health facility data to the Connectivity Map using government-sourced datasets: 3 datasets (Gambia, Zambia, Sierra Leone) live.
+KR2: Strategically incorporate additional government datasets, as well as open-source health data (e.g., healthsites.io) as an advocacy tool, using the gap between open and verified government data to make the case for investment in official data.
+KR3: Pilot real-time telemetry (RTM) data from health centers on the Map in 3 countries.
+KR4: Backend architecture ready to support additional facility types beyond schools and health.
+KR5: Product/UX design delivers a map experience (designed and tested, but not implemented) that generalizes cleanly across facility types, not just schools and health.
+KR6: Lay technical and data groundwork for additional domains (emergency, migration, refugee).
+
+Objective 2: Build out Tools that leverage the Map and Data for Public Advocacy
+
+KR1: Test an interactive, insight-driven map experience built for public and civil-society advocacy.
+KR2: Produce telemetry visualization protypes (IQBEdu, ping data, connectivity standards) scoped to the public-awareness use case.
+KR3: Define and track visibility metrics (impressions, views, reach) as the primary indicator for this objective.
+
+Objective 3: Build the Government and Institutional Advocacy Map
+
+KR1: Understand and document Tech Advocacy's and Country Engagement's requirements for a ministry-facing map.
+KR2: Complete the deep research workstream to define what the government and funding-facing experience needs.
+KR3: Define tooling and engagement metrics (eg dashboard engagement) as the primary indicator for this objective.
+KR4: Rebrand the Connectivity Map: finalize name, domain, and platform positioning to match.
+
+Objective 4: Improve Quality, Accessibility and Utility of Giga Maps Data for the Open-Source Community
+
+KR1: Ship improved API instructions and docs.
+KR2: Implement usage instrumentation, such as usage logs and per-API-token usage tracking.
+KR4: Define and publish baseline usage metrics (active API keys by tier, monthly API calls per endpoint, map sessions, unique users).
+KR5: Get X school datasets published on HDX and track download metrics.
+KR6: Fix the performance and utility of the data download functionality.
+
+Objective 5: Stabilize the Platform and Improve Usability
+
+KR1: Define and implement performance, monitoring, and observability scope; establish baseline metrics and dashboard.
+KR2: Ship priority UX and usability upgrades from the Improved Usability backlog (navigation, feature enhancements, data trust and attribution).

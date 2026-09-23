@@ -314,6 +314,15 @@ export function splitBodyBlocks(body: string): Block[] {
     : [{ label: "", body: first.trim() }];
 }
 
+function hasText(slide: SlideContent): boolean {
+  const strings = [slide.title, slide.subtitle, slide.stat, slide.support, slide.quote, slide.author, slide.body, ...(slide.bullets ?? [])];
+  for (const b of slide.blocks ?? []) strings.push(b.label, b.body);
+  for (const x of slide.stats ?? []) strings.push(x.value, x.label);
+  for (const b of slide.bars ?? []) strings.push(b.label);
+  for (const c of slide.contacts ?? []) strings.push(c.name);
+  return strings.some((t) => !!t?.trim());
+}
+
 export function normalizeSlide(
   raw: unknown,
   opts: { keepClosingTitle?: boolean; brandId?: string } = {},
@@ -322,6 +331,10 @@ export function normalizeSlide(
   if (!parsed.success) return null;
   const slide = parsed.data as SlideContent;
 
+  // A slide with nothing written on it is not a slide: the model padded a
+  // deck with three empty covers after the closing slide (23 Sep 2026).
+  // photo-full has no text by design and is never the model's.
+  if (!isPage(slide) && slide.layoutId !== "photo-full" && !hasText(slide)) return null;
   // A two-pager page validates its own stack and nothing else: none of the
   // slide-shaped rules below apply, and ARRAY_LIMITS has no "a4-page" entry
   // (adding one would reject every page, since `stack` is not an ArrayField).

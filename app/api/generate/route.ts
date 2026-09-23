@@ -12,6 +12,8 @@ import type { DeckFormat } from "@/lib/slides/state";
 import { SlideStreamParser } from "@/lib/slides/parse";
 import { sanitizeAttachments } from "@/lib/slides/attachments-server";
 import { fetchLinkedPages } from "@/lib/slides/links-server";
+import { languageOf } from "@/lib/slides/brief";
+import { cleanVoice } from "@/lib/slides/voice";
 
 export const runtime = "nodejs";
 
@@ -72,7 +74,7 @@ export async function POST(request: Request): Promise<Response> {
   // slide's rewrite does not need the whole page again.
   const oneSlide = body.mode === "regenerate";
   const linked = oneSlide ? [] : await fetchLinkedPages(body.brief ?? "");
-  body = { ...body, attachments: [...attachments, ...linked] };
+  body = { ...body, attachments: [...attachments, ...linked], language: languageOf(body.brief ?? "") };
   if (!body.brief?.trim() && !oneSlide) {
     if (attachments.length === 0) return new Response("Missing brief", { status: 400 });
     body.brief = "Build it from the attached material.";
@@ -135,7 +137,7 @@ export async function POST(request: Request): Promise<Response> {
               send({
                 type: "slide",
                 index: index++,
-                slide: twoPager ? stripEmptyPage(slide) : stripEmptyFields(slide),
+                slide: cleanVoice(twoPager ? stripEmptyPage(slide) : stripEmptyFields(slide), body.brief ?? ""),
               });
             }
           }

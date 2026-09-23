@@ -10,6 +10,7 @@ import { A4_PX } from "@/lib/slides/pages/a4";
 import { PAGE_BLOCK_LIMITS, type PageBlock } from "@/lib/slides/pages/schema";
 import { defaultContent } from "@/lib/slides/defaults";
 import { familyOf } from "@/lib/slides/families";
+import { countFromBrief, seriesFromBrief, uniformFromBrief, MIN_SLIDES_WITH_CHAPTERS, TIERS_REQUEST } from "@/lib/slides/brief";
 import { makeRhythm, stripInventedYear } from "@/lib/slides/rhythm";
 import { presetStack } from "@/lib/slides/pages/presets";
 import { clearSaved, openSession, saveDeck } from "@/lib/slides/storage";
@@ -51,19 +52,6 @@ const LOGO_TONE_LAYOUTS = new Map<string, ToneGeometry>([
 /** The two layouts the "Chapters" toggle governs. */
 const CHAPTER_LAYOUTS = new Set<string>(["agenda", "section-divider"]);
 
-/**
- * What counts as asking for the partnership-tier slides: the tier table, the
- * partnership tiers, the sponsorship levels. Never the word "tier" on its own.
- */
-const TIERS_REQUEST =
-  /\b(?:partner(?:ship)?|sponsor(?:ship)?|membership|funding|support)\s+tiers?\b|\btiers?\s+(?:table|slides?|grid|overview)\b|\blivelli\s+di\s+(?:partnership|partenariato|sponsorizzazione|adesione)\b|\btabella\s+(?:dei\s+)?livelli\b/i;
-
-/**
- * Below this a named count cannot hold chapters: cover, agenda, two dividers,
- * two content slides and the closing slide are eight already. Such a deck is
- * generated without them, whatever the toggle says, and the sidebar says so.
- */
-const MIN_SLIDES_WITH_CHAPTERS = 8;
 
 /**
  * The worked example under the tour's brief step. One card, not a good/bad
@@ -144,58 +132,6 @@ const EDITOR_STEPS: TourStep[] = [
     body: "Nothing is stored on a server. Download the HTML deck before you close the tab, then use Upload next to it to reopen the file here and keep editing.",
   },
 ];
-
-/**
- * Number words the brief may use instead of a digit ("Six slides" went
- * unread on 22 Sep 2026 and the model chose fourteen). English and Italian,
- * from two up to the route's ceiling of twenty. One is not here on purpose:
- * "uno slide deck per UNICEF" and "one slide deck for the board" are
- * articles, and read as a count of one they produced a cover and a closing
- * slide and nothing else (23 Sep 2026). A deck of one slide does not exist.
- */
-const NUMBER_WORDS: Record<string, number> = {
-  two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, ten: 10,
-  eleven: 11, twelve: 12, thirteen: 13, fourteen: 14, fifteen: 15, sixteen: 16, seventeen: 17,
-  eighteen: 18, nineteen: 19, twenty: 20,
-  due: 2, tre: 3, quattro: 4, cinque: 5, sei: 6, sette: 7, otto: 8, nove: 9,
-  dieci: 10, undici: 11, dodici: 12, tredici: 13, quattordici: 14, quindici: 15, sedici: 16,
-  diciassette: 17, diciotto: 18, diciannove: 19, venti: 20,
-};
-
-/**
- * The slide count named in the brief ("a 20-page deck", "in 6 slides", "Six
- * slides", "10 diapositive"), clamped to the route's 1-20. Undefined when the
- * brief names none, and then the model chooses the length. Sent as `count` so
- * the prompt can demand it exactly and the route can budget output tokens for
- * it: left as prose, the model anchored on its own "typically 8-14" and the
- * budget for 20 slides truncated the deck around slide 12 (22 Sep 2026).
- *
- * "One slide per objective" is a structure, not a length, so a count followed
- * by per / each / ogni is passed over and the search goes on. A count under
- * two ("1 slide on X") is no count either: the model chooses the length.
- */
-export function countFromBrief(brief: string): number | undefined {
-  const words = Object.keys(NUMBER_WORDS).join("|");
-  const re = new RegExp(
-    `\\b(\\d{1,2}|${words})\\s*(?:-\\s*)?(?:slides?|pages?|pagine|pagina|diapositive|diapositiva)\\b(?!\\s+(?:per|each|for each|for every|a|ogni|per ogni)\\b)`,
-    "gi",
-  );
-  const m = re.exec(brief);
-  if (!m) return undefined;
-  const n = /^\d/.test(m[1]) ? parseInt(m[1], 10) : NUMBER_WORDS[m[1].toLowerCase()];
-  if (!n || n < 2) return undefined;
-  return Math.min(20, n);
-}
-
-/**
- * "One slide per objective", "a slide for each country", "una slide per ogni
- * paese": the brief prescribes a series. Sent as `perItem` so the prompt can
- * read a named count as the number of items rather than as a ceiling on the
- * deck (Haiku obeyed "exactly 6" and dropped two objectives, 22 Sep 2026).
- */
-export function seriesFromBrief(brief: string): boolean {
-  return /\b(?:one|a|1|una?)\s+(?:slides?|pages?|pagina|diapositiva)\s+(?:per|for each|for every|each|a|ogni|per ogni)\b/i.test(brief);
-}
 
 export default function Studio() {
   const [state, dispatch] = useReducer(deckReducer, initialDeckState);
@@ -341,11 +277,13 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
       preserve?: Partial<SlideContent>;
       dropChapters?: boolean;
       /**
-       * A series the brief prescribes: layouts alternate deterministically
-       * as the slides arrive (lib/slides/rhythm.ts), and a year the brief
-       * never gave is stripped from the cover's subtitle.
+       * Layouts alternate deterministically as the slides arrive, a year
+       * the brief never gave leaves the cover's subtitle, and nothing lands
+       * after the closing slide (lib/slides/rhythm.ts). `series` is a deck
+       * the brief prescribes slide by slide: no two identical layouts in a
+       * row there, at most two elsewhere.
        */
-      rhythm?: boolean;
+      rhythm?: { series: boolean };
       /**
        * The stack of the page being rewritten. Its photos cannot travel in
        * `preserve` (they live inside blocks the model just replaced), so they
@@ -369,7 +307,7 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
     const controller = new AbortController();
     abortRef.current = controller;
     dispatch({ type: "GENERATION_START", replace: opts.replace });
-    const rhythm = opts.rhythm ? makeRhythm() : null;
+    const rhythm = opts.rhythm ? makeRhythm(opts.rhythm) : null;
     try {
       const res = await fetch("/api/generate", {
         method: "POST",
@@ -410,6 +348,7 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
             if (!content) continue;
             if (opts.dropChapters && CHAPTER_LAYOUTS.has(content.layoutId)) continue;
             if (rhythm) content = rhythm(stripInventedYear(content, String(body.brief ?? "")));
+            if (!content) continue;
             if (opts.collectInsert) {
               collected.push(content);
             } else if (opts.targetIndex != null) {
@@ -524,6 +463,8 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
     const chapters = state.chapters && !(!twoPager && count !== undefined && count < MIN_SLIDES_WITH_CHAPTERS);
     setChaptersSkipped(chapters !== state.chapters ? (count as number) : null);
     const perItem = !twoPager && seriesFromBrief(brief);
+    const wanted = count === undefined ? undefined : perItem ? count + 2 : count;
+    const rhythm = { series: perItem, uniform: uniformFromBrief(brief), cap: twoPager ? undefined : wanted };
     const kept: SlideContent[] = [];
     let truncated = false;
     let received = await runGeneration(
@@ -540,7 +481,7 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
       {
         replace: true,
         dropChapters: !chapters,
-        rhythm: perItem,
+        rhythm,
         collect: kept,
         onDone: (d) => {
           truncated = !!d.truncated;
@@ -551,8 +492,9 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
     // and the output schema cannot pin the length (the API takes minItems of
     // 0 or 1 only). So a short deck is completed with one add request for the
     // missing slides; a truncated one is not, the error already says why.
-    const wanted = count === undefined ? undefined : perItem ? count + 2 : count;
-    if (!twoPager && wanted && received > 0 && received < wanted && !truncated) {
+    // Two tries: the one add for a single missing slide came back with
+    // nothing usable once in twenty decks (23 Sep 2026).
+    for (let attempt = 0; attempt < 2 && !twoPager && wanted && received > 0 && received < wanted && !truncated; attempt++) {
       const missing = wanted - received;
       received += await runGeneration(
         {
@@ -566,7 +508,7 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
           format: state.format,
           existingSlides: kept.map((k) => light(k as (typeof state.slides)[number])),
         },
-        { replace: false, collectInsert: true, dropChapters: !chapters, rhythm: perItem },
+        { replace: false, collectInsert: true, dropChapters: !chapters, rhythm },
       );
     }
     // The two fixed partnership-tier slides are added only when the brief

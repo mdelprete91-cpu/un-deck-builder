@@ -302,6 +302,35 @@ drop on the box. They exist to give the model the facts; they are **not** deck c
   `data-tour="prompt"`, and the pill and the button carry `data-tour="chapters"` and
   `data-tour="generate"`, so the tour still frames each of them.
 
+## What the pipeline decides without the model
+
+Haiku does a constrained job well and a rule-following job badly: the QA suite (23 Sep 2026)
+found the same slips in run after run with the rule in the prompt. Each got a deterministic
+guard, all pure functions, none touching the user's words:
+
+- **`lib/slides/brief.ts`** reads the brief before the model does: `countFromBrief` (digits or
+  number words from two to twenty in English and Italian, slide words in five languages, a count
+  followed by per / each / ogni skipped, one is never a count), `seriesFromBrief` ("one slide
+  per …"), `uniformFromBrief` ("same layout"), `languageOf` (stopword counts; the user turn then
+  says "write every slide in Italian", because the same-language rule alone was ignored on short
+  Italian briefs), `TIERS_REQUEST`, `MIN_SLIDES_WITH_CHAPTERS`.
+- **`lib/slides/rhythm.ts`**, one pass per incoming slide in `runGeneration`: layouts alternate
+  (no two alike in a prescribed series, at most two elsewhere, never when the brief says "same
+  layout"); a list under five points, a stat whose value has no digit ("Ericsson" as a two-stats
+  value), a big-stat with no figure (a statement with the number left empty, four decks in
+  twenty) and a timeline with one point (four one-phase timelines for four quarters) each become
+  the layout that fits their words; nothing lands after the closing slide (three empty covers
+  after "Thanks"); a named count caps the deck, the closing slide always through; a year the
+  brief never gave leaves the cover's subtitle. `normalizeSlide` drops a slide with no text at all.
+- **`lib/slides/voice.ts`**, in the route on every string the model wrote: the banned words
+  (leveraging, synergies, cutting-edge, revolutionary, empower, unlock) become plain ones, forms
+  preserved, unless the brief itself uses the word.
+- **Top-up**: a counted deck that arrives short gets up to two add requests for the missing
+  slides (one came back empty once in twenty).
+
+Left to the model, and it still slips about once in twenty: Giga's own figures in a deck that
+never named Giga, a year in a body ("by 2030"), a KR renumbered, the lockup's name as a title.
+
 ## The layout switcher
 
 "Layout" in the slide bar opens `components/LayoutSwitcher.tsx`, which costs nothing: the slide is
@@ -557,8 +586,17 @@ echo "ANTHROPIC_API_KEY=sk-ant-..." > .env.local
 npm run dev
 ```
 
-There is no test suite; `tools/qa-generate.py` is the one scripted check, for the prompt (it
-calls the real model). "Done" means all of the following:
+There is no unit test suite. Two scripted checks call the real model: `tools/qa-generate.py`
+scores one deck against its source material, and **`tools/qa-suite.ts` runs twenty briefs of
+different nature** (`tools/qa-prompts.json`, long ones in `tools/qa-briefs/`) through the whole
+pipeline as the editor runs it (brief parsing, request, normalize, chapter filter, rhythm pass,
+year guard, top-up) and scores each deck: count, structure, series fidelity, chapters, language,
+drift, banned words, invented years (a warning), non-figure stats, empty fields, duplicate
+titles, runs of one layout, and words over the catalog limits. `npx tsx tools/qa-suite.ts` with
+the dev server up, about $0.17 a run, decks and `report.md` under `.omc/qa/<stamp>/`. It went
+from 3/20 to 17/20 on 23 Sep 2026; what it fixed is in "What the pipeline decides" below. Run it
+after touching the prompt, the catalog, `brief.ts`, `rhythm.ts` or `voice.ts`. "Done" means all
+of the following:
 
 1. `npm run lint` clean.
 2. `npm run build` clean (type errors surface here).

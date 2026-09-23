@@ -1,0 +1,16 @@
+make 8 slides
+- connectivity map now covers schools in 54 countries
+- health facilities added in Gambia, Zambia, Sierra Leone
+- 3 datasets live, government sourced
+- open data from healthsites.io used as advocacy tool
+- real-time telemetry pilot planned in 3 countries
+- backend being redesigned for any facility type
+- API docs improved, usage tracking coming
+- datasets to be published on HDX
+- download performance fix in progress
+- public advocacy map prototype in testing
+- visibility metrics: impressions, views, reach
+- ministry-facing map research underway
+- rebrand: new name and domain to be decided
+- observability dashboard being set up
+- usability backlog: navigation, data trust, attribution
