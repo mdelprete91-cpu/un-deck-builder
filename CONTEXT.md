@@ -333,7 +333,9 @@ never named Giga, a year in a body ("by 2030"), a KR renumbered, the lockup's na
 
 ## The layout switcher
 
-"Layout" in the slide bar opens `components/LayoutSwitcher.tsx`, which costs nothing: the slide is
+"Layout" in the slide bar is **hidden behind `SHOW_LAYOUT_SWITCH` in `app/page.tsx`** (Mario, 23
+Sep 2026, deployed the same day); everything below stays wired and returns whole when the flag
+flips. It opens `components/LayoutSwitcher.tsx`, which costs nothing: the slide is
 rendered as it is, text and photo included, in every other layout of its **family**, the layouts
 that read the same fields (`LAYOUT_FAMILIES` in `lib/slides/families.ts`: blocks, stats, bars,
 section, hero, photo). A pick is `REPLACE_SLIDE` with the same merge as a regenerated slide

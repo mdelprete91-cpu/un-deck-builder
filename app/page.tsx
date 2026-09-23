@@ -52,6 +52,13 @@ const LOGO_TONE_LAYOUTS = new Map<string, ToneGeometry>([
 /** The two layouts the "Chapters" toggle governs. */
 const CHAPTER_LAYOUTS = new Set<string>(["agenda", "section-divider"]);
 
+/**
+ * The Layout button in the slide bar is hidden (Mario, 23 Sep 2026). The
+ * switcher, its families and the rhythm pass stay: only the entry point is
+ * off, so flipping this brings it back whole.
+ */
+const SHOW_LAYOUT_SWITCH = false;
+
 
 /**
  * The worked example under the tour's brief step. One card, not a good/bad
@@ -966,7 +973,7 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
                     onEditData={() => setDataPanelOpen((v) => !v)}
                     canChangeImage={hasImage}
                     onChangeImage={() => setImagePicker("image")}
-                    canChangeLayout={!isPage(active) && familyOf(active.layoutId) !== null}
+                    canChangeLayout={SHOW_LAYOUT_SWITCH && !isPage(active) && familyOf(active.layoutId) !== null}
                     onChangeLayout={() => setLayoutSwitcher(true)}
                     onDuplicate={() => dispatch({ type: "DUPLICATE", index: state.activeIndex })}
                     onDelete={() => dispatch({ type: "DELETE", index: state.activeIndex })}
