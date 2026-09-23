@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowUp, ChartColumn, ChevronDown, Copy, History, Image as ImageIcon, LoaderCircle, Plus, Redo2, Trash2, Undo2, Upload, X } from "lucide-react";
+import { ArrowUp, ChartColumn, ChevronDown, Copy, History, Image as ImageIcon, LayoutTemplate, LoaderCircle, Plus, Redo2, Trash2, Undo2, Upload, X } from "lucide-react";
 import { useEffect, useLayoutEffect, useReducer, useRef, useState, type CSSProperties } from "react";
 import { BRANDS } from "@/lib/slides/brand";
 import { DEFAULT_DECK_NAME, deckReducer, initialDeckState, readPath } from "@/lib/slides/state";
@@ -22,6 +22,7 @@ import Sidebar from "@/components/Sidebar";
 import SlideFrame, { readImageFile } from "@/components/SlideFrame";
 import ChartDataPanel from "@/components/ChartDataPanel";
 import ImagePickerModal from "@/components/ImagePickerModal";
+import LayoutSwitcher from "@/components/LayoutSwitcher";
 import { AttachmentError, MAX_ATTACHMENTS, MAX_REQUEST_BYTES, MAX_TEXT_TOTAL, readAttachment, readPdfAsText, totalRequestBytes, type Attachment } from "@/lib/slides/attachments";
 import { mapSlotFor } from "@/lib/giga-maps/slot";
 import ThumbStrip from "@/components/ThumbStrip";
@@ -47,6 +48,8 @@ const LOGO_TONE_LAYOUTS = new Map<string, ToneGeometry>([
 
 /** The two layouts the "Chapters" toggle governs. */
 const CHAPTER_LAYOUTS = new Set<string>(["agenda", "section-divider"]);
+/** The deck's structure: no other layout hosts a cover or a closing slide, so no Layout button. */
+const STRUCTURAL_LAYOUTS = new Set<string>(["cover", "agenda", "section-divider", "thank-you"]);
 
 /**
  * What counts as asking for the partnership-tier slides: the tier table, the
@@ -604,7 +607,7 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
       { replace: false, collectInsert: true, dropChapters: !state.chapters },
     );
 
-  const onRegenerateSlide = (instruction: string) => {
+  const onRegenerateSlide = (instruction: string, layoutId?: LayoutId) => {
     if (!active) return;
     runGeneration(
       {
@@ -613,6 +616,7 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
         brandLabel: theme.label,
         targetSlide: light(active),
         instruction,
+        layoutId,
         format: state.format,
       },
       {
@@ -626,6 +630,24 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
         keepColors: active.bars,
       },
     );
+  };
+
+  /**
+   * A layout the switcher already wrote out: applied like a regenerated
+   * slide (uploads and hand-picked chart colours survive), with no model
+   * call and one undo step.
+   */
+  const onApplyLayout = (content: SlideContent) => {
+    if (!active || isPage(active)) return;
+    dispatch({
+      type: "REPLACE_SLIDE",
+      index: state.activeIndex,
+      content: recolor(
+        { ...content, image: active.image, imagePos: active.imagePos, logos: active.logos, grid: active.grid, icons: active.icons, map: active.map },
+        active.bars,
+      ),
+    });
+    setLayoutSwitcher(false);
   };
 
   const onInsertLayout = (layoutId: LayoutId) => {
@@ -778,6 +800,8 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
   const [iconPicker, setIconPicker] = useState<string | null>(null);
   // The image picker knows which slot it was opened for: a page has several.
   const [imagePicker, setImagePicker] = useState<string | null>(null);
+  /** The "Change layout" modal, opened from the slide bar. */
+  const [layoutSwitcher, setLayoutSwitcher] = useState(false);
   const pendingImagePath = useRef<string>("image");
   const slideImageInputRef = useRef<HTMLInputElement>(null);
 
@@ -825,6 +849,21 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
             animated with a transform, and a transformed ancestor becomes the
             containing block for position:fixed, which pinned the modal to the
             pill instead of the viewport. */}
+        {layoutSwitcher && active && !isPage(active) && (
+          <LayoutSwitcher
+            slide={active}
+            theme={theme}
+            brandId={state.brandId}
+            brief={state.brief}
+            brandLabel={theme.label}
+            onApply={onApplyLayout}
+            onRewriteTo={(layoutId) => {
+              setLayoutSwitcher(false);
+              onRegenerateSlide("", layoutId);
+            }}
+            onClose={() => setLayoutSwitcher(false)}
+          />
+        )}
         {imagePicker != null && active && (
           <ImagePickerModal
             slot={mapSlotFor(active.layoutId, imagePicker)}
@@ -979,6 +1018,8 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
                     onEditData={() => setDataPanelOpen((v) => !v)}
                     canChangeImage={hasImage}
                     onChangeImage={() => setImagePicker("image")}
+                    canChangeLayout={!isPage(active) && !STRUCTURAL_LAYOUTS.has(active.layoutId)}
+                    onChangeLayout={() => setLayoutSwitcher(true)}
                     onDuplicate={() => dispatch({ type: "DUPLICATE", index: state.activeIndex })}
                     onDelete={() => dispatch({ type: "DELETE", index: state.activeIndex })}
                   />
@@ -1304,6 +1345,8 @@ function SlideActions({
   onAddItem,
   onEditData,
   onChangeImage,
+  canChangeLayout,
+  onChangeLayout,
   onDuplicate,
   onDelete,
 }: {
@@ -1316,6 +1359,9 @@ function SlideActions({
   onEditData: () => void;
   /** Opens the picker, which lives at page level: see the comment on its render. */
   onChangeImage: () => void;
+  /** Slides only: a two-pager page is a stack of blocks, not a layout. */
+  canChangeLayout: boolean;
+  onChangeLayout: () => void;
   onDuplicate: () => void;
   onDelete: () => void;
 }) {
@@ -1433,6 +1479,16 @@ function SlideActions({
                 title="Change the image on this slide"
               >
                 Image
+              </Button>
+            )}
+            {canChangeLayout && (
+              <Button
+                variant="secondary"
+                icon={LayoutTemplate}
+                onClick={onChangeLayout}
+                title="Change the layout of this slide, text kept"
+              >
+                Layout
               </Button>
             )}
             <Button

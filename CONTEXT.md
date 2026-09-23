@@ -198,8 +198,19 @@ now only retires the last-session offer.
   route strips them in `stripEmptyFields`. Do not "clean this up" by making fields optional.
 - **Prompt size is a cost and latency budget.** The catalog is compiled into the system prompt on
   every call. Keep new catalog lines to one tight line.
-- Three modes share the route: `generate`, `add` (returns new slides plus `insertAfter` plus
-  refreshed agenda bullets), `regenerate` (one slide).
+- Four modes share the route: `generate`, `add` (returns new slides plus `insertAfter` plus
+  refreshed agenda bullets), `regenerate` (one slide; with `layoutId` the text is moved into that
+  layout and the layout is not up for discussion), `relayout` (the layout switcher: the same slide
+  written into `RELAYOUT_OPTIONS` other layouts, each with a `reason`). The relayout output schema
+  is the slide object plus `reason`, flat on purpose: the stream parser emits depth-2 objects, so
+  an option nested under `{ layoutId, slide }` would never stream. `layoutsHolding` in `prompt.ts`
+  computes from `PRIMARY_ARRAY` which layouts hold all the slide's items and names them in the
+  user turn; left to itself the model offered a four-card grid for six points. The client
+  (`components/LayoutSwitcher.tsx`) normalises each option with `normalizeSlide`, drops any that
+  came back in the current layout, and applies a pick through `REPLACE_SLIDE` with the same
+  merge as a regenerated slide (uploads, `imagePos`, logos, grid, icons, map, hand-picked chart
+  colours), so one undo step takes it back. The suggestion call is not a deck generation: it
+  never touches `status` or the cost readout.
 - **The subject comes from the brief and the material, never from the tool.** The system prompt
   introduces the planner as a tool used by UNICEF and Giga teams, not as Giga's voice; Giga's own
   figures are allowed only in a deck the brief makes about Giga; the partner roster is used only
@@ -238,7 +249,12 @@ now only retires the last-session offer.
   with a different layout per objective, three-word titles and two KRs silently gone. Dates are on
   the never-invent list too: the same deck got a "2024" subtitle from nowhere. **The catalog has
   no list layout**: the widest is `four-cards` (4 x 16 words), so a six-item list still loses
-  items until the template gains one (Mario is drawing it, 23 Sep 2026).
+  items until the template gains one (Mario is drawing it, 23 Sep 2026). **The series stays
+  uniform on purpose.** Six card grids in a row read as flat (Mario, 22 Sep 2026), and asking the
+  model to vary the layout inside the series was tried the same evening: Haiku merged KRs into
+  "KR1–KR2" blocks and left empty ones to make the variety fit. Fidelity won. Rhythm is the
+  layout switcher's job, slide by slide with a preview, and its first suggestion is always a
+  photo layout when one holds the text (`photoRule` in the relayout prompt).
 
 ## Attachments to the brief
 
