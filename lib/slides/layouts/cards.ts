@@ -6,6 +6,7 @@ import {
   BODY30,
   BODY32,
   LABEL36,
+  HAIRLINE,
   esc,
   ed,
   dly,
@@ -227,7 +228,7 @@ export function exampleImage(side: "left" | "right") {
 /**
  * List: one labelled row per point, full width, 1–6 rows. The callout's row
  * system (template 03) without its photo: the label in the accent at the
- * left, the point beside it, a hairline under each row. Body budgets are
+ * left, the point beside it, a light grey hairline under each row. Body budgets are
  * whole BODY30 lines per row count (5–6 rows → 2 lines, 4 → 3, fewer → 4),
  * so the type never shrinks at the catalog limit; six rows end at 904, well
  * above the footer label (966).
@@ -248,7 +249,7 @@ export function list(s: Slide, t: BrandTheme): string {
   const rows = blocks
     .map(
       (b, i) =>
-        `<div class="ars" ${item(`blocks.${i}`)} style="display:flex;align-items:flex-start;gap:40px;padding:${PAD}px 0;border-bottom:1px solid var(--panel-light-stroke);${dly(8 + i * 6)}">` +
+        `<div class="ars" ${item(`blocks.${i}`)} style="display:flex;align-items:flex-start;gap:40px;padding:${PAD}px 0;border-bottom:1px solid ${HAIRLINE};${dly(8 + i * 6)}">` +
         `<div ${ed(`blocks.${i}.label`, 50)} style="flex:0 0 220px;${LABEL36}color:var(--accent);">${esc(b.label)}</div>` +
         `<div ${ed(`blocks.${i}.body`, bodyFit)} style="flex:1;padding-top:4px;${BODY30}color:#000000;">${esc(b.body)}</div>` +
         `</div>`,

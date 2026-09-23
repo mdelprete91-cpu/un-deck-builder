@@ -18,6 +18,14 @@ export const OPEN_SANS = "'Open Sans',sans-serif";
 export const BODY30 = `font-family:${OPEN_SANS};font-weight:500;font-size:30px;line-height:1.36;letter-spacing:-.01em;`;
 /** Body text, 32px scale */
 export const BODY32 = `font-family:${OPEN_SANS};font-weight:500;font-size:32px;line-height:48px;`;
+/**
+ * Hairline between rows of text on a white slide. Neutral on purpose: the
+ * brand stroke reads as a cyan rule on the UNICEF lockups, and a rule that
+ * separates is not a rule that decorates (Mario, 23 Sep 2026). The same
+ * grey as the A4 boards' hairline.
+ */
+export const HAIRLINE = "#E6E6E6";
+
 /** Field label (What/Give/Get…), accent */
 export const LABEL36 = `font-family:${MANROPE};font-weight:600;font-size:36px;line-height:1.32;letter-spacing:-.02em;`;
 
