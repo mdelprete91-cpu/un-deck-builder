@@ -242,19 +242,21 @@ now only retires the last-session offer.
   model chose fourteen.
 - **The brief's structure comes first.** When the brief prescribes one slide per item, the titles,
   or what goes on each slide, the system prompt tells the model to follow it to the letter: every
-  item gets its slide, titles are copied as written, the same layout for the whole series, and the
-  variety rules ("never the same layout three times in a row", alternate surfaces) yield. Items
-  are never dropped, merged or renumbered; if no layout holds them all, the model picks the one
-  that holds the most. Before this rule (22 Sep 2026) an OKR brief with six objectives came back
+  item gets its slide, titles are copied as written, and every slide of the series takes a layout
+  that holds all its sub-points. The variety rules ("never the same layout three times in a row",
+  alternate surfaces) still apply to the series: one layout repeated across it happens only when
+  the brief says "same layout" (Mario, 23 Sep 2026, after an evening with a uniform series that
+  read as flat). Items are never dropped, merged or renumbered; if no layout holds them all, the
+  model picks the one that holds the most. Before this rule (22 Sep 2026) an OKR brief with six objectives came back
   with a different layout per objective, three-word titles and two KRs silently gone. Dates are on
   the never-invent list too: the same deck got a "2024" subtitle from nowhere. **The catalog has
   no list layout**: the widest is `four-cards` (4 x 16 words), so a six-item list still loses
-  items until the template gains one (Mario is drawing it, 23 Sep 2026). **The series stays
-  uniform on purpose.** Six card grids in a row read as flat (Mario, 22 Sep 2026), and asking the
-  model to vary the layout inside the series was tried the same evening: Haiku merged KRs into
-  "KR1–KR2" blocks and left empty ones to make the variety fit. Fidelity won. Rhythm is the
-  layout switcher's job, slide by slide with a preview, and its first suggestion is always a
-  photo layout when one holds the text (`photoRule` in the relayout prompt).
+  items until the template gains one (Mario is drawing it, 23 Sep 2026). **Variety costs
+  fidelity with Haiku**: with the rhythm rule on inside a series, one run in two merged KRs into
+  "KR1–KR2" blocks or left empty ones to make the variety fit (22 Sep 2026). Mario chose variety
+  by default anyway; a uniform series is asked for in the brief. The layout switcher is the
+  per-slide remedy either way, and its first suggestion is always a photo layout when one holds
+  the text (`photoRule` in the relayout prompt).
 
 ## Attachments to the brief
 
