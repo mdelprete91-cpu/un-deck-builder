@@ -145,10 +145,12 @@ export default function LiveMapPanel({
             : `${fmt(country.schoolsTotal)} schools${country.healthTotal ? ` · ${fmt(country.healthTotal)} health centers` : ""}`;
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col">
+    <div className="flex flex-col">
       {/* Settings as rows, like a settings dialog: the label on the left,
-          the value and a chevron on the right, a hairline between rows. */}
-      <div className="grid min-h-0 flex-1 grid-cols-[240px_minmax(0,1fr)] gap-8">
+          the value and a chevron on the right, a hairline between rows. The
+          preview sits under them at full width, so nothing is letterboxed
+          beside a column of three rows. */}
+      <div className="flex flex-col">
         <div className="flex min-w-0 flex-col">
           <div ref={pickerRef} className="relative flex h-12 items-center justify-between gap-3 border-b border-hairline-light">
             <span className="text-sm text-ink">Country</span>
@@ -228,22 +230,23 @@ export default function LiveMapPanel({
         </div>
 
         {/* The preview sits in a frame with one fixed ratio whatever the
-            slot's shape, so the dialog never changes shape between layouts.
-            The frame takes all the height it can; the legend lives in the
-            frame's corner, not on the map, so a tall slot never hides it.
-            Until the map arrives the frame holds a skeleton, never a dark slab. */}
-        <div className="flex min-h-0 justify-end">
-          <div className="relative flex aspect-[4/3] h-full items-center justify-center overflow-hidden rounded-2xl bg-canvas-2 p-5">
+            slot's shape, so the dialog never changes shape between layouts:
+            16:9, the shape of most slots, at the dialog's full width. The
+            legend lives in the frame's corner, not on the map, so a tall
+            slot never hides it. Until the map arrives the frame holds a
+            skeleton, never a dark slab. */}
+        <div className="mt-4">
+          <div className="relative flex aspect-[16/9] max-h-[33vh] w-full items-center justify-center overflow-hidden rounded-2xl bg-canvas-2 p-4">
             {preview ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={preview}
                 alt={`${country?.name ?? "Country"} map preview`}
                 className="block max-h-full max-w-full rounded-lg object-contain"
-                style={{ aspectRatio: `${slot.width} / ${slot.height}`, height: "100%" }}
+                style={{ aspectRatio: `${slot.width} / ${slot.height}` }}
               />
             ) : (
-              <div className="h-3/4 rounded-xl bg-mist motion-safe:animate-pulse" style={{ aspectRatio: `${slot.width} / ${slot.height}` }} aria-hidden />
+              <div className="max-h-full w-3/4 rounded-xl bg-mist motion-safe:animate-pulse" style={{ aspectRatio: `${slot.width} / ${slot.height}` }} aria-hidden />
             )}
             {preview && !busy && (
               <div className="absolute bottom-3 left-3 flex gap-1.5">
@@ -267,7 +270,7 @@ export default function LiveMapPanel({
         </div>
       </div>
 
-      <div className="mt-5 flex items-center justify-end gap-2 border-t border-hairline-light pt-4">
+      <div className="mt-5 flex items-center justify-end gap-2">
         <Button variant="ghost" onClick={onCancel}>
           Cancel
         </Button>
