@@ -1,22 +1,25 @@
 "use client";
 
-import { Image as ImageIcon, Map as MapIcon, Trash2, Upload, X } from "lucide-react";
+import { Image as ImageIcon, Images, Map as MapIcon, Trash2, Upload, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import LiveMapPanel from "@/components/LiveMapPanel";
 import type { MapSlot } from "@/lib/giga-maps/slot";
+import { LIBRARY, librarySrc, libraryThumb } from "@/lib/slides/library";
 import Button from "@/components/Button";
 
-type Section = "current" | "upload" | "maps";
+type Section = "current" | "upload" | "library" | "maps";
 
 const SECTIONS: { id: Section; label: string; icon: typeof Upload }[] = [
   { id: "current", label: "Current", icon: ImageIcon },
   { id: "upload", label: "Upload", icon: Upload },
+  { id: "library", label: "Library", icon: Images },
   { id: "maps", label: "Maps", icon: MapIcon },
 ];
 
 /**
- * What goes in a slide's image slot: a photo from the user's machine, or a
- * map rendered on the spot from live Giga Maps data. One narrow dialog,
+ * What goes in a slide's image slot: a photo from the user's machine, one
+ * of Giga's own from the library (lib/slides/library.ts, stored as a path),
+ * or a map rendered on the spot from live Giga Maps data. One narrow dialog,
  * sized by what it shows: the title and the close, a segmented control for
  * the sections, the section under it. It opens on Upload, the common case,
  * and on Current when the slot already holds a photo. The rail-and-panel
@@ -38,6 +41,7 @@ export default function ImagePickerModal({
   current?: string | null;
   onRemove?: () => void;
   onUpload: () => void;
+  /** A rendered map (data URL) or a library photo (root path): both go through SET_IMAGE. */
   onPickGenerated: (dataUrl: string) => void;
   onClose: () => void;
 }) {
@@ -117,6 +121,33 @@ export default function ImagePickerModal({
               <Button variant="primary" onClick={onUpload}>
                 Choose a photo
               </Button>
+            </div>
+          )}
+
+          {section === "library" && (
+            // Giga's own photos, three to a row, the one on the slide ringed
+            // in Ink. A click puts the photo on the slide and closes the dialog.
+            <div className="grid grid-cols-3 gap-3">
+              {LIBRARY.map((img) => {
+                const src = librarySrc(img.id);
+                const active = current === src;
+                return (
+                  <button
+                    key={img.id}
+                    type="button"
+                    onClick={() => onPickGenerated(src)}
+                    title={img.label}
+                    aria-label={img.label}
+                    aria-pressed={active}
+                    className={`group relative aspect-video overflow-hidden rounded-xl bg-canvas-2 transition-transform duration-150 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-giga/30 ${
+                      active ? "ring-2 ring-ink" : "hover:ring-2 hover:ring-hairline"
+                    }`}
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={libraryThumb(img.id)} alt="" loading="lazy" className="h-full w-full object-cover" />
+                  </button>
+                );
+              })}
             </div>
           )}
 

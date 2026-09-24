@@ -525,6 +525,14 @@ the list, and `isCountryMap` guards it against a deck file naming a country we n
   no longer offered in the picker (Mario's call). `slide.map` is kept so decks saved with one still
   render; it is stripped from what the model sees (`lightSlide`) and restored via `preserve`.
 
+**The library** (`lib/slides/library.ts`, files in `public/library`, 1920px JPEGs with 480px
+thumbnails) is the picker's third section: Giga's own photos from the website export (24 Sep
+2026). A pick stores the root path (`image: "/library/<id>.jpg"`) through `SET_IMAGE`, never the
+pixels, the same way the placeholder photo and the country maps travel: the deck file's
+`SAFE_ASSET` accepts a root path, `inlineAssets` inlines it on export, and the PPTX rasteriser
+loads it like any same-origin image. Adding a photo means the file, its thumbnail, and one line
+in `LIBRARY`; renaming one breaks decks that stored the old path.
+
 **Live maps** (`components/LiveMapPanel.tsx`, `lib/giga-maps/`) are the only path now, behind the
 "Maps" section of the image picker. The map is rendered in the
 browser with MapLibre from the public Giga Maps vector tiles (schools, health centers, or both;

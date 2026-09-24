@@ -27,6 +27,7 @@ On **UNICEF Digital Inclusion** there is a second template: the **two-pager**, a
 - **Product tour**: "How it works" in the sidebar walks the brief, the Chapters toggle and Generate, and, once a deck exists, the canvas, the slide bar, Add slides and Download. It never starts on its own. Above the button, after a generation, a small card with a party popper says what it cost (Haiku list price) and how long it took; the session total is in its tooltip.
 - **Download PDF**: browser print (Chrome, backgrounds on, scale 100%) — one slide per page at 1920×1080, or one A4 sheet per page for a two-pager.
 - **Download HTML deck**: one self-contained file (fonts and logos inlined) with arrow-key navigation and the template's entrance animations. The same file is the project file: it carries the deck's data model in an inert JSON block. A two-pager downloads instead as a scrolling A4 document that prints to the same PDF — still the save file.
+- **Image picker**: "Image" in the slide bar (or a click on the photo) opens Upload, Library (Giga's own photos, served from the app and inlined on export) and Maps (a country map rendered live from Giga Maps data).
 - **Upload**: drop an exported HTML deck on the canvas, or use "Upload HTML" in the toolbar next to Download, to pick up where you left off — slides, logo, brief and the Chapters setting all come back. Replacing a deck that is on screen asks first. Decks exported before this existed can still be presented, they just cannot be reopened.
 
 ## Setup
