@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { isChartColor } from "./chart-colors";
+import { toChartColor } from "./chart-colors";
 import { normalizePage, pageBlockSchema, type PageBlock } from "./pages/schema";
 
 /** Layouts the AI is allowed to pick. */
@@ -201,7 +201,7 @@ const barSchema = z.object({
   color: z
     .string()
     .optional()
-    .transform((v) => (isChartColor(v) ? v.toUpperCase() : undefined)),
+    .transform((v) => toChartColor(v)),
 });
 const channelSchema = z.object({
   label: z.string().default(""),

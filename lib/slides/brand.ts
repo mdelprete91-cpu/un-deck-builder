@@ -98,7 +98,7 @@ const CYAN_PALETTE = {
   // Charts still need separable values: tints of the same cyan, no second hue.
   barShades: [UNICEF_CYAN, "#39C0F3", "#67CEF5", "#94DDF8", "#C0EBFB"],
   // UNICEF Brand Book secondary colours, in the order the segments get them.
-  chartSeries: [UNICEF_CYAN, "#0058AB", "#80BD41", "#F26A21", "#FFC20E", "#6A1E74"],
+  chartSeries: [UNICEF_CYAN, "#0058AB", "#80BD41", "#FF7100", "#FFC20E", "#6A1E74"],
   // The template's green quote surface is a colored surface too, so here it is
   // cyan like every other one; the author line goes dimmed white on it.
   quoteBg: UNICEF_CYAN,

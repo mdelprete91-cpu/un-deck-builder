@@ -17,7 +17,7 @@ export const CHART_COLORS: { hex: string; name: string }[] = [
   { hex: "#80BD41", name: "UNICEF green" },
   { hex: "#01B37C", name: "Giga green" },
   { hex: "#FFC20E", name: "UNICEF yellow" },
-  { hex: "#F26A21", name: "UNICEF orange" },
+  { hex: "#FF7100", name: "UNICEF orange" },
   { hex: "#E2231A", name: "UNICEF red" },
   { hex: "#5D5D5D", name: "Dark grey" },
   { hex: "#8F8F8F", name: "Grey" },
@@ -26,7 +26,22 @@ export const CHART_COLORS: { hex: string; name: string }[] = [
 
 export const CHART_COLOR_HEXES = new Set(CHART_COLORS.map((c) => c.hex));
 
-/** True when the value is one of the sixteen (case-insensitive). */
-export function isChartColor(value: unknown): value is string {
-  return typeof value === "string" && CHART_COLOR_HEXES.has(value.toUpperCase());
+/**
+ * Hexes a deck may still carry from an earlier palette, mapped to the colour
+ * that replaced them. (Mario, 24 Sep 2026: orange moved from the Brand Book
+ * #F26A21 to #FF7100.)
+ */
+const LEGACY_CHART_COLORS: Record<string, string> = {
+  "#F26A21": "#FF7100",
+};
+
+/**
+ * The canonical upper-case hex for a picked colour, following a retired hex
+ * to its replacement; undefined for anything outside the palette.
+ */
+export function toChartColor(value: unknown): string | undefined {
+  if (typeof value !== "string") return undefined;
+  const hex = value.toUpperCase();
+  const mapped = LEGACY_CHART_COLORS[hex] ?? hex;
+  return CHART_COLOR_HEXES.has(mapped) ? mapped : undefined;
 }
