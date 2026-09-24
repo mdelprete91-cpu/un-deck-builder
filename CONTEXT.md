@@ -109,7 +109,11 @@ their own text. Stat values (`stat-grid`, `brand-equity`, `two-stats`) are the s
 wrap to a second line inside a budget sized to the row pitch before they shrink, and they carry
 `data-fit-group="stat"`, so `autofitAll` gives every value on the slide the smallest scale among
 them: six values, one size. The group logic lives twice, in `autofit.ts` and in its ES5 copy
-`AUTOFIT_JS` that the HTML export inlines; change both.
+`AUTOFIT_JS` that the HTML export inlines; change both. `SlideFrame` fits every stage itself and
+reports the count to `onAutofit` afterwards: never fold the fit into the optional call
+(`onAutofit?.(autofitAll(stage))`), because an optional call skips its arguments when nobody
+listens, and the main stage and the thumbnails pass no listener. That shipped once (23 Sep 2026)
+and no slide shrank its text for a day.
 
 **`dly()` for animation delays.** Never write `animation-delay:.${n}s` by hand. With a single-digit
 n that reads as 0.8s, which is what broke element ordering in the HTML export once already.

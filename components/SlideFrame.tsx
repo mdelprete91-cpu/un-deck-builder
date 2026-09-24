@@ -150,12 +150,19 @@ export default function SlideFrame({
     // Always re-inject from state: edited values can drive geometry (bar
     // heights, donut segments, partner logos), so the DOM is never kept stale.
     stage.innerHTML = html;
-    onAutofit?.(autofitAll(stage));
+    // Fit first, report second. `onAutofit?.(autofitAll(stage))` would skip
+    // the fit whenever nobody listens: an optional call never evaluates its
+    // arguments, and the main stage and the thumbnails pass no listener.
+    const shrunk = autofitAll(stage);
+    onAutofit?.(shrunk);
     // Web fonts may land after the first measurement and reflow the text;
     // refit once they are ready (no-op when already loaded).
     let alive = true;
     document.fonts.ready.then(() => {
-      if (alive && stageRef.current === stage) onAutofit?.(autofitAll(stage));
+      if (alive && stageRef.current === stage) {
+        const refitted = autofitAll(stage);
+        onAutofit?.(refitted);
+      }
     });
     if (!editable) return () => { alive = false; };
 
