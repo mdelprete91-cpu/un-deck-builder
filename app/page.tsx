@@ -1020,7 +1020,7 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
             onClose={closeWizard}
           />
         )}
-        {aiModal && active && <EditWithAiModal slide={active} onSubmit={onEditWithAi} onClose={() => setAiModal(false)} />}
+        {aiModal && active && <EditWithAiModal slide={active} theme={theme} onSubmit={onEditWithAi} onClose={() => setAiModal(false)} />}
         {imagePicker != null && active && (
           <ImagePickerModal
             slot={mapSlotFor(active.layoutId, imagePicker)}
