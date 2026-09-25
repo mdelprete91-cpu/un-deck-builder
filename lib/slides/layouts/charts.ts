@@ -19,13 +19,17 @@ import { numeric, fmt } from "./stats";
  * labels and the series names carry `data-edit`.
  */
 
-/** The plot, under a two-line title and the legend row, above the x labels. */
-const PLOT = { x: 240, y: 340, w: 1580, h: 460 };
+/**
+ * The plot, under a two-line title and the legend row, above the x labels.
+ * The legend row ends at y 332 and the axis's top label starts at y 354,
+ * so the two never meet (they did at y 340, Mario, 25 Sep 2026).
+ */
+const PLOT = { x: 240, y: 372, w: 1580, h: 440 };
 const GRID = "#ECECEF";
 const AXIS = `font-family:${OPEN_SANS};font-weight:500;font-size:28px;line-height:1.3;color:#6F6F6F;`;
 /** Two lines of the 80px title: 176px of line boxes plus Manrope's descenders (scrollHeight reads 185). */
 const TITLE_FIT = 190;
-const LEGEND_Y = 292;
+const LEGEND_Y = 296;
 const LABEL_TOP = PLOT.y + PLOT.h + 16;
 
 /** Horizontal hairlines at 0, ¼, ½, ¾ and the max. */
@@ -103,7 +107,7 @@ function legend(series: string[], colors: string[]): string {
         `</div>`,
     )
     .join("");
-  return `<div style="position:absolute;left:${PLOT.x}px;top:${LEGEND_Y}px;display:flex;gap:48px;">${items}</div>`;
+  return `<div style="position:absolute;left:${PLOT.x}px;top:${LEGEND_Y}px;width:${PLOT.w}px;display:flex;flex-wrap:wrap;gap:8px 48px;">${items}</div>`;
 }
 
 function valuesOf(b: { value: number; values?: number[] }, k: number): number[] {

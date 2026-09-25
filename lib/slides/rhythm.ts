@@ -164,6 +164,33 @@ function isRepeatChart(content: SlideContent, previous: Set<string> | null): boo
   return true;
 }
 
+/**
+ * A series chart whose series are the categories themselves: every bar
+ * carries one figure and no series is used twice (Luna drew "Primaria,
+ * Secundaria, Unknown" as four stacked columns of one segment each, with a
+ * legend repeating the x labels, 25 Sep 2026). It is one distribution, and
+ * becomes the single-series chart of its size: the x labels stay, the
+ * legend goes.
+ */
+function fixDiagonalSeries(content: SlideContent): SlideContent {
+  if (content.layoutId !== "chart-columns-grouped" && content.layoutId !== "chart-columns-stacked" && content.layoutId !== "chart-line") return content;
+  const bars = content.bars ?? [];
+  if (bars.length < 2 || !bars.every((b) => b.values && b.values.length >= 2)) return content;
+  const used = new Set<number>();
+  for (const b of bars) {
+    const hot = b.values!.map((v, i) => (v > 0 ? i : -1)).filter((i) => i >= 0);
+    if (hot.length !== 1 || used.has(hot[0])) return content;
+    used.add(hot[0]);
+  }
+  const { series: _s, ...rest } = content;
+  void _s;
+  return {
+    ...rest,
+    layoutId: bars.length <= 5 ? "chart-bars" : "chart-columns-wide",
+    bars: bars.map(({ values, ...b }) => ({ ...b, value: values!.find((v) => v > 0) ?? 0 })),
+  };
+}
+
 /** Layouts whose items are a figure and a label. */
 const STATS_FAMILY = new Set<string>(["stat-grid", "two-stats", "brand-equity"]);
 
@@ -214,7 +241,7 @@ export function makeRhythm(opts: RhythmOptions = {}): (content: SlideContent) =>
       accepted++;
       return content;
     }
-    const fixed = fixEmptySection(fixHeroWithoutFigure(fixNonNumericStats(fixLonelyTimeline(content))));
+    const fixed = fixEmptySection(fixHeroWithoutFigure(fixNonNumericStats(fixLonelyTimeline(fixDiagonalSeries(content)))));
     // A dropped slide never counts against the cap.
     if (!fixed || isRepeatChart(fixed, lastChart)) return null;
     content = fixed;

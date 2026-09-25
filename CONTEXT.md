@@ -376,7 +376,9 @@ guard, all pure functions, none touching the user's words:
   a photo, Luna's first slip, 25 Sep 2026) takes a stray `support`/`subtitle` as its body or is
   dropped, never counted against the cap; a chart whose every (label, figure) pair is already on
   the previous chart is dropped too (Luna drew a three-line trend and then one line per series
-  from the same table, 25 Sep 2026). `normalizeSlide` drops a slide with no text at all.
+  from the same table, 25 Sep 2026); a series chart whose series are the categories themselves
+  (one figure per bar, no series used twice) becomes chart-bars or chart-columns-wide, since it is
+  one distribution wearing a legend. `normalizeSlide` drops a slide with no text at all.
 - **`lib/slides/voice.ts`**, in the route on every string the model wrote: the banned words
   (leveraging, synergies, cutting-edge, revolutionary, empower, unlock) become plain ones, forms
   preserved, unless the brief itself uses the word.
@@ -392,8 +394,8 @@ Seven chart layouts, all on white, all read `bars` and all open the Data panel o
 `[data-chart]` (`isChartLayout` in `schema.ts` is the guard, keyed off `ARRAY_LIMITS`). The
 template's two, `chart-bars` (2-5 columns beside a legend) and `donut-chart`, are as they were.
 The five drawn on 25 Sep 2026 in `layouts/charts.ts` share one geometry: the 80px title at the
-100/100 origin with a two-line budget, the legend row at y 284 when there is more than one series,
-the plot at `PLOT` (x 240, y 340, 1580 x 460) with chart-bars' grid and grey max/half/0 axis in the
+100/100 origin with a two-line budget, the legend row at y 296 when there is more than one series,
+the plot at `PLOT` (x 240, y 372, 1580 x 440) with chart-bars' grid and grey max/half/0 axis in the
 left margin, category labels under it. Things that follow:
 
 - **`bars[i].value` is a real figure.** The zod schema clamped it at 100 until 25 Sep 2026, so a
