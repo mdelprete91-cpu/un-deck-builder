@@ -1042,10 +1042,11 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
             <div className="relative min-h-0 flex-1 overflow-hidden p-6 pb-10" aria-busy aria-live="polite">
               <div className="gen-fit">
                 <div className="gen-stage" style={{ "--gen-ratio": pageSize.w / pageSize.h } as CSSProperties}>
-                  <div className="gen-slab" />
+                  <div className="gen-slab flex items-center justify-center">
+                    <span className="text-base text-ink-muted">Generating…</span>
+                  </div>
                 </div>
               </div>
-              <span className="sr-only">Generating your deck…</span>
             </div>
           </>
         ) : state.slides.length === 0 ? (
