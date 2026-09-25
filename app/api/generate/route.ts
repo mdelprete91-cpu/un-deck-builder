@@ -1,4 +1,4 @@
-import Anthropic from "@anthropic-ai/sdk";
+import OpenAI from "openai";
 import {
   buildSystemPrompt,
   buildUserContent,
@@ -17,7 +17,13 @@ import { cleanVoice } from "@/lib/slides/voice";
 
 export const runtime = "nodejs";
 
-const MODEL = "claude-haiku-4-5-20251001";
+/**
+ * GPT-6 Luna (Mario's call, 25 Sep 2026, in place of claude-haiku-4-5): the
+ * fast model of the GPT-6 series, about a tenth of Haiku's price. The job is
+ * the same constrained one, so reasoning is off: the schema and the catalog
+ * do the constraining, and thinking tokens would only add latency and cost.
+ */
+const MODEL = "gpt-6-luna";
 /**
  * Both prompts are built once at module load: nothing per-request may go in
  * here (that is what the user message is for), and building two strings costs
@@ -55,9 +61,23 @@ function stripEmptyPage(page: unknown): unknown {
   return { ...(stripEmptyFields(page) as Record<string, unknown>), blocks };
 }
 
-// The output schema cannot pin the slide count: the API accepts minItems of
-// 0 or 1 only (tried 22 Sep 2026). A short deck is topped up client-side
-// instead, see onGenerate in app/page.tsx.
+/** Plain language for the user; the status and the API's own words stay for the console. */
+function describeError(err: unknown): string {
+  if (err instanceof OpenAI.AuthenticationError) return "Invalid OPENAI_API_KEY";
+  if (err instanceof OpenAI.RateLimitError) return "Rate limited by the OpenAI API. Wait a moment and retry.";
+  if (err instanceof OpenAI.APIError) {
+    const overloaded = err.status === 503 || err.code === "server_is_overloaded" || /overloaded/i.test(err.message);
+    return overloaded
+      ? "The AI service is momentarily overloaded (this is on OpenAI's side, not your prompt). Try again in a few seconds."
+      : `OpenAI API error (${err.status ?? "network"}): ${err.message}`;
+  }
+  if (err instanceof Error) return err.message;
+  return "Generation failed";
+}
+
+// The output schema cannot pin the slide count (minItems is not part of the
+// strict subset either). A short deck is topped up client-side instead, see
+// onGenerate in app/page.tsx.
 export async function POST(request: Request): Promise<Response> {
   let body: GenerateBody;
   try {
@@ -79,12 +99,12 @@ export async function POST(request: Request): Promise<Response> {
     if (attachments.length === 0) return new Response("Missing brief", { status: 400 });
     body.brief = "Build it from the attached material.";
   }
-  if (!process.env.ANTHROPIC_API_KEY) {
-    return new Response("ANTHROPIC_API_KEY is not configured", { status: 500 });
+  if (!process.env.OPENAI_API_KEY) {
+    return new Response("OPENAI_API_KEY is not configured", { status: 500 });
   }
 
-  // 4 retries (default 2): rides out transient 529 "overloaded" spikes
-  const client = new Anthropic({ maxRetries: 4 });
+  // 4 retries (default 2): rides out transient 503 "overloaded" spikes
+  const client = new OpenAI({ maxRetries: 4 });
   const isAdd = body.mode === "add";
   const twoPager = body.format === "two-pager";
   // The count is the brief's when it names one, else the biggest reasonable
@@ -94,11 +114,11 @@ export async function POST(request: Request): Promise<Response> {
   const named = typeof body.count === "number" ? body.count + (body.perItem ? 2 : 0) : 20;
   const count = body.mode === "regenerate" ? 1 : Math.min(Math.max(named, 1), 22);
   // Add mode carries extra output (insertAfter + refreshed agenda bullets).
-  // Every slide carries all thirteen required fields, so a content-heavy
-  // slide (a PDF behind it) costs 400-700 tokens: 650 keeps twenty of them
-  // under the ceiling. An A4 page of text is worth about four slides. The
-  // stream reports truncation and the client shows it, but the parser never
-  // emits a slide cut in half, so the budget has to be honest.
+  // Every slide carries all its required fields, so a content-heavy slide (a
+  // PDF behind it) costs 400-700 tokens: 650 keeps twenty of them under the
+  // ceiling. An A4 page of text is worth about four slides. The stream
+  // reports truncation and the client shows it, but the parser never emits a
+  // slide cut in half, so the budget has to be honest.
   const perItem = twoPager ? 1600 : 650;
   const maxTokens = Math.min(800 + perItem * count + (isAdd ? 400 : 0), 20000);
   const encoder = new TextEncoder();
@@ -110,40 +130,60 @@ export async function POST(request: Request): Promise<Response> {
       const parser = new SlideStreamParser();
       let index = 0;
       let raw = "";
+      let refusal = "";
       try {
-        const messageStream = client.messages.stream({
+        const schema = twoPager
+          ? isAdd
+            ? ADD_PAGES_OUTPUT_SCHEMA
+            : PAGES_OUTPUT_SCHEMA
+          : isAdd
+            ? ADD_OUTPUT_SCHEMA
+            : SLIDES_OUTPUT_SCHEMA;
+        const events = await client.responses.create({
           model: MODEL,
-          max_tokens: maxTokens,
-          system: SYSTEM_PROMPTS[twoPager ? "two-pager" : "slides"],
-          output_config: {
+          instructions: SYSTEM_PROMPTS[twoPager ? "two-pager" : "slides"],
+          input: [{ role: "user", content: buildUserContent(body) }],
+          text: {
             format: {
               type: "json_schema",
-              schema: twoPager
-                ? isAdd
-                  ? ADD_PAGES_OUTPUT_SCHEMA
-                  : PAGES_OUTPUT_SCHEMA
-                : isAdd
-                  ? ADD_OUTPUT_SCHEMA
-                  : SLIDES_OUTPUT_SCHEMA,
+              name: twoPager ? "pages" : "slides",
+              schema: schema as unknown as Record<string, unknown>,
+              strict: true,
             },
           },
-          messages: [{ role: "user", content: buildUserContent(body) }],
+          reasoning: { effort: "none" },
+          max_output_tokens: maxTokens,
+          stream: true,
         });
 
-        for await (const event of messageStream) {
-          if (event.type === "content_block_delta" && event.delta.type === "text_delta") {
-            raw += event.delta.text;
-            for (const slide of parser.feed(event.delta.text)) {
+        let stopReason = "stop";
+        let usage = { inputTokens: 0, outputTokens: 0 };
+        for await (const event of events) {
+          if (event.type === "response.output_text.delta") {
+            raw += event.delta;
+            for (const slide of parser.feed(event.delta)) {
               send({
                 type: "slide",
                 index: index++,
                 slide: cleanVoice(twoPager ? stripEmptyPage(slide) : stripEmptyFields(slide), body.brief ?? ""),
               });
             }
+          } else if (event.type === "response.refusal.delta") {
+            refusal += event.delta;
+          } else if (event.type === "response.completed" || event.type === "response.incomplete") {
+            const r = event.response;
+            // The one truncation the client must hear about is the token
+            // budget; anything else incomplete surfaces as its own reason.
+            stopReason = event.type === "response.incomplete" ? (r.incomplete_details?.reason ?? "incomplete") : "stop";
+            usage = { inputTokens: r.usage?.input_tokens ?? 0, outputTokens: r.usage?.output_tokens ?? 0 };
+          } else if (event.type === "response.failed") {
+            throw new Error(event.response.error?.message ?? "The model returned no response");
+          } else if (event.type === "error") {
+            throw new Error(event.message);
           }
         }
+        if (refusal) throw new Error(`The model declined this brief: ${refusal}`);
 
-        const final = await messageStream.finalMessage();
         if (twoPager && isAdd) {
           try {
             const parsed = JSON.parse(raw) as { insertAfter?: number };
@@ -161,28 +201,12 @@ export async function POST(request: Request): Promise<Response> {
         }
         send({
           type: "done",
-          stopReason: final.stop_reason,
-          truncated: final.stop_reason === "max_tokens",
-          usage: {
-            inputTokens: final.usage.input_tokens,
-            outputTokens: final.usage.output_tokens,
-          },
+          stopReason,
+          truncated: stopReason === "max_output_tokens",
+          usage,
         });
       } catch (err) {
-        let message = "Generation failed";
-        if (err instanceof Anthropic.AuthenticationError) {
-          message = "Invalid ANTHROPIC_API_KEY";
-        } else if (err instanceof Anthropic.RateLimitError) {
-          message = "Rate limited by the Anthropic API. Wait a moment and retry.";
-        } else if (err instanceof Anthropic.APIError) {
-          message =
-            err.status === 529 || /overloaded/i.test(err.message)
-              ? "The AI service is momentarily overloaded (this is on Anthropic's side, not your prompt). Try again in a few seconds."
-              : `Anthropic API error (${err.status ?? "network"}): ${err.message}`;
-        } else if (err instanceof Error) {
-          message = err.message;
-        }
-        send({ type: "error", message });
+        send({ type: "error", message: describeError(err) });
       } finally {
         controller.close();
       }

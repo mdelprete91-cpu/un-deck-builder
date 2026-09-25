@@ -1,5 +1,5 @@
 import type { ImagePos, Slide, SlideContent } from "./schema";
-import { ensureId, isPage, PRIMARY_ARRAY } from "./schema";
+import { ensureId, isPage, normalizeSeries, PRIMARY_ARRAY } from "./schema";
 import { MAX_BLOCKS_PER_PAGE, PAGE_BLOCK_LIMITS, type PageBlockType } from "./pages/schema";
 import { defaultBlock, newPageItem } from "./pages/presets";
 import { newItem, defaultContent } from "./defaults";
@@ -98,7 +98,7 @@ export type DeckAction =
   | { type: "DELETE_BLOCK"; index: number; block: number }
   | { type: "MOVE_BLOCK"; index: number; from: number; to: number }
   | { type: "TOGGLE_CELL"; index: number; row: number; col: number }
-  | { type: "SET_BARS"; index: number; bars: { label: string; value: number; color?: string }[] }
+  | { type: "SET_BARS"; index: number; bars: { label: string; value: number; values?: number[]; color?: string }[]; series?: string[] }
   | { type: "SET_LOGO"; index: number; slug: string; dataUrl: string }
   | { type: "SET_IMAGE"; index: number; dataUrl: string; path?: string }
   | { type: "CLEAR_IMAGE"; index: number; path?: string }
@@ -350,7 +350,11 @@ function reduce(state: DeckState, action: DeckAction): DeckState {
       const slide = state.slides[action.index];
       if (!slide || isPage(slide)) return state;
       const slides = [...state.slides];
-      slides[action.index] = { ...structuredClone(slide), bars: action.bars };
+      const next = { ...structuredClone(slide), bars: action.bars };
+      if (action.series) next.series = action.series;
+      // The contract (one figure per series on every bar) holds after every edit.
+      normalizeSeries(next);
+      slides[action.index] = next;
       return { ...state, ...remember(state), slides };
     }
     case "SET_LOGO": {

@@ -4,6 +4,7 @@ import * as basic from "./basic";
 import * as cards from "./cards";
 import * as stats from "./stats";
 import * as tables from "./tables";
+import * as charts from "./charts";
 import { renderPage, type PageCtx } from "../pages/render";
 
 /**
@@ -37,6 +38,11 @@ export const LAYOUTS: Record<LayoutId, { label: string; render: RenderFn }> = {
   "single-stat": { label: "Single stat", render: stats.singleStat },
   "chart-bars": { label: "Bar chart", render: stats.chartBars },
   "donut-chart": { label: "Donut chart", render: stats.donutChart },
+  "chart-columns-wide": { label: "Wide column chart", render: charts.columnsWide },
+  "chart-bars-horizontal": { label: "Horizontal bars", render: charts.barsHorizontal },
+  "chart-line": { label: "Line chart", render: charts.line },
+  "chart-columns-grouped": { label: "Grouped columns", render: charts.columnsGrouped },
+  "chart-columns-stacked": { label: "Stacked columns", render: charts.columnsStacked },
   timeline: { label: "Timeline", render: stats.timeline },
   "timeline-phases": { label: "Timeline phases", render: stats.timelinePhases },
   "example-image-left": { label: "Text + photo left", render: cards.exampleImage("left") },

@@ -4,7 +4,7 @@ import { ArrowUp, ChartColumn, ChevronDown, Copy, History, Image as ImageIcon, L
 import { useEffect, useLayoutEffect, useReducer, useRef, useState, type CSSProperties } from "react";
 import { BRANDS } from "@/lib/slides/brand";
 import { DEFAULT_DECK_NAME, deckReducer, initialDeckState, readPath } from "@/lib/slides/state";
-import { isPage, normalizeSlide, PRIMARY_ARRAY, type LayoutId, type SlideContent } from "@/lib/slides/schema";
+import { isChartLayout, isPage, normalizeSlide, PRIMARY_ARRAY, type LayoutId, type SlideContent } from "@/lib/slides/schema";
 import { renderSlide } from "@/lib/slides/layouts";
 import { A4_PX } from "@/lib/slides/pages/a4";
 import { PAGE_BLOCK_LIMITS, type PageBlock } from "@/lib/slides/pages/schema";
@@ -458,6 +458,11 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
     setAttachments((list) => list.filter((a) => a.id !== id));
     setAttachError(null);
   };
+  // "What should the deck draw from this sheet": the answer sits on the
+  // spreadsheet attachment and goes out with it, never anywhere else.
+  const onAttachmentInsights = (id: string, insights: string) => {
+    setAttachments((list) => list.map((a) => (a.id === id && a.kind === "text" ? { ...a, insights } : a)));
+  };
 
   const onGenerate = async () => {
     const brief = state.brief;
@@ -636,7 +641,7 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
         : { type: "ADD_ITEM", index: state.activeIndex },
     );
 
-  const isChart = active?.layoutId === "chart-bars" || active?.layoutId === "donut-chart";
+  const isChart = !!active && isChartLayout(active.layoutId);
   const activeHtml = active
     ? renderSlide(active, theme, { index: state.activeIndex, total: state.slides.length })
     : "";
@@ -779,6 +784,7 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
         attachments={attachments}
         onAttach={onAttach}
         onRemoveAttachment={onRemoveAttachment}
+        onAttachmentInsights={onAttachmentInsights}
         attachError={attachError}
         chaptersSkipped={chaptersSkipped}
       />
@@ -896,7 +902,7 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
               <ChartDataPanel
                 slide={active}
                 theme={theme}
-                onChange={(bars) => dispatch({ type: "SET_BARS", index: state.activeIndex, bars })}
+                onChange={(bars, series) => dispatch({ type: "SET_BARS", index: state.activeIndex, bars, series })}
                 onClose={() => setDataPanelOpen(false)}
               />
             )}

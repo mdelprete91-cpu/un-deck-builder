@@ -1,5 +1,5 @@
 import type { Attachment } from "@/lib/slides/attachments";
-import { MAX_ATTACHMENTS, MAX_REQUEST_BYTES, MAX_TEXT_PER_FILE } from "@/lib/slides/attachments";
+import { MAX_ATTACHMENTS, MAX_INSIGHTS_CHARS, MAX_REQUEST_BYTES, MAX_TEXT_PER_FILE } from "@/lib/slides/attachments";
 
 const IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/webp", "image/gif"]);
 const BASE64 = /^[A-Za-z0-9+/]+={0,2}$/;
@@ -33,7 +33,20 @@ export function sanitizeAttachments(input: unknown): Attachment[] | string {
       if (typeof a.text !== "string") return `"${name}" has no text`;
       const text = a.text.slice(0, MAX_TEXT_PER_FILE);
       total += text.length;
-      out.push({ id, name, kind: "text", text, bytes: text.length, truncated: a.truncated === true || a.text.length > MAX_TEXT_PER_FILE });
+      // The spreadsheet flag and its "what to draw" answer are plain client
+      // input too: the answer is capped, and only a spreadsheet carries one.
+      const spreadsheet = a.spreadsheet === true;
+      const insights = spreadsheet && typeof a.insights === "string" ? a.insights.slice(0, MAX_INSIGHTS_CHARS).trim() : "";
+      out.push({
+        id,
+        name,
+        kind: "text",
+        text,
+        bytes: text.length,
+        truncated: a.truncated === true || a.text.length > MAX_TEXT_PER_FILE,
+        ...(spreadsheet ? { spreadsheet: true } : {}),
+        ...(insights ? { insights } : {}),
+      });
     } else {
       return `"${name}" has an unknown attachment kind`;
     }

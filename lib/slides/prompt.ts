@@ -1,6 +1,6 @@
 import { CATALOG } from "./catalog";
 import type { Attachment } from "@/lib/slides/attachments";
-import type { ContentBlockParam } from "@anthropic-ai/sdk/resources/messages";
+import type { ResponseInputContent } from "openai/resources/responses/responses";
 import { PAGE_CATALOG } from "./page-catalog";
 import { AI_LAYOUT_IDS, type SlideContent } from "./schema";
 import { AI_BLOCK_TYPES } from "./pages/schema";
@@ -101,34 +101,49 @@ function attachmentsNote(body: GenerateBody): string {
   const n = body.attachments?.length ?? 0;
   if (n === 0) return "";
   const names = body.attachments!.map((a) => `"${a.name}"`).join(", ");
-  return `\n\nAttached reference material (${n} item${n === 1 ? "" : "s"}: ${names}) precedes this message. The ${body.format === "two-pager" ? "pages are" : "deck is"} about this material: take the subject, structure, facts, figures and names from it. The brief comes first on everything it says (length, angle, audience, which organisations to feature); where the brief is silent, the material decides. Quote numbers exactly as they appear, never invent what is not there, and do not copy long passages verbatim.`;
+  const sheets = body.attachments!.some((a) => a.kind === "text" && a.spreadsheet);
+  return (
+    `\n\nAttached reference material (${n} item${n === 1 ? "" : "s"}: ${names}) precedes this message. The ${body.format === "two-pager" ? "pages are" : "deck is"} about this material: take the subject, structure, facts, figures and names from it. The brief comes first on everything it says (length, angle, audience, which organisations to feature); where the brief is silent, the material decides. Quote numbers exactly as they appear, never invent what is not there, and do not copy long passages verbatim.` +
+    (sheets ? SPREADSHEET_NOTE : "")
+  );
 }
 
 /**
- * The full user turn: attachments first (PDFs and images as native blocks,
- * extracted text as labelled text blocks), then the brief and instructions.
- * Without attachments this is a single text block equal to buildUserMessage.
+ * A spreadsheet is rows, not an argument. Without this the model narrates
+ * the header row; with it, the figures the user asked for land on the
+ * chart and stat layouts, values as written in the cells.
  */
-export function buildUserContent(body: GenerateBody): ContentBlockParam[] {
-  const blocks: ContentBlockParam[] = [];
+const SPREADSHEET_NOTE =
+  " A spreadsheet is data, not prose: one table per sheet, first row usually the headers, and under it what the user wants drawn from it. Pick out exactly that (and, where the note is empty, whatever the brief needs). A comparison across rows becomes a chart-bars slide (chart-columns-wide past five categories, chart-bars-horizontal for a ranking), a trend over periods a chart-line, two or three measures side by side a chart-columns-grouped, parts of a total a chart-columns-stacked or a donut-chart, a headline figure a stat slide, each with the cell values as written; never narrate the column headers. Prefer figures that appear in the cells over ones you compute.";
+
+/**
+ * The full user turn: attachments first (PDFs as `input_file` parts, images
+ * as `input_image` parts, extracted text as labelled text parts), then the
+ * brief and instructions. Without attachments this is a single text part
+ * equal to buildUserMessage. Responses API shapes (OpenAI, 25 Sep 2026).
+ */
+export function buildUserContent(body: GenerateBody): ResponseInputContent[] {
+  const blocks: ResponseInputContent[] = [];
   for (const a of body.attachments ?? []) {
     if (a.kind === "pdf") {
       blocks.push({
-        type: "document",
-        source: { type: "base64", media_type: "application/pdf", data: a.data },
-        title: a.name,
+        type: "input_file",
+        filename: a.name,
+        file_data: `data:application/pdf;base64,${a.data}`,
       });
     } else if (a.kind === "image") {
-      blocks.push({ type: "text", text: `Attached image: "${a.name}"` });
-      blocks.push({ type: "image", source: { type: "base64", media_type: a.mediaType, data: a.data } });
+      blocks.push({ type: "input_text", text: `Attached image: "${a.name}"` });
+      blocks.push({ type: "input_image", image_url: `data:${a.mediaType};base64,${a.data}`, detail: "auto" });
     } else {
+      const label = /^https?:\/\//.test(a.name) ? "Linked page" : a.spreadsheet ? "Attached spreadsheet" : "Attached file";
+      const insights = a.spreadsheet && a.insights?.trim() ? `\nWhat to draw from this spreadsheet: ${a.insights.trim()}` : "";
       blocks.push({
-        type: "text",
-        text: `${/^https?:\/\//.test(a.name) ? "Linked page" : "Attached file"} "${a.name}"${a.truncated ? " (truncated)" : ""}:\n<<<\n${a.text}\n>>>`,
+        type: "input_text",
+        text: `${label} "${a.name}"${a.truncated ? " (truncated)" : ""}:\n<<<\n${a.text}\n>>>${insights}`,
       });
     }
   }
-  blocks.push({ type: "text", text: buildUserMessage(body) + attachmentsNote(body) });
+  blocks.push({ type: "input_text", text: buildUserMessage(body) + attachmentsNote(body) });
   return blocks;
 }
 
@@ -188,10 +203,12 @@ function buildPageUserMessage(body: GenerateBody): string {
 }
 
 /**
- * JSON schema for output_config.format — flat union of fields, validated
- * per-layout client-side. Every field is required: optional fields make the
- * grammar too complex for the API ("Schema is too complex" 400 on Haiku), so
- * the model fills unused fields with ""/[] and the route strips them.
+ * JSON schema for the route's structured output (`text.format`, strict) — a
+ * flat union of fields, validated per-layout client-side. Every field is
+ * required and `additionalProperties` is false on every object: that is what
+ * strict mode demands, and it was the shape already (optional fields made the
+ * grammar too complex for the Anthropic API, 22 Sep 2026). The model fills
+ * unused fields with ""/[] and the route strips them.
  */
 export const SLIDES_OUTPUT_SCHEMA = {
   type: "object",
@@ -232,11 +249,16 @@ export const SLIDES_OUTPUT_SCHEMA = {
             type: "array",
             items: {
               type: "object",
-              properties: { label: { type: "string" }, value: { type: "number" } },
-              required: ["label", "value"],
+              properties: {
+                label: { type: "string" },
+                value: { type: "number" },
+                values: { type: "array", items: { type: "number" } },
+              },
+              required: ["label", "value", "values"],
               additionalProperties: false,
             },
           },
+          series: { type: "array", items: { type: "string" } },
           contacts: {
             type: "array",
             items: {
@@ -265,6 +287,7 @@ export const SLIDES_OUTPUT_SCHEMA = {
           "blocks",
           "stats",
           "bars",
+          "series",
           "contacts",
         ],
         additionalProperties: false,

@@ -150,6 +150,63 @@ export function defaultContent(layoutId: LayoutId): SlideContent {
       };
     case "single-stat":
       return { layoutId, title: "Key number", stat: "100%", support: LOREM_ROW };
+    case "chart-columns-wide":
+      return {
+        layoutId,
+        title: "Schools mapped by country",
+        bars: ["Kenya", "Nigeria", "Brazil", "Rwanda", "Kazakhstan", "Sierra Leone", "Honduras", "El Salvador", "Zimbabwe", "Uzbekistan", "Botswana", "Namibia"].map(
+          (label, i) => ({ label, value: Math.round(12000 / (i + 1)) }),
+        ),
+      };
+    case "chart-bars-horizontal":
+      return {
+        layoutId,
+        title: "Connected schools by country",
+        bars: [
+          { label: "Kenya", value: 6100 },
+          { label: "Brazil", value: 4800 },
+          { label: "Nigeria", value: 3200 },
+          { label: "Rwanda", value: 2350 },
+          { label: "Honduras", value: 1200 },
+        ],
+      };
+    case "chart-line":
+      return {
+        layoutId,
+        title: "Connected schools over time",
+        series: ["Connected", "Mapped"],
+        bars: [
+          { label: "2021", value: 400, values: [400, 4000] },
+          { label: "2022", value: 1200, values: [1200, 6500] },
+          { label: "2023", value: 2600, values: [2600, 9000] },
+          { label: "2024", value: 4800, values: [4800, 11000] },
+          { label: "2025", value: 7100, values: [7100, 12000] },
+        ],
+      };
+    case "chart-columns-grouped":
+      return {
+        layoutId,
+        title: "Connected schools, 2024 vs 2025",
+        series: ["2024", "2025"],
+        bars: [
+          { label: "East Africa", value: 4200, values: [4200, 6100] },
+          { label: "West Africa", value: 1800, values: [1800, 2350] },
+          { label: "LatAm", value: 9800, values: [9800, 11200] },
+          { label: "Asia", value: 12000, values: [12000, 15400] },
+        ],
+      };
+    case "chart-columns-stacked":
+      return {
+        layoutId,
+        title: "Schools by connectivity type",
+        series: ["Fibre", "Mobile", "Satellite"],
+        bars: [
+          { label: "East Africa", value: 2100, values: [2100, 3200, 800] },
+          { label: "West Africa", value: 600, values: [600, 1200, 550] },
+          { label: "LatAm", value: 6500, values: [6500, 3900, 800] },
+          { label: "Asia", value: 9000, values: [9000, 5400, 1000] },
+        ],
+      };
     case "chart-bars":
       return {
         layoutId,

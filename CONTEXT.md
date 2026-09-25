@@ -17,8 +17,8 @@ approved catalog and writes the text that fills it. Every pixel comes from the "
 template, already signed off by the design team. Anything that gives the model more freedom over
 layout, color, or geometry is a regression, not a feature, no matter how good the output looks.
 
-Stack: Next.js 16.2 (App Router), React 19, TypeScript, Tailwind 4, Anthropic SDK, zod.
-Deployed on Vercel as `un-deck-builder`. One env var: `ANTHROPIC_API_KEY`.
+Stack: Next.js 16.2 (App Router), React 19, TypeScript, Tailwind 4, OpenAI SDK, zod.
+Deployed on Vercel as `un-deck-builder`. One env var: `OPENAI_API_KEY`.
 
 ## Non-negotiables
 
@@ -62,7 +62,10 @@ Do not change these without asking Mario first. They are decisions, not defaults
    judgment. If a slide looks wrong, the fix is usually the fit budget or the word limit, not the
    geometry.
 7. **Never invent a layout.** New slide types come from the template, not from the model and not
-   from us.
+   from us. One approved exception (Mario, 25 Sep 2026): the five full-width charts in
+   `lib/slides/layouts/charts.ts` (wide columns up to thirty, horizontal bars, line, grouped
+   columns, stacked columns) are derived from chart-bars, template 16: its title, axis, grid and
+   tints, with the plot run across the content width. See "Charts" below.
 8. **Slide renderers emit HTML strings with inline styles only.** No Tailwind classes, no external
    CSS. The same markup has to survive the editor preview, the thumbnails, the print root, the
    self-contained HTML export, and the PPTX capture. A class that only exists in `globals.css`
@@ -71,7 +74,7 @@ Do not change these without asking Mario first. They are decisions, not defaults
 ## The pipeline in one screen
 
 ```
-brief ──> app/api/generate/route.ts        streaming NDJSON route, claude-haiku-4-5
+brief ──> app/api/generate/route.ts        streaming NDJSON route, gpt-6-luna
              ├─ lib/slides/prompt.ts       system prompt = catalog + brand voice + hard rules
              ├─ lib/slides/parse.ts        incremental JSON scanner, slides stream in one by one
              └─ lib/slides/schema.ts       zod validation + normalizeSlide (clamps array sizes)
@@ -195,11 +198,24 @@ now only retires the last-session offer.
 
 ## The AI layer
 
-- Model: `claude-haiku-4-5-20251001`. Fast and cheap, about $0.01 for a 12-slide deck. The whole
-  design assumes a small model doing a constrained job.
-- **Every field in the output schema is required.** Optional fields made the grammar too complex and
-  the API returned "Schema is too complex". The model fills unused fields with `""` or `[]` and the
-  route strips them in `stripEmptyFields`. Do not "clean this up" by making fields optional.
+- Model: `gpt-6-luna` through the OpenAI Responses API (Mario's call, 25 Sep 2026; it replaced
+  `claude-haiku-4-5` outright, no provider switch). The fast model of the GPT-6 series, about a
+  tenth of Haiku's price: $0.10 per million input tokens, $0.50 output, so a 12-slide deck is
+  about $0.001. The whole design still assumes a small model doing a constrained job, and
+  `reasoning.effort` is `none` for the same reason: the schema and the catalog constrain, thinking
+  tokens would only add latency. The system prompt goes in `instructions`, the user turn in
+  `input`, the schema in `text.format` with `strict: true`; the stream's `response.output_text.delta`
+  feeds the same `SlideStreamParser`, `response.incomplete` with reason `max_output_tokens` is
+  the truncation the client hears about, a refusal (`response.refusal.delta`) is an error in plain
+  words. Errors: 401 says the key is invalid, 429 rate limited, 503 or `server_is_overloaded`
+  the overloaded message. Everything the guards, the QA suite and this file say about the model's
+  slips was measured on Haiku: re-run `tools/qa-suite.ts` and read the report before trusting them
+  on Luna.
+- **Every field in the output schema is required and every object has `additionalProperties:
+  false`.** That is what strict structured outputs demand (and it was the shape already: optional
+  fields made the Anthropic grammar "too complex"). The model fills unused fields with `""` or `[]`
+  and the route strips them in `stripEmptyFields`. Do not "clean this up" by making fields optional.
+  Strict mode also has no `minItems`, so the slide count is still enforced client-side.
 - **Prompt size is a cost and latency budget.** The catalog is compiled into the system prompt on
   every call. Keep new catalog lines to one tight line.
 - Three modes share the route: `generate`, `add` (returns new slides plus `insertAfter` plus
@@ -217,7 +233,7 @@ now only retires the last-session offer.
   row follow the lockup (`channelsFor` in `schema.ts`): Giga's handles only under the Giga lockup.
   `tools/qa-generate.py` scores a generated deck against its source (drift, coverage, count):
   run it after touching the prompt.
-- Errors are translated to plain language for the user, including the 529 overloaded case. Keep that
+- Errors are translated to plain language for the user, including the overloaded case. Keep that
   behavior when touching the route.
 - **The slide count comes from the brief.** `countFromBrief` in `app/page.tsx` reads "20-page",
   "in 6 slides", "Six slides", "10 diapositive" (digits or number words, English and Italian, from
@@ -268,8 +284,8 @@ now only retires the last-session offer.
 
 ## Attachments to the brief
 
-The prompt box takes reference files (PDF, Word, PowerPoint, text, images) via "Attach files" or a
-drop on the box. They exist to give the model the facts; they are **not** deck content.
+The prompt box takes reference files (PDF, Word, PowerPoint, Excel, text, images) via "Attach files"
+or a drop on the box. They exist to give the model the facts; they are **not** deck content.
 
 - **Session state only.** `attachments` lives in `app/page.tsx` state and travels in the
   `generate` and `add` request bodies. It is never written to deck state, the deck file or
@@ -298,6 +314,22 @@ drop on the box. They exist to give the model the facts; they are **not** deck c
   its URL (`buildUserContent` labels it "Linked page"). A failed fetch is skipped, never an
   error. The composer draws links in Giga Blue through a mirror div under the textarea
   (`splitLinks`), so the user sees the link was recognised.
+- **A spreadsheet is a text attachment with a question attached** (25 Sep 2026). `extractXlsx` in
+  `lib/slides/attachments.ts` reads the workbook in the browser with jszip (sheet list and
+  relationships, shared strings, `styles.xml` so a date cell reads `2025-03-01` and a percentage
+  `49%` instead of their serial numbers, hidden sheets skipped, blank rows dropped, `MAX_SHEET_ROWS`
+  a sheet cut by whole rows with a note, a `|` in a cell turned into `/`) and lays each sheet out as
+  a pipe table headed by its name. The attachment is `kind: "text"` with `spreadsheet: true`, so
+  the server contract did not change; the chip shows a sheet glyph and `components/SheetInsights.tsx`
+  renders a card under the chips with the one question Mario chose: "What should the deck draw from
+  this file?". The answer is `insights` on the attachment (session state, capped at
+  `MAX_INSIGHTS_CHARS`, re-capped in `attachments-server.ts`, only kept on a spreadsheet); the user
+  turn prints it under the table, and `attachmentsNote` adds `SPREADSHEET_NOTE` (data, not prose;
+  a comparison is a chart-bars, a share a donut, a headline figure a stat slide; cell values as
+  written) whenever a spreadsheet is attached. The model fills `bars[]` from the table itself
+  (Mario's call, 25 Sep 2026, over building the chart client-side). `.xls` is refused with a message
+  to save as `.xlsx`; CSV was already text. `.omc/attach-test.mts xlsx <file>` prints what the model
+  would see.
 - **`regenerate` does not carry attachments.** It already gets the brief and the slide; re-sending
   a PDF for every single-slide rewrite would multiply the cost for little gain.
 - The composer is `components/PromptBox.tsx`: it owns the textarea, the hidden file input behind
@@ -334,6 +366,44 @@ guard, all pure functions, none touching the user's words:
 
 Left to the model, and it still slips about once in twenty: Giga's own figures in a deck that
 never named Giga, a year in a body ("by 2030"), a KR renumbered, the lockup's name as a title.
+
+## Charts
+
+Seven chart layouts, all on white, all read `bars` and all open the Data panel on a click on
+`[data-chart]` (`isChartLayout` in `schema.ts` is the guard, keyed off `ARRAY_LIMITS`). The
+template's two, `chart-bars` (2-5 columns beside a legend) and `donut-chart`, are as they were.
+The five drawn on 25 Sep 2026 in `layouts/charts.ts` share one geometry: the 80px title at the
+100/100 origin with a two-line budget, the legend row at y 284 when there is more than one series,
+the plot at `PLOT` (x 240, y 340, 1580 x 460) with chart-bars' grid and grey max/half/0 axis in the
+left margin, category labels under it. Things that follow:
+
+- **`bars[i].value` is a real figure.** The zod schema clamped it at 100 until 25 Sep 2026, so a
+  bar of 12,450 schools failed the whole slide silently (the model then wrote shares instead).
+  Every chart scales to its largest value; only the donut treats values as shares.
+- **Series charts read `series` + `bars[i].values`.** `SERIES_LAYOUTS` in `schema.ts` says which
+  (line 1-3, grouped 2-3, stacked 2-4). `normalizeSeries` makes the contract true after every
+  parse and every Data panel edit: `series` holds between min and max names, every bar carries
+  exactly one figure per series (a lone `value` counts as the first, a missing one is 0), and a
+  single-series layout drops both and keeps the first series as `value`, so the switcher can move
+  a slide between families without losing its data. Both fields are in the output schema
+  (required, like everything), so every slide the model writes carries `series: []` and
+  `values: []`; `stripEmptyFields` and the zod transforms drop them.
+- **Values on the series charts are not `data-edit`.** Three figures on one x position have no
+  room for a caret each; the Data panel is their editor. Category labels and series names are
+  editable on the slide.
+- **Thirty labels rotate.** Past twelve categories `xLabels` turns them 45°, right-aligned to
+  the column. A rotation is the one CSS transform the PPTX walker keeps as a native property
+  (`isRotationOnly`), so the export follows without a branch. The line chart's lines are an
+  inline SVG, which the walker rasterises on its own, like an icon.
+- **Colours**: single-series charts are the accent (one tint, thirty bars; a hand-picked
+  `color` still wins), series charts take `seriesColors`: the UNICEF Brand Book series where the
+  brand has one, spread tints of the accent on Giga. The Data panel hides the swatch on series
+  charts, where a per-category colour would mean nothing.
+- **The Data panel is per layout**: row limits from `PRIMARY_ARRAY` (thirty rows scroll), series
+  names in a header row with add/remove inside the layout's span. `SET_BARS` takes `series` and
+  runs `normalizeSeries`.
+- `.omc/charts-qa.ts` renders every chart at its minimum and maximum, both palettes, with the
+  real autofit: run it after touching a renderer.
 
 ## The layout switcher
 
@@ -596,7 +666,7 @@ Things worth knowing before touching it:
 
 ```bash
 npm install
-echo "ANTHROPIC_API_KEY=sk-ant-..." > .env.local
+echo "OPENAI_API_KEY=sk-..." > .env.local
 npm run dev
 ```
 

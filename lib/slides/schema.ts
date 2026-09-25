@@ -27,6 +27,15 @@ export const AI_LAYOUT_IDS = [
   "single-stat",
   "chart-bars",
   "donut-chart",
+  // Drawn 25 Sep 2026 from chart-bars' axis, grid and tints, full width
+  // under the title (Mario's approved exception to "layouts come from the
+  // template"): many categories, a ranking, a trend, a comparison, a
+  // composition. The last three read `series` + `bars[i].values`.
+  "chart-columns-wide",
+  "chart-bars-horizontal",
+  "chart-line",
+  "chart-columns-grouped",
+  "chart-columns-stacked",
   "timeline",
   "timeline-phases",
   "example-image-left",
@@ -79,9 +88,24 @@ export interface Stat {
 }
 export interface Bar {
   label: string;
-  value: number; // 0–100
+  /** A real figure, the chart scales to the largest (a share on the donut). */
+  value: number;
+  /** One figure per entry of the slide's `series`, on the multi-series charts; `value` is ignored there. */
+  values?: number[];
   /** Hand-picked, one of CHART_COLORS; absent means the brand series decides. */
   color?: string;
+}
+
+/** The chart layouts that read `series` and `bars[i].values`, with the series they hold. */
+export const SERIES_LAYOUTS: Partial<Record<LayoutId, [number, number]>> = {
+  "chart-line": [1, 3],
+  "chart-columns-grouped": [2, 3],
+  "chart-columns-stacked": [2, 4],
+};
+
+/** Every layout whose data the Data panel edits (a `bars` array, with or without series). */
+export function isChartLayout(layoutId: LayoutId): boolean {
+  return layoutId in ARRAY_LIMITS && ARRAY_LIMITS[layoutId]?.bars !== undefined;
 }
 export interface Contact {
   name: string;
@@ -108,6 +132,8 @@ export interface SlideContent {
   blocks?: Block[];
   stats?: Stat[];
   bars?: Bar[];
+  /** Series names (legend) for the multi-series charts, see SERIES_LAYOUTS. */
+  series?: string[];
   contacts?: Contact[];
   /** Closing slide: the social row, seeded from DEFAULT_CHANNELS. */
   channels?: Channel[];
@@ -195,7 +221,13 @@ const statSchema = z.object({
 });
 const barSchema = z.object({
   label: z.string().default(""),
-  value: z.coerce.number().min(0).max(100).default(50),
+  // A real figure: 12,450 schools is a bar too. Until 25 Sep 2026 this
+  // clamped at 100 and any larger number failed the slide silently.
+  value: z.coerce.number().min(0).default(0),
+  values: z
+    .array(z.coerce.number().min(0))
+    .optional()
+    .transform((v) => (v && v.length ? v : undefined)),
   // A hand-picked colour, one of CHART_COLORS; anything else is dropped so
   // no colour outside the brand list can arrive through a file.
   color: z
@@ -227,6 +259,10 @@ export const slideContentSchema = z.object({
   blocks: z.array(blockSchema).optional(),
   stats: z.array(statSchema).optional(),
   bars: z.array(barSchema).optional(),
+  series: z
+    .array(z.string())
+    .optional()
+    .transform((v) => (v && v.length ? v : undefined)),
   contacts: z.array(contactSchema).optional(),
   channels: z.array(channelSchema).optional(),
   image: z.string().optional(),
@@ -273,6 +309,11 @@ const ARRAY_LIMITS: Partial<Record<LayoutId, Partial<Record<ArrayField, [number,
   "two-stats": { stats: [1, 2] },
   "chart-bars": { bars: [2, 5] },
   "donut-chart": { bars: [2, 5] },
+  "chart-columns-wide": { bars: [3, 30] },
+  "chart-bars-horizontal": { bars: [2, 15] },
+  "chart-line": { bars: [3, 24] },
+  "chart-columns-grouped": { bars: [2, 10] },
+  "chart-columns-stacked": { bars: [2, 10] },
   partner: { bullets: [1, 15] },
   timeline: { blocks: [2, 5] },
   "timeline-phases": { blocks: [1, 5] },
@@ -321,6 +362,35 @@ function hasText(slide: SlideContent): boolean {
   for (const b of slide.bars ?? []) strings.push(b.label);
   for (const c of slide.contacts ?? []) strings.push(c.name);
   return strings.some((t) => !!t?.trim());
+}
+
+/**
+ * The multi-series contract, made true whatever arrived: `series` holds
+ * between the layout's min and max names, and every bar carries exactly one
+ * figure per series (a missing one is 0, a lone `value` counts as the first).
+ * A single-series layout drops both, so a slide moved from a line chart to
+ * plain columns keeps its first series as `value`.
+ */
+export function normalizeSeries(slide: SlideContent): void {
+  const span = SERIES_LAYOUTS[slide.layoutId];
+  if (!span) {
+    if (slide.bars?.some((b) => b.values)) {
+      slide.bars = slide.bars.map(({ values, ...b }) => ({ ...b, value: values?.[0] ?? b.value }));
+    }
+    delete slide.series;
+    return;
+  }
+  const [min, max] = span;
+  let series = (slide.series ?? []).slice(0, max);
+  const widest = Math.max(0, ...(slide.bars ?? []).map((b) => b.values?.length ?? 0));
+  while (series.length < Math.max(min, Math.min(widest, max))) series.push(`Series ${series.length + 1}`);
+  series = series.map((s, i) => (s.trim() ? s : `Series ${i + 1}`));
+  slide.series = series;
+  slide.bars = (slide.bars ?? []).map((b) => {
+    const values = (b.values ?? [b.value]).slice(0, series.length);
+    while (values.length < series.length) values.push(0);
+    return { ...b, value: values[0], values };
+  });
 }
 
 export function normalizeSlide(
@@ -377,6 +447,7 @@ export function normalizeSlide(
       if (arr.length > max) (slide[field] as unknown[]) = arr.slice(0, max);
     }
   }
+  if (isChartLayout(slide.layoutId)) normalizeSeries(slide);
   return slide;
 }
 

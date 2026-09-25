@@ -44,11 +44,13 @@ export default function GenerationReadout({
 }
 
 /**
- * claude-haiku-4-5 list price: $1 per million input tokens, $5 per million
- * output tokens (September 2026). Update here if the route changes model.
+ * gpt-6-luna list price: $0.10 per million input tokens, $0.50 per million
+ * output tokens (September 2026). Cached input is billed at a tenth of that,
+ * so this is the ceiling, not the invoice. Update here if the route changes
+ * model.
  */
 export function cost(u: Usage): number {
-  return (u.inputTokens * 1 + u.outputTokens * 5) / 1_000_000;
+  return (u.inputTokens * 0.1 + u.outputTokens * 0.5) / 1_000_000;
 }
 
 export function formatCost(usd: number): string {

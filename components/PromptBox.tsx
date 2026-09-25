@@ -4,6 +4,7 @@ import { ArrowUp, Circle, CircleCheck, LoaderCircle, Plus } from "lucide-react";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { ATTACHMENT_ACCEPT, type Attachment } from "@/lib/slides/attachments";
 import AttachmentsRow from "@/components/AttachmentsRow";
+import SheetInsights from "@/components/SheetInsights";
 import Button from "@/components/Button";
 import { splitLinks } from "@/lib/slides/links";
 
@@ -15,7 +16,9 @@ import { splitLinks } from "@/lib/slides/links";
  *
  * The chat-composer shape is deliberate. Users know it, and it makes the rule
  * that matters here visible: Chapters is an input to the same press, not a
- * view option, so it sits next to the button that sends it.
+ * view option, so it sits next to the button that sends it. The same goes
+ * for the card under a spreadsheet chip ("what should the deck draw from
+ * it"): it is part of what Generate sends, so it lives inside the surface.
  */
 
 const MAX_HEIGHT = 280;
@@ -28,6 +31,7 @@ export default function PromptBox({
   attachments,
   onAttach,
   onRemoveAttachment,
+  onAttachmentInsights,
   onGenerate,
   generating,
   blocked = false,
@@ -40,6 +44,8 @@ export default function PromptBox({
   attachments: Attachment[];
   onAttach: (files: File[]) => Promise<void> | void;
   onRemoveAttachment: (id: string) => void;
+  /** The answer to the spreadsheet card, kept on the attachment itself. */
+  onAttachmentInsights: (id: string, insights: string) => void;
   onGenerate: () => void;
   generating: boolean;
   /** A file was refused: Generate waits until the user removes or replaces it. */
@@ -161,11 +167,19 @@ export default function PromptBox({
         </div>
 
         {attachments.length > 0 && (
-          <div className="px-3 pb-1">
+          <div className="flex flex-col gap-2 px-3 pb-1">
             <AttachmentsRow
               attachments={attachments}
               disabled={generating}
               onRemove={onRemoveAttachment}
+            />
+            <SheetInsights
+              attachments={attachments}
+              disabled={generating}
+              onChange={onAttachmentInsights}
+              onSubmit={() => {
+                if (canSend) onGenerate();
+              }}
             />
           </div>
         )}
@@ -180,7 +194,7 @@ export default function PromptBox({
             onMouseLeave={() => setHover(false)}
             disabled={generating || reading}
             aria-label={reading ? "Reading files" : "Attach files"}
-            title="Attach a PDF, Word, PowerPoint, text file or image"
+            title="Attach a PDF, Word, PowerPoint, Excel, text file or image"
           >
             {/* The label's width animates through a grid track, never through
                 `width`; folded, the track is 0 and the pill is the 36px square.

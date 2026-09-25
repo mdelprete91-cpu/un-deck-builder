@@ -1,6 +1,6 @@
 "use client";
 
-import { File as FileIcon, FileText, Image as ImageIcon, X } from "lucide-react";
+import { File as FileIcon, FileSpreadsheet, FileText, Image as ImageIcon, X } from "lucide-react";
 import { formatBytes, type Attachment } from "@/lib/slides/attachments";
 
 /**
@@ -31,7 +31,7 @@ export default function AttachmentsRow({
           }
           className="group inline-flex h-7 max-w-full items-center gap-1.5 rounded-full bg-giga-tint pl-2 pr-1 text-xs font-medium text-giga"
         >
-          <FileGlyph kind={a.kind} />
+          <FileGlyph attachment={a} />
           <span className="max-w-[150px] truncate">{a.name}</span>
           <span className="text-[10px] font-normal text-ink-muted">
             {a.kind === "text" && a.textOnly ? "text only" : formatBytes(a.bytes)}
@@ -51,8 +51,9 @@ export default function AttachmentsRow({
   );
 }
 
-function FileGlyph({ kind }: { kind: Attachment["kind"] }) {
-  if (kind === "image") return <ImageIcon size={12} aria-hidden />;
-  if (kind === "text") return <FileText size={12} aria-hidden />;
+function FileGlyph({ attachment: a }: { attachment: Attachment }) {
+  if (a.kind === "image") return <ImageIcon size={12} aria-hidden />;
+  if (a.kind === "text" && a.spreadsheet) return <FileSpreadsheet size={12} aria-hidden />;
+  if (a.kind === "text") return <FileText size={12} aria-hidden />;
   return <FileIcon size={12} aria-hidden />;
 }

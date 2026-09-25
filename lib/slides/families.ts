@@ -11,7 +11,7 @@ import { LAYOUTS } from "./layouts";
  * A layout absent from this table never appears in the switcher. Add every
  * new layout here, or it can only be reached through Add slide.
  */
-export type Family = "blocks" | "stats" | "bars" | "section" | "hero" | "photo";
+export type Family = "blocks" | "stats" | "bars" | "series" | "section" | "hero" | "photo";
 
 export interface FamilyEntry {
   family: Family;
@@ -35,6 +35,11 @@ export const LAYOUT_FAMILIES: Partial<Record<LayoutId, FamilyEntry>> = {
   "brand-equity": { family: "stats", note: "An intro paragraph over the numbers" },
   "chart-bars": { family: "bars", note: "Column chart" },
   "donut-chart": { family: "bars", note: "Donut with legend" },
+  "chart-columns-wide": { family: "bars", note: "Columns across the full width" },
+  "chart-bars-horizontal": { family: "bars", note: "Horizontal bars, a ranking" },
+  "chart-line": { family: "series", note: "Lines over time" },
+  "chart-columns-grouped": { family: "series", note: "Columns side by side" },
+  "chart-columns-stacked": { family: "series", note: "Stacked columns" },
   "section-image-deep": { family: "section", note: "Title and text on the deep surface, photo beside", photo: true, dark: true },
   "section-image-light": { family: "section", note: "Title and text on white, photo beside", photo: true },
   "big-stat": { family: "hero", note: "One number on the deep surface", dark: true },

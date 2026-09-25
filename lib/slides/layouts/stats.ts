@@ -201,7 +201,7 @@ export function numeric(value: unknown): number {
   return Number.isFinite(n) ? Math.max(0, n) : 0;
 }
 
-const fmt = (n: number): string =>
+export const fmt = (n: number): string =>
   n >= 1000 ? `${Math.round(n).toLocaleString("en-US")}` : `${Math.round(n * 10) / 10}`;
 
 /**
