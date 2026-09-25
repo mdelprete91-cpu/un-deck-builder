@@ -357,7 +357,9 @@ guard, all pure functions, none touching the user's words:
   twenty) and a timeline with one point (four one-phase timelines for four quarters) each become
   the layout that fits their words; nothing lands after the closing slide (three empty covers
   after "Thanks"); a named count caps the deck, the closing slide always through; a year the
-  brief never gave leaves the cover's subtitle. `normalizeSlide` drops a slide with no text at all.
+  brief never gave leaves the cover's subtitle; a section-image slide with no body (a title beside
+  a photo, Luna's first slip, 25 Sep 2026) takes a stray `support`/`subtitle` as its body or is
+  dropped, never counted against the cap. `normalizeSlide` drops a slide with no text at all.
 - **`lib/slides/voice.ts`**, in the route on every string the model wrote: the banned words
   (leveraging, synergies, cutting-edge, revolutionary, empower, unlock) become plain ones, forms
   preserved, unless the brief itself uses the word.

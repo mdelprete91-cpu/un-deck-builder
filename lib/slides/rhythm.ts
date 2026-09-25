@@ -112,6 +112,24 @@ function fixHeroWithoutFigure(content: SlideContent): SlideContent {
   return { ...rest, layoutId: "section-image-deep", title, body };
 }
 
+/**
+ * A section slide is a title over a paragraph beside a photo. Without the
+ * paragraph it is a photo with a caption ("Why we're here" and nothing
+ * else, Mario, 25 Sep 2026, on Luna's first day): a stray sentence in
+ * `support` or `subtitle` becomes the body, otherwise the slide goes and
+ * the top-up fills a counted deck.
+ */
+function fixEmptySection(content: SlideContent): SlideContent | null {
+  if (content.layoutId !== "section-image-light" && content.layoutId !== "section-image-deep") return content;
+  if (content.body?.trim()) return content;
+  const spare = (content.support ?? content.subtitle ?? "").trim();
+  if (!spare) return null;
+  const { support: _s, subtitle: _t, ...rest } = content;
+  void _s;
+  void _t;
+  return { ...rest, body: spare };
+}
+
 /** Layouts whose items are a figure and a label. */
 const STATS_FAMILY = new Set<string>(["stat-grid", "two-stats", "brand-equity"]);
 
@@ -154,9 +172,15 @@ export function makeRhythm(opts: RhythmOptions = {}): (content: SlideContent) =>
     }
     // Room for the closing slide: past cap - 1 nothing but "Thanks" lands.
     if (opts.cap && accepted >= opts.cap - 1) return null;
+    if (STRUCTURAL.has(content.layoutId)) {
+      accepted++;
+      return content;
+    }
+    const fixed = fixEmptySection(fixHeroWithoutFigure(fixNonNumericStats(fixLonelyTimeline(content))));
+    // A dropped slide never counts against the cap.
+    if (!fixed) return null;
+    content = fixed;
     accepted++;
-    if (STRUCTURAL.has(content.layoutId)) return content;
-    content = fixHeroWithoutFigure(fixNonNumericStats(fixLonelyTimeline(content)));
     let layoutId: LayoutId = content.layoutId;
     const wouldOverrun = layoutId === last && run >= maxRun;
     if (BLOCKS_FAMILY.has(layoutId)) {
