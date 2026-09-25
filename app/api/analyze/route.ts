@@ -1,6 +1,7 @@
 import OpenAI from "openai";
 import type { ResponseInputContent } from "openai/resources/responses/responses";
 import {
+  BRIEF_ANALYSIS_INSTRUCTIONS,
   DOCUMENT_ANALYSIS_INSTRUCTIONS,
   MAX_ANALYSIS_CHARS,
   SHEET_ANALYSIS_INSTRUCTIONS,
@@ -56,7 +57,7 @@ export async function POST(request: Request): Promise<Response> {
     return new Response("Invalid JSON body", { status: 400 });
   }
   const name = typeof body.name === "string" ? body.name.slice(0, 120) : "file";
-  const kind: MaterialKind = body.kind === "spreadsheet" ? "spreadsheet" : "document";
+  const kind: MaterialKind = body.kind === "spreadsheet" ? "spreadsheet" : body.kind === "brief" ? "brief" : "document";
   const text = typeof body.text === "string" ? body.text.slice(0, MAX_ANALYSIS_CHARS) : "";
   const pdf = typeof body.pdf === "string" && body.pdf.length <= MAX_PDF_BASE64 && BASE64.test(body.pdf) ? body.pdf : "";
   const brief = typeof body.brief === "string" ? body.brief.slice(0, 4000).trim() : "";
@@ -64,15 +65,16 @@ export async function POST(request: Request): Promise<Response> {
   if (!process.env.OPENAI_API_KEY) return new Response("OPENAI_API_KEY is not configured", { status: 500 });
 
   const content: ResponseInputContent[] = [];
-  if (pdf) content.push({ type: "input_file", filename: name, file_data: `data:application/pdf;base64,${pdf}` });
+  if (kind === "brief") content.push({ type: "input_text", text: `The user's brief for the deck: "${text}"` });
+  else if (pdf) content.push({ type: "input_file", filename: name, file_data: `data:application/pdf;base64,${pdf}` });
   else content.push({ type: "input_text", text: `${kind === "spreadsheet" ? "Workbook" : "Material"} "${name}":\n<<<\n${text}\n>>>` });
-  if (brief) content.push({ type: "input_text", text: `The user's brief for the deck: "${brief}"` });
+  if (brief && kind !== "brief") content.push({ type: "input_text", text: `The user's brief for the deck: "${brief}"` });
 
   const client = new OpenAI({ maxRetries: 3 });
   try {
     const response = await client.responses.create({
       model: "gpt-6-luna",
-      instructions: kind === "spreadsheet" ? SHEET_ANALYSIS_INSTRUCTIONS : DOCUMENT_ANALYSIS_INSTRUCTIONS,
+      instructions: kind === "spreadsheet" ? SHEET_ANALYSIS_INSTRUCTIONS : kind === "brief" ? BRIEF_ANALYSIS_INSTRUCTIONS : DOCUMENT_ANALYSIS_INSTRUCTIONS,
       input: [{ role: "user", content }],
       text: { format: { type: "json_schema", name: "material_questions", schema: SHEET_ANALYSIS_SCHEMA as unknown as Record<string, unknown>, strict: true } },
       reasoning: { effort: "none" },

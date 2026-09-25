@@ -26,7 +26,8 @@ import SlideFrame, { readImageFile } from "@/components/SlideFrame";
 import ChartDataPanel from "@/components/ChartDataPanel";
 import ImagePickerModal from "@/components/ImagePickerModal";
 import SheetWizard from "@/components/SheetWizard";
-import { compileInsights, normalizeAnalysis, type SheetAnalysis, type SheetAnswers } from "@/lib/slides/sheet-questions";
+import { compileInsights, normalizeAnalysis, SHORT_BRIEF_WORDS, type SheetAnalysis, type SheetAnswers } from "@/lib/slides/sheet-questions";
+import type { WizardSubject } from "@/components/SheetWizard";
 import LayoutSwitcher from "@/components/LayoutSwitcher";
 import { AttachmentError, canQuestion, MAX_ATTACHMENTS, MAX_REQUEST_BYTES, MAX_TEXT_TOTAL, readAttachment, readPdfAsText, totalRequestBytes, type Attachment } from "@/lib/slides/attachments";
 import { mapSlotFor } from "@/lib/giga-maps/slot";
@@ -468,17 +469,25 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
     const added = next.slice(attachments.length);
     setAttachments((list) => [...list, ...added]);
     if (problems.length) setAttachError(problems.join(" "));
-    // Every readable file is read for the questions it raises. A spreadsheet
-    // always has some, so its wizard opens at once and reads while the user
-    // watches; a document opens the wizard only if the model found something
-    // unclear (Mario, 25 Sep 2026), otherwise nothing interrupts.
-    const readable = added.filter(canQuestion);
-    for (const a of readable) void analyzeAttachment(a);
-    const sheet = readable.find((a) => a.kind === "text" && a.spreadsheet);
-    if (sheet) setSheetWizard(sheet.id);
   };
-  /** The questions the wizard shows: `app/api/analyze` reads the file once per attach (or retry), with the brief as written so far. */
-  const analyzeAttachment = async (a: Attachment) => {
+
+  /*
+   * The questions the material raises are asked when Generate is pressed,
+   * not when a file lands (Mario, 25 Sep 2026): the model then reads each
+   * file next to the whole brief, and a short brief on its own is read too.
+   * `wizard.queue` is what is still to ask, attachment ids and "brief";
+   * a subject is asked once (`asked`), so a second press goes straight to
+   * the deck, and X stops without generating.
+   */
+  const [wizard, setWizard] = useState<{ queue: string[]; intent: "generate" | "edit" } | null>(null);
+  // The analyses finish after their await, so they read the wizard through a ref.
+  const wizardRef = useRef(wizard);
+  useEffect(() => {
+    wizardRef.current = wizard;
+  }, [wizard]);
+  const [briefQ, setBriefQ] = useState<{ brief: string; analysis?: SheetAnalysis; answers: SheetAnswers; error?: string; asked?: boolean } | null>(null);
+  /** `app/api/analyze` reads one file next to the brief; the result sits on the attachment. */
+  const analyzeAttachment = async (a: Attachment, brief: string) => {
     if (!canQuestion(a)) return;
     const spreadsheet = a.kind === "text" && !!a.spreadsheet;
     const update = (patch: { analysis?: SheetAnalysis; analysisError?: string }) =>
@@ -489,34 +498,114 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
       const res = await fetch("/api/analyze", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ ...payload, kind: spreadsheet ? "spreadsheet" : "document", brief: state.brief }),
+        body: JSON.stringify({ ...payload, kind: spreadsheet ? "spreadsheet" : "document", brief }),
       });
       if (!res.ok) throw new Error((await res.text()) || `HTTP ${res.status}`);
       const analysis = normalizeAnalysis(await res.json());
       if (!analysis) throw new Error("The file gave no questions");
       update({ analysis });
-      // A document with something to ask opens the wizard on its own; a clear one stays quiet.
-      if (!spreadsheet && analysis.questions.length > 0) setSheetWizard((open) => open ?? a.id);
+      if (analysis.questions.length === 0) passOver(a.id);
     } catch (err) {
       // A document that could not be read is not worth a red box: the file still travels whole.
       if (spreadsheet) update({ analysisError: err instanceof Error ? err.message : "Analysis failed" });
-      else update({ analysis: { summary: "", questions: [] } });
+      else {
+        update({ analysis: { summary: "", questions: [] } });
+        passOver(a.id);
+      }
     }
   };
-  const [sheetWizard, setSheetWizard] = useState<string | null>(null);
+  /** A subject that turned out clear while the wizard was waiting on it moves the wizard on. */
+  const passOver = (id: string) => {
+    const w = wizardRef.current;
+    if (w && w.queue[0] === id) advanceFrom(w);
+  };
+  /** The brief alone, keyed to its text: a changed brief is read again. */
+  const analyzeBrief = async (brief: string) => {
+    setBriefQ({ brief, answers: {} });
+    try {
+      const res = await fetch("/api/analyze", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ name: "brief", text: brief, kind: "brief" }) });
+      if (!res.ok) throw new Error((await res.text()) || `HTTP ${res.status}`);
+      const analysis = normalizeAnalysis(await res.json()) ?? { summary: "", questions: [] };
+      setBriefQ((q) => (q?.brief === brief ? { ...q, analysis } : q));
+      if (analysis.questions.length === 0) passOver("brief");
+    } catch {
+      // A brief that could not be read is generated as written.
+      setBriefQ((q) => (q?.brief === brief ? { ...q, analysis: { summary: "", questions: [] } } : q));
+      passOver("brief");
+    }
+  };
   /** Every answer is kept as it is given and compiled into `insights`, the field the prompt reads. */
-  const onSheetAnswers = (id: string, answers: SheetAnswers) => {
-    setAttachments((list) =>
-      list.map((x) => (x.id === id && canQuestion(x) && x.analysis ? { ...x, answers, insights: compileInsights(x.analysis, answers) } : x)),
-    );
+  const onWizardAnswers = (id: string, answers: SheetAnswers) => {
+    if (id === "brief") setBriefQ((q) => (q ? { ...q, answers } : q));
+    else
+      setAttachments((list) =>
+        list.map((x) => (x.id === id && canQuestion(x) && x.analysis ? { ...x, answers, insights: compileInsights(x.analysis, answers) } : x)),
+      );
+  };
+  const markAsked = (id: string) => {
+    if (id === "brief") setBriefQ((q) => (q ? { ...q, asked: true } : q));
+    else setAttachments((list) => list.map((x) => (x.id === id && canQuestion(x) ? { ...x, asked: true } : x)));
+  };
+  /** The current subject is done (answered, skipped or clear): the next one, or the deck. */
+  const advanceFrom = (w: { queue: string[]; intent: "generate" | "edit" }) => {
+    markAsked(w.queue[0]);
+    const rest = w.queue.slice(1);
+    if (rest.length) setWizard({ ...w, queue: rest });
+    else {
+      setWizard(null);
+      if (w.intent === "generate") void runGenerate();
+    }
+  };
+  const advanceWizard = () => {
+    if (wizard) advanceFrom(wizard);
+  };
+  const closeWizard = () => {
+    if (wizard) markAsked(wizard.queue[0]);
+    setWizard(null);
+  };
+  const wizardSubject: (WizardSubject & { id: string }) | null = (() => {
+    const id = wizard?.queue[0];
+    if (!id) return null;
+    if (id === "brief") return { id, title: "Your brief", kind: "brief", analysis: briefQ?.analysis, answers: briefQ?.answers ?? {}, error: briefQ?.error };
+    const a = attachments.find((x) => x.id === id);
+    if (!a || !canQuestion(a)) return null;
+    return { id, title: a.name, kind: a.kind === "text" && a.spreadsheet ? "spreadsheet" : "document", analysis: a.analysis, answers: a.answers ?? {}, error: a.analysisError };
+  })();
+  /** The Generate press: first the questions still to ask, then the deck. */
+  const onGenerate = () => {
+    const brief = state.brief;
+    const queue = attachments.filter(canQuestion).filter((a) => !a.asked).map((a) => a.id);
+    const words = brief.trim().split(/\s+/).filter(Boolean).length;
+    const briefAlone = attachments.length === 0 && !twoPager && words > 0 && words < SHORT_BRIEF_WORDS;
+    if (briefAlone && !(briefQ?.brief === brief && briefQ.asked)) queue.push("brief");
+    // A file already read and found clear has nothing to ask.
+    const toAsk = queue.filter((id) => {
+      if (id === "brief") return !(briefQ?.brief === brief && briefQ.analysis?.questions.length === 0);
+      const a = attachments.find((x) => x.id === id);
+      return !(a && canQuestion(a) && a.analysis && a.analysis.questions.length === 0);
+    });
+    if (toAsk.length === 0) return void runGenerate();
+    queue.length = 0;
+    queue.push(...toAsk);
+    for (const id of queue) {
+      if (id === "brief") {
+        if (briefQ?.brief !== brief) void analyzeBrief(brief);
+      } else {
+        const a = attachments.find((x) => x.id === id)!;
+        if (canQuestion(a) && !a.analysis) void analyzeAttachment(a, brief);
+      }
+    }
+    setWizard({ queue, intent: "generate" });
   };
   const onRemoveAttachment = (id: string) => {
     setAttachments((list) => list.filter((a) => a.id !== id));
     setAttachError(null);
+    // The wizard never waits on a file that is gone.
+    if (wizard?.queue[0] === id) advanceFrom(wizard);
   };
 
 
-  const onGenerate = async () => {
+  const runGenerate = async () => {
     const brief = state.brief;
     // A two-pager is a fixed-length piece, so the count is the user's; a
     // slide deck takes the number the brief names, if any.
@@ -536,6 +625,7 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
         mode: "generate",
         brief,
         attachments,
+        briefNotes: briefQ?.brief === brief && briefQ.analysis ? compileInsights(briefQ.analysis, briefQ.answers) : undefined,
         brandLabel: theme.label,
         chapters,
         format: state.format,
@@ -617,6 +707,7 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
         mode: "add",
         brief: state.brief,
         attachments,
+        briefNotes: briefQ?.brief === state.brief && briefQ.analysis ? compileInsights(briefQ.analysis, briefQ.answers) : undefined,
         instruction,
         count,
         brandLabel: theme.label,
@@ -836,7 +927,7 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
         attachments={attachments}
         onAttach={onAttach}
         onRemoveAttachment={onRemoveAttachment}
-        onOpenSheet={setSheetWizard}
+        onOpenSheet={(id) => setWizard({ queue: [id], intent: "edit" })}
         attachError={attachError}
         chaptersSkipped={chaptersSkipped}
       />
@@ -877,13 +968,24 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
             onClose={() => setLayoutSwitcher(false)}
           />
         )}
-        {sheetWizard != null &&
-          (() => {
-            const a = attachments.find((x) => x.id === sheetWizard);
-            return a && canQuestion(a) ? (
-              <SheetWizard attachment={a} onAnswers={onSheetAnswers} onRetry={() => void analyzeAttachment(a)} onClose={() => setSheetWizard(null)} />
-            ) : null;
-          })()}
+        {wizard && wizardSubject && (
+          <SheetWizard
+            key={wizardSubject.id}
+            subject={wizardSubject}
+            finalLabel={wizard.intent === "generate" && wizard.queue.length === 1 ? "Generate" : wizard.queue.length > 1 ? "Next file" : "Done"}
+            onAnswers={(answers) => onWizardAnswers(wizardSubject.id, answers)}
+            onRetry={() => {
+              if (wizardSubject.id === "brief") void analyzeBrief(state.brief);
+              else {
+                const a = attachments.find((x) => x.id === wizardSubject.id);
+                if (a) void analyzeAttachment(a, state.brief);
+              }
+            }}
+            onSkip={advanceWizard}
+            onDone={advanceWizard}
+            onClose={closeWizard}
+          />
+        )}
         {imagePicker != null && active && (
           <ImagePickerModal
             slot={mapSlotFor(active.layoutId, imagePicker)}

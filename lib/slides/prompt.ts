@@ -83,6 +83,8 @@ interface GenerateBody {
   chapters?: boolean;
   /** The brief's language when it is not English (languageOf in brief.ts): named in the user turn. */
   language?: string;
+  /** The user's answers to the questions a short brief raised (compileInsights): they rank with the brief. */
+  briefNotes?: string;
 }
 
 /**
@@ -164,10 +166,11 @@ export function buildUserMessage(body: GenerateBody): string {
     : "";
   const noChapters = body.chapters === false ? NO_CHAPTERS : "";
   const language = body.language ? ` The brief is in ${body.language}: write every slide in ${body.language}.` : "";
+  const notes = body.briefNotes?.trim() ? `\n\nThe user answered questions about this brief; these answers rank with the brief: ${body.briefNotes.trim()}` : "";
   switch (body.mode) {
     case "add": {
       const n = body.count ?? 3;
-      return `Existing deck (JSON): ${JSON.stringify(body.existingSlides ?? [])}\n\nDeck brief: ${body.brief}${brand}${language}\n\nRequest: ${body.instruction?.trim() || "continue and deepen the story"}\n\nAdd exactly ${n} new slide${n === 1 ? "" : "s"} fulfilling the request.\n- Return ONLY the new slides in "slides": never repeat, rewrite or include existing slides, and never add another cover, agenda or thank-you.\n- Set "insertAfter" to the 1-based index of the existing slide the new slides belong after (0 = before the first slide). Pick where they best fit the story, keeping any thank-you last.\n- If the deck has an "agenda" slide, return its updated bullets (reflecting the deck after insertion, <=5 words each) in "agenda"; otherwise return an empty array.${noChapters}`;
+      return `Existing deck (JSON): ${JSON.stringify(body.existingSlides ?? [])}\n\nDeck brief: ${body.brief}${brand}${language}${notes}\n\nRequest: ${body.instruction?.trim() || "continue and deepen the story"}\n\nAdd exactly ${n} new slide${n === 1 ? "" : "s"} fulfilling the request.\n- Return ONLY the new slides in "slides": never repeat, rewrite or include existing slides, and never add another cover, agenda or thank-you.\n- Set "insertAfter" to the 1-based index of the existing slide the new slides belong after (0 = before the first slide). Pick where they best fit the story, keeping any thank-you last.\n- If the deck has an "agenda" slide, return its updated bullets (reflecting the deck after insertion, <=5 words each) in "agenda"; otherwise return an empty array.${noChapters}`;
     }
     case "regenerate":
       return `Current slide (JSON): ${JSON.stringify(body.targetSlide)}\n\nDeck brief: ${body.brief}${brand}${language}\n\nRewrite this single slide.${body.instruction ? ` Instruction: ${body.instruction}` : " Improve the copy."} You may switch to a more appropriate layout if the instruction calls for it. Return exactly one slide.`;
@@ -188,7 +191,7 @@ export function buildUserMessage(body: GenerateBody): string {
         : typeof body.count === "number"
           ? `Produce exactly ${body.count} slides, no more and no fewer, counting the cover and the closing slide${chaptersCount}.`
           : "Choose the number of slides yourself (typically 8-14). A \"page\" in the brief means a slide.";
-      return `Brief: ${body.brief}${brand}${language}\n\nCreate the deck that best tells this story. ${length}${noChapters}`;
+      return `Brief: ${body.brief}${brand}${language}${notes}\n\nCreate the deck that best tells this story. ${length}${noChapters}`;
     }
   }
 }

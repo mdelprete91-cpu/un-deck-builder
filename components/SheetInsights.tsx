@@ -22,10 +22,8 @@ export default function SheetInsights({
   disabled?: boolean;
   onOpen: (id: string) => void;
 }) {
-  const sheets = attachments.filter(canQuestion).filter((a) => {
-    const spreadsheet = a.kind === "text" && !!a.spreadsheet;
-    return spreadsheet || !a.analysis || a.analysis.questions.length > 0;
-  });
+  // Nothing shows before Generate asked: the questions belong to that press.
+  const sheets = attachments.filter(canQuestion).filter((a) => a.asked && a.analysis && a.analysis.questions.length > 0);
   if (sheets.length === 0) return null;
   return (
     <div className="flex flex-col gap-1.5">

@@ -27,6 +27,8 @@ interface Questioned {
   answers?: SheetAnswers;
   /** The analysis failed: the row under the chip says so and offers a retry. */
   analysisError?: string;
+  /** The wizard has shown this file once (answered, skipped or closed): Generate does not ask again. */
+  asked?: boolean;
 }
 
 export type Attachment =

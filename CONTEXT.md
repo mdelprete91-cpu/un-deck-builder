@@ -324,26 +324,33 @@ or a drop on the box. They exist to give the model the facts; they are **not** d
   or text, whose options are quoted from the file (a sheet name, a header, a row, a period). The
   contract with the model is in `SHEET_ANALYSIS_INSTRUCTIONS`: ask only what the data cannot
   settle and that changes the slides, never slide count, colours or layouts, never "Other".
-  `normalizeAnalysis` drops what does not fit. `components/SheetWizard.tsx` opens the moment the
-  file lands (skeleton while reading, never a spinner in the content) and walks the questions one
-  at a time; every answer is saved on the attachment as it is given (`answers`) and compiled into
-  `insights` (`compileInsights`, one line per answered question), so Esc keeps what was said and
-  the row under the chip (`components/SheetInsights.tsx`, "2 of 5 answered · Edit") reopens it. A
-  failed analysis is a red box with Try again; the file stays attached and the deck reads it
-  against the brief alone. `analysis`, `answers` and `analysisError` are editor fields on the
-  attachment; the route still reads only `insights`, so the server contract did not change.
+  `normalizeAnalysis` drops what does not fit. **The questions are asked when Generate is pressed,
+  not when the file lands** (Mario, 25 Sep 2026, later the same day: the model must read each file
+  next to the whole brief). `onGenerate` in `app/page.tsx` builds a queue of subjects still to ask
+  (readable attachments without `asked`, plus `"brief"` when there is no file and the brief is under
+  `SHORT_BRIEF_WORDS`), starts their analyses and opens `components/SheetWizard.tsx` on the first;
+  `advanceWizard` marks the subject `asked`, moves to the next, and after the last runs
+  `runGenerate` (the old generate handler). A subject that comes back with no questions is passed
+  over by an effect; X or Esc stops with nothing generated, answers kept, and the next press goes
+  straight to the deck because everything is `asked`. The primary button on the last question says
+  "Generate" (or "Next file" with more to ask). Every answer is saved as it is given (`answers`)
+  and compiled into `insights` (`compileInsights`); the brief's own answers travel as `briefNotes`
+  in the request (capped in the route, printed under the brief in the user turn). The row under
+  the chip (`components/SheetInsights.tsx`, "2 of 5 answered · Edit") appears only once a file was
+  asked and had questions, and reopens the wizard without generating. A failed analysis is a red
+  box with Try again or Continue without. `analysis`, `answers`, `analysisError` and `asked` are
+  editor fields on the attachment; the route still reads only `insights`.
   `.omc/analyze-check.mts <file.xlsx>` prints the questions a workbook gets.
 - **Every readable file is read for questions, not only spreadsheets** (Mario, 25 Sep 2026: "launch
   it for any document when the situation is not clear to you"). PDF (as `input_file`, under 2.8 MB
   of base64), Word, PowerPoint and text go to the same route with `kind: "document"` and the brief
-  as written so far; `DOCUMENT_ANALYSIS_INSTRUCTIONS` asks only where the material could become
+  as pressed; a short brief with no file goes with `kind: "brief"` and `BRIEF_ANALYSIS_INSTRUCTIONS`
+  (subject, audience, angle, period, options the model proposes since there is nothing to quote); `DOCUMENT_ANALYSIS_INSTRUCTIONS` asks only where the material could become
   two different decks and neither it nor the brief settles it (several projects or countries in
   one file, a report the deck could follow in part, two scenarios, a term the slides would have
-  to explain), and says an empty list is the right answer otherwise. A document with questions
-  opens the wizard on its own once the analysis lands (`setSheetWizard((open) => open ?? id)`, never
-  over one already open); a clear document leaves the composer as it was: no row, no dialog, and a
-  failed analysis is swallowed for documents (the file still travels whole) while a spreadsheet
-  shows the red box. The answers travel as `insights` on any pdf or text attachment
+  to explain), and says an empty list is the right answer otherwise. A clear document leaves the
+  composer as it was: no row, no dialog, and a failed analysis is swallowed for documents (the file
+  still travels whole) while a spreadsheet shows the red box. The answers travel as `insights` on any pdf or text attachment
   (`Questioned` in `attachments.ts`, `insightsOf` on the server), printed under the file in the
   user turn ("About this file, from the user: …"), and `attachmentsNote` says those answers rank
   with the brief. Measured on the Mexico DQR PDF and two long briefs: zero questions, as intended;

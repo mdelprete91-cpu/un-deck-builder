@@ -60,7 +60,18 @@ export const SHEET_ANALYSIS_SCHEMA = {
   additionalProperties: false,
 } as const;
 
-export type MaterialKind = "spreadsheet" | "document";
+export type MaterialKind = "spreadsheet" | "document" | "brief";
+
+/** Under this many words a brief alone is read for the questions it raises; a longer one has said what it wants. */
+export const SHORT_BRIEF_WORDS = 40;
+
+/**
+ * The brief on its own, when it is short. The questions come from what it
+ * leaves open (subject, audience, angle), never from what it says, and the
+ * options are what a UNICEF or Giga deck plausibly needs, since a short
+ * brief has nothing to quote.
+ */
+export const BRIEF_ANALYSIS_INSTRUCTIONS = `You prepare a slide deck for a deck builder used by UNICEF and Giga teams. You receive only the brief the user typed, with no material attached. Write a one-sentence summary of the deck it asks for. Then ask questions ONLY where the brief leaves open something that changes the slides: no subject beyond a name ("a deck for UNICEF"), no audience when the deck could be for donors, a ministry, partners or an internal team, no angle when the topic could be told as results, a plan or a request, no period when the figures could be this year or a programme's whole life. A brief that says what the deck is about, for whom and with what angle gets no questions: an empty list is the right answer, never a question for its own sake. Never ask about slide count, colours, fonts or layout names. At most ${MAX_QUESTIONS} questions, each one short sentence; "why" is one short line on what it changes in the deck. Use "single" for one choice, "multi" when several apply, "text" only when no list fits. Options are two to six plausible choices for this brief in a UNICEF or Giga context, short and concrete, never "Other". Ids are short slugs. Write in the brief's language.`;
 
 /**
  * A document (PDF, Word, PowerPoint, text) is read the other way round: it
