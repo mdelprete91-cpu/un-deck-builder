@@ -1155,8 +1155,11 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
                       onClose={() => setIconPicker(null)}
                     />
                   )}
+                  {/* Keyed by slide so the bar resets with it, except while the
+                      deck is written: then it stays mounted through every
+                      landing slide and the aurora never restarts. */}
                   <SlideActions
-                    key={active.id}
+                    key={state.status === "generating" ? "generating" : active.id}
                     busy={state.status === "generating"}
                     canAddItem={canAddItem}
                     canEditData={isChart}
