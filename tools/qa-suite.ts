@@ -22,6 +22,7 @@ import { countFromBrief, seriesFromBrief, uniformFromBrief, MIN_SLIDES_WITH_CHAP
 import { normalizeSlide, type LayoutId, type SlideContent } from "../lib/slides/schema";
 import { makeRhythm, stripInventedYear } from "../lib/slides/rhythm";
 import { PARTNER_NAMES } from "../lib/slides/partners";
+import { extractXlsx, type Attachment } from "../lib/slides/attachments";
 
 const URL = process.env.QA_URL ?? "http://localhost:3777";
 const BRAND_ID = "did";
@@ -38,6 +39,10 @@ interface Prompt {
   briefFile?: string;
   lang: "en" | "it" | "es";
   chapters?: boolean;
+  /** A workbook under tools/qa-briefs attached to the brief, as the composer would (one table per sheet). */
+  xlsx?: string;
+  /** The answer to the composer's "what should the deck draw from it" card. */
+  insights?: string;
   expect: {
     count?: number;
     min?: number;
@@ -79,6 +84,11 @@ const LIMITS: Partial<Record<LayoutId, { title?: number; subtitle?: number; body
   "single-stat": { title: 8, support: 30 },
   "chart-bars": { title: 4, barLabel: 2 },
   "donut-chart": { title: 6, barLabel: 4 },
+  "chart-columns-wide": { title: 8, barLabel: 2 },
+  "chart-bars-horizontal": { title: 8, barLabel: 4 },
+  "chart-line": { title: 8, barLabel: 2 },
+  "chart-columns-grouped": { title: 8, barLabel: 2 },
+  "chart-columns-stacked": { title: 8, barLabel: 2 },
   timeline: { title: 3, blockBody: 6 },
   "timeline-phases": { title: 4, blockBody: 7 },
   "example-image-left": { title: 6, label: 2, blockBody: 30 },
@@ -87,8 +97,15 @@ const LIMITS: Partial<Record<LayoutId, { title?: number; subtitle?: number; body
 };
 
 const words = (t?: string) => (t ?? "").trim().split(/\s+/).filter(Boolean).length;
+/** A chart value as the renderer prints it (fmt in layouts/stats.ts), so "12,750" in `expect.numbers` finds a bar of 12750. */
+const fmtNum = (n: number) => (n >= 1000 ? Math.round(n).toLocaleString("en-US") : String(Math.round(n * 10) / 10));
+/** The slide's prose: what the language check reads (a chart's thirty country names are not a language). */
+const proseOf = (s: SlideContent) =>
+  [s.title, s.subtitle, s.stat, s.support, s.quote, s.author, s.body, ...(s.bullets ?? []), ...(s.blocks ?? []).flatMap((b) => [b.label, b.body]), ...(s.stats ?? []).flatMap((x) => [x.value, x.label])]
+    .filter(Boolean)
+    .join(" ");
 const textOf = (s: SlideContent) =>
-  [s.title, s.subtitle, s.stat, s.support, s.quote, s.author, s.body, ...(s.bullets ?? []), ...(s.blocks ?? []).flatMap((b) => [b.label, b.body]), ...(s.stats ?? []).flatMap((x) => [x.value, x.label]), ...(s.bars ?? []).map((b) => b.label)]
+  [proseOf(s), ...(s.series ?? []), ...(s.bars ?? []).flatMap((b) => [b.label, fmtNum(b.value), ...(b.values ?? []).map(fmtNum)])]
     .filter(Boolean)
     .join(" ");
 
@@ -170,6 +187,12 @@ async function runPrompt(p: Prompt): Promise<Result> {
   const chapters = !!p.chapters && !(count !== undefined && count < MIN_SLIDES_WITH_CHAPTERS);
   const wanted = count === undefined ? undefined : perItem ? count + 2 : count;
   const rhythm = makeRhythm({ series: perItem, uniform: uniformFromBrief(brief), cap: wanted });
+  const attachments: Attachment[] = [];
+  if (p.xlsx) {
+    const buf = readFileSync(join("tools/qa-briefs", p.xlsx));
+    const text = await extractXlsx(buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength));
+    attachments.push({ id: "qa", name: p.xlsx, kind: "text", text, bytes: text.length, spreadsheet: true, ...(p.insights ? { insights: p.insights } : {}) });
+  }
   const t0 = Date.now();
   let cost = 0;
   const post = (raw: unknown): SlideContent | null => {
@@ -178,8 +201,9 @@ async function runPrompt(p: Prompt): Promise<Result> {
     if (!chapters && CHAPTER_LAYOUTS.has(c.layoutId)) return null;
     return rhythm(stripInventedYear(c, brief));
   };
-  const first = await generate({ mode: "generate", brief, attachments: [], brandLabel: BRAND_LABEL, chapters, format: "slides", count, perItem });
-  const usage = (u?: { inputTokens: number; outputTokens: number }) => (u ? (u.inputTokens * 1 + u.outputTokens * 5) / 1_000_000 : 0);
+  const first = await generate({ mode: "generate", brief, attachments, brandLabel: BRAND_LABEL, chapters, format: "slides", count, perItem });
+  // gpt-6-luna list price (25 Sep 2026), the same as GenerationReadout.
+  const usage = (u?: { inputTokens: number; outputTokens: number }) => (u ? (u.inputTokens * 0.1 + u.outputTokens * 0.5) / 1_000_000 : 0);
   cost += usage(first.usage);
   let slides = first.slides.map(post).filter((s): s is SlideContent => !!s);
   const findings: string[] = [];
@@ -190,7 +214,7 @@ async function runPrompt(p: Prompt): Promise<Result> {
     const add = await generate({
       mode: "add",
       brief,
-      attachments: [],
+      attachments,
       instruction: `The deck must have ${wanted} slides and has ${slides.length}. Add the ${missing} still missing: ${perItem ? "the items of the brief that have no slide yet, one slide each" : "beats of the brief and the material not yet covered"}, never a repeat of an existing slide.`,
       count: missing,
       brandLabel: BRAND_LABEL,
@@ -279,14 +303,18 @@ async function runPrompt(p: Prompt): Promise<Result> {
   }
   // A year the brief never gave is a warning, not a failure: "by 2030" in a
   // body is a target, not a fact, and only the cover's subtitle is guarded.
-  const years = [...new Set(all.match(/\b(?:19|20)\d{2}\b/g) ?? [])].filter((y) => !brief.includes(y));
+  // The attached sheet is source material too: its years are given, not invented.
+  const given = brief + " " + attachments.map((a) => (a.kind === "text" ? a.text : "")).join(" ");
+  const years = [...new Set(all.match(/\b(?:19|20)\d{2}\b/g) ?? [])].filter((y) => !given.includes(y));
   if (years.length) warnings.push(`years not in brief: ${years.join(", ")}`);
   const banned = all.match(BANNED);
   if (banned) findings.push(`banned word: ${banned[0]}`);
   const emails = (all.match(/[\w.]+@[\w.]+/g) ?? []).filter((m) => !brief.includes(m));
   if (emails.length) findings.push(`invented email: ${emails[0]}`);
   // Language
-  const counts = Object.fromEntries(Object.entries(STOP).map(([l, re]) => [l, (bodyText.match(re) ?? []).length]));
+  // Prose only: a chart's country names ("El Salvador") are not a language.
+  const proseText = content.map(proseOf).join(" ");
+  const counts = Object.fromEntries(Object.entries(STOP).map(([l, re]) => [l, (proseText.match(re) ?? []).length]));
   const top = Object.entries(counts).sort((a, b) => b[1] - a[1])[0]?.[0];
   if (top && top !== p.lang) findings.push(`language looks ${top}, brief is ${p.lang}`);
   // Empties and duplicates

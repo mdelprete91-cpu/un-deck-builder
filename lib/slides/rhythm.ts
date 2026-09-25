@@ -130,6 +130,40 @@ function fixEmptySection(content: SlideContent): SlideContent | null {
   return { ...rest, body: spare };
 }
 
+/** The chart layouts: their data is `bars` (label, value, values). */
+const CHART_FAMILY = new Set<string>([
+  "chart-bars",
+  "donut-chart",
+  "chart-columns-wide",
+  "chart-bars-horizontal",
+  "chart-line",
+  "chart-columns-grouped",
+  "chart-columns-stacked",
+]);
+
+/** Every (label, figure) pair a chart draws, as strings, for the duplicate check. */
+function chartPairs(content: SlideContent): Set<string> {
+  const out = new Set<string>();
+  for (const b of content.bars ?? []) {
+    const figures = b.values?.length ? b.values : [b.value];
+    for (const v of figures) out.add(`${b.label.trim().toLowerCase()}=${v}`);
+  }
+  return out;
+}
+
+/**
+ * A chart whose every pair is already on the previous chart is that chart
+ * again: Luna drew a three-line trend and then one line per series with
+ * the same figures (25 Sep 2026), four charts in a row from one table.
+ */
+function isRepeatChart(content: SlideContent, previous: Set<string> | null): boolean {
+  if (!previous || !CHART_FAMILY.has(content.layoutId)) return false;
+  const pairs = chartPairs(content);
+  if (pairs.size === 0) return false;
+  for (const p of pairs) if (!previous.has(p)) return false;
+  return true;
+}
+
 /** Layouts whose items are a figure and a label. */
 const STATS_FAMILY = new Set<string>(["stat-grid", "two-stats", "brand-equity"]);
 
@@ -160,6 +194,10 @@ export function makeRhythm(opts: RhythmOptions = {}): (content: SlideContent) =>
   let run = 0;
   let closed = false;
   let accepted = 0;
+  /** The figures of the last chart that went through, for the repeat check. */
+  let lastChart: Set<string> | null = null;
+  /** "Same layout" in the brief: the first blocks-family layout, which every later one takes. */
+  let uniformLayout: LayoutId | null = null;
   const settle = (layoutId: LayoutId) => {
     run = layoutId === last ? run + 1 : 1;
     last = layoutId;
@@ -178,13 +216,21 @@ export function makeRhythm(opts: RhythmOptions = {}): (content: SlideContent) =>
     }
     const fixed = fixEmptySection(fixHeroWithoutFigure(fixNonNumericStats(fixLonelyTimeline(content))));
     // A dropped slide never counts against the cap.
-    if (!fixed) return null;
+    if (!fixed || isRepeatChart(fixed, lastChart)) return null;
     content = fixed;
+    if (CHART_FAMILY.has(content.layoutId)) lastChart = chartPairs(content);
     accepted++;
     let layoutId: LayoutId = content.layoutId;
     const wouldOverrun = layoutId === last && run >= maxRun;
     if (BLOCKS_FAMILY.has(layoutId)) {
       const points = content.blocks?.length ?? 0;
+      // "Same layout for all" is a demand, not a preference: the model still
+      // varied one slide in eight (25 Sep 2026), so the first blocks layout
+      // is imposed on the rest whenever it holds their points.
+      if (opts.uniform) {
+        if (!uniformLayout) uniformLayout = layoutId;
+        else if (holdsAll(uniformLayout, points)) layoutId = uniformLayout;
+      }
       const options = alternativesFor(points);
       // A list of two or four rows is mostly white space (Mario, 23 Sep
       // 2026): under five points "list" is a fallback, never the pick.

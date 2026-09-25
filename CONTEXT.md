@@ -351,15 +351,18 @@ guard, all pure functions, none touching the user's words:
   says "write every slide in Italian", because the same-language rule alone was ignored on short
   Italian briefs), `TIERS_REQUEST`, `MIN_SLIDES_WITH_CHAPTERS`.
 - **`lib/slides/rhythm.ts`**, one pass per incoming slide in `runGeneration`: layouts alternate
-  (no two alike in a prescribed series, at most two elsewhere, never when the brief says "same
-  layout"); a list under five points, a stat whose value has no digit ("Ericsson" as a two-stats
+  (no two alike in a prescribed series, at most two elsewhere; when the brief says "same layout"
+  the first blocks-family layout is imposed on every later one that fits, since Luna still varied
+  one slide in eight, 25 Sep 2026); a list under five points, a stat whose value has no digit ("Ericsson" as a two-stats
   value), a big-stat with no figure (a statement with the number left empty, four decks in
   twenty) and a timeline with one point (four one-phase timelines for four quarters) each become
   the layout that fits their words; nothing lands after the closing slide (three empty covers
   after "Thanks"); a named count caps the deck, the closing slide always through; a year the
   brief never gave leaves the cover's subtitle; a section-image slide with no body (a title beside
   a photo, Luna's first slip, 25 Sep 2026) takes a stray `support`/`subtitle` as its body or is
-  dropped, never counted against the cap. `normalizeSlide` drops a slide with no text at all.
+  dropped, never counted against the cap; a chart whose every (label, figure) pair is already on
+  the previous chart is dropped too (Luna drew a three-line trend and then one line per series
+  from the same table, 25 Sep 2026). `normalizeSlide` drops a slide with no text at all.
 - **`lib/slides/voice.ts`**, in the route on every string the model wrote: the banned words
   (leveraging, synergies, cutting-edge, revolutionary, empower, unlock) become plain ones, forms
   preserved, unless the brief itself uses the word.
