@@ -21,7 +21,7 @@ import { exportPageDoc } from "@/lib/slides/export-page-html";
 import { parseDeckFile } from "@/lib/slides/deck-file";
 import { computeLogoTone, FULL_BLEED_TONE, RIGHT_PANEL_TONE, type ToneGeometry } from "@/lib/slides/logo-tone";
 import { ICON_LIBRARY, ICON_NAMES } from "@/lib/slides/icons";
-import Button from "@/components/Button";
+import Button, { ICON_SIZE } from "@/components/Button";
 import Sidebar from "@/components/Sidebar";
 import SlideFrame, { readImageFile } from "@/components/SlideFrame";
 import ChartDataPanel from "@/components/ChartDataPanel";
@@ -1053,9 +1053,7 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
             <div className="absolute inset-0 flex items-center justify-center">
               <div className="gen-pill rounded-full shadow-float" style={{ viewTransitionName: "smart-bar" } as CSSProperties}>
                 <div className="rounded-full border border-hairline-light bg-surface p-2.5">
-                  <Button variant="accent" icon={LoaderCircle} iconClassName="animate-spin" tabIndex={-1}>
-                    Generating…
-                  </Button>
+                  <GeneratingLabel />
                 </div>
               </div>
             </div>
@@ -1478,6 +1476,16 @@ function Toolbar({
  * the canvas with the AI edit (expanding input), element/data actions, and
  * slide management. Keyed by slide id so state resets on slide change.
  */
+/** "Generating…" in Ink with the spinner, the button's measurements and no tint (Mario, 25 Sep 2026): a status, not a control. */
+function GeneratingLabel() {
+  return (
+    <span className="flex h-9 items-center gap-1.5 px-3 text-sm font-medium text-ink" aria-busy>
+      <LoaderCircle size={ICON_SIZE} className="animate-spin" aria-hidden />
+      Generating…
+    </span>
+  );
+}
+
 function SlideActions({
   busy,
   canAddItem,
@@ -1563,9 +1571,7 @@ function SlideActions({
           className={`flex w-max items-center gap-2 ${settled.current ? "bar-mode" : ""}`}
         >
         {busy ? (
-          <Button variant="accent" icon={LoaderCircle} iconClassName="animate-spin" aria-busy tabIndex={-1}>
-            Generating…
-          </Button>
+          <GeneratingLabel />
         ) : aiOpen ? (
           <>
             <input
