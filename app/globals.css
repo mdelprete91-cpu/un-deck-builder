@@ -85,7 +85,45 @@
   from { opacity: 0; transform: translateY(4px); }
   to { opacity: 1; transform: none; }
 }
+/* The generating stage (Mario's Figma, 25 Sep 2026): a slide-shaped slab in
+   the surface colour with a soft aurora around it, the four chart colours
+   (Giga green and blue, UNICEF red and yellow) in a blurred conic gradient
+   that turns once every twelve seconds. The one glow in the chrome, and it
+   means one thing: the deck is being written. Static under reduced motion. */
+@property --gen-angle {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 0deg;
+}
+@keyframes genGlow { to { --gen-angle: 360deg; } }
+/* …and breathes: the halo swells and brightens every three seconds, so the
+   motion reads at a glance and not only over a slow turn. */
+@keyframes genBreathe {
+  0%, 100% { opacity: 0.4; transform: scale(1); }
+  50% { opacity: 0.7; transform: scale(1.025); }
+}
+.gen-stage { position: relative; }
+/* The aurora is painted first and the slab sits on it as a child: a
+   negative z-index pseudo-element would paint above its parent's own
+   background, and the slab would drown in colour. */
+.gen-stage::before {
+  content: "";
+  position: absolute;
+  inset: -24px;
+  border-radius: 40px;
+  background: conic-gradient(from var(--gen-angle), #01b37c, #277aff, #e2231a, #ffc20e, #01b37c);
+  filter: blur(40px);
+  opacity: 0.45;
+}
+.gen-slab {
+  position: absolute;
+  inset: 0;
+  border-radius: 16px;
+  background: var(--color-surface);
+  box-shadow: 0 0 0 1px var(--color-hairline-light);
+}
 @media (prefers-reduced-motion: no-preference) {
+  .gen-stage::before { animation: genGlow 8s linear infinite, genBreathe 3s ease-in-out infinite; }
   .float-in { animation: floatIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) both; }
   .pop-in { animation: popIn 0.18s cubic-bezier(0.16, 1, 0.3, 1) both; }
   /* The slide bar changing mode: the pill's width leads (ease-out-expo, 320ms),

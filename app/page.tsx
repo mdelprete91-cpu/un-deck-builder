@@ -1284,10 +1284,15 @@ function EmptyState({
   return (
     <div className="flex flex-1 flex-col items-center justify-center gap-4">
       {generating ? (
-        <>
-          <div className="h-7 w-7 animate-spin rounded-full border-2 border-ink/15 border-t-ink" />
-          <p className="text-sm text-ink-muted">Generating your deck…</p>
-        </>
+        // The slide's place on the stage, glowing while the first slide is
+        // written (`.gen-stage` in globals.css); the words are for readers
+        // who cannot see the glow.
+        <div className="flex w-full flex-col items-center gap-5 px-10" aria-busy aria-live="polite">
+          <div className="gen-stage aspect-video w-full max-w-[960px]">
+            <div className="gen-slab" />
+          </div>
+          <p className="text-[13px] text-ink-faint">Generating your deck…</p>
+        </div>
       ) : (
         <>
           <h1 className="text-2xl font-medium text-ink">What deck are we making?</h1>
