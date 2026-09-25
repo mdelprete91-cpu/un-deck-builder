@@ -1,15 +1,17 @@
 "use client";
 
-import { FileSpreadsheet, LoaderCircle, MessageCircleQuestion } from "lucide-react";
+import { FileSpreadsheet, FileText, LoaderCircle, MessageCircleQuestion } from "lucide-react";
 import Button from "@/components/Button";
-import type { Attachment } from "@/lib/slides/attachments";
+import { canQuestion, type Attachment } from "@/lib/slides/attachments";
 import { answeredCount } from "@/lib/slides/sheet-questions";
 
 /**
- * The line under a spreadsheet chip: where the sheet's questions stand
+ * The line under a chip whose file raised questions: where they stand
  * (reading, failed, n of m answered) and the way back into the wizard
- * (`components/SheetWizard.tsx`). The questions themselves are the model's,
- * written for this file; this row only reports and reopens.
+ * (`components/SheetWizard.tsx`). A spreadsheet always has the row; a
+ * document has it only while it is read and when it had something to ask,
+ * so a clear PDF leaves the composer as it was. The questions themselves
+ * are the model's, written for this file; this row only reports and reopens.
  */
 export default function SheetInsights({
   attachments,
@@ -20,16 +22,22 @@ export default function SheetInsights({
   disabled?: boolean;
   onOpen: (id: string) => void;
 }) {
-  const sheets = attachments.filter((a): a is Extract<Attachment, { kind: "text" }> => a.kind === "text" && !!a.spreadsheet);
+  const sheets = attachments.filter(canQuestion).filter((a) => {
+    const spreadsheet = a.kind === "text" && !!a.spreadsheet;
+    return spreadsheet || !a.analysis || a.analysis.questions.length > 0;
+  });
   if (sheets.length === 0) return null;
   return (
     <div className="flex flex-col gap-1.5">
       {sheets.map((a) => {
         const reading = !a.analysis && !a.analysisError;
+        const spreadsheet = a.kind === "text" && !!a.spreadsheet;
         const total = a.analysis?.questions.length ?? 0;
         const done = a.analysis ? answeredCount(a.analysis, a.answers ?? {}) : 0;
         const status = reading
-          ? "Reading the sheet…"
+          ? spreadsheet
+            ? "Reading the sheet…"
+            : "Reading the file…"
           : a.analysisError
             ? "Could not read the sheet"
             : total === 0
@@ -43,7 +51,7 @@ export default function SheetInsights({
               {reading ? (
                 <LoaderCircle size={12} className="shrink-0 animate-spin text-ink-faint" aria-hidden />
               ) : (
-                <FileSpreadsheet size={12} className="shrink-0 text-giga" aria-hidden />
+                spreadsheet ? <FileSpreadsheet size={12} className="shrink-0 text-giga" aria-hidden /> : <FileText size={12} className="shrink-0 text-giga" aria-hidden />
               )}
               <span className="truncate">{status}</span>
             </span>

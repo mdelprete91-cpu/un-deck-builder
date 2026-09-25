@@ -102,8 +102,11 @@ function attachmentsNote(body: GenerateBody): string {
   if (n === 0) return "";
   const names = body.attachments!.map((a) => `"${a.name}"`).join(", ");
   const sheets = body.attachments!.some((a) => a.kind === "text" && a.spreadsheet);
+  const answered = body.attachments!.some((a) => a.kind !== "image" && a.insights?.trim());
   return (
-    `\n\nAttached reference material (${n} item${n === 1 ? "" : "s"}: ${names}) precedes this message. The ${body.format === "two-pager" ? "pages are" : "deck is"} about this material: take the subject, structure, facts, figures and names from it. The brief comes first on everything it says (length, angle, audience, which organisations to feature); where the brief is silent, the material decides. Quote numbers exactly as they appear, never invent what is not there, and do not copy long passages verbatim.` +
+    `\n\nAttached reference material (${n} item${n === 1 ? "" : "s"}: ${names}) precedes this message.` +
+    (answered ? " The user answered questions about the material; those answers rank with the brief, above the material itself." : "") +
+    ` The ${body.format === "two-pager" ? "pages are" : "deck is"} about this material: take the subject, structure, facts, figures and names from it. The brief comes first on everything it says (length, angle, audience, which organisations to feature); where the brief is silent, the material decides. Quote numbers exactly as they appear, never invent what is not there, and do not copy long passages verbatim.` +
     (sheets ? SPREADSHEET_NOTE : "")
   );
 }
@@ -131,12 +134,13 @@ export function buildUserContent(body: GenerateBody): ResponseInputContent[] {
         filename: a.name,
         file_data: `data:application/pdf;base64,${a.data}`,
       });
+      if (a.insights?.trim()) blocks.push({ type: "input_text", text: `About "${a.name}", from the user: ${a.insights.trim()}` });
     } else if (a.kind === "image") {
       blocks.push({ type: "input_text", text: `Attached image: "${a.name}"` });
       blocks.push({ type: "input_image", image_url: `data:${a.mediaType};base64,${a.data}`, detail: "auto" });
     } else {
       const label = /^https?:\/\//.test(a.name) ? "Linked page" : a.spreadsheet ? "Attached spreadsheet" : "Attached file";
-      const insights = a.spreadsheet && a.insights?.trim() ? `\nWhat to draw from this spreadsheet: ${a.insights.trim()}` : "";
+      const insights = a.insights?.trim() ? `\n${a.spreadsheet ? "What to draw from this spreadsheet" : "About this file, from the user"}: ${a.insights.trim()}` : "";
       blocks.push({
         type: "input_text",
         text: `${label} "${a.name}"${a.truncated ? " (truncated)" : ""}:\n<<<\n${a.text}\n>>>${insights}`,

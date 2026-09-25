@@ -14,10 +14,25 @@ import type { SheetAnalysis, SheetAnswers } from "./sheet-questions";
  * it" (`insights`), which the prompt appends under the table.
  */
 
+/**
+ * The questions a file raises (components/SheetWizard.tsx), on every kind
+ * the model can read. `insights` is the one that travels: the answers
+ * compiled for the prompt (compileInsights). The rest is the editor's.
+ */
+interface Questioned {
+  insights?: string;
+  /** What the model asked about this file, once the analysis came back. */
+  analysis?: SheetAnalysis;
+  /** The user's answers by question id, so the wizard reopens with them. */
+  answers?: SheetAnswers;
+  /** The analysis failed: the row under the chip says so and offers a retry. */
+  analysisError?: string;
+}
+
 export type Attachment =
-  | { id: string; name: string; kind: "pdf"; mediaType: "application/pdf"; data: string; bytes: number }
+  | ({ id: string; name: string; kind: "pdf"; mediaType: "application/pdf"; data: string; bytes: number } & Questioned)
   | { id: string; name: string; kind: "image"; mediaType: ImageMediaType; data: string; bytes: number }
-  | {
+  | ({
       id: string;
       name: string;
       kind: "text";
@@ -26,17 +41,14 @@ export type Attachment =
       truncated?: boolean;
       /** Set when the text was pulled out of a PDF too big to send whole: the chip says so. */
       textOnly?: boolean;
-      /** The text is an Excel workbook laid out as tables: the chip shows a sheet and the composer asks what to draw from it. */
+      /** The text is an Excel workbook laid out as tables: the chip shows a sheet and the wizard always asks. */
       spreadsheet?: boolean;
-      /** The answers compiled for the prompt (compileInsights). Travels in the request; the fields below are the editor's. */
-      insights?: string;
-      /** What the model asked about this sheet, once the analysis came back. */
-      analysis?: SheetAnalysis;
-      /** The user's answers by question id, so the wizard reopens where it was. */
-      answers?: SheetAnswers;
-      /** The analysis failed or is pending: the row under the chip says so. */
-      analysisError?: string;
-    };
+    } & Questioned);
+
+/** The kinds the model reads and may have questions about (images are looked at, not questioned). */
+export function canQuestion(a: Attachment): a is Extract<Attachment, { kind: "pdf" | "text" }> {
+  return a.kind === "pdf" || a.kind === "text";
+}
 
 export type ImageMediaType = "image/jpeg" | "image/png" | "image/webp" | "image/gif";
 type TextAttachment = Extract<Attachment, { kind: "text" }>;

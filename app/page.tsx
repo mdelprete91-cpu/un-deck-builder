@@ -26,9 +26,9 @@ import SlideFrame, { readImageFile } from "@/components/SlideFrame";
 import ChartDataPanel from "@/components/ChartDataPanel";
 import ImagePickerModal from "@/components/ImagePickerModal";
 import SheetWizard from "@/components/SheetWizard";
-import { compileInsights, normalizeAnalysis, type SheetAnswers } from "@/lib/slides/sheet-questions";
+import { compileInsights, normalizeAnalysis, type SheetAnalysis, type SheetAnswers } from "@/lib/slides/sheet-questions";
 import LayoutSwitcher from "@/components/LayoutSwitcher";
-import { AttachmentError, MAX_ATTACHMENTS, MAX_REQUEST_BYTES, MAX_TEXT_TOTAL, readAttachment, readPdfAsText, totalRequestBytes, type Attachment } from "@/lib/slides/attachments";
+import { AttachmentError, canQuestion, MAX_ATTACHMENTS, MAX_REQUEST_BYTES, MAX_TEXT_TOTAL, readAttachment, readPdfAsText, totalRequestBytes, type Attachment } from "@/lib/slides/attachments";
 import { mapSlotFor } from "@/lib/giga-maps/slot";
 import ThumbStrip from "@/components/ThumbStrip";
 import PrintRoot from "@/components/PrintRoot";
@@ -458,33 +458,46 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
     const added = next.slice(attachments.length);
     setAttachments((list) => [...list, ...added]);
     if (problems.length) setAttachError(problems.join(" "));
-    // A spreadsheet raises its questions right away: the wizard opens on the
-    // first one attached and reads while the user watches.
-    const sheets = added.filter((a) => a.kind === "text" && a.spreadsheet);
-    for (const a of sheets) void analyzeSheet(a);
-    if (sheets[0]) setSheetWizard(sheets[0].id);
+    // Every readable file is read for the questions it raises. A spreadsheet
+    // always has some, so its wizard opens at once and reads while the user
+    // watches; a document opens the wizard only if the model found something
+    // unclear (Mario, 25 Sep 2026), otherwise nothing interrupts.
+    const readable = added.filter(canQuestion);
+    for (const a of readable) void analyzeAttachment(a);
+    const sheet = readable.find((a) => a.kind === "text" && a.spreadsheet);
+    if (sheet) setSheetWizard(sheet.id);
   };
-  /** The questions the wizard shows: `app/api/analyze` reads the sheet once per attach (or retry). */
-  const analyzeSheet = async (a: Attachment) => {
-    if (a.kind !== "text" || !a.spreadsheet) return;
-    const update = (patch: Partial<Extract<Attachment, { kind: "text" }>>) =>
-      setAttachments((list) => list.map((x) => (x.id === a.id && x.kind === "text" ? { ...x, ...patch } : x)));
+  /** The questions the wizard shows: `app/api/analyze` reads the file once per attach (or retry), with the brief as written so far. */
+  const analyzeAttachment = async (a: Attachment) => {
+    if (!canQuestion(a)) return;
+    const spreadsheet = a.kind === "text" && !!a.spreadsheet;
+    const update = (patch: { analysis?: SheetAnalysis; analysisError?: string }) =>
+      setAttachments((list) => list.map((x) => (x.id === a.id && canQuestion(x) ? { ...x, ...patch } : x)));
     update({ analysisError: undefined });
     try {
-      const res = await fetch("/api/analyze", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ name: a.name, text: a.text }) });
+      const payload = a.kind === "pdf" ? { name: a.name, pdf: a.data } : { name: a.name, text: a.text };
+      const res = await fetch("/api/analyze", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ ...payload, kind: spreadsheet ? "spreadsheet" : "document", brief: state.brief }),
+      });
       if (!res.ok) throw new Error((await res.text()) || `HTTP ${res.status}`);
       const analysis = normalizeAnalysis(await res.json());
-      if (!analysis) throw new Error("The sheet gave no questions");
+      if (!analysis) throw new Error("The file gave no questions");
       update({ analysis });
+      // A document with something to ask opens the wizard on its own; a clear one stays quiet.
+      if (!spreadsheet && analysis.questions.length > 0) setSheetWizard((open) => open ?? a.id);
     } catch (err) {
-      update({ analysisError: err instanceof Error ? err.message : "Analysis failed" });
+      // A document that could not be read is not worth a red box: the file still travels whole.
+      if (spreadsheet) update({ analysisError: err instanceof Error ? err.message : "Analysis failed" });
+      else update({ analysis: { summary: "", questions: [] } });
     }
   };
   const [sheetWizard, setSheetWizard] = useState<string | null>(null);
   /** Every answer is kept as it is given and compiled into `insights`, the field the prompt reads. */
   const onSheetAnswers = (id: string, answers: SheetAnswers) => {
     setAttachments((list) =>
-      list.map((x) => (x.id === id && x.kind === "text" && x.analysis ? { ...x, answers, insights: compileInsights(x.analysis, answers) } : x)),
+      list.map((x) => (x.id === id && canQuestion(x) && x.analysis ? { ...x, answers, insights: compileInsights(x.analysis, answers) } : x)),
     );
   };
   const onRemoveAttachment = (id: string) => {
@@ -857,8 +870,8 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
         {sheetWizard != null &&
           (() => {
             const a = attachments.find((x) => x.id === sheetWizard);
-            return a && a.kind === "text" ? (
-              <SheetWizard attachment={a} onAnswers={onSheetAnswers} onRetry={() => void analyzeSheet(a)} onClose={() => setSheetWizard(null)} />
+            return a && canQuestion(a) ? (
+              <SheetWizard attachment={a} onAnswers={onSheetAnswers} onRetry={() => void analyzeAttachment(a)} onClose={() => setSheetWizard(null)} />
             ) : null;
           })()}
         {imagePicker != null && active && (

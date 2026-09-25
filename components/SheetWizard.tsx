@@ -1,19 +1,21 @@
 "use client";
 
-import { ArrowLeft, ArrowRight, Check, FileSpreadsheet, RotateCcw, X } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, FileSpreadsheet, FileText, RotateCcw, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import Button from "@/components/Button";
 import type { Attachment } from "@/lib/slides/attachments";
 import { answeredCount, type SheetAnswers, type SheetQuestion } from "@/lib/slides/sheet-questions";
 
-type SheetAttachment = Extract<Attachment, { kind: "text" }>;
+type SheetAttachment = Extract<Attachment, { kind: "text" | "pdf" }>;
 
 const INPUT =
   "block w-full rounded-lg border border-hairline bg-surface px-3 py-2 text-sm text-ink outline-none transition-shadow duration-150 placeholder:text-ink-faint focus:border-giga focus:ring-[3px] focus:ring-giga/15";
 
 /**
- * The questions a spreadsheet raises, one at a time. The dialog opens the
- * moment the file is attached and reads the sheet while the user watches
+ * The questions a file raises, one at a time. For a spreadsheet the dialog
+ * opens the moment the file is attached and reads the sheet while the user
+ * watches; for a document it opens only once the model found something
+ * unclear. It reads the file while the user watches
  * (a skeleton, never a spinner in the content), then walks the questions
  * the model wrote for this file: a list of choices quoted from the sheet,
  * or a line of text. Every answer is saved as it is given, so Esc keeps
@@ -36,6 +38,8 @@ export default function SheetWizard({
   onClose: () => void;
 }) {
   const analysis = a.analysis;
+  const spreadsheet = a.kind === "text" && !!a.spreadsheet;
+  const Glyph = spreadsheet ? FileSpreadsheet : FileText;
   const questions = analysis?.questions ?? [];
   const [step, setStep] = useState(0);
   const answers = a.answers ?? {};
@@ -77,7 +81,7 @@ export default function SheetWizard({
       >
         <div className="flex items-center justify-between gap-3 px-6 pt-5">
           <h2 id="sheet-wizard-title" className="flex min-w-0 items-center gap-2 text-xl font-medium text-ink">
-            <FileSpreadsheet size={18} className="shrink-0 text-giga" aria-hidden />
+            <Glyph size={18} className="shrink-0 text-giga" aria-hidden />
             <span className="truncate">{a.name}</span>
           </h2>
           <Button variant="ghost" iconOnly icon={X} onClick={onClose} title="Close (Esc)" aria-label="Close" className="-mr-2" />
@@ -87,7 +91,7 @@ export default function SheetWizard({
           {/* Reading: the shape of what is coming, in Canvas-2, no motion. */}
           {!analysis && !a.analysisError && (
             <div aria-busy aria-live="polite" className="flex flex-col gap-3">
-              <p className="text-[13px] text-ink-faint">Reading the sheet…</p>
+              <p className="text-[13px] text-ink-faint">{spreadsheet ? "Reading the sheet…" : "Reading the file…"}</p>
               <div className="h-3.5 w-11/12 rounded bg-canvas-2" />
               <div className="h-3.5 w-3/4 rounded bg-canvas-2" />
               <div className="mt-3 h-5 w-2/3 rounded bg-canvas-2" />
@@ -108,7 +112,7 @@ export default function SheetWizard({
             <>
               {analysis.summary && <p className="text-sm leading-relaxed text-ink-muted">{analysis.summary}</p>}
               {questions.length === 0 && (
-                <p className="mt-4 text-sm text-ink">Nothing to ask: the sheet reads on its own.</p>
+                <p className="mt-4 text-sm text-ink">Nothing to ask: the {spreadsheet ? "sheet" : "material"} reads on its own.</p>
               )}
               {q && (
                 <div className="mt-5">

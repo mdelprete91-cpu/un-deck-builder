@@ -330,7 +330,22 @@ or a drop on the box. They exist to give the model the facts; they are **not** d
   failed analysis is a red box with Try again; the file stays attached and the deck reads it
   against the brief alone. `analysis`, `answers` and `analysisError` are editor fields on the
   attachment; the route still reads only `insights`, so the server contract did not change.
-  `.omc/analyze-check.mts <file.xlsx>` prints the questions a workbook gets. The file itself: `extractXlsx` in
+  `.omc/analyze-check.mts <file.xlsx>` prints the questions a workbook gets.
+- **Every readable file is read for questions, not only spreadsheets** (Mario, 25 Sep 2026: "launch
+  it for any document when the situation is not clear to you"). PDF (as `input_file`, under 2.8 MB
+  of base64), Word, PowerPoint and text go to the same route with `kind: "document"` and the brief
+  as written so far; `DOCUMENT_ANALYSIS_INSTRUCTIONS` asks only where the material could become
+  two different decks and neither it nor the brief settles it (several projects or countries in
+  one file, a report the deck could follow in part, two scenarios, a term the slides would have
+  to explain), and says an empty list is the right answer otherwise. A document with questions
+  opens the wizard on its own once the analysis lands (`setSheetWizard((open) => open ?? id)`, never
+  over one already open); a clear document leaves the composer as it was: no row, no dialog, and a
+  failed analysis is swallowed for documents (the file still travels whole) while a spreadsheet
+  shows the red box. The answers travel as `insights` on any pdf or text attachment
+  (`Questioned` in `attachments.ts`, `insightsOf` on the server), printed under the file in the
+  user turn ("About this file, from the user: …"), and `attachmentsNote` says those answers rank
+  with the brief. Measured on the Mexico DQR PDF and two long briefs: zero questions, as intended;
+  `.omc/analyze-doc-check.mts <file> [brief]` shows what a file gets. The file itself: `extractXlsx` in
   `lib/slides/attachments.ts` reads the workbook in the browser with jszip (sheet list and
   relationships, shared strings, `styles.xml` so a date cell reads `2025-03-01` and a percentage
   `49%` instead of their serial numbers, hidden sheets skipped, blank rows dropped, `MAX_SHEET_ROWS`
