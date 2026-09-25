@@ -74,7 +74,9 @@ export function openSession(): OpenedSession {
     // `format` is not a setting: it belongs to the document. Hydrating it
     // would open an empty editor in two-pager mode and make Generate produce
     // A4 pages nobody asked for. It travels with `previous` instead.
-    settings: { brandId: saved.brandId, chapters: saved.chapters },
+    // Chapters is a per-deck decision, not a preference: every visit opens
+    // with it off (Mario, 25 Sep 2026). It is still saved with the deck.
+    settings: { brandId: saved.brandId },
     previous: (saved.slides?.length ?? 0) > 0 ? saved : null,
   };
 }

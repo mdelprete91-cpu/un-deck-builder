@@ -286,6 +286,7 @@ export default function ThumbStrip({
         variant="secondary"
         icon={Plus}
         onClick={() => setLayoutsOpen(true)}
+        data-tour="insert"
         title={twoPager ? "Add a page" : "Insert a slide layout"}
         className="w-full"
       >

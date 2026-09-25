@@ -186,6 +186,7 @@ export default function PromptBox({
             onMouseEnter={() => setHover(true)}
             onMouseLeave={() => setHover(false)}
             disabled={generating || reading}
+            data-tour="attach"
             aria-label={reading ? "Reading files" : "Attach files"}
             title="Attach a PDF, Word, PowerPoint, Excel, text file or image"
           >

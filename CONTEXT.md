@@ -177,7 +177,8 @@ hydrate a broken deck from localStorage.
 restore the last deck silently, so every visit after the first started on finished work with no
 obvious way back to a blank page. `openSession` now returns that deck separately from the settings:
 `app/page.tsx` holds it in `previous` state and offers it on the empty state instead of applying it,
-and only `brandId` and `chapters` are hydrated, because a preference is not work.
+and only `brandId` is hydrated, because a preference is not work and Chapters is a per-deck
+decision that opens off every time (Mario, 25 Sep 2026).
 
 The offer is backed by the saved session itself, not a copy — a photo-heavy deck already runs at the
 edge of the localStorage quota, so a second key would be the write that fails. What keeps it alive
@@ -189,7 +190,8 @@ behind a deck the user has since deleted; Discard calls `clearSaved`.
 **The tour is anchored by `data-tour` attributes.** `components/Tour.tsx` finds its target with
 `document.querySelector('[data-tour="…"]')`, so renaming or removing one of those attributes
 silently drops a step (a missing target is skipped on purpose: half the chrome only renders with
-slides). The steps themselves live in `INTRO_STEPS` and `EDITOR_STEPS` in `app/page.tsx`. **The tour
+slides). The steps themselves live in `INTRO_STEPS` and `EDITOR_STEPS` in `app/page.tsx` (anchors: `prompt`,
+`attach`, `chapters`, `generate`; `canvas`, `slide-bar`, `add-slides`, `insert`, `download`). **The tour
 never starts on its own** (Mario's call, 17 Sep 2026): the only entry point is "How it works" in the
 sidebar, which runs the intro steps on an empty editor and both phases once a deck exists. There is
 no "seen" flag anywhere, so nothing to bump. `onDeckArrived` stays the single place every path that

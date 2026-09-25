@@ -97,6 +97,11 @@ const INTRO_STEPS: TourStep[] = [
     body: "Dense, not long. Give the story, the audience and the real numbers, and cut the filler: more context makes a better deck, more words don't.",
   },
   {
+    target: "attach",
+    title: "Attach the material",
+    body: "PDF, Word, PowerPoint, Excel, images, up to six. The deck is written from them; the brief decides the angle. An Excel file opens a few questions written for it, and any document that could become two different decks asks too. A clear file asks nothing.",
+  },
+  {
     target: "prompt",
     title: "And say how many slides",
     body: "Ask for a count in the brief itself, like “in 10 slides”. Without one the AI decides.",
@@ -136,9 +141,14 @@ const EDITOR_STEPS: TourStep[] = [
     body: "Describe what is missing and the AI writes it, picks where it belongs and updates the agenda. Nothing already on screen is touched.",
   },
   {
+    target: "insert",
+    title: "Or pick a layout yourself",
+    body: "Every template slide with placeholder text, including seven charts: columns, up to thirty of them, a ranking, a line over time, grouped and stacked columns, a donut. Click a chart to edit its numbers and series.",
+  },
+  {
     target: "download",
     title: "Download is the save",
-    body: "Nothing is stored on a server. Download the HTML deck before you close the tab, then use Upload next to it to reopen the file here and keep editing.",
+    body: "Nothing is stored on a server. Download the HTML deck before you close the tab, then use Upload next to it to reopen the file here and keep editing. PowerPoint and PDF are there too, for sending on.",
   },
 ];
 
