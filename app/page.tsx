@@ -1032,9 +1032,24 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
             }
           }}
         />
-        {state.slides.length === 0 ? (
+        {state.slides.length === 0 && state.status === "generating" ? (
+          // The first slide's place, exactly: the toolbar's height above, the
+          // canvas's padding around, the slide's ratio and corners, and the
+          // aurora clipped to the column (`.gen-fit` / `.gen-stage` in
+          // globals.css). The slide lands where the slab was.
+          <>
+            <div className="h-14 shrink-0" aria-hidden />
+            <div className="relative min-h-0 flex-1 overflow-hidden p-6 pb-10" aria-busy aria-live="polite">
+              <div className="gen-fit">
+                <div className="gen-stage" style={{ "--gen-ratio": pageSize.w / pageSize.h } as CSSProperties}>
+                  <div className="gen-slab" />
+                </div>
+              </div>
+              <span className="sr-only">Generating your deck…</span>
+            </div>
+          </>
+        ) : state.slides.length === 0 ? (
           <EmptyState
-            generating={state.status === "generating"}
             onOpenDeckFile={openDeckFilePicker}
             onWriteBrief={() =>
               document.querySelector<HTMLTextAreaElement>('[data-tour="prompt"] textarea')?.focus()
@@ -1260,14 +1275,12 @@ function IconPickerModal({
 }
 
 function EmptyState({
-  generating,
   onOpenDeckFile,
   onWriteBrief,
   previous,
   onRestorePrevious,
   onDismissPrevious,
 }: {
-  generating: boolean;
   onOpenDeckFile: () => void;
   /** Puts the caret in the prompt box: the primary action lives in the sidebar. */
   onWriteBrief: () => void;
@@ -1283,19 +1296,7 @@ function EmptyState({
   const title = named ?? (first?.layoutId === "cover" ? first.subtitle : first?.title)?.trim();
   return (
     <div className="flex flex-1 flex-col items-center justify-center gap-4">
-      {generating ? (
-        // The slide's place on the stage, glowing while the first slide is
-        // written (`.gen-stage` in globals.css); the words are for readers
-        // who cannot see the glow.
-        // Clipped to the stage column with more room than the blur reaches, so
-        // the aurora fades to nothing before the sidebars and shows no cut edge.
-        <div className="flex w-full flex-col items-center gap-5 overflow-hidden px-28 py-24" aria-busy aria-live="polite">
-          <div className="gen-stage aspect-video w-full max-w-[960px]">
-            <div className="gen-slab" />
-          </div>
-          <p className="text-[13px] text-ink-faint">Generating your deck…</p>
-        </div>
-      ) : (
+      {
         <>
           <h1 className="text-2xl font-medium text-ink">What deck are we making?</h1>
           <p className="max-w-sm text-center text-sm leading-relaxed text-ink-muted">
@@ -1340,7 +1341,7 @@ function EmptyState({
             </div>
           )}
         </>
-      )}
+      }
     </div>
   );
 }
