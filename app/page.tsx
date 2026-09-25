@@ -1287,7 +1287,9 @@ function EmptyState({
         // The slide's place on the stage, glowing while the first slide is
         // written (`.gen-stage` in globals.css); the words are for readers
         // who cannot see the glow.
-        <div className="flex w-full flex-col items-center gap-5 px-10" aria-busy aria-live="polite">
+        // Clipped to the stage column with more room than the blur reaches, so
+        // the aurora fades to nothing before the sidebars and shows no cut edge.
+        <div className="flex w-full flex-col items-center gap-5 overflow-hidden px-28 py-24" aria-busy aria-live="polite">
           <div className="gen-stage aspect-video w-full max-w-[960px]">
             <div className="gen-slab" />
           </div>
