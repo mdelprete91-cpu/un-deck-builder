@@ -25,6 +25,8 @@ import Sidebar from "@/components/Sidebar";
 import SlideFrame, { readImageFile } from "@/components/SlideFrame";
 import ChartDataPanel from "@/components/ChartDataPanel";
 import ImagePickerModal from "@/components/ImagePickerModal";
+import SheetWizard from "@/components/SheetWizard";
+import { compileInsights, normalizeAnalysis, type SheetAnswers } from "@/lib/slides/sheet-questions";
 import LayoutSwitcher from "@/components/LayoutSwitcher";
 import { AttachmentError, MAX_ATTACHMENTS, MAX_REQUEST_BYTES, MAX_TEXT_TOTAL, readAttachment, readPdfAsText, totalRequestBytes, type Attachment } from "@/lib/slides/attachments";
 import { mapSlotFor } from "@/lib/giga-maps/slot";
@@ -451,18 +453,45 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
         problems.push(err instanceof AttachmentError ? err.message : `Could not read "${file.name}".`);
       }
     }
-    setAttachments(next);
+    // Appended functionally: a sheet analysis may land while the next file
+    // is still being read, and a plain set would overwrite its result.
+    const added = next.slice(attachments.length);
+    setAttachments((list) => [...list, ...added]);
     if (problems.length) setAttachError(problems.join(" "));
+    // A spreadsheet raises its questions right away: the wizard opens on the
+    // first one attached and reads while the user watches.
+    const sheets = added.filter((a) => a.kind === "text" && a.spreadsheet);
+    for (const a of sheets) void analyzeSheet(a);
+    if (sheets[0]) setSheetWizard(sheets[0].id);
+  };
+  /** The questions the wizard shows: `app/api/analyze` reads the sheet once per attach (or retry). */
+  const analyzeSheet = async (a: Attachment) => {
+    if (a.kind !== "text" || !a.spreadsheet) return;
+    const update = (patch: Partial<Extract<Attachment, { kind: "text" }>>) =>
+      setAttachments((list) => list.map((x) => (x.id === a.id && x.kind === "text" ? { ...x, ...patch } : x)));
+    update({ analysisError: undefined });
+    try {
+      const res = await fetch("/api/analyze", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ name: a.name, text: a.text }) });
+      if (!res.ok) throw new Error((await res.text()) || `HTTP ${res.status}`);
+      const analysis = normalizeAnalysis(await res.json());
+      if (!analysis) throw new Error("The sheet gave no questions");
+      update({ analysis });
+    } catch (err) {
+      update({ analysisError: err instanceof Error ? err.message : "Analysis failed" });
+    }
+  };
+  const [sheetWizard, setSheetWizard] = useState<string | null>(null);
+  /** Every answer is kept as it is given and compiled into `insights`, the field the prompt reads. */
+  const onSheetAnswers = (id: string, answers: SheetAnswers) => {
+    setAttachments((list) =>
+      list.map((x) => (x.id === id && x.kind === "text" && x.analysis ? { ...x, answers, insights: compileInsights(x.analysis, answers) } : x)),
+    );
   };
   const onRemoveAttachment = (id: string) => {
     setAttachments((list) => list.filter((a) => a.id !== id));
     setAttachError(null);
   };
-  // "What should the deck draw from this sheet": the answer sits on the
-  // spreadsheet attachment and goes out with it, never anywhere else.
-  const onAttachmentInsights = (id: string, insights: string) => {
-    setAttachments((list) => list.map((a) => (a.id === id && a.kind === "text" ? { ...a, insights } : a)));
-  };
+
 
   const onGenerate = async () => {
     const brief = state.brief;
@@ -784,7 +813,7 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
         attachments={attachments}
         onAttach={onAttach}
         onRemoveAttachment={onRemoveAttachment}
-        onAttachmentInsights={onAttachmentInsights}
+        onOpenSheet={setSheetWizard}
         attachError={attachError}
         chaptersSkipped={chaptersSkipped}
       />
@@ -825,6 +854,13 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
             onClose={() => setLayoutSwitcher(false)}
           />
         )}
+        {sheetWizard != null &&
+          (() => {
+            const a = attachments.find((x) => x.id === sheetWizard);
+            return a && a.kind === "text" ? (
+              <SheetWizard attachment={a} onAnswers={onSheetAnswers} onRetry={() => void analyzeSheet(a)} onClose={() => setSheetWizard(null)} />
+            ) : null;
+          })()}
         {imagePicker != null && active && (
           <ImagePickerModal
             slot={mapSlotFor(active.layoutId, imagePicker)}

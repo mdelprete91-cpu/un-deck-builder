@@ -314,17 +314,31 @@ or a drop on the box. They exist to give the model the facts; they are **not** d
   its URL (`buildUserContent` labels it "Linked page"). A failed fetch is skipped, never an
   error. The composer draws links in Giga Blue through a mirror div under the textarea
   (`splitLinks`), so the user sees the link was recognised.
-- **A spreadsheet is a text attachment with a question attached** (25 Sep 2026). `extractXlsx` in
+- **A spreadsheet is a text attachment with the questions it raises** (25 Sep 2026, rewritten
+  the same afternoon: one fixed question was not enough, Mario wants the questions to come from
+  the document). On attach, `analyzeSheet` in `app/page.tsx` posts the sheet text to
+  `app/api/analyze` (same model, reasoning off, first 12k characters, strict schema in
+  `lib/slides/sheet-questions.ts`): back come a summary and up to five questions, single, multi
+  or text, whose options are quoted from the file (a sheet name, a header, a row, a period). The
+  contract with the model is in `SHEET_ANALYSIS_INSTRUCTIONS`: ask only what the data cannot
+  settle and that changes the slides, never slide count, colours or layouts, never "Other".
+  `normalizeAnalysis` drops what does not fit. `components/SheetWizard.tsx` opens the moment the
+  file lands (skeleton while reading, never a spinner in the content) and walks the questions one
+  at a time; every answer is saved on the attachment as it is given (`answers`) and compiled into
+  `insights` (`compileInsights`, one line per answered question), so Esc keeps what was said and
+  the row under the chip (`components/SheetInsights.tsx`, "2 of 5 answered · Edit") reopens it. A
+  failed analysis is a red box with Try again; the file stays attached and the deck reads it
+  against the brief alone. `analysis`, `answers` and `analysisError` are editor fields on the
+  attachment; the route still reads only `insights`, so the server contract did not change.
+  `.omc/analyze-check.mts <file.xlsx>` prints the questions a workbook gets. The file itself: `extractXlsx` in
   `lib/slides/attachments.ts` reads the workbook in the browser with jszip (sheet list and
   relationships, shared strings, `styles.xml` so a date cell reads `2025-03-01` and a percentage
   `49%` instead of their serial numbers, hidden sheets skipped, blank rows dropped, `MAX_SHEET_ROWS`
   a sheet cut by whole rows with a note, a `|` in a cell turned into `/`) and lays each sheet out as
   a pipe table headed by its name. The attachment is `kind: "text"` with `spreadsheet: true`, so
-  the server contract did not change; the chip shows a sheet glyph and `components/SheetInsights.tsx`
-  renders a card under the chips with the one question Mario chose: "What should the deck draw from
-  this file?". The answer is `insights` on the attachment (session state, capped at
-  `MAX_INSIGHTS_CHARS`, re-capped in `attachments-server.ts`, only kept on a spreadsheet); the user
-  turn prints it under the table, and `attachmentsNote` adds `SPREADSHEET_NOTE` (data, not prose;
+  the server contract did not change; the chip shows a sheet glyph. `insights` (session state,
+  capped at `MAX_INSIGHTS_CHARS`, re-capped in `attachments-server.ts`, only kept on a spreadsheet)
+  is printed by the user turn under the table, and `attachmentsNote` adds `SPREADSHEET_NOTE` (data, not prose;
   a comparison is a chart-bars, a share a donut, a headline figure a stat slide; cell values as
   written) whenever a spreadsheet is attached. The model fills `bars[]` from the table itself
   (Mario's call, 25 Sep 2026, over building the chart client-side). `.xls` is refused with a message

@@ -22,7 +22,7 @@ interface SidebarProps {
   attachments: Attachment[];
   onAttach: (files: File[]) => Promise<void> | void;
   onRemoveAttachment: (id: string) => void;
-  onAttachmentInsights: (id: string, insights: string) => void;
+  onOpenSheet: (id: string) => void;
   attachError: string | null;
   /** Set when the last generation left chapters out because the brief named too few slides. */
   chaptersSkipped: number | null;
@@ -53,7 +53,7 @@ export default function Sidebar({
   attachments,
   onAttach,
   onRemoveAttachment,
-  onAttachmentInsights,
+  onOpenSheet,
   attachError,
   chaptersSkipped,
 }: SidebarProps) {
@@ -127,7 +127,7 @@ export default function Sidebar({
           attachments={attachments}
           onAttach={onAttach}
           onRemoveAttachment={onRemoveAttachment}
-          onAttachmentInsights={onAttachmentInsights}
+          onOpenSheet={onOpenSheet}
           onGenerate={onGenerate}
           generating={generating}
           blocked={!!attachError}

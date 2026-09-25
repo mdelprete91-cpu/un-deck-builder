@@ -1,4 +1,5 @@
 import JSZip from "jszip";
+import type { SheetAnalysis, SheetAnswers } from "./sheet-questions";
 
 /**
  * Files attached to the brief. They travel with the generate/add request
@@ -27,8 +28,14 @@ export type Attachment =
       textOnly?: boolean;
       /** The text is an Excel workbook laid out as tables: the chip shows a sheet and the composer asks what to draw from it. */
       spreadsheet?: boolean;
-      /** The user's answer to that question. Travels in the request only, like the file itself. */
+      /** The answers compiled for the prompt (compileInsights). Travels in the request; the fields below are the editor's. */
       insights?: string;
+      /** What the model asked about this sheet, once the analysis came back. */
+      analysis?: SheetAnalysis;
+      /** The user's answers by question id, so the wizard reopens where it was. */
+      answers?: SheetAnswers;
+      /** The analysis failed or is pending: the row under the chip says so. */
+      analysisError?: string;
     };
 
 export type ImageMediaType = "image/jpeg" | "image/png" | "image/webp" | "image/gif";
@@ -368,9 +375,10 @@ function formatNumber(raw: string, style: CellStyle, date1904: boolean): string 
   if (!Number.isFinite(v)) return raw;
   if (style === "date") return serialToDate(v, date1904);
   if (style === "time") return serialToTime(v);
-  if (style === "percent") return `${String(Number((v * 100).toPrecision(10)))}%`;
-  // 0.30000000000000004 is float noise, not data.
-  return String(Number(v.toPrecision(12)));
+  // Two decimals at most: 98.58473133 is a float the sheet never showed, and
+  // the model quotes what it reads (a 12-character stat, 25 Sep 2026).
+  if (style === "percent") return `${Math.round(v * 10000) / 100}%`;
+  return String(Math.round(v * 100) / 100);
 }
 
 function sheetRows(xml: string, shared: string[], styles: CellStyle[], date1904: boolean): { rows: string[][]; total: number } {

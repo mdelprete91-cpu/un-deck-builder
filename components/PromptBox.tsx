@@ -17,8 +17,8 @@ import { splitLinks } from "@/lib/slides/links";
  * The chat-composer shape is deliberate. Users know it, and it makes the rule
  * that matters here visible: Chapters is an input to the same press, not a
  * view option, so it sits next to the button that sends it. The same goes
- * for the card under a spreadsheet chip ("what should the deck draw from
- * it"): it is part of what Generate sends, so it lives inside the surface.
+ * for the row under a spreadsheet chip, which reports the sheet's questions
+ * and reopens them: their answers are part of what Generate sends.
  */
 
 const MAX_HEIGHT = 280;
@@ -31,7 +31,7 @@ export default function PromptBox({
   attachments,
   onAttach,
   onRemoveAttachment,
-  onAttachmentInsights,
+  onOpenSheet,
   onGenerate,
   generating,
   blocked = false,
@@ -44,8 +44,8 @@ export default function PromptBox({
   attachments: Attachment[];
   onAttach: (files: File[]) => Promise<void> | void;
   onRemoveAttachment: (id: string) => void;
-  /** The answer to the spreadsheet card, kept on the attachment itself. */
-  onAttachmentInsights: (id: string, insights: string) => void;
+  /** Reopens the questions a spreadsheet raised (components/SheetWizard.tsx). */
+  onOpenSheet: (id: string) => void;
   onGenerate: () => void;
   generating: boolean;
   /** A file was refused: Generate waits until the user removes or replaces it. */
@@ -173,14 +173,7 @@ export default function PromptBox({
               disabled={generating}
               onRemove={onRemoveAttachment}
             />
-            <SheetInsights
-              attachments={attachments}
-              disabled={generating}
-              onChange={onAttachmentInsights}
-              onSubmit={() => {
-                if (canSend) onGenerate();
-              }}
-            />
+            <SheetInsights attachments={attachments} disabled={generating} onOpen={onOpenSheet} />
           </div>
         )}
 
