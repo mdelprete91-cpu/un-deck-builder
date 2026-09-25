@@ -109,7 +109,10 @@
    and the bar keeps the aurora until the deck is done. The aurora is a
    sibling-less pseudo-element painted behind the pill's own surface, which
    is a child, since a negative z-index would paint above the parent's
-   background. */
+   background. The journey itself is a FLIP on transform (page.tsx,
+   SlideActions): the bar mounts where it belongs and starts translated to
+   where the pill was, 640ms ease-out-expo on the compositor, so it stays
+   smooth while the first slide and its thumbnail are being drawn. */
 .gen-pill { position: relative; }
 .gen-pill::before {
   content: "";
@@ -121,14 +124,7 @@
   opacity: 0.6;
 }
 .gen-pill > * { position: relative; }
-/* The journey: the group morphs position and size over 560ms, ease-out-expo,
-   no cross-fade since both ends are the same pill. */
-::view-transition-group(smart-bar) {
-  animation-duration: 560ms;
-  animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
-}
-::view-transition-old(smart-bar) { animation: none; opacity: 0; }
-::view-transition-new(smart-bar) { animation: none; }
+
 @media (prefers-reduced-motion: no-preference) {
   .gen-pill::before { animation: genGlow 8s linear infinite, genBreathe 3s ease-in-out infinite; }
   .float-in { animation: floatIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) both; }

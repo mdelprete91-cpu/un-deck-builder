@@ -474,6 +474,11 @@ section, hero, photo). A pick is `REPLACE_SLIDE` with the same merge as a regene
   already run (they autofit exactly like the editor). The exported deck's `AUTOFIT_JS` ignores the
   return value and did not change.
 - Moving to a different family (four KRs into a numbers slide, into prose) is Edit with AI's job.
+- **Edit with AI is a dialog** (`components/EditWithAiModal.tsx`, Mario, 25 Sep 2026): an instruction
+  for the model and/or a layout of the same family. `onEditWithAi` in `page.tsx` applies the layout
+  on the spot (the same merge as `onApplyLayout`) and then, if there is an instruction, regenerates
+  the slide in that layout. So the switcher's targets are reachable here whatever
+  `SHOW_LAYOUT_SWITCH` says. The dialog states that photos and images are never edited by the AI.
 
 ## Two-pagers
 

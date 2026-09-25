@@ -1,11 +1,10 @@
 "use client";
 
-import { ArrowUp, ChartColumn, ChevronDown, Copy, History, Image as ImageIcon, LayoutTemplate, LoaderCircle, Plus, Redo2, Trash2, Undo2, Upload, X } from "lucide-react";
+import { ChartColumn, ChevronDown, Copy, History, Image as ImageIcon, LayoutTemplate, LoaderCircle, Plus, Redo2, Trash2, Undo2, Upload } from "lucide-react";
 import { useEffect, useLayoutEffect, useReducer, useRef, useState, type CSSProperties } from "react";
-import { flushSync } from "react-dom";
 import { BRANDS } from "@/lib/slides/brand";
 import { DEFAULT_DECK_NAME, deckReducer, initialDeckState, readPath } from "@/lib/slides/state";
-import { isChartLayout, isPage, normalizeSlide, PRIMARY_ARRAY, type LayoutId, type SlideContent } from "@/lib/slides/schema";
+import { isChartLayout, isPage, normalizeSlide, PRIMARY_ARRAY, type LayoutId, type Slide, type SlideContent } from "@/lib/slides/schema";
 import { renderSlide } from "@/lib/slides/layouts";
 import { A4_PX } from "@/lib/slides/pages/a4";
 import { PAGE_BLOCK_LIMITS, type PageBlock } from "@/lib/slides/pages/schema";
@@ -26,6 +25,7 @@ import Sidebar from "@/components/Sidebar";
 import SlideFrame, { readImageFile } from "@/components/SlideFrame";
 import ChartDataPanel from "@/components/ChartDataPanel";
 import ImagePickerModal from "@/components/ImagePickerModal";
+import EditWithAiModal from "@/components/EditWithAiModal";
 import SheetWizard from "@/components/SheetWizard";
 import { compileInsights, normalizeAnalysis, SHORT_BRIEF_WORDS, type SheetAnalysis, type SheetAnswers } from "@/lib/slides/sheet-questions";
 import type { WizardSubject } from "@/components/SheetWizard";
@@ -329,9 +329,9 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
     abortRef.current = controller;
     dispatch({ type: "GENERATION_START", replace: opts.replace });
     const rhythm = opts.rhythm ? makeRhythm(opts.rhythm) : null;
-    // The first slide of a fresh deck lands inside a view transition, so the
-    // "Generating…" pill travels from the centre of the stage to the slide
-    // bar's place instead of swapping (see .gen-pill in globals.css).
+    // Before the first slide of a fresh deck lands, the "Generating…" pill's
+    // place is measured, so the slide bar can fly in from there (FLIP in
+    // SlideActions; see .gen-pill in globals.css).
     let firstLanding = !!opts.replace;
     try {
       const res = await fetch("/api/generate", {
@@ -386,14 +386,11 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
                 ),
               });
             } else {
-              const append = () => dispatch({ type: "APPEND_SLIDE", content });
-              if (firstLanding && typeof document !== "undefined" && "startViewTransition" in document) {
+              if (firstLanding) {
                 firstLanding = false;
-                (document as Document & { startViewTransition: (cb: () => void) => unknown }).startViewTransition(() => flushSync(append));
-              } else {
-                firstLanding = false;
-                append();
+                flightRef.current = genPillRef.current?.getBoundingClientRect() ?? null;
               }
+              dispatch({ type: "APPEND_SLIDE", content });
             }
             opts.collect?.push(content);
             received++;
@@ -492,6 +489,11 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
    * the deck, and X stops without generating.
    */
   const [wizard, setWizard] = useState<{ queue: string[]; intent: "generate" | "edit" } | null>(null);
+  /** The centred "Generating…" pill, measured right before the first slide lands. */
+  const genPillRef = useRef<HTMLDivElement>(null);
+  const flightRef = useRef<DOMRect | null>(null);
+  /** "Edit with AI" on the active slide: the dialog with the instruction and the layout choice. */
+  const [aiModal, setAiModal] = useState(false);
   // The analyses finish after their await, so they read the wizard through a ref.
   const wizardRef = useRef(wizard);
   useEffect(() => {
@@ -730,14 +732,14 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
       { replace: false, collectInsert: true, dropChapters: !state.chapters },
     );
 
-  const onRegenerateSlide = (instruction: string) => {
+  const onRegenerateSlide = (instruction: string, target: Slide = active!) => {
     if (!active) return;
     runGeneration(
       {
         mode: "regenerate",
         brief: state.brief,
         brandLabel: theme.label,
-        targetSlide: light(active),
+        targetSlide: light(target),
         instruction,
         format: state.format,
       },
@@ -752,6 +754,26 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
         keepColors: active.bars,
       },
     );
+  };
+
+  /**
+   * The Edit with AI dialog: a layout change is applied on the spot (no
+   * model call, one undo step, uploads and chart colours kept), and an
+   * instruction rewrites the slide, in that layout when both were given.
+   */
+  const onEditWithAi = (instruction: string, layoutId: LayoutId | null) => {
+    if (!active) return;
+    setAiModal(false);
+    let target: Slide = active;
+    if (layoutId && layoutId !== active.layoutId && !isPage(active)) {
+      const content = recolor(
+        { ...active, layoutId, image: active.image, imagePos: active.imagePos, logos: active.logos, grid: active.grid, icons: active.icons, map: active.map },
+        active.bars,
+      );
+      dispatch({ type: "REPLACE_SLIDE", index: state.activeIndex, content });
+      target = { ...active, ...content };
+    }
+    if (instruction) onRegenerateSlide(instruction, target);
   };
 
   /**
@@ -998,6 +1020,7 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
             onClose={closeWizard}
           />
         )}
+        {aiModal && active && <EditWithAiModal slide={active} onSubmit={onEditWithAi} onClose={() => setAiModal(false)} />}
         {imagePicker != null && active && (
           <ImagePickerModal
             slot={mapSlotFor(active.layoutId, imagePicker)}
@@ -1051,7 +1074,7 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
           // transition in globals.css).
           <div className="relative min-h-0 flex-1" aria-busy aria-live="polite">
             <div className="absolute inset-0 flex items-center justify-center">
-              <div className="gen-pill rounded-full shadow-float" style={{ viewTransitionName: "smart-bar" } as CSSProperties}>
+              <div ref={genPillRef} className="gen-pill rounded-full shadow-float">
                 <div className="rounded-full border border-hairline-light bg-surface p-2.5">
                   <GeneratingLabel />
                 </div>
@@ -1161,6 +1184,8 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
                   <SlideActions
                     key={state.status === "generating" ? "generating" : active.id}
                     busy={state.status === "generating"}
+                    flightRef={flightRef}
+                    onEditWithAi={() => setAiModal(true)}
                     canAddItem={canAddItem}
                     canEditData={isChart}
                     onRegenerate={onRegenerateSlide}
@@ -1491,6 +1516,8 @@ function GeneratingLabel() {
 
 function SlideActions({
   busy,
+  flightRef,
+  onEditWithAi,
   canAddItem,
   canEditData,
   canChangeImage,
@@ -1504,6 +1531,10 @@ function SlideActions({
   onDelete,
 }: {
   busy: boolean;
+  /** Where the centred "Generating…" pill was when the first slide landed: the bar flies in from there. */
+  flightRef?: React.MutableRefObject<DOMRect | null>;
+  /** Opens the Edit with AI dialog, which lives at page level. */
+  onEditWithAi: () => void;
   canAddItem: boolean;
   canEditData: boolean;
   canChangeImage: boolean;
@@ -1518,15 +1549,33 @@ function SlideActions({
   onDuplicate: () => void;
   onDelete: () => void;
 }) {
-  const [aiOpen, setAiOpen] = useState(false);
-  const [instruction, setInstruction] = useState("");
   // The bar is one object changing mode, so it morphs rather than swaps: the
   // pill's width is measured from the content it is about to show and
   // transitioned (see .bar-morph), and the new content fades in behind it
   // with a short stagger. The first paint keeps `auto` so nothing animates
   // twice on top of float-in.
-  const mode = busy ? "busy" : aiOpen ? "ai" : "actions";
+  const mode = busy ? "busy" : "actions";
   const contentRef = useRef<HTMLDivElement>(null);
+  const pillRef = useRef<HTMLDivElement>(null);
+  // The journey from the centre of the stage: the bar mounts in its place and
+  // starts translated to where the pill was (FLIP), 640ms ease-out-expo on
+  // transform alone, so it stays smooth while the first slide is drawn.
+  useLayoutEffect(() => {
+    const from = flightRef?.current;
+    const el = pillRef.current;
+    if (!from || !el || !busy) return;
+    flightRef!.current = null;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const to = el.getBoundingClientRect();
+    const dx = from.left + from.width / 2 - (to.left + to.width / 2);
+    const dy = from.top + from.height / 2 - (to.top + to.height / 2);
+    el.animate([{ transform: `translate(${dx}px, ${dy}px)` }, { transform: "translate(0, 0)" }], {
+      duration: 640,
+      easing: "cubic-bezier(0.16, 1, 0.3, 1)",
+      fill: "both",
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const [width, setWidth] = useState<number | undefined>(undefined);
   const settled = useRef(false);
   useLayoutEffect(() => {
@@ -1543,26 +1592,17 @@ function SlideActions({
   useEffect(() => {
     settled.current = true;
   }, []);
-  const submit = () => {
-    if (busy) return;
-    onRegenerate(instruction);
-    setInstruction("");
-    setAiOpen(false);
-  };
+  void onRegenerate;
   // One Button spec for every action, no dividers: the gap separates, a
   // slightly wider one sets the slide-level pair (duplicate, delete) apart.
   // Edit with AI is the bar's one accent, as DESIGN.md says. Actions that do
   // not apply to this slide are absent, not disabled: Data and Image already
   // worked that way, Element now matches.
-  const canSend = instruction.trim().length > 0;
   return (
     <div className={`${busy ? "" : "float-in"} pointer-events-none absolute inset-x-0 bottom-12 z-20 flex justify-center`}>
       {/* While the deck is written the bar is the pill that came down from the
-          centre: same view-transition name, same aurora, no entrance of its own. */}
-      <div
-        className={`pointer-events-auto relative rounded-full shadow-float ${busy ? "gen-pill" : ""}`}
-        style={busy ? ({ viewTransitionName: "smart-bar" } as CSSProperties) : undefined}
-      >
+          centre: same aurora, no entrance of its own. */}
+      <div ref={pillRef} className={`pointer-events-auto relative rounded-full shadow-float ${busy ? "gen-pill" : ""}`}>
         <div
           data-tour="slide-bar"
           className="bar-morph relative overflow-hidden rounded-full border border-hairline-light bg-surface p-2.5"
@@ -1575,41 +1615,9 @@ function SlideActions({
         >
         {busy ? (
           <GeneratingLabel />
-        ) : aiOpen ? (
-          <>
-            <input
-              autoFocus
-              value={instruction}
-              onChange={(e) => setInstruction(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && canSend) submit();
-                if (e.key === "Escape") setAiOpen(false);
-              }}
-              placeholder="Describe how to redo this slide…"
-              aria-label="How to redo this slide"
-              className="h-9 w-80 bg-transparent px-3 text-sm text-ink outline-none placeholder:text-ink-faint"
-            />
-            <Button
-              variant="primary"
-              iconOnly
-              icon={ArrowUp}
-              onClick={submit}
-              disabled={busy || !canSend}
-              title="Regenerate this slide"
-              aria-label="Regenerate this slide"
-            />
-            <Button
-              variant="ghost"
-              iconOnly
-              icon={X}
-              onClick={() => setAiOpen(false)}
-              title="Close"
-              aria-label="Close"
-            />
-          </>
         ) : (
           <>
-            <Button variant="primary" onClick={() => setAiOpen(true)} disabled={busy} style={{ "--i": 0 } as CSSProperties}>
+            <Button variant="primary" onClick={onEditWithAi} disabled={busy} style={{ "--i": 0 } as CSSProperties}>
               Edit with AI
             </Button>
             {canAddItem && (
