@@ -2,6 +2,7 @@
 
 import { ArrowUp, ChartColumn, ChevronDown, Copy, History, Image as ImageIcon, LayoutTemplate, LoaderCircle, Plus, Redo2, Trash2, Undo2, Upload, X } from "lucide-react";
 import { useEffect, useLayoutEffect, useReducer, useRef, useState, type CSSProperties } from "react";
+import { flushSync } from "react-dom";
 import { BRANDS } from "@/lib/slides/brand";
 import { DEFAULT_DECK_NAME, deckReducer, initialDeckState, readPath } from "@/lib/slides/state";
 import { isChartLayout, isPage, normalizeSlide, PRIMARY_ARRAY, type LayoutId, type SlideContent } from "@/lib/slides/schema";
@@ -328,6 +329,10 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
     abortRef.current = controller;
     dispatch({ type: "GENERATION_START", replace: opts.replace });
     const rhythm = opts.rhythm ? makeRhythm(opts.rhythm) : null;
+    // The first slide of a fresh deck lands inside a view transition, so the
+    // "Generating…" pill travels from the centre of the stage to the slide
+    // bar's place instead of swapping (see .gen-pill in globals.css).
+    let firstLanding = !!opts.replace;
     try {
       const res = await fetch("/api/generate", {
         method: "POST",
@@ -381,7 +386,14 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
                 ),
               });
             } else {
-              dispatch({ type: "APPEND_SLIDE", content });
+              const append = () => dispatch({ type: "APPEND_SLIDE", content });
+              if (firstLanding && typeof document !== "undefined" && "startViewTransition" in document) {
+                firstLanding = false;
+                (document as Document & { startViewTransition: (cb: () => void) => unknown }).startViewTransition(() => flushSync(append));
+              } else {
+                firstLanding = false;
+                append();
+              }
             }
             opts.collect?.push(content);
             received++;
@@ -1033,22 +1045,21 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
           }}
         />
         {state.slides.length === 0 && state.status === "generating" ? (
-          // The first slide's place, exactly: the toolbar's height above, the
-          // canvas's padding around, the slide's ratio and corners, and the
-          // aurora clipped to the column (`.gen-fit` / `.gen-stage` in
-          // globals.css). The slide lands where the slab was.
-          <>
-            <div className="h-14 shrink-0" aria-hidden />
-            <div className="relative min-h-0 flex-1 overflow-hidden p-6 pb-10" aria-busy aria-live="polite">
-              <div className="gen-fit">
-                <div className="gen-stage" style={{ "--gen-ratio": pageSize.w / pageSize.h } as CSSProperties}>
-                  <div className="gen-slab flex items-center justify-center">
-                    <span className="text-base text-ink-muted">Generating…</span>
-                  </div>
+          // The slide bar's pill, centred on the empty stage with the aurora
+          // behind it; when the first slide lands it travels to the bar's
+          // place and becomes it (`.gen-pill` and the smart-bar view
+          // transition in globals.css).
+          <div className="relative min-h-0 flex-1" aria-busy aria-live="polite">
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="gen-pill rounded-full shadow-float" style={{ viewTransitionName: "smart-bar" } as CSSProperties}>
+                <div className="rounded-full border border-hairline-light bg-surface p-2.5">
+                  <Button variant="accent" icon={LoaderCircle} iconClassName="animate-spin" tabIndex={-1}>
+                    Generating…
+                  </Button>
                 </div>
               </div>
             </div>
-          </>
+          </div>
         ) : state.slides.length === 0 ? (
           <EmptyState
             onOpenDeckFile={openDeckFilePicker}
@@ -1534,8 +1545,13 @@ function SlideActions({
   // worked that way, Element now matches.
   const canSend = instruction.trim().length > 0;
   return (
-    <div className="float-in pointer-events-none absolute inset-x-0 bottom-12 z-20 flex justify-center">
-      <div className="pointer-events-auto relative rounded-full shadow-float">
+    <div className={`${busy ? "" : "float-in"} pointer-events-none absolute inset-x-0 bottom-12 z-20 flex justify-center`}>
+      {/* While the deck is written the bar is the pill that came down from the
+          centre: same view-transition name, same aurora, no entrance of its own. */}
+      <div
+        className={`pointer-events-auto relative rounded-full shadow-float ${busy ? "gen-pill" : ""}`}
+        style={busy ? ({ viewTransitionName: "smart-bar" } as CSSProperties) : undefined}
+      >
         <div
           data-tour="slide-bar"
           className="bar-morph relative overflow-hidden rounded-full border border-hairline-light bg-surface p-2.5"

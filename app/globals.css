@@ -102,43 +102,35 @@
   0%, 100% { opacity: 0.4; transform: scale(1); }
   50% { opacity: 0.7; transform: scale(1.025); }
 }
-/* The slab takes exactly the slide's place: the fit box is the canvas minus
-   the slide's padding, a size container, and the slab is the largest box of
-   the slide's ratio that fits it, centred, the same maths as SlideFrame. */
-.gen-fit {
-  position: absolute;
-  inset: 24px 24px 40px;
-  container-type: size;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-.gen-stage {
-  position: relative;
-  width: min(100cqw, calc(100cqh * var(--gen-ratio, 1.7778)));
-  aspect-ratio: var(--gen-ratio, 1.7778);
-}
-/* The aurora is painted first and the slab sits on it as a child: a
-   negative z-index pseudo-element would paint above its parent's own
-   background, and the slab would drown in colour. */
-.gen-stage::before {
+/* The pill that carries the generation (Mario, 25 Sep 2026): "Generating…"
+   in the slide bar's own shape, centred on the empty stage with the aurora
+   behind it; when the first slide lands it travels to the bar's place and
+   IS the bar (a view transition named smart-bar morphs one into the other),
+   and the bar keeps the aurora until the deck is done. The aurora is a
+   sibling-less pseudo-element painted behind the pill's own surface, which
+   is a child, since a negative z-index would paint above the parent's
+   background. */
+.gen-pill { position: relative; }
+.gen-pill::before {
   content: "";
   position: absolute;
-  inset: -6px;
-  border-radius: 18px;
+  inset: -8px;
+  border-radius: 9999px;
   background: conic-gradient(from var(--gen-angle), #01b37c, #277aff, #e2231a, #ffc20e, #01b37c);
-  filter: blur(16px);
+  filter: blur(18px);
   opacity: 0.6;
 }
-.gen-slab {
-  position: absolute;
-  inset: 0;
-  border-radius: 12px;
-  background: var(--color-surface);
-  box-shadow: 0 0 0 1px var(--color-hairline-light);
+.gen-pill > * { position: relative; }
+/* The journey: the group morphs position and size over 560ms, ease-out-expo,
+   no cross-fade since both ends are the same pill. */
+::view-transition-group(smart-bar) {
+  animation-duration: 560ms;
+  animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
 }
+::view-transition-old(smart-bar) { animation: none; opacity: 0; }
+::view-transition-new(smart-bar) { animation: none; }
 @media (prefers-reduced-motion: no-preference) {
-  .gen-stage::before { animation: genGlow 8s linear infinite, genBreathe 3s ease-in-out infinite; }
+  .gen-pill::before { animation: genGlow 8s linear infinite, genBreathe 3s ease-in-out infinite; }
   .float-in { animation: floatIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) both; }
   .pop-in { animation: popIn 0.18s cubic-bezier(0.16, 1, 0.3, 1) both; }
   /* The slide bar changing mode: the pill's width leads (ease-out-expo, 320ms),
