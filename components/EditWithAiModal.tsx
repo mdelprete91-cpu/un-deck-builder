@@ -41,7 +41,9 @@ export default function EditWithAiModal({
   const [shrunk, setShrunk] = useState<Record<string, boolean>>({});
   const { id: _id, ...content } = slide;
   void _id;
-  const targets = useMemo(() => switchTargets(content), [slide]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Only layouts that carry every item of the slide (Mario, 26 Sep 2026): a
+  // layout that would drop two of four cards is not a suggestion.
+  const targets = useMemo(() => switchTargets(content).filter((t) => t.keeps >= t.total), [slide]); // eslint-disable-line react-hooks/exhaustive-deps
   const total = targets[0]?.total ?? 0;
   const canSubmit = instruction.trim().length > 0 || layoutId !== null;
 
