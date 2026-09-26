@@ -422,6 +422,14 @@ guard, all pure functions, none touching the user's words:
   already has is dropped as a repeat. The route budgets 800 tokens a slide (a fifteen-slide deck
   with chapters from a long report was truncated at 650), and a named count under twelve with
   chapters on asks for at most two chapters.
+- **Icons are the model's, from a curated list** (Mario, 26 Sep 2026, after a globe on "Award"):
+  `lib/slides/icon-set.ts` holds about 150 Lucide names grouped by what the decks talk about,
+  listed once in the system prompt (about 500 tokens); `icons` is in the output schema (one per
+  block on icon-cards, [] elsewhere). `normalizeSlide` keeps only names from that list, no
+  repeats, and only on icon-cards; a bad entry falls back to the old rotation. A pick in the
+  editor sets `iconsPinned`, and a regenerate keeps pinned icons, otherwise the rewrite brings
+  icons for its own words. The picker still offers the whole library. The suite prints the
+  label=icon pairs and fails on a repeated icon.
 - **Known limit, not guarded**: a PDF with no text layer (a scanned or rendered page) is read by
   the model as an image, and a digit can come back wrong (3,323 rejected schools read as 3,523,
   twice, 26 Sep 2026). The prompt says digit by digit; the fix is a PDF with a text layer.

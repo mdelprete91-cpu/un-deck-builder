@@ -770,7 +770,15 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
         // uploaded assets survive the AI rewrite
         preserve: isPage(active)
           ? { footerLabel: active.footerLabel }
-          : { image: active.image, imagePos: active.imagePos, logos: active.logos, grid: active.grid, icons: active.icons, map: active.map },
+          : {
+              image: active.image,
+              imagePos: active.imagePos,
+              logos: active.logos,
+              grid: active.grid,
+              map: active.map,
+              // Icons the user picked stay; otherwise the rewrite brings icons for its own words.
+              ...(active.iconsPinned ? { icons: active.icons, iconsPinned: true } : {}),
+            },
         mergeImages: isPage(active) ? active.stack : undefined,
         keepColors: active.bars,
       },

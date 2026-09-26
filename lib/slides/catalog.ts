@@ -28,7 +28,7 @@ export const CATALOG: CatalogEntry[] = [
   { id: "steps", usage: "Numbered process, 3 or 4 steps", fields: "title(<=6 words), blocks(2-4: label <=2 words, body <=8 words)" },
   { id: "body-copy", usage: "Running prose in two columns; only when text truly needs a full slide", fields: 'title(<=6 words), blocks(2: label always "", body 40-60 words each — two halves of one continuous text)' },
   { id: "photo", usage: "Full-width photo under a title; visual pause or context", fields: "title(<=6 words)" },
-  { id: "icon-cards", usage: "2-4 points with icons (globe, wifi, school, chart)", fields: "title(<=6 words), blocks(2-4: label <=2 words, body <=12 words)" },
+  { id: "icon-cards", usage: "2-4 points, each with an icon that says what it is about", fields: "title(<=6 words), blocks(2-4: label <=2 words, body <=12 words), icons(one per block from the ICONS list)" },
   { id: "stat-grid", usage: "Up to six KPI numbers beside a title", fields: "title(<=8 words), stats(1-6: value a figure like 61% or 1.4M <=5 chars, label <=5 words)" },
   { id: "brand-equity", usage: "Intro paragraph + six supporting stats (research findings)", fields: "title(<=6 words), body(<=35 words), stats(3-6: value a figure <=5 chars, label <=14 words)" },
   { id: "two-stats", usage: "1-2 numbers with explanations", fields: "title(<=8 words), stats(1-2: value a figure <=6 chars, label <=15 words)" },

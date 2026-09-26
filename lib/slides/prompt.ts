@@ -6,6 +6,7 @@ import { AI_LAYOUT_IDS, type SlideContent } from "./schema";
 import { AI_BLOCK_TYPES } from "./pages/schema";
 import type { DeckFormat } from "./state";
 import { PARTNER_NAMES } from "./partners";
+import { AI_ICONS } from "./icon-set";
 
 /**
  * System prompt: layout catalog + brand voice. Kept tight — prompt size
@@ -18,6 +19,8 @@ export function buildSystemPrompt(format: DeckFormat = "slides"): string {
 
 LAYOUT CATALOG (id: when to use. fields with hard word limits):
 ${catalogLines}
+
+ICONS for "icon-cards" (one per block, in block order, each the one that says what that card is about, never the same icon twice on a slide; [] on every other layout): ${AI_ICONS.join(", ")}
 
 RULES:
 - Output slides in presentation order. ALWAYS start with "cover" and ALWAYS end with "thank-you" (the user deletes them if unneeded).
@@ -269,6 +272,7 @@ export const SLIDES_OUTPUT_SCHEMA = {
           },
           series: { type: "array", items: { type: "string" } },
           current: { type: "integer" },
+          icons: { type: "array", items: { type: "string" } },
           contacts: {
             type: "array",
             items: {
@@ -299,6 +303,7 @@ export const SLIDES_OUTPUT_SCHEMA = {
           "bars",
           "series",
           "current",
+          "icons",
           "contacts",
         ],
         additionalProperties: false,

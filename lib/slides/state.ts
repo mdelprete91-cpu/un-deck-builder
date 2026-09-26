@@ -471,6 +471,8 @@ function reduce(state: DeckState, action: DeckAction): DeckState {
       const clone = structuredClone(slide);
       clone.icons ??= [];
       clone.icons[action.block] = action.icon;
+      // The user's choice from now on: an AI rewrite keeps these icons.
+      clone.iconsPinned = true;
       const slides = [...state.slides];
       slides[action.index] = clone;
       return { ...state, ...remember(state), slides };

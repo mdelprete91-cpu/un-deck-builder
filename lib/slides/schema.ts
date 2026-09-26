@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { toChartColor } from "./chart-colors";
+import { cleanModelIcons } from "./icon-set";
 import { normalizePage, pageBlockSchema, type PageBlock } from "./pages/schema";
 
 /** Layouts the AI is allowed to pick. */
@@ -163,6 +164,8 @@ export interface SlideContent {
   logos?: Record<string, string>;
   /** Icon-card slides: chosen icon slug per block (see lib/slides/icons.ts). */
   icons?: string[];
+  /** The user picked an icon on this slide: an AI rewrite keeps the icons as they are. */
+  iconsPinned?: boolean;
   /** Two-pager page ("a4-page"): the ordered block stack. */
   stack?: PageBlock[];
   /**
@@ -287,6 +290,7 @@ export const slideContentSchema = z.object({
   grid: z.array(z.array(z.union([z.string(), z.null()]))).optional(),
   logos: z.record(z.string(), z.string()).optional(),
   icons: z.array(z.string()).optional(),
+  iconsPinned: z.boolean().optional(),
   stack: z.array(pageBlockSchema).optional(),
   footerLabel: z.string().optional(),
 });
@@ -456,6 +460,12 @@ export function normalizeSlide(
       if (!Array.isArray(arr) || arr.length < min) return null;
       if (arr.length > max) (slide[field] as unknown[]) = arr.slice(0, max);
     }
+  }
+  // Icons: a pinned set is the user's and stays; otherwise only known names
+  // from the curated list survive, and only where a layout draws them.
+  if (!slide.iconsPinned) {
+    slide.icons = slide.layoutId === "icon-cards" ? cleanModelIcons(slide.icons) : undefined;
+    if (!slide.icons) delete slide.icons;
   }
   if (isChartLayout(slide.layoutId)) {
     normalizeSeries(slide);

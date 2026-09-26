@@ -351,6 +351,15 @@ async function runPrompt(p: Prompt): Promise<Result> {
   }
   if (e.tiers && !TIERS_REQUEST.test(brief)) findings.push("tiers asked, trigger silent");
   if (!e.tiers && TIERS_REQUEST.test(brief)) findings.push("tiers trigger fired uninvited");
+  // Icons: every icon card carries its own, one per block, none repeated.
+  for (const [i, s] of slides.entries()) {
+    if (s.layoutId !== "icon-cards") continue;
+    const icons = (s.icons ?? []).slice(0, s.blocks?.length ?? 0);
+    const set = icons.filter(Boolean);
+    if (set.length < (s.blocks?.length ?? 0)) warnings.push(`${i + 1} · icon-cards: ${set.length} of ${s.blocks?.length ?? 0} icons chosen`);
+    if (new Set(set).size !== set.length) findings.push(`${i + 1} · icon-cards: repeated icon`);
+    if (set.length) warnings.push(`icons: ${(s.blocks ?? []).map((b, j) => `${b.label}=${icons[j] || "-"}`).join(", ")}`);
+  }
   // Drift, invention, voice
   const briefMentions = /\b(giga|unicef)\b/i.test(brief);
   if (!briefMentions && !e.allowGiga) {
