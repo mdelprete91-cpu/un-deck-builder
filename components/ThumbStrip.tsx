@@ -208,8 +208,26 @@ export default function ThumbStrip({
   };
 
   return (
+    <div className="flex h-full flex-col">
+      {/* The add action heads the column, outside the list that scrolls: the
+          same 57px row and hairline as the toolbar beside it, so it reads as
+          part of that bar (Mario, 26 Sep 2026: sticky inside the list, the
+          thumbnails and their badges slid under it). A new slide still lands
+          right after the selected one. */}
+      <div className="flex h-[57px] shrink-0 items-center border-b border-hairline px-3">
+        <Button
+          variant="secondary"
+          icon={Plus}
+          onClick={() => setLayoutsOpen(true)}
+          data-tour="insert"
+          title={twoPager ? "Add a page after the selected one" : "Add a slide after the selected one"}
+          className="w-full"
+        >
+          {twoPager ? "Add page" : "Add slide"}
+        </Button>
+      </div>
     <div
-      className="flex h-full flex-col gap-2 overflow-y-auto p-3"
+      className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto p-3"
       onDragOver={(e) => {
         // Allow dropping in the empty space after the last thumbnail
         if (dragIndexRef.current != null) {
@@ -219,22 +237,6 @@ export default function ThumbStrip({
       }}
       onDrop={handleDrop}
     >
-      {/* The add action is a real button, not a ghost tile: on the grey rail a
-          dashed outline all but disappeared. Same secondary pill as Upload.
-          It sits at the top and stays there while the strip scrolls (Mario,
-          26 Sep 2026: it used to be under the last slide). */}
-      <div className="sticky top-0 z-10 -mx-3 -mt-3 bg-canvas px-3 pb-1 pt-3">
-        <Button
-          variant="secondary"
-          icon={Plus}
-          onClick={() => setLayoutsOpen(true)}
-          data-tour="insert"
-          title={twoPager ? "Add a page" : "Insert a slide layout"}
-          className="w-full"
-        >
-          {twoPager ? "Add page" : "Add slide"}
-        </Button>
-      </div>
       {slides.map((slide, i) => (
         <div
           key={slide.id}
@@ -295,7 +297,7 @@ export default function ThumbStrip({
           </div>
         </div>
       ))}
-
+    </div>
 
       {layoutsOpen && twoPager && (
         <PagePresetModal
