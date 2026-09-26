@@ -20,8 +20,7 @@ import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { countFromBrief, seriesFromBrief, uniformFromBrief, MIN_SLIDES_WITH_CHAPTERS, TIERS_REQUEST } from "../lib/slides/brief";
 import { normalizeSlide, type LayoutId, type SlideContent } from "../lib/slides/schema";
-import { makeRhythm, mergeContinuations, stripInventedYear, unifyLayouts } from "../lib/slides/rhythm";
-import { defaultContent } from "../lib/slides/defaults";
+import { closingFor, makeRhythm, mergeContinuations, stripInventedYear, unifyLayouts } from "../lib/slides/rhythm";
 import { PARTNER_NAMES } from "../lib/slides/partners";
 import { extractDocx, extractPptx, extractXlsx, type Attachment } from "../lib/slides/attachments";
 
@@ -239,7 +238,10 @@ async function runPrompt(p: Prompt): Promise<Result> {
   const warnings: string[] = [];
   if (first.error) findings.push(`route error: ${first.error}`);
   for (let attempt = 0; attempt < 2 && wanted && slides.length > 0 && slides.length < wanted && !first.truncated; attempt++) {
-    const missing = wanted - slides.length;
+    // The closing slide counts: the pipeline adds it after the top-up when missing.
+    const closed = slides.some((s) => s.layoutId === "thank-you");
+    const missing = wanted - slides.length - (closed ? 0 : 1);
+    if (missing <= 0) break;
     const add = await generate({
       mode: "add",
       brief,
@@ -269,7 +271,7 @@ async function runPrompt(p: Prompt): Promise<Result> {
   if (merged) warnings.push(`${merged} continued slide${merged === 1 ? "" : "s"} folded back`);
   if (uniformFromBrief(brief)) slides = unifyLayouts(slides);
   if (slides.length && slides[slides.length - 1].layoutId !== "thank-you") {
-    const closing = normalizeSlide(defaultContent("thank-you"), { brandId: BRAND_ID });
+    const closing = normalizeSlide(closingFor(BRAND_LABEL), { brandId: BRAND_ID });
     if (closing) slides.push(closing);
     warnings.push("closing slide added: the model left it out");
   }

@@ -256,6 +256,20 @@ export function mergeContinuations(slides: SlideContent[]): SlideContent[] {
   return out;
 }
 
+/**
+ * The closing slide the pipeline adds when the model left it out: the
+ * brand's team as the contact, as the model is told to write it, never the
+ * insert placeholder ("Name Surname", name@unicef.org, which the QA read as
+ * an invented email, 26 Sep 2026). Giga's own contact only under Giga.
+ */
+export function closingFor(brandLabel?: string): SlideContent {
+  const contact =
+    brandLabel === "Giga"
+      ? { name: "Giga Team", role: "Giga", location: "Geneva, Switzerland", email: "giga@unicef.org" }
+      : { name: `${brandLabel ?? "UNICEF"} team`, role: "", location: "", email: "" };
+  return { layoutId: "thank-you", title: "Thanks", contacts: [contact] };
+}
+
 /** Layouts whose items are a figure and a label. */
 const STATS_FAMILY = new Set<string>(["stat-grid", "two-stats", "brand-equity"]);
 

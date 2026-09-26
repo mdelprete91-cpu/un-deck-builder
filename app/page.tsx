@@ -670,7 +670,12 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
     // Two tries: the one add for a single missing slide came back with
     // nothing usable once in twenty decks (23 Sep 2026).
     for (let attempt = 0; attempt < 2 && !twoPager && wanted && received > 0 && received < wanted && !truncated; attempt++) {
-      const missing = wanted - received;
+      // The closing slide counts: when the model left it out, ENSURE_CLOSING
+      // adds it after the top-up, so the top-up asks for one fewer (a six-slide
+      // brief came back as seven, 26 Sep 2026).
+      const closed = kept.some((k) => k.layoutId === "thank-you");
+      const missing = wanted - received - (closed ? 0 : 1);
+      if (missing <= 0) break;
       received += await runGeneration(
         {
           mode: "add",

@@ -1,6 +1,7 @@
 import type { ImagePos, Slide, SlideContent } from "./schema";
 import { ensureId, isPage, normalizeSeries, normalizeSlide, PRIMARY_ARRAY } from "./schema";
-import { mergeContinuations, unifyLayouts } from "./rhythm";
+import { closingFor, mergeContinuations, unifyLayouts } from "./rhythm";
+import { BRANDS } from "./brand";
 import { MAX_BLOCKS_PER_PAGE, PAGE_BLOCK_LIMITS, type PageBlockType } from "./pages/schema";
 import { defaultBlock, newPageItem } from "./pages/presets";
 import { newItem, defaultContent } from "./defaults";
@@ -251,7 +252,7 @@ function reduce(state: DeckState, action: DeckAction): DeckState {
       // deck does.
       const last = state.slides[state.slides.length - 1];
       if (!last || isPage(last) || last.layoutId === "thank-you") return state;
-      const closing = normalizeSlide(defaultContent("thank-you"), { brandId: state.brandId });
+      const closing = normalizeSlide(closingFor(BRANDS[state.brandId]?.label), { brandId: state.brandId });
       if (!closing) return state;
       return { ...state, slides: [...state.slides, ensureId(closing)] };
     }

@@ -58,7 +58,7 @@ const NUMBER_WORDS: Record<string, number> = {
 export function countFromBrief(brief: string): number | undefined {
   const words = Object.keys(NUMBER_WORDS).join("|");
   const re = new RegExp(
-    `\\b(\\d{1,2}|${words})\\s*(?:-\\s*)?(?:slides?|pages?|pagine|pagina|diapositive|diapositiva|diapositivas?|diapos?|transparencias?|páginas?|folien|seiten)\\b(?!\\s+(?:per|each|for each|for every|a|ogni|per ogni)\\b)`,
+    `\\b(\\d{1,2}|${words})\\s*(?:-\\s*)?(?:slides?|pages?|pagine|pagina|diapositives?|diapositiva|diapositivas?|diapos?|transparencias?|páginas?|folien|seiten)\\b(?!\\s+(?:per|each|for each|for every|a|ogni|per ogni)\\b)`,
     "gi",
   );
   const m = re.exec(brief);
