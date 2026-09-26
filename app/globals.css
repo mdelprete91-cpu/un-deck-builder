@@ -85,6 +85,19 @@
   from { opacity: 0; transform: translateY(4px); }
   to { opacity: 1; transform: none; }
 }
+/* Progress slide, editor only: a stage node is a control (SlideFrame adds
+   .set-node-live to it on an editable stage, never in an export). Hovering
+   anywhere on a stage lifts its node with a halo in the slide's accent, so
+   every stage reads as clickable, not only the current one. */
+.set-node-live { transition: transform 160ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 160ms cubic-bezier(0.16, 1, 0.3, 1); }
+[data-item]:hover > .set-node-live,
+.set-node-live:focus-visible {
+  transform: scale(1.14);
+  box-shadow: 0 0 0 12px color-mix(in srgb, var(--accent) 20%, transparent);
+  outline: none;
+}
+.set-node-live:active { transform: scale(1.04); }
+
 /* The generating stage (Mario's Figma, 25 Sep 2026): a slide-shaped slab in
    the surface colour with a soft aurora around it, the four chart colours
    (Giga green and blue, UNICEF red and yellow) in a blurred conic gradient

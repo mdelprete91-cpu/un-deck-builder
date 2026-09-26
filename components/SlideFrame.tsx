@@ -397,6 +397,19 @@ export default function SlideFrame({
     if (editable) {
       stage.querySelectorAll<HTMLElement>("[data-set]").forEach((node) => {
         node.style.cursor = "pointer";
+        // A control, for the mouse and the keyboard (halo in globals.css).
+        node.classList.add("set-node-live");
+        node.tabIndex = 0;
+        node.setAttribute("role", "button");
+        node.setAttribute("aria-label", node.title || "Set");
+        const onKey = (e: KeyboardEvent) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            onEditRef.current?.(node.getAttribute("data-set")!, node.getAttribute("data-value") ?? "");
+          }
+        };
+        node.addEventListener("keydown", onKey);
+        cleanups.push(() => node.removeEventListener("keydown", onKey));
         const onClick = (e: MouseEvent) => {
           e.stopPropagation();
           onEditRef.current?.(node.getAttribute("data-set")!, node.getAttribute("data-value") ?? "");

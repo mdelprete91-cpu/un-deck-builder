@@ -430,6 +430,10 @@ guard, all pure functions, none touching the user's words:
   editor sets `iconsPinned`, and a regenerate keeps pinned icons, otherwise the rewrite brings
   icons for its own words. The picker still offers the whole library. The suite prints the
   label=icon pairs and fails on a repeated icon.
+- **Progress stages are one box each** (`STAGE_H` in `layouts/progress.ts`): the delete frame and its
+  ✕ cover the whole stage, and in the editor the node is a control (`.set-node-live`, added by
+  SlideFrame, never exported): hover on a stage lifts its node with an accent halo, Enter or Space
+  sets it from the keyboard.
 - **Known limit, not guarded**: a PDF with no text layer (a scanned or rendered page) is read by
   the model as an image, and a digit can come back wrong (3,323 rejected schools read as 3,523,
   twice, 26 Sep 2026). The prompt says digit by digit; the fix is a PDF with a text layer.

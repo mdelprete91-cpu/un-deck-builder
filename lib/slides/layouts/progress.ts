@@ -23,6 +23,8 @@ const TRACK_Y = 512;
 const TRACK_H = 12;
 const GREY = "#ECECEF";
 const NEXT_RING = "#C9C9CF";
+/** A stage's box: status line, node, label and body (416 to 946, above the footer). */
+const STAGE_H = 530;
 const TICK = `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" style="display:block"><path d="M20 6 9 17l-5-5"/></svg>`;
 
 export function progress(s: Slide, t: BrandTheme): string {
@@ -61,14 +63,18 @@ export function progress(s: Slide, t: BrandTheme): string {
       const accentText = state === "done" || state === "current" || state === "plain";
       const left = Math.round(100 + colW * i);
       const w = Math.round(colW) - 20;
+      // One box per stage, from the status line to the end of the body, so
+      // the delete frame and its ✕ cover the whole stage (they covered only
+      // the status line, 26 Sep 2026). Children are placed inside it.
+      const top = TRACK_Y - 96;
       return (
-        `<div class="ars" ${item(`blocks.${i}`)} style="position:absolute;left:${left}px;top:${TRACK_Y - 96}px;width:${Math.round(colW)}px;height:0;${dly(10 + i * 8)}">` +
+        `<div class="ars" ${item(`blocks.${i}`)} style="position:absolute;left:${left}px;top:${top}px;width:${Math.round(colW)}px;height:${STAGE_H}px;${dly(10 + i * 8)}">` +
         `<div style="position:absolute;left:0;top:0;width:100%;text-align:center;font-family:${MANROPE};font-weight:600;font-size:26px;line-height:1.3;color:${accentText ? "var(--accent)" : "#8F8F8F"};">${number}${status ? `<span style="font-weight:500;color:#6F6F6F;"> · ${status}</span>` : ""}</div>` +
-        `</div>` +
-        `<div class="af" data-set="current" data-value="${i + 1}" title="Set as the stage in progress" style="position:absolute;left:${cx(i) - size / 2}px;top:${midY - size / 2}px;width:${size}px;height:${size}px;border-radius:50%;${node}display:flex;align-items:center;justify-content:center;${dly(14 + i * 8)}">${inner}</div>` +
-        `<div class="ars" style="position:absolute;left:${left + 10}px;top:${TRACK_Y + 72}px;width:${w}px;text-align:center;${dly(18 + i * 8)}">` +
+        `<div class="af" data-set="current" data-value="${i + 1}" title="Mark this stage as in progress" style="position:absolute;left:${cx(i) - left - size / 2}px;top:${midY - top - size / 2}px;width:${size}px;height:${size}px;border-radius:50%;${node}display:flex;align-items:center;justify-content:center;${dly(14 + i * 8)}">${inner}</div>` +
+        `<div style="position:absolute;left:10px;top:168px;width:${w}px;text-align:center;">` +
         `<div ${ed(`blocks.${i}.label`, 96)} style="font-family:${MANROPE};font-weight:600;font-size:36px;line-height:1.25;letter-spacing:-.01em;color:${state === "current" ? "var(--accent)" : "#161616"};">${esc(stage.label)}</div>` +
         `<div ${ed(`blocks.${i}.body`, 250)} style="margin-top:14px;${BODY30}color:${state === "next" ? "#5D5D5D" : "#000000"};">${esc(stage.body)}</div>` +
+        `</div>` +
         `</div>`
       );
     })

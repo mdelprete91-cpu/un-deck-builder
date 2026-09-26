@@ -1,5 +1,6 @@
 "use client";
 
+import { Pencil } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { DEFAULT_DECK_NAME } from "@/lib/slides/state";
 
@@ -48,13 +49,17 @@ export default function DeckName({ name, onRename }: { name: string; onRename: (
     );
   }
   return (
+    // The pencil says the name is editable and that it names the deck (Mario,
+    // 26 Sep 2026): Faint Ink at rest, Ink on hover, like every quiet control.
     <button
       type="button"
       onClick={() => setEditing(true)}
       title="Rename the deck (this is the download file name)"
-      className="h-9 min-w-0 max-w-[320px] truncate rounded-lg px-2.5 text-base font-medium text-ink transition-colors hover:bg-mist"
+      aria-label={`Deck name: ${name}. Rename`}
+      className="group flex h-9 min-w-0 max-w-[340px] items-center gap-2 rounded-lg px-2.5 text-base font-medium text-ink transition-colors hover:bg-mist focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-giga/30"
     >
-      {name}
+      <span className="truncate">{name}</span>
+      <Pencil size={14} className="shrink-0 text-ink-faint transition-colors group-hover:text-ink" aria-hidden />
     </button>
   );
 }
