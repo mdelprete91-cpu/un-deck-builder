@@ -126,11 +126,15 @@ export async function inlineAssets(body: string): Promise<string> {
   return out;
 }
 
-export async function exportHtmlDeck(
+/**
+ * The self-contained deck as a string: the save file, and what the presenter
+ * shows full screen (same runtime, same animations, same arrow keys).
+ */
+export async function buildHtmlDeck(
   state: DeckState,
   theme: BrandTheme,
   title: string,
-): Promise<void> {
+): Promise<string> {
   const { slides } = state;
   // 1. Inline fonts
   const [manropeLatin, manropeExt, openSansLatin, openSansExt] = await Promise.all(
@@ -182,7 +186,15 @@ ${deckStateScript(state)}
 </body>
 </html>`;
 
-  // 4. Download
+  return html;
+}
+
+export async function exportHtmlDeck(
+  state: DeckState,
+  theme: BrandTheme,
+  title: string,
+): Promise<void> {
+  const html = await buildHtmlDeck(state, theme, title);
   const blob = new Blob([html], { type: "text/html;charset=utf-8" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");

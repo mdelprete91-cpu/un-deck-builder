@@ -1,6 +1,6 @@
 "use client";
 
-import { ChartColumn, ChevronDown, Copy, History, Image as ImageIcon, LayoutTemplate, LoaderCircle, Plus, Redo2, Trash2, Undo2, Upload } from "lucide-react";
+import { ChartColumn, ChevronDown, Play, Copy, History, Image as ImageIcon, LayoutTemplate, LoaderCircle, Plus, Redo2, Trash2, Undo2, Upload } from "lucide-react";
 import { useEffect, useLayoutEffect, useReducer, useRef, useState, type CSSProperties } from "react";
 import { BRANDS } from "@/lib/slides/brand";
 import { DEFAULT_DECK_NAME, deckReducer, initialDeckState, readPath } from "@/lib/slides/state";
@@ -14,7 +14,8 @@ import { countFromBrief, seriesFromBrief, uniformFromBrief, MIN_SLIDES_WITH_CHAP
 import { makeRhythm, stripInventedYear } from "@/lib/slides/rhythm";
 import { presetStack } from "@/lib/slides/pages/presets";
 import { clearSaved, openSession, saveDeck } from "@/lib/slides/storage";
-import { exportHtmlDeck } from "@/lib/slides/export-html";
+import { buildHtmlDeck, exportHtmlDeck } from "@/lib/slides/export-html";
+import Presenter from "@/components/Presenter";
 import { exportPptxDeck } from "@/lib/slides/export-pptx";
 import { exportPageDoc } from "@/lib/slides/export-page-html";
 import { parseDeckFile } from "@/lib/slides/deck-file";
@@ -863,6 +864,32 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
     );
   };
 
+  // Presentation mode: full screen is requested inside the click (browsers
+  // allow it nowhere else), then the deck file is built and shown from the
+  // slide on screen. Leaving full screen ends it and frees the blob.
+  const [presenting, setPresenting] = useState<{ src: string | null } | null>(null);
+  const onPresent = () => {
+    document.documentElement.requestFullscreen?.().catch(() => {});
+    setPresenting({ src: null });
+    const start = state.activeIndex + 1;
+    buildHtmlDeck(state, theme, state.name)
+      .then((html) => {
+        const url = URL.createObjectURL(new Blob([html], { type: "text/html;charset=utf-8" }));
+        setPresenting((p) => (p ? { src: `${url}#${start}` } : (URL.revokeObjectURL(url), null)));
+      })
+      .catch((err) => {
+        setPresenting(null);
+        dispatch({ type: "GENERATION_ERROR", error: `Presentation failed: ${err.message}` });
+      });
+  };
+  const onEndPresent = () => {
+    setPresenting((p) => {
+      if (p?.src) URL.revokeObjectURL(p.src.split("#")[0]);
+      return null;
+    });
+    if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+  };
+
   // The print dialog proposes the page title as the PDF's file name, so the
   // deck's name takes the tab for the duration of the dialog.
   const onExportPdf = () => {
@@ -1049,6 +1076,7 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
             onClose={closeWizard}
           />
         )}
+        {presenting && <Presenter src={presenting.src} onClose={onEndPresent} />}
         {aiModal && active && <EditWithAiModal slide={active} theme={theme} onSubmit={onEditWithAi} onClose={() => setAiModal(false)} />}
         {imagePicker != null && active && (
           <ImagePickerModal
@@ -1131,6 +1159,7 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
               onRedo={() => dispatch({ type: "REDO" })}
               onExportPdf={onExportPdf}
               onExportHtml={onExportHtml}
+              onPresent={twoPager ? undefined : onPresent}
               onExportPptx={onExportPptx}
               pptxProgress={pptxProgress}
               onOpenDeckFile={openDeckFilePicker}
@@ -1422,6 +1451,7 @@ function Toolbar({
   onRedo,
   onExportPdf,
   onExportHtml,
+  onPresent,
   onExportPptx,
   pptxProgress,
   onOpenDeckFile,
@@ -1435,6 +1465,8 @@ function Toolbar({
   onRedo: () => void;
   onExportPdf: () => void;
   onExportHtml: () => void;
+  /** Slides only: a two-pager is a printed piece, it has no presentation. */
+  onPresent?: () => void;
   onExportPptx: () => void;
   pptxProgress: { done: number; total: number } | null;
   onOpenDeckFile: () => void;
@@ -1470,6 +1502,11 @@ function Toolbar({
         >
           Upload HTML
         </Button>
+        {onPresent && (
+          <Button variant="secondary" icon={Play} onClick={onPresent} title="Present full screen from this slide (Esc to leave)">
+            Present
+          </Button>
+        )}
         <div className="relative">
         <Button variant="primary" iconRight={ChevronDown} onClick={() => setExportOpen((v) => !v)}>
           Download

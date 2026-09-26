@@ -219,6 +219,22 @@ export default function ThumbStrip({
       }}
       onDrop={handleDrop}
     >
+      {/* The add action is a real button, not a ghost tile: on the grey rail a
+          dashed outline all but disappeared. Same secondary pill as Upload.
+          It sits at the top and stays there while the strip scrolls (Mario,
+          26 Sep 2026: it used to be under the last slide). */}
+      <div className="sticky top-0 z-10 -mx-3 -mt-3 bg-canvas px-3 pb-1 pt-3">
+        <Button
+          variant="secondary"
+          icon={Plus}
+          onClick={() => setLayoutsOpen(true)}
+          data-tour="insert"
+          title={twoPager ? "Add a page" : "Insert a slide layout"}
+          className="w-full"
+        >
+          {twoPager ? "Add page" : "Add slide"}
+        </Button>
+      </div>
       {slides.map((slide, i) => (
         <div
           key={slide.id}
@@ -280,18 +296,6 @@ export default function ThumbStrip({
         </div>
       ))}
 
-      {/* The add action is a real button, not a ghost tile: on the grey rail a
-          dashed outline all but disappeared. Same secondary pill as Upload. */}
-      <Button
-        variant="secondary"
-        icon={Plus}
-        onClick={() => setLayoutsOpen(true)}
-        data-tour="insert"
-        title={twoPager ? "Add a page" : "Insert a slide layout"}
-        className="w-full"
-      >
-        {twoPager ? "Add page" : "Add slide"}
-      </Button>
 
       {layoutsOpen && twoPager && (
         <PagePresetModal
