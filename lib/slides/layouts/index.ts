@@ -5,6 +5,7 @@ import * as cards from "./cards";
 import * as stats from "./stats";
 import * as tables from "./tables";
 import * as charts from "./charts";
+import * as progressLayout from "./progress";
 import { renderPage, type PageCtx } from "../pages/render";
 
 /**
@@ -38,6 +39,7 @@ export const LAYOUTS: Record<LayoutId, { label: string; render: RenderFn }> = {
   "single-stat": { label: "Single stat", render: stats.singleStat },
   "chart-bars": { label: "Bar chart", render: stats.chartBars },
   "donut-chart": { label: "Donut chart", render: stats.donutChart },
+  progress: { label: "Progress", render: progressLayout.progress },
   "chart-columns-wide": { label: "Wide column chart", render: charts.columnsWide },
   "chart-bars-horizontal": { label: "Horizontal bars", render: charts.barsHorizontal },
   "chart-line": { label: "Line chart", render: charts.line },

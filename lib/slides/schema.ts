@@ -38,6 +38,9 @@ export const AI_LAYOUT_IDS = [
   "chart-columns-stacked",
   "timeline",
   "timeline-phases",
+  // Drawn 26 Sep 2026 from timeline-phases with Mario's approval: stages on a
+  // progress bar, done / in progress / next (layouts/progress.ts).
+  "progress",
   "example-image-left",
   "example-image-right",
   "partner",
@@ -134,6 +137,8 @@ export interface SlideContent {
   bars?: Bar[];
   /** Series names (legend) for the multi-series charts, see SERIES_LAYOUTS. */
   series?: string[];
+  /** The progress slide's stage in progress, 1-based; absent is a plain sequence. */
+  current?: number;
   contacts?: Contact[];
   /** Closing slide: the social row, seeded from DEFAULT_CHANNELS. */
   channels?: Channel[];
@@ -263,6 +268,10 @@ export const slideContentSchema = z.object({
     .array(z.string())
     .optional()
     .transform((v) => (v && v.length ? v : undefined)),
+  current: z.coerce
+    .number()
+    .optional()
+    .transform((v) => (v && v >= 1 ? Math.round(v) : undefined)),
   contacts: z.array(contactSchema).optional(),
   channels: z.array(channelSchema).optional(),
   image: z.string().optional(),
@@ -317,6 +326,7 @@ const ARRAY_LIMITS: Partial<Record<LayoutId, Partial<Record<ArrayField, [number,
   partner: { bullets: [1, 15] },
   timeline: { blocks: [2, 5] },
   "timeline-phases": { blocks: [1, 5] },
+  progress: { blocks: [2, 6] },
   "example-image-left": { blocks: [1, 2] },
   "example-image-right": { blocks: [1, 2] },
   "thank-you": { contacts: [1, 2] },

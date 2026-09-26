@@ -30,6 +30,7 @@ export const LAYOUT_FAMILIES: Partial<Record<LayoutId, FamilyEntry>> = {
   "example-image-left": { family: "blocks", note: "Text beside a photo on the left", photo: true },
   "example-image-right": { family: "blocks", note: "Text beside a photo on the right", photo: true },
   list: { family: "blocks", note: "Rows, up to six" },
+  progress: { family: "blocks", note: "Stages on a progress bar" },
   "stat-grid": { family: "stats", note: "Up to six numbers beside the title" },
   "two-stats": { family: "stats", note: "One or two numbers with explanations" },
   "brand-equity": { family: "stats", note: "An intro paragraph over the numbers" },

@@ -392,6 +392,20 @@ export default function SlideFrame({
       });
     }
 
+    // A node that sets a value (the progress slide's stages): a click writes
+    // data-value to the path in data-set, one undo step like any edit.
+    if (editable) {
+      stage.querySelectorAll<HTMLElement>("[data-set]").forEach((node) => {
+        node.style.cursor = "pointer";
+        const onClick = (e: MouseEvent) => {
+          e.stopPropagation();
+          onEditRef.current?.(node.getAttribute("data-set")!, node.getAttribute("data-value") ?? "");
+        };
+        node.addEventListener("click", onClick);
+        cleanups.push(() => node.removeEventListener("click", onClick));
+      });
+    }
+
     // Charts: a click on the bars or the donut opens the data panel. The
     // editable labels inside keep their own click (inline editing).
     if (pageRef.current.onChartClick) {

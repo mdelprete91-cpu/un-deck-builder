@@ -93,6 +93,7 @@ const LIMITS: Partial<Record<LayoutId, { title?: number; subtitle?: number; body
   "chart-columns-stacked": { title: 8, barLabel: 2 },
   timeline: { title: 3, blockBody: 6 },
   "timeline-phases": { title: 4, blockBody: 7 },
+  progress: { title: 8, label: 3, blockBody: (n) => (n >= 5 ? 8 : 12) },
   "example-image-left": { title: 6, label: 2, blockBody: 30 },
   "example-image-right": { title: 6, label: 2, blockBody: 30 },
   partner: { title: 3 },

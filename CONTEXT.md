@@ -65,7 +65,14 @@ Do not change these without asking Mario first. They are decisions, not defaults
    from us. One approved exception (Mario, 25 Sep 2026): the five full-width charts in
    `lib/slides/layouts/charts.ts` (wide columns up to thirty, horizontal bars, line, grouped
    columns, stacked columns) are derived from chart-bars, template 16: its title, axis, grid and
-   tints, with the plot run across the content width. See "Charts" below.
+   tints, with the plot run across the content width. See "Charts" below. A second one (Mario,
+   26 Sep 2026): `progress` in `lib/slides/layouts/progress.ts`, derived from timeline-phases,
+   3-6 stages on a progress bar. `current` (1-based, in the output schema as an integer, 0 when
+   unused) is the stage in progress: earlier stages are filled accent nodes with a tick and
+   "Done", the current one a larger accent ring with its label in the accent and "In progress",
+   the rest grey rings and "Next"; the bar fills to it. Absent, the slide is a plain sequence. A
+   click on a node sets it: `data-set` / `data-value` on the node, read by SlideFrame as an edit
+   of that path. Body limits are 12 words up to four stages, 8 with five or six.
 8. **Slide renderers emit HTML strings with inline styles only.** No Tailwind classes, no external
    CSS. The same markup has to survive the editor preview, the thumbnails, the print root, the
    self-contained HTML export, and the PPTX capture. A class that only exists in `globals.css`

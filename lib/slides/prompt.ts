@@ -32,7 +32,7 @@ RULES:
 - Only state facts given in the brief or the attached material. Never invent statistics, names, emails or dates: no year, quarter or period the brief does not give, not even in a subtitle. Giga's own figures (2.2M+ schools mapped, 146 countries, giga.global) belong only in a deck the brief makes about Giga. A brief that names neither Giga nor UNICEF gets a deck that names neither, outside the closing slide.
 - For chart-bars, values are relative heights 0-100.
 - For "partner", use it only when the brief names partners, and copy the names EXACTLY from this list (each maps to a real logo): ${PARTNER_NAMES.join(", ")}. Never invent partner names or write categories like "Telecom operators" — a name outside the list renders as plain text instead of a logo.
-- Every slide object includes every field of the output schema. Set fields the chosen layout does not use to "" (strings) or [] (arrays) — never invent content for them.`;
+- Every slide object includes every field of the output schema. Set fields the chosen layout does not use to "" (strings), [] (arrays) or 0 (numbers) — never invent content for them.`;
 }
 
 /**
@@ -268,6 +268,7 @@ export const SLIDES_OUTPUT_SCHEMA = {
             },
           },
           series: { type: "array", items: { type: "string" } },
+          current: { type: "integer" },
           contacts: {
             type: "array",
             items: {
@@ -297,6 +298,7 @@ export const SLIDES_OUTPUT_SCHEMA = {
           "stats",
           "bars",
           "series",
+          "current",
           "contacts",
         ],
         additionalProperties: false,

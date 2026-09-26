@@ -224,6 +224,19 @@ export function defaultContent(layoutId: LayoutId): SlideContent {
         title: "Timeline",
         blocks: Array.from({ length: 4 }, () => ({ label: "2026", body: LOREM_ROW })),
       };
+    case "progress":
+      return {
+        layoutId,
+        title: "Where the programme stands",
+        current: 3,
+        blocks: [
+          { label: "Map", body: "Every school located and verified with the ministry" },
+          { label: "Monitor", body: "Daily connectivity checks in 4,800 schools" },
+          { label: "Connect", body: "900 schools in the northern counties by June" },
+          { label: "Open data", body: "The map published for anyone to use" },
+          { label: "Scale", body: "Two more countries in 2027" },
+        ],
+      };
     case "timeline-phases":
       return {
         layoutId,
