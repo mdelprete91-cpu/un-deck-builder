@@ -20,9 +20,10 @@ import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { countFromBrief, seriesFromBrief, uniformFromBrief, MIN_SLIDES_WITH_CHAPTERS, TIERS_REQUEST } from "../lib/slides/brief";
 import { normalizeSlide, type LayoutId, type SlideContent } from "../lib/slides/schema";
-import { makeRhythm, stripInventedYear } from "../lib/slides/rhythm";
+import { makeRhythm, mergeContinuations, stripInventedYear, unifyLayouts } from "../lib/slides/rhythm";
+import { defaultContent } from "../lib/slides/defaults";
 import { PARTNER_NAMES } from "../lib/slides/partners";
-import { extractXlsx, type Attachment } from "../lib/slides/attachments";
+import { extractDocx, extractPptx, extractXlsx, type Attachment } from "../lib/slides/attachments";
 
 const URL = process.env.QA_URL ?? "http://localhost:3777";
 const BRAND_ID = "did";
@@ -41,6 +42,8 @@ interface Prompt {
   chapters?: boolean;
   /** A workbook under tools/qa-briefs attached to the brief, as the composer would (one table per sheet). */
   xlsx?: string;
+  /** Any files to attach, paths from the repo root: xlsx, pdf, docx, pptx, txt, md, csv, json. */
+  files?: string[];
   /** The answer to the composer's "what should the deck draw from it" card. */
   insights?: string;
   expect: {
@@ -101,7 +104,7 @@ const words = (t?: string) => (t ?? "").trim().split(/\s+/).filter(Boolean).leng
 const fmtNum = (n: number) => (n >= 1000 ? Math.round(n).toLocaleString("en-US") : String(Math.round(n * 10) / 10));
 /** The slide's prose: what the language check reads (a chart's thirty country names are not a language). */
 const proseOf = (s: SlideContent) =>
-  [s.title, s.subtitle, s.stat, s.support, s.quote, s.author, s.body, ...(s.bullets ?? []), ...(s.blocks ?? []).flatMap((b) => [b.label, b.body]), ...(s.stats ?? []).flatMap((x) => [x.value, x.label])]
+  [s.title, s.subtitle, s.stat, s.support, s.quote, s.author, s.body, ...(s.bullets ?? []), ...(s.blocks ?? []).flatMap((b) => [b.label, b.body]), ...(s.stats ?? []).flatMap((x) => [x.value, x.label]), ...(s.contacts ?? []).flatMap((c) => [c.name, c.role, c.email])]
     .filter(Boolean)
     .join(" ");
 const textOf = (s: SlideContent) =>
@@ -136,8 +139,16 @@ function overflows(s: SlideContent, index: number): string[] {
 
 const STOP: Record<string, RegExp> = {
   en: /\b(the|and|of|for|with|to)\b/gi,
-  it: /\b(il|la|di|per|con|delle|degli|dei|una|che)\b/gi,
-  es: /\b(el|la|de|para|con|los|las|una|que|y)\b/gi,
+  // "per" is English too ("cost per school"), so it is not an Italian tell.
+  it: /\b(il|di|delle|degli|dei|una|che|nel|della)\b/gi,
+  es: /\b(el|de|para|los|las|una|que|y)\b/gi,
+  fr: /\b(le|les|des|pour|avec|et|une|sur|du)\b/gi,
+};
+/** "240,000" as a slide may print it: "240K", "1.5M". */
+const compact = (n: string) => {
+  const v = Number(n.replace(/,/g, ""));
+  if (!Number.isFinite(v)) return n;
+  return v >= 1_000_000 ? `${String(Number((v / 1_000_000).toFixed(1)))}M` : v >= 1000 ? `${String(Number((v / 1000).toFixed(1)))}K` : n;
 };
 
 async function generate(body: Record<string, unknown>): Promise<{ slides: unknown[]; meta?: { insertAfter?: number }; truncated: boolean; usage?: { inputTokens: number; outputTokens: number }; error?: string }> {
@@ -180,6 +191,21 @@ interface Result {
   error?: string;
 }
 
+/** A file as the composer would attach it: a sheet as tables, a PDF whole, Word and PowerPoint as text, text as text. */
+async function loadAttachment(path: string, id: string): Promise<Attachment> {
+  const buf = readFileSync(path);
+  const ab = buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength);
+  const name = path.split("/").pop()!;
+  const ext = name.split(".").pop()!.toLowerCase();
+  if (ext === "xlsx") {
+    const text = await extractXlsx(ab);
+    return { id, name, kind: "text", text, bytes: text.length, spreadsheet: true };
+  }
+  if (ext === "pdf") return { id, name, kind: "pdf", mediaType: "application/pdf", data: buf.toString("base64"), bytes: buf.length };
+  const text = ext === "docx" ? await extractDocx(ab) : ext === "pptx" ? await extractPptx(ab) : buf.toString("utf8");
+  return { id, name, kind: "text", text: text.slice(0, 60_000), bytes: text.length, truncated: text.length > 60_000 };
+}
+
 async function runPrompt(p: Prompt): Promise<Result> {
   const brief = p.brief ?? readFileSync(join("tools/qa-briefs", p.briefFile!), "utf8");
   const count = countFromBrief(brief);
@@ -188,10 +214,13 @@ async function runPrompt(p: Prompt): Promise<Result> {
   const wanted = count === undefined ? undefined : perItem ? count + 2 : count;
   const rhythm = makeRhythm({ series: perItem, uniform: uniformFromBrief(brief), cap: wanted });
   const attachments: Attachment[] = [];
-  if (p.xlsx) {
-    const buf = readFileSync(join("tools/qa-briefs", p.xlsx));
-    const text = await extractXlsx(buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength));
-    attachments.push({ id: "qa", name: p.xlsx, kind: "text", text, bytes: text.length, spreadsheet: true, ...(p.insights ? { insights: p.insights } : {}) });
+  const paths = [...(p.xlsx ? [join("tools/qa-briefs", p.xlsx)] : []), ...(p.files ?? [])];
+  for (const [i, path] of paths.entries()) {
+    const a = await loadAttachment(path, `qa${i}`);
+    // The "what to draw" answer goes with the first spreadsheet, or the first file when there is none.
+    const first = i === 0 || (a.kind === "text" && a.spreadsheet && !attachments.some((x) => x.kind === "text" && x.spreadsheet));
+    if (p.insights && first && a.kind !== "image") (a as { insights?: string }).insights = p.insights;
+    attachments.push(a);
   }
   const t0 = Date.now();
   let cost = 0;
@@ -223,11 +252,29 @@ async function runPrompt(p: Prompt): Promise<Result> {
       existingSlides: slides,
     });
     cost += usage(add.usage);
-    const extra = add.slides.map((raw) => normalizeSlide(raw, { brandId: BRAND_ID })).filter((s): s is SlideContent => !!s && !STRUCTURAL.has(s.layoutId)).slice(0, missing);
+    // A topped-up slide with a title the deck already has is a repeat, whatever the instruction said.
+    const titles = new Set(slides.map((s) => (s.title ?? "").trim().toLowerCase()).filter(Boolean));
+    const extra = add.slides
+      .map((raw) => normalizeSlide(raw, { brandId: BRAND_ID }))
+      .filter((s): s is SlideContent => !!s && !STRUCTURAL.has(s.layoutId) && !titles.has((s.title ?? "").trim().toLowerCase()))
+      .slice(0, missing);
     const at = Math.min(Math.max(add.meta?.insertAfter ?? slides.length - 1, 1), slides.length - 1);
     slides = [...slides.slice(0, at), ...extra, ...slides.slice(at)];
     warnings.push(`topped up: +${extra.length} after a short deck of ${slides.length - extra.length}`);
   }
+  // What the editor does once the deck is complete (see runGenerate in app/page.tsx).
+  const beforeMerge = slides.length;
+  slides = mergeContinuations(slides);
+  const merged = beforeMerge - slides.length;
+  if (merged) warnings.push(`${merged} continued slide${merged === 1 ? "" : "s"} folded back`);
+  if (uniformFromBrief(brief)) slides = unifyLayouts(slides);
+  if (slides.length && slides[slides.length - 1].layoutId !== "thank-you") {
+    const closing = normalizeSlide(defaultContent("thank-you"), { brandId: BRAND_ID });
+    if (closing) slides.push(closing);
+    warnings.push("closing slide added: the model left it out");
+  }
+  const agenda = slides.find((s) => s.layoutId === "agenda");
+  if (agenda) agenda.bullets = slides.filter((s) => s.layoutId === "section-divider").map((s) => s.title ?? "");
   const seconds = (Date.now() - t0) / 1000;
   const layouts = slides.map((s) => s.layoutId);
   const content = slides.filter((s) => !STRUCTURAL.has(s.layoutId));
@@ -241,7 +288,8 @@ async function runPrompt(p: Prompt): Promise<Result> {
   if (first.truncated) findings.push("TRUNCATED");
   if (e.count !== undefined) {
     const target = perItem ? e.count + 2 : e.count;
-    if (slides.length !== target) findings.push(`count ${slides.length} ≠ ${target}`);
+    // A deck short by the continued slides it folded back kept its content, not its count.
+    if (slides.length !== target && slides.length + merged !== target) findings.push(`count ${slides.length} ≠ ${target}`);
   }
   if (e.min !== undefined && slides.length < e.min) findings.push(`too short: ${slides.length} < ${e.min}`);
   if (e.max !== undefined && slides.length > e.max) findings.push(`too long: ${slides.length} > ${e.max}`);
@@ -268,19 +316,23 @@ async function runPrompt(p: Prompt): Promise<Result> {
   }
   // Rhythm (outside an explicit same-layout series)
   if (!e.sameLayout) {
-    let run = 1, worst = 1;
-    for (let i = 1; i < content.length; i++) {
-      const same = content[i].layoutId === content[i - 1].layoutId;
+    // A divider starts a new run: parallel chapters in one layout are structure.
+    let run = 1, worst = 1, prev: SlideContent | null = null;
+    for (const s of slides) {
+      if (s.layoutId === "section-divider") { prev = null; run = 1; continue; }
+      if (STRUCTURAL.has(s.layoutId)) continue;
+      const same = !!prev && s.layoutId === prev.layoutId;
       // Five or six points fit only the list: a run of those is the text's.
-      const forced = content[i].layoutId === "list" && (content[i].blocks?.length ?? 0) >= 5 && (content[i - 1].blocks?.length ?? 0) >= 5;
+      const forced = same && s.layoutId === "list" && (s.blocks?.length ?? 0) >= 5 && (prev!.blocks?.length ?? 0) >= 5;
       run = same && !forced ? run + 1 : 1;
       worst = Math.max(worst, run);
+      prev = s;
     }
     if (worst >= 3) findings.push(`${worst} identical layouts in a row`);
   }
   // Content
   e.layoutsAny && !e.layoutsAny.some((l) => layouts.includes(l)) && findings.push(`none of ${e.layoutsAny.join("/")}`);
-  e.numbers?.forEach((n) => !all.includes(n) && findings.push(`number ${n} missing`));
+  e.numbers?.forEach((n) => !all.includes(n) && !all.includes(compact(n)) && findings.push(`number ${n} missing`));
   e.text?.forEach((t) => !all.toLowerCase().includes(t.toLowerCase()) && findings.push(`text "${t}" missing`));
   if (e.partners) {
     // Every named partner must be mentioned; the wall is required only when
@@ -291,7 +343,8 @@ async function runPrompt(p: Prompt): Promise<Result> {
     const bad = (partner?.bullets ?? []).filter((b) => !names.includes(b));
     if (bad.length) findings.push(`partner names not in list: ${bad.join(", ")}`);
     e.partners.forEach((n) => !all.includes(n) && findings.push(`partner ${n} not mentioned`));
-    if (e.partners.every((n) => names.includes(n)) && !partner) findings.push("no partner wall");
+    // One roster partner is a name in the text, not a wall.
+    if (e.partners.length >= 2 && e.partners.every((n) => names.includes(n)) && !partner) findings.push("no partner wall");
   }
   if (e.tiers && !TIERS_REQUEST.test(brief)) findings.push("tiers asked, trigger silent");
   if (!e.tiers && TIERS_REQUEST.test(brief)) findings.push("tiers trigger fired uninvited");
@@ -335,7 +388,8 @@ async function runPrompt(p: Prompt): Promise<Result> {
 
 async function main() {
   const only = process.argv.slice(2);
-  const prompts = (JSON.parse(readFileSync("tools/qa-prompts.json", "utf8")) as Prompt[]).filter((p) => !only.length || only.includes(p.id));
+  // QA_FILE points at another prompt file (a set of use cases outside the regression suite).
+  const prompts = (JSON.parse(readFileSync(process.env.QA_FILE ?? "tools/qa-prompts.json", "utf8")) as Prompt[]).filter((p) => !only.length || only.includes(p.id));
   const stamp = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19);
   const dir = join(".omc/qa", stamp);
   mkdirSync(dir, { recursive: true });

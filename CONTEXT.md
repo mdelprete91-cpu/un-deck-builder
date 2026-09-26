@@ -402,7 +402,22 @@ guard, all pure functions, none touching the user's words:
   the previous chart is dropped too (Luna drew a three-line trend and then one line per series
   from the same table, 25 Sep 2026); a series chart whose series are the categories themselves
   (one figure per bar, no series used twice) becomes chart-bars or chart-columns-wide, since it is
-  one distribution wearing a legend. `normalizeSlide` drops a slide with no text at all.
+  one distribution wearing a legend; a slide that says what an earlier one said (same title, same
+  block labels or stat values) is dropped as a repeat; a section divider starts a new run, so
+  parallel chapters in one layout are structure. `normalizeSlide` drops a slide with no text at
+  all and strips blocks, stats and bullets from a chart slide.
+- **Once the deck is complete** (`runGenerate` after the top-up, and the suite): `mergeContinuations`
+  folds two consecutive blocks-family slides with one title into one (Objective 1 with KR1-3 and
+  again with KR5-6, 26 Sep 2026); `unifyLayouts` under "same layout" gives every blocks-family
+  slide the one layout that holds the longest of them (list past four points), which the streaming
+  pass could not know; `ENSURE_CLOSING` appends the default closing slide when the model left it
+  out (a numbers deck of eight stats ended on a stat). A topped-up slide whose title the deck
+  already has is dropped as a repeat. The route budgets 800 tokens a slide (a fifteen-slide deck
+  with chapters from a long report was truncated at 650), and a named count under twelve with
+  chapters on asks for at most two chapters.
+- **Known limit, not guarded**: a PDF with no text layer (a scanned or rendered page) is read by
+  the model as an image, and a digit can come back wrong (3,323 rejected schools read as 3,523,
+  twice, 26 Sep 2026). The prompt says digit by digit; the fix is a PDF with a text layer.
 - **`lib/slides/voice.ts`**, in the route on every string the model wrote: the banned words
   (leveraging, synergies, cutting-edge, revolutionary, empower, unlock) become plain ones, forms
   preserved, unless the brief itself uses the word.
@@ -722,7 +737,9 @@ npm run dev
 
 There is no unit test suite. Two scripted checks call the real model: `tools/qa-generate.py`
 scores one deck against its source material, and **`tools/qa-suite.ts` runs twenty briefs of
-different nature** (`tools/qa-prompts.json`, long ones in `tools/qa-briefs/`) through the whole
+different nature** (and, with `QA_FILE=<json>`, any other set: `.omc/qa-usecases.json` holds
+twenty-one use cases with Word, PowerPoint, PDF, CSV, notes and workbooks from `.omc/qa-files/`,
+in four languages, 26 Sep 2026; `files` on a prompt attaches any of them) (`tools/qa-prompts.json`, long ones in `tools/qa-briefs/`) through the whole
 pipeline as the editor runs it (brief parsing, request, normalize, chapter filter, rhythm pass,
 year guard, top-up) and scores each deck: count, structure, series fidelity, chapters, language,
 drift, banned words, invented years (a warning), non-figure stats, empty fields, duplicate

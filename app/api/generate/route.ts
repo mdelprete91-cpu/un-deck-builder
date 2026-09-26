@@ -24,6 +24,9 @@ export const runtime = "nodejs";
  * do the constraining, and thinking tokens would only add latency and cost.
  */
 const MODEL = "gpt-6-luna";
+/** No token for this long, or this long in all, and the stream is cut. */
+const IDLE_MS = 60_000;
+const TOTAL_MS = 240_000;
 /**
  * Both prompts are built once at module load: nothing per-request may go in
  * here (that is what the user message is for), and building two strings costs
@@ -120,11 +123,13 @@ export async function POST(request: Request): Promise<Response> {
   const count = body.mode === "regenerate" ? 1 : Math.min(Math.max(named, 1), 22);
   // Add mode carries extra output (insertAfter + refreshed agenda bullets).
   // Every slide carries all its required fields, so a content-heavy slide (a
-  // PDF behind it) costs 400-700 tokens: 650 keeps twenty of them under the
-  // ceiling. An A4 page of text is worth about four slides. The stream
+  // PDF behind it) costs 400-750 tokens: 800 keeps twenty-two of them under
+  // the ceiling. An A4 page of text is worth about four slides. The stream
   // reports truncation and the client shows it, but the parser never emits a
   // slide cut in half, so the budget has to be honest.
-  const perItem = twoPager ? 1600 : 650;
+  // 800 a slide since 26 Sep 2026: a fifteen-slide deck with chapters from a
+  // long report hit 650 and came back truncated.
+  const perItem = twoPager ? 1600 : 800;
   const maxTokens = Math.min(800 + perItem * count + (isAdd ? 400 : 0), 20000);
   const encoder = new TextEncoder();
 
@@ -136,7 +141,26 @@ export async function POST(request: Request): Promise<Response> {
       let index = 0;
       let raw = "";
       let refusal = "";
+      // A stream that stops sending is cut, not waited for: one hung for 17
+      // minutes on 26 Sep 2026 and the editor sat on "Generating…". Sixty
+      // seconds without a token, or four minutes in all, ends it with a
+      // plain error the client already knows how to show.
+      const abort = new AbortController();
+      let stalled = false;
+      let idle: ReturnType<typeof setTimeout> | undefined;
+      const armIdle = () => {
+        if (idle) clearTimeout(idle);
+        idle = setTimeout(() => {
+          stalled = true;
+          abort.abort();
+        }, IDLE_MS);
+      };
+      const total = setTimeout(() => {
+        stalled = true;
+        abort.abort();
+      }, TOTAL_MS);
       try {
+        armIdle();
         const schema = twoPager
           ? isAdd
             ? ADD_PAGES_OUTPUT_SCHEMA
@@ -144,26 +168,30 @@ export async function POST(request: Request): Promise<Response> {
           : isAdd
             ? ADD_OUTPUT_SCHEMA
             : SLIDES_OUTPUT_SCHEMA;
-        const events = await client.responses.create({
-          model: MODEL,
-          instructions: SYSTEM_PROMPTS[twoPager ? "two-pager" : "slides"],
-          input: [{ role: "user", content: buildUserContent(body) }],
-          text: {
-            format: {
-              type: "json_schema",
-              name: twoPager ? "pages" : "slides",
-              schema: schema as unknown as Record<string, unknown>,
-              strict: true,
+        const events = await client.responses.create(
+          {
+            model: MODEL,
+            instructions: SYSTEM_PROMPTS[twoPager ? "two-pager" : "slides"],
+            input: [{ role: "user", content: buildUserContent(body) }],
+            text: {
+              format: {
+                type: "json_schema",
+                name: twoPager ? "pages" : "slides",
+                schema: schema as unknown as Record<string, unknown>,
+                strict: true,
+              },
             },
+            reasoning: { effort: "none" },
+            max_output_tokens: maxTokens,
+            stream: true,
           },
-          reasoning: { effort: "none" },
-          max_output_tokens: maxTokens,
-          stream: true,
-        });
+          { signal: abort.signal },
+        );
 
         let stopReason = "stop";
         let usage = { inputTokens: 0, outputTokens: 0 };
         for await (const event of events) {
+          armIdle();
           if (event.type === "response.output_text.delta") {
             raw += event.delta;
             for (const slide of parser.feed(event.delta)) {
@@ -211,8 +239,15 @@ export async function POST(request: Request): Promise<Response> {
           usage,
         });
       } catch (err) {
-        send({ type: "error", message: describeError(err) });
+        send({
+          type: "error",
+          message: stalled
+            ? `The model stopped responding${index > 0 ? ` after ${index} slide${index === 1 ? "" : "s"}` : ""}. Try again; a shorter brief or fewer slides helps.`
+            : describeError(err),
+        });
       } finally {
+        if (idle) clearTimeout(idle);
+        clearTimeout(total);
         controller.close();
       }
     },

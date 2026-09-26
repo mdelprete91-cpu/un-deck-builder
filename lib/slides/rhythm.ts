@@ -191,6 +191,71 @@ function fixDiagonalSeries(content: SlideContent): SlideContent {
   };
 }
 
+/**
+ * What a slide says, for the repeat check: its title and its items (block
+ * labels, stat values, bullets, the hero figure). A slide that says the same
+ * as an earlier one is the model repeating itself: "Key risks" twice with
+ * the same two blocks, "Schools mapped" as a big stat and then as a chart of
+ * one bar (26 Sep 2026, use-case QA), and it goes.
+ */
+function signatureOf(content: SlideContent): string {
+  const title = (content.title ?? "").trim().toLowerCase();
+  const items = [
+    ...(content.blocks ?? []).map((b) => b.label.trim().toLowerCase()),
+    ...(content.stats ?? []).map((x) => x.value.trim().toLowerCase()),
+    ...(content.bullets ?? []).map((b) => b.trim().toLowerCase()),
+    ...(content.bars ?? []).map((b) => b.label.trim().toLowerCase()),
+    (content.stat ?? "").trim().toLowerCase(),
+  ].filter(Boolean);
+  return `${title}|${items.join(",")}`;
+}
+
+/**
+ * "Same layout for all" once the whole series is in: the one blocks layout
+ * that holds the longest slide of the series (the list past four points, else
+ * the layout the series opened with when it holds them all), applied to every
+ * blocks-family content slide. The streaming pass can only impose what it has
+ * seen; this runs when the deck is complete (26 Sep 2026: a six-objective
+ * series with two to six KRs came back in four layouts).
+ */
+export function unifyLayouts(slides: SlideContent[]): SlideContent[] {
+  const series = slides.filter((s) => BLOCKS_FAMILY.has(s.layoutId));
+  if (series.length < 2) return slides;
+  const points = Math.max(...series.map((s) => s.blocks?.length ?? 0));
+  const first = series[0].layoutId;
+  const target: LayoutId = points >= 5 ? "list" : holdsAll(first, points) && first !== "list" ? first : alternativesFor(points)[0];
+  return slides.map((s) => (BLOCKS_FAMILY.has(s.layoutId) && s.layoutId !== target ? { ...s, layoutId: target } : s));
+}
+
+/**
+ * A "continued" slide folded back: two consecutive blocks-family slides with
+ * the same title are one item the model split (Objective 1 with KR1-3, then
+ * Objective 1 again with KR5-6, 26 Sep 2026). Their blocks join on the first
+ * slide, on the list past four points, and the second goes. Runs once the
+ * deck is complete, like unifyLayouts.
+ */
+export function mergeContinuations(slides: SlideContent[]): SlideContent[] {
+  const out: SlideContent[] = [];
+  for (const s of slides) {
+    const prev = out[out.length - 1];
+    const title = (s.title ?? "").trim().toLowerCase();
+    if (
+      prev &&
+      title &&
+      title === (prev.title ?? "").trim().toLowerCase() &&
+      BLOCKS_FAMILY.has(s.layoutId) &&
+      BLOCKS_FAMILY.has(prev.layoutId) &&
+      (prev.blocks?.length ?? 0) + (s.blocks?.length ?? 0) <= 6
+    ) {
+      const blocks = [...(prev.blocks ?? []), ...(s.blocks ?? [])];
+      out[out.length - 1] = { ...prev, blocks, layoutId: blocks.length > 4 ? "list" : holdsAll(prev.layoutId, blocks.length) ? prev.layoutId : alternativesFor(blocks.length)[0] };
+      continue;
+    }
+    out.push(s);
+  }
+  return out;
+}
+
 /** Layouts whose items are a figure and a label. */
 const STATS_FAMILY = new Set<string>(["stat-grid", "two-stats", "brand-equity"]);
 
@@ -225,6 +290,8 @@ export function makeRhythm(opts: RhythmOptions = {}): (content: SlideContent) =>
   let lastChart: Set<string> | null = null;
   /** "Same layout" in the brief: the first blocks-family layout, which every later one takes. */
   let uniformLayout: LayoutId | null = null;
+  /** What each accepted content slide said, for the repeat check. */
+  const said = new Set<string>();
   const settle = (layoutId: LayoutId) => {
     run = layoutId === last ? run + 1 : 1;
     last = layoutId;
@@ -239,11 +306,20 @@ export function makeRhythm(opts: RhythmOptions = {}): (content: SlideContent) =>
     if (opts.cap && accepted >= opts.cap - 1) return null;
     if (STRUCTURAL.has(content.layoutId)) {
       accepted++;
+      // A new chapter starts a new run: three parallel country slides in the
+      // same layout, each behind its divider, are structure, not monotony.
+      if (content.layoutId === "section-divider") {
+        last = null;
+        run = 0;
+      }
       return content;
     }
     const fixed = fixEmptySection(fixHeroWithoutFigure(fixNonNumericStats(fixLonelyTimeline(fixDiagonalSeries(content)))));
     // A dropped slide never counts against the cap.
     if (!fixed || isRepeatChart(fixed, lastChart)) return null;
+    const signature = signatureOf(fixed);
+    if (signature.split("|")[0] && said.has(signature)) return null;
+    said.add(signature);
     content = fixed;
     if (CHART_FAMILY.has(content.layoutId)) lastChart = chartPairs(content);
     accepted++;

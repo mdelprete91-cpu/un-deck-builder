@@ -447,7 +447,15 @@ export function normalizeSlide(
       if (arr.length > max) (slide[field] as unknown[]) = arr.slice(0, max);
     }
   }
-  if (isChartLayout(slide.layoutId)) normalizeSeries(slide);
+  if (isChartLayout(slide.layoutId)) {
+    normalizeSeries(slide);
+    // A chart reads its bars and nothing else: blocks or stats the model
+    // wrote beside them (a grouped chart with two empty blocks, 26 Sep 2026)
+    // would only reach the editor as fields nothing renders.
+    delete slide.blocks;
+    delete slide.stats;
+    delete slide.bullets;
+  }
   return slide;
 }
 

@@ -108,7 +108,7 @@ function attachmentsNote(body: GenerateBody): string {
   return (
     `\n\nAttached reference material (${n} item${n === 1 ? "" : "s"}: ${names}) precedes this message.` +
     (answered ? " The user answered questions about the material; those answers rank with the brief, above the material itself." : "") +
-    ` The ${body.format === "two-pager" ? "pages are" : "deck is"} about this material: take the subject, structure, facts, figures and names from it. The brief comes first on everything it says (length, angle, audience, which organisations to feature); where the brief is silent, the material decides. Quote numbers exactly as they appear, never invent what is not there, and do not copy long passages verbatim.` +
+    ` The ${body.format === "two-pager" ? "pages are" : "deck is"} about this material: take the subject, structure, facts, figures and names from it. The brief comes first on everything it says (length, angle, audience, which organisations to feature); where the brief is silent, the material decides. Quote numbers exactly as they appear, copied digit by digit (3,323 is not 3,523), never invent what is not there, and do not copy long passages verbatim.` +
     (sheets ? SPREADSHEET_NOTE : "")
   );
 }
@@ -183,7 +183,9 @@ export function buildUserMessage(body: GenerateBody): string {
       const chaptersCount =
         body.chapters === false
           ? ""
-          : " (agenda and section dividers count too; if they would leave no room for the content, leave the chapters out, never the content)";
+          : typeof body.count === "number" && body.count < 12
+            ? " (agenda and section dividers count too: with this length use at most two chapters, so the content keeps most of the slides, or leave the chapters out)"
+            : " (agenda and section dividers count too; if they would leave no room for the content, leave the chapters out, never the content)";
       const length = body.perItem
         ? typeof body.count === "number"
           ? `The brief asks for one slide per item and names ${body.count}: that is the number of items, not the size of the deck. Make exactly one slide for each item the brief lists, then add the cover and the closing slide on top${body.chapters === false ? "" : ", and the agenda and dividers if the deck has chapters"}.`

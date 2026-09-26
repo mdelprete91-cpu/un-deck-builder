@@ -1,5 +1,6 @@
 import type { ImagePos, Slide, SlideContent } from "./schema";
-import { ensureId, isPage, normalizeSeries, PRIMARY_ARRAY } from "./schema";
+import { ensureId, isPage, normalizeSeries, normalizeSlide, PRIMARY_ARRAY } from "./schema";
+import { mergeContinuations, unifyLayouts } from "./rhythm";
 import { MAX_BLOCKS_PER_PAGE, PAGE_BLOCK_LIMITS, type PageBlockType } from "./pages/schema";
 import { defaultBlock, newPageItem } from "./pages/presets";
 import { newItem, defaultContent } from "./defaults";
@@ -98,6 +99,12 @@ export type DeckAction =
   | { type: "DELETE_BLOCK"; index: number; block: number }
   | { type: "MOVE_BLOCK"; index: number; from: number; to: number }
   | { type: "TOGGLE_CELL"; index: number; row: number; col: number }
+  /** Generation done: a deck that ends without its closing slide gets the default one. */
+  | { type: "ENSURE_CLOSING" }
+  /** Generation done under "same layout": every blocks-family slide takes the one layout that holds them all. */
+  | { type: "UNIFY_LAYOUTS" }
+  /** Generation done: consecutive slides with one title fold into one. */
+  | { type: "MERGE_CONTINUATIONS" }
   | { type: "SET_BARS"; index: number; bars: { label: string; value: number; values?: number[]; color?: string }[]; series?: string[] }
   | { type: "SET_LOGO"; index: number; slug: string; dataUrl: string }
   | { type: "SET_IMAGE"; index: number; dataUrl: string; path?: string }
@@ -236,6 +243,28 @@ function reduce(state: DeckState, action: DeckAction): DeckState {
       // No history push: generation is undone as a whole via GENERATION_START's snapshot.
       const slides = [...state.slides, ensureId(action.content)];
       return { ...state, slides, activeIndex: slides.length - 1 };
+    }
+    case "ENSURE_CLOSING": {
+      // The model left the closing slide out (a numbers deck of eight stats,
+      // a five-slide intro with the contacts on a slide that never came,
+      // 26 Sep 2026): the default one lands, so the deck ends the way every
+      // deck does.
+      const last = state.slides[state.slides.length - 1];
+      if (!last || isPage(last) || last.layoutId === "thank-you") return state;
+      const closing = normalizeSlide(defaultContent("thank-you"), { brandId: state.brandId });
+      if (!closing) return state;
+      return { ...state, slides: [...state.slides, ensureId(closing)] };
+    }
+    case "MERGE_CONTINUATIONS": {
+      if (state.slides.some(isPage)) return state;
+      const merged = mergeContinuations(state.slides) as Slide[];
+      if (merged.length === state.slides.length) return state;
+      return { ...state, slides: merged, activeIndex: Math.min(state.activeIndex, merged.length - 1) };
+    }
+    case "UNIFY_LAYOUTS": {
+      if (state.slides.some(isPage)) return state;
+      const unified = unifyLayouts(state.slides);
+      return { ...state, slides: unified.map((s, i) => (s === state.slides[i] ? state.slides[i] : { ...state.slides[i], ...s })) as Slide[] };
     }
     case "REPLACE_SLIDE": {
       const slides = [...state.slides];

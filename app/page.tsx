@@ -416,12 +416,19 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
       if (opts.collectInsert && collected.length > 0) {
         // Hard cap at the requested count — the model must never inflate the deck
         const cap = typeof body.count === "number" ? body.count : collected.length;
-        dispatch({
-          type: "INSERT_SLIDES",
-          at: meta?.insertAfter ?? null,
-          contents: collected.slice(0, cap),
-          agenda: meta?.agenda,
-        });
+        // An added slide with a title the deck already has is a repeat,
+        // whatever the instruction said ("Key risks" twice, 26 Sep 2026).
+        const existing = (body.existingSlides as SlideContent[] | undefined) ?? [];
+        const titles = new Set(existing.map((s) => (s.title ?? "").trim().toLowerCase()).filter(Boolean));
+        const fresh = collected.filter((s) => !titles.has((s.title ?? "").trim().toLowerCase()));
+        if (fresh.length > 0) {
+          dispatch({
+            type: "INSERT_SLIDES",
+            at: meta?.insertAfter ?? null,
+            contents: fresh.slice(0, cap),
+            agenda: meta?.agenda,
+          });
+        }
       }
       dispatch({ type: "GENERATION_DONE" });
       return received;
@@ -682,6 +689,15 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
     // The two fixed partnership-tier slides are added only when the brief
     // asks for them by name. A bare "tier" is not enough: "API keys by tier"
     // in an OKR brief shipped the partnership table uninvited (22 Sep 2026).
+    // Once the deck is complete, top-up included: a "continued" slide folds
+    // into its first half, under "same layout" the one layout that holds the
+    // whole series (the streaming pass could only impose what it had seen),
+    // and the closing slide the model may have left out.
+    if (received > 0) {
+      dispatch({ type: "MERGE_CONTINUATIONS" });
+      if (rhythm.uniform) dispatch({ type: "UNIFY_LAYOUTS" });
+      dispatch({ type: "ENSURE_CLOSING" });
+    }
     if (received > 0 && TIERS_REQUEST.test(brief)) dispatch({ type: "INSERT_TIERS" });
     if (received > 0) onDeckArrived();
   };

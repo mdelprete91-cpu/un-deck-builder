@@ -34,6 +34,13 @@ const NUMBER_WORDS: Record<string, number> = {
   due: 2, tre: 3, quattro: 4, cinque: 5, sei: 6, sette: 7, otto: 8, nove: 9,
   dieci: 10, undici: 11, dodici: 12, tredici: 13, quattordici: 14, quindici: 15, sedici: 16,
   diciassette: 17, diciotto: 18, diciannove: 19, venti: 20,
+  // Spanish and French (26 Sep 2026: "Douze diapositives" was read as no count).
+  dos: 2, tres: 3, cuatro: 4, cinco: 5, seis: 6, siete: 7, ocho: 8, nueve: 9, diez: 10,
+  once: 11, doce: 12, trece: 13, catorce: 14, quince: 15, dieciséis: 16, dieciseis: 16,
+  diecisiete: 17, dieciocho: 18, diecinueve: 19, veinte: 20,
+  deux: 2, trois: 3, quatre: 4, cinq: 5, sept: 7, huit: 8, neuf: 9, dix: 10, onze: 11,
+  douze: 12, treize: 13, quatorze: 14, quinze: 15, seize: 16, "dix-sept": 17, "dix-huit": 18,
+  "dix-neuf": 19, vingt: 20,
 };
 
 /**
