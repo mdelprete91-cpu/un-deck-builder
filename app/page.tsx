@@ -1502,11 +1502,6 @@ function Toolbar({
         >
           Upload HTML
         </Button>
-        {onPresent && (
-          <Button variant="secondary" icon={Play} onClick={onPresent} title="Present full screen from this slide (Esc to leave)">
-            Present
-          </Button>
-        )}
         <div className="relative">
         <Button variant="primary" iconRight={ChevronDown} onClick={() => setExportOpen((v) => !v)}>
           Download
@@ -1560,6 +1555,17 @@ function Toolbar({
           </>
         )}
         </div>
+        {/* Present, icon only after Download so the bar stays compact (Mario, 26 Sep 2026). */}
+        {onPresent && (
+          <Button
+            variant="secondary"
+            iconOnly
+            icon={Play}
+            onClick={onPresent}
+            aria-label="Present full screen"
+            title="Present full screen from this slide (Esc to leave)"
+          />
+        )}
       </div>
     </div>
   );
