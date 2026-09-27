@@ -434,6 +434,11 @@ guard, all pure functions, none touching the user's words:
   ✕ cover the whole stage, and in the editor the node is a control (`.set-node-live`, added by
   SlideFrame, never exported): hover on a stage lifts its node with an accent halo, Enter or Space
   sets it from the keyboard.
+- **The timeline is drawn on the progress slide's grammar** (Mario, 27 Sep 2026: the template's
+  gradient band with labels alternating above and below read as scattered). `timeline` in
+  `layouts/progress.ts` shares `stagesSlide` with `progress`: same title, grey track, columns and
+  type; every node a solid 28px accent dot, the date under it in the accent, the text below, no
+  status line and no click. 2-6 points, body 12 words up to four, 8 with five or six.
 - **Library photos are the model's to place** (27 Sep 2026): each entry in `lib/slides/library.ts`
   carries a description written from the picture and the slides it suits; the system prompt lists
   them once, the output schema has `photo` (a library id or ""), and `normalizeSlide` turns a valid

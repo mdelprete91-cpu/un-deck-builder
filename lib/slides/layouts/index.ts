@@ -45,7 +45,7 @@ export const LAYOUTS: Record<LayoutId, { label: string; render: RenderFn }> = {
   "chart-line": { label: "Line chart", render: charts.line },
   "chart-columns-grouped": { label: "Grouped columns", render: charts.columnsGrouped },
   "chart-columns-stacked": { label: "Stacked columns", render: charts.columnsStacked },
-  timeline: { label: "Timeline", render: stats.timeline },
+  timeline: { label: "Timeline", render: progressLayout.timeline },
   "timeline-phases": { label: "Timeline phases", render: stats.timelinePhases },
   "example-image-left": { label: "Text + photo left", render: cards.exampleImage("left") },
   "example-image-right": { label: "Text + photo right", render: cards.exampleImage("right") },

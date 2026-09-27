@@ -292,41 +292,6 @@ export function donutChart(s: Slide, t: BrandTheme): string {
   );
 }
 
-/** Timeline as a gradient band with labels above/below, 2–5 points (template 17/18). */
-export function timeline(s: Slide, t: BrandTheme): string {
-  const items = (s.blocks ?? []).slice(0, 5);
-  const n = Math.max(items.length, 2);
-  const band = items
-    .map((_, i) => {
-      const opacity = Math.max(0.2, (i + 6 - n) / 5);
-      return `<div style="flex:1;background:var(--accent);opacity:${opacity.toFixed(1)};"></div>`;
-    })
-    .join("");
-  const colW = 1816 / n;
-  const below = Math.floor(n / 2);
-  const labels = items
-    .map((b, i) => {
-      const x = Math.round(104 + i * colW + 2);
-      const top = i < below ? 624 : 199;
-      return (
-        `<div class="ars" ${item(`blocks.${i}`)} style="position:absolute;left:${x}px;top:${top}px;width:${Math.round(colW) - 60}px;${dly(18 + i * 8)}">` +
-        `<div ${ed(`blocks.${i}.label`, 60)} style="font-family:${MANROPE};font-weight:600;font-size:40px;line-height:56px;letter-spacing:-.01em;color:#161616;">${esc(b.label)}</div>` +
-        `<div ${ed(`blocks.${i}.body`, 165)} style="margin-top:12px;${BODY30}color:#000000;">${esc(b.body)}</div>` +
-        `</div>`
-      );
-    })
-    .join("");
-  return section(
-    t,
-    "#FFFFFF",
-    "#000000",
-    heading80(s.title ?? "", "title", "#000000", 1720, 110) +
-      `<div class="agw" style="position:absolute;left:104px;top:446px;width:1816px;height:138px;display:flex;animation-delay:.12s;">${band}</div>` +
-      labels +
-      footer(t, "light"),
-  );
-}
-
 /** Phase columns spread evenly: Phase N / accent bar / month / description, 2–5 phases. */
 export function timelinePhases(s: Slide, t: BrandTheme): string {
   const phases = (s.blocks ?? []).slice(0, 5);
