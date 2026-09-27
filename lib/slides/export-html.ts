@@ -47,23 +47,14 @@ html,body{width:100%;height:100%;background:#000;overflow:hidden;}
 #stage{position:absolute;width:1920px;height:1080px;left:50%;top:50%;}
 .deck-slide{display:none;position:absolute;inset:0;}
 .deck-slide.active{display:block;}
+[data-aura] canvas{width:100%!important;height:100%!important;}
 #hud{position:fixed;right:16px;bottom:12px;font-family:system-ui,sans-serif;font-size:12px;color:#888;z-index:10;}
 @keyframes deckRise{from{opacity:0;transform:translateY(30px);}to{opacity:1;transform:translateY(0);}}
 @keyframes deckFade{from{opacity:0;}to{opacity:1;}}
 @keyframes deckGrowW{from{transform:scaleX(0);}to{transform:scaleX(1);}}
 @keyframes deckGrowH{from{transform:scaleY(0);}to{transform:scaleY(1);}}
 @keyframes deckRiseSm{from{opacity:0;transform:translateY(14px);}to{opacity:1;transform:translateY(0);}}
-@keyframes auraA{0%{transform:translate(0,0) scale(1);}50%{transform:translate(-220px,160px) scale(1.12);}100%{transform:translate(120px,60px) scale(.94);}}
-@keyframes auraB{0%{transform:translate(0,0) scale(1);}50%{transform:translate(180px,-200px) scale(.9);}100%{transform:translate(-160px,-60px) scale(1.1);}}
-@keyframes auraC{0%{transform:translate(0,0) scale(1);}50%{transform:translate(260px,-120px) scale(1.15);}100%{transform:translate(-120px,80px) scale(.95);}}
 @media (prefers-reduced-motion: no-preference){
-.aura-a,.aura-b,.aura-c{will-change:transform;}
-.aura-closing .aura-a{animation:auraA 22s ease-in-out infinite alternate;}
-.aura-closing .aura-b{animation:auraB 26s ease-in-out infinite alternate;}
-.aura-closing .aura-c{animation:auraC 30s ease-in-out infinite alternate;}
-.aura-cover .aura-a{animation:auraA 40s ease-in-out infinite alternate;}
-.aura-cover .aura-b{animation:auraB 48s ease-in-out infinite alternate;}
-.aura-cover .aura-c{animation:auraC 56s ease-in-out infinite alternate;}
 [data-deck-active] .ar{animation:deckRise .7s cubic-bezier(.2,.7,.25,1) both;}
 [data-deck-active] .ars{animation:deckRiseSm .6s cubic-bezier(.2,.7,.25,1) both;}
 [data-deck-active] .af{animation:deckFade .85s ease both;}
@@ -89,8 +80,23 @@ const DECK_JS = `
       else{el.removeAttribute('data-deck-active');}
     });
     location.hash=String(i+1);
+    aura(slides[i]);
     hud.textContent=(i+1)+' / '+slides.length;
     requestAnimationFrame(function(){ autofitAll(slides[i]); });
+  }
+  // The live aura (Unicorn Studio scene inline below) on the slide on
+  // screen only: mounted when it shows, destroyed when it leaves.
+  var live=[];
+  function aura(el){
+    live.forEach(function(s){try{s.destroy();}catch(e){}});live=[];
+    document.querySelectorAll('.aura-live').forEach(function(n){n.remove();});
+    if(!window.UnicornStudio||matchMedia('(prefers-reduced-motion: reduce)').matches)return;
+    el.querySelectorAll('[data-aura]').forEach(function(host,k){
+      var id='aura-live-'+Date.now()+k,d=document.createElement('div');
+      d.id=id;d.className='aura-live';d.style.cssText='position:absolute;inset:0;';host.appendChild(d);
+      UnicornStudio.addScene({elementId:id,filePath:'aura-scene-'+host.getAttribute('data-aura'),fps:60,scale:1,dpi:1,lazyLoad:false})
+        .then(function(s){live.push(s);}).catch(function(){d.remove();});
+    });
   }
   addEventListener('keydown',function(e){
     if(e.key==='ArrowRight'||e.key===' '||e.key==='PageDown'){e.preventDefault();show(i+1);}
@@ -102,6 +108,29 @@ const DECK_JS = `
   addEventListener('resize',fit);
   fit();show(i);
 })();`;
+
+/**
+ * The aura runtime and its scenes, inline, only when a slide has an aura:
+ * the file keeps working offline. Scenes sit in JSON script tags the
+ * runtime reads by id (its `filePath` accepts an element id).
+ */
+async function auraScripts(body: string): Promise<string> {
+  const kinds = [...new Set([...body.matchAll(/data-aura="(\w+)"/g)].map((m) => m[1]))];
+  if (!kinds.length) return "";
+  try {
+    const [runtime, ...scenes] = await Promise.all([
+      fetch("/aura/unicornStudio.umd.js").then((r) => r.text()),
+      ...kinds.map((k) => fetch(`/aura/${k}.json`).then((r) => r.text())),
+    ]);
+    const safe = (t: string) => t.replace(/<\/script/gi, "<\\/script");
+    return (
+      kinds.map((k, i) => `<script type="application/json" id="aura-scene-${k}">${safe(scenes[i])}</script>`).join("") +
+      `<script>${safe(runtime)}</script>`
+    );
+  } catch {
+    return "";
+  }
+}
 
 /** Fonts as data URIs: shared with the A4 document export. */
 export async function inlineFontCss(): Promise<string> {
@@ -191,6 +220,7 @@ export async function buildHtmlDeck(
 ${body}
 </div>
 <div id="hud"></div>
+${await auraScripts(body)}
 <script>${AUTOFIT_JS}${DECK_JS}</script>
 ${deckStateScript(state)}
 </body>

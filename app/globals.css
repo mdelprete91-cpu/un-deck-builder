@@ -85,6 +85,10 @@
   from { opacity: 0; transform: translateY(4px); }
   to { opacity: 1; transform: none; }
 }
+/* The live aura's canvas fills its slide: the runtime sizes it from the
+   stage's scaled bounding box, half the slide's 1920px on a laptop. */
+[data-aura] canvas { width: 100% !important; height: 100% !important; }
+
 /* Progress slide, editor only: a stage node is a control (SlideFrame adds
    .set-node-live to it on an editable stage, never in an export). Hovering
    anywhere on a stage lifts its node with a halo in the slide's accent, so

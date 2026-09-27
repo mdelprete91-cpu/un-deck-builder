@@ -9,6 +9,8 @@ const eslintConfig = defineConfig([
   globalIgnores([
     // Default ignores of eslint-config-next:
     ".next/**",
+    // Vendored third-party runtime (Unicorn Studio, the aura scene).
+    "public/aura/**",
     "out/**",
     "build/**",
     "next-env.d.ts",

@@ -222,27 +222,19 @@ export function heading60(
 }
 
 /**
- * The aura behind the cover and the closing slide (Mario, 27 Sep 2026, from
- * an animated background he liked): three large soft glows, radial gradients
- * that fade to nothing, no blur filter and no black. On the cover they are
- * the accent (UNICEF cyan on the UNICEF lockups) on white; on the closing
- * slide, white over the accent surface, a touch lighter than it. Static in
- * the editor, the thumbnails, PDF and PPTX; in presentation and in the HTML
- * file they drift (`.aura-a/b/c` keyframes in export-html.ts, slower on the
- * cover), and not at all under reduced motion. Paint first, content above.
+ * The aura behind the cover and the closing slide (Mario, 27 Sep 2026): a
+ * still of the recoloured Unicorn Studio scene (`/aura/<kind>.jpg`, white
+ * with UNICEF cyan waves on the cover, lighter cyan waves on the closing
+ * slide). The still is what thumbnails, PDF and PPTX show; the editor's
+ * stage and the presenter mount the live scene over it (lib/slides/aura-live.ts
+ * and the HTML runtime). Paint first, content above.
  */
 export function aura(kind: "cover" | "closing"): string {
-  const glow = (a: number) =>
-    kind === "cover"
-      ? `color-mix(in srgb, var(--accent) ${a}%, transparent)`
-      : `rgba(255,255,255,${(a / 100).toFixed(2)})`;
-  const blob = (cls: string, left: number, top: number, size: number, a: number) =>
-    `<div class="${cls}" style="position:absolute;left:${left}px;top:${top}px;width:${size}px;height:${size}px;border-radius:50%;background:radial-gradient(circle at 50% 50%, ${glow(a)} 0%, ${glow(Math.round(a * 0.45))} 38%, transparent 70%);"></div>`;
-  const blobs =
-    kind === "cover"
-      ? blob("aura-a", 1020, -420, 1400, 42) + blob("aura-b", 1260, 380, 1100, 30) + blob("aura-c", 480, 620, 900, 16)
-      : blob("aura-a", 980, -460, 1500, 22) + blob("aura-b", -380, 420, 1200, 16) + blob("aura-c", 820, 560, 1000, 12);
-  return `<div data-aura="${kind}" class="aura-${kind}" aria-hidden="true" style="position:absolute;inset:0;overflow:hidden;pointer-events:none;">${blobs}</div>`;
+  return (
+    `<div data-aura="${kind}" aria-hidden="true" style="position:absolute;inset:0;overflow:hidden;pointer-events:none;">` +
+    `<img src="/aura/${kind}.jpg" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block;">` +
+    `</div>`
+  );
 }
 
 /** Light→dark accent shades for charts (donut segments, bars), template order. */

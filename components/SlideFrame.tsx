@@ -1,5 +1,6 @@
 "use client";
 
+import { mountAura } from "@/lib/slides/aura-live";
 import { lucideSvg } from "@/lib/slides/icons";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { autofitAll, refitNode } from "@/lib/slides/autofit";
@@ -167,6 +168,9 @@ export default function SlideFrame({
     if (!editable) return () => { alive = false; };
 
     const cleanups: (() => void)[] = [];
+
+    // The live aura on the cover and the closing slide, on the editing stage only.
+    cleanups.push(mountAura(stage));
 
     // Inline text editing (with live autofit while typing)
     stage.querySelectorAll<HTMLElement>("[data-edit]").forEach((node) => {
