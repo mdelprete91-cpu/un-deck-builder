@@ -1,3 +1,4 @@
+import { DEFAULT_PHOTO } from "../library";
 import type { BrandTheme } from "../brand";
 import { esc, item } from "../layouts/shared";
 import { iconInner } from "../icons";
@@ -282,7 +283,7 @@ function photo(src: string | undefined, path: string, x: number, y: number, w: n
   const p = pos ?? { x: 50, y: 50, zoom: 1 };
   return (
     `<div style="position:absolute;left:${pt(x)};top:${pt(y)};width:${pt(w)};height:${pt(h)};overflow:hidden;border-radius:${radius};">` +
-    `<img src="${esc(src || "/giga-placeholder.jpg")}" data-image="${path}" alt="" class="af" ` +
+    `<img src="${esc(src || DEFAULT_PHOTO)}" data-image="${path}" alt="" class="af" ` +
     `style="width:100%;height:100%;object-fit:cover;object-position:${p.x}% ${p.y}%;transform:scale(${p.zoom});transform-origin:${p.x}% ${p.y}%;"></div>`
   );
 }

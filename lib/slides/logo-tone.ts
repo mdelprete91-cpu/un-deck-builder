@@ -1,3 +1,4 @@
+import { DEFAULT_PHOTO } from "./library";
 import type { ImagePos } from "./schema";
 
 /**
@@ -54,7 +55,7 @@ export async function computeLogoTone(
   pos?: ImagePos,
   geom: ToneGeometry = RIGHT_PANEL_TONE,
 ): Promise<LogoTone | null> {
-  const src = image ?? "/giga-placeholder.jpg";
+  const src = image ?? DEFAULT_PHOTO;
   const p = pos ?? { x: 50, y: 50, zoom: 1 };
   const { panel: PANEL, sample: LOGO_RECT } = geom;
   const key = `${PANEL.left}|${cacheKey(src, p)}`;

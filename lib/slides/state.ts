@@ -2,6 +2,7 @@ import type { ImagePos, Slide, SlideContent } from "./schema";
 import { ensureId, isPage, normalizeSeries, normalizeSlide, PRIMARY_ARRAY } from "./schema";
 import { closingFor, finishDeck, mergeContinuations, unifyLayouts } from "./rhythm";
 import { BRANDS } from "./brand";
+import { fillPhotos } from "./library";
 import { MAX_BLOCKS_PER_PAGE, PAGE_BLOCK_LIMITS, type PageBlockType } from "./pages/schema";
 import { defaultBlock, newPageItem } from "./pages/presets";
 import { newItem, defaultContent } from "./defaults";
@@ -199,6 +200,9 @@ function reduce(state: DeckState, action: DeckAction): DeckState {
       return {
         ...state,
         ...action.state,
+        // A deck saved before the fallback opens with its empty photo slots
+        // filled by children photos, each once, not the old AI placeholder.
+        ...(action.state.slides && !action.state.slides.some(isPage) ? { slides: fillPhotos(action.state.slides) as Slide[] } : {}),
         status: "idle",
         error: undefined,
         past: [],
@@ -258,8 +262,8 @@ function reduce(state: DeckState, action: DeckAction): DeckState {
     }
     case "MERGE_CONTINUATIONS": {
       if (state.slides.some(isPage)) return state;
-      const merged = finishDeck(mergeContinuations(state.slides)) as Slide[];
-      if (merged.length === state.slides.length) return state;
+      const merged = fillPhotos(finishDeck(mergeContinuations(state.slides))) as Slide[];
+      if (merged.length === state.slides.length && merged.every((m, i) => m === state.slides[i])) return state;
       return { ...state, slides: merged, activeIndex: Math.min(state.activeIndex, merged.length - 1) };
     }
     case "UNIFY_LAYOUTS": {
@@ -622,7 +626,9 @@ function reduce(state: DeckState, action: DeckAction): DeckState {
       // to leave the canvas blank with the filmstrip showing the new slide.
       const at = Math.min(action.index ?? state.activeIndex + 1, state.slides.length);
       const slides = [...state.slides];
-      slides.splice(at, 0, ensureId(action.content));
+      // A photo layout inserted by hand gets a children photo the deck does not use yet.
+      const [content] = fillPhotos([...state.slides, action.content]).slice(-1);
+      slides.splice(at, 0, ensureId(content));
       return { ...state, ...remember(state), slides, activeIndex: at };
     }
     case "SET_ACTIVE":

@@ -1,6 +1,7 @@
 import type { BrandTheme } from "../brand";
 import type { ImagePos } from "../schema";
 import { countryMapSrc, isCountryMap } from "../country-maps";
+import { DEFAULT_PHOTO } from "../library";
 
 /** The Giga Maps basemap grey, so a letterboxed map reads as one dark panel. */
 const MAP_BASEMAP = "#1C1C1C";
@@ -175,7 +176,7 @@ export function framedImage(
   // zoom only goes up from 1, so nobody could pan it back into view. A photo
   // still fills the slot, which is what the template's geometry is drawn for.
   const isMap = !!map && isCountryMap(map);
-  const src = isMap ? countryMapSrc(map!) : (image ?? "/giga-placeholder.jpg");
+  const src = isMap ? countryMapSrc(map!) : (image ?? DEFAULT_PHOTO);
   const fit = isMap
     ? `object-fit:contain;`
     : `object-fit:cover;object-position:${p.x}% ${p.y}%;transform:scale(${p.zoom});transform-origin:${p.x}% ${p.y}%;`;

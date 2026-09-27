@@ -453,6 +453,12 @@ guard, all pure functions, none touching the user's words:
   sizes it from the stage's scaled box. Reduced motion keeps the still. To change the colours,
   edit the `getColor` cases in the scene's first shader and the two circle fills, then recapture
   the still.
+- **No photo slot is ever empty, and the AI placeholder is gone** (Mario, 27 Sep 2026: the model
+  left 56 of 69 photo slots empty, and `/giga-placeholder.jpg` is AI-generated). `fillPhotos` in
+  `library.ts` gives every empty slot a children photo (`CHILDREN_PHOTOS`) the deck does not use
+  yet, cycling only when all are taken: after generation (`MERGE_CONTINUATIONS`), on a manual
+  insert and when a deck is opened (`HYDRATE`). Renderers fall back to `DEFAULT_PHOTO`, a children
+  photo, wherever an image is missing.
 - **Library photos are the model's to place** (27 Sep 2026): each entry in `lib/slides/library.ts`
   carries a description written from the picture and the slides it suits; the system prompt lists
   them once, the output schema has `photo` (a library id or ""), and `normalizeSlide` turns a valid

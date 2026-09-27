@@ -23,6 +23,7 @@ import { normalizeSlide, type LayoutId, type SlideContent } from "../lib/slides/
 import { closingFor, finishDeck, makeRhythm, mergeContinuations, stripInventedYear, unifyLayouts } from "../lib/slides/rhythm";
 import { PARTNER_NAMES } from "../lib/slides/partners";
 import { extractDocx, extractPptx, extractXlsx, type Attachment } from "../lib/slides/attachments";
+import { fillPhotos } from "../lib/slides/library";
 
 const URL = process.env.QA_URL ?? "http://localhost:3777";
 const BRAND_ID = "did";
@@ -268,7 +269,7 @@ async function runPrompt(p: Prompt): Promise<Result> {
   }
   // What the editor does once the deck is complete (see runGenerate in app/page.tsx).
   const beforeMerge = slides.length;
-  slides = finishDeck(mergeContinuations(slides));
+  slides = fillPhotos(finishDeck(mergeContinuations(slides)));
   const merged = beforeMerge - slides.length;
   if (merged) warnings.push(`${merged} continued slide${merged === 1 ? "" : "s"} folded back`);
   if (uniformFromBrief(brief)) slides = unifyLayouts(slides);

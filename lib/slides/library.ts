@@ -101,6 +101,34 @@ export const LIBRARY: LibraryImage[] = [
   },
 ];
 
+/**
+ * Photos of children, the fallback for any photo slot the model left empty
+ * (Mario, 27 Sep 2026: the AI-generated placeholder is never to be shown).
+ * Handed out in turn so a deck does not repeat one picture.
+ */
+export const CHILDREN_PHOTOS = ["students-tablet", "laptop-smile", "tablet-lesson", "mountain-walk", "health-centre"];
+
+/** The picture an empty photo slot shows: a photo of children, never the AI placeholder. */
+export const DEFAULT_PHOTO = "/library/students-tablet.jpg";
+
+/**
+ * Fills every empty photo slot with a children photo the deck does not use
+ * yet, cycling when all are taken. The model's own picks and the user's
+ * uploads are left as they are.
+ */
+export function fillPhotos<T extends { layoutId: string; image?: string; map?: string }>(slides: T[]): T[] {
+  const used = new Set(slides.map((s) => s.image).filter(Boolean));
+  const pool = CHILDREN_PHOTOS.map(librarySrc);
+  let k = 0;
+  const next = () => {
+    const fresh = pool.find((p) => !used.has(p));
+    const pick = fresh ?? pool[k++ % pool.length];
+    used.add(pick);
+    return pick;
+  };
+  return slides.map((s) => (PHOTO_LAYOUTS.has(s.layoutId) && !s.image && !s.map ? { ...s, image: next() } : s));
+}
+
 /** The slides whose layout has a photo slot the model may fill from the library. */
 export const PHOTO_LAYOUTS = new Set<string>([
   "callout",
