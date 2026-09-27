@@ -442,7 +442,8 @@ guard, all pure functions, none touching the user's words:
 - **The cover and the closing slide carry an aura**: the Unicorn Studio scene Mario chose (27 Sep
   2026), running on its own runtime, recoloured and vendored in `public/aura` (runtime 155 KB,
   `cover.json`, `closing.json`, excluded from lint; `includeLogo` is off, no network). Cover: white
-  with UNICEF cyan waves, time halved; closing: the cyan surface with waves a touch lighter (the
+  with UNICEF cyan waves (a wide cyan band and a light-cyan sphere: the first, paler version
+  barely showed, Mario, 27 Sep 2026), time halved; closing: the cyan surface with waves a touch lighter (the
   overlay circle is mid grey: a white overlay on cyan turned it turquoise). Slides render a still
   of each scene (`/aura/<kind>.jpg`, `aura()` in `layouts/shared.ts`), which is what thumbnails,
   PDF and PPTX show. `mountAura` (`lib/slides/aura-live.ts`) mounts the live scene over the still
