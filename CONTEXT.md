@@ -437,8 +437,16 @@ guard, all pure functions, none touching the user's words:
 - **The timeline is drawn on the progress slide's grammar** (Mario, 27 Sep 2026: the template's
   gradient band with labels alternating above and below read as scattered). `timeline` in
   `layouts/progress.ts` shares `stagesSlide` with `progress`: same title, grey track, columns and
-  type; every node a solid 28px accent dot, the date under it in the accent, the text below, no
+  type; every node a solid 28px accent dot, the date above the track in the accent (bottom-aligned to it), the text below, no
   status line and no click. 2-6 points, body 12 words up to four, 8 with five or six.
+- **The cover and the closing slide carry an aura** (Mario, 27 Sep 2026, from an animated Unicorn
+  Studio background he liked; not embedded, because it loads a remote script, its colours live on
+  their servers and it has near-black areas): `aura()` in `layouts/shared.ts`, three large radial
+  glows painted first. Cover: the accent at 16-42% on white, top right and bottom. Closing: white
+  at 12-22% over the accent surface, a touch lighter than it. Static wherever a slide is not being
+  presented (editor, thumbnails, PDF, PPTX); in the HTML file and the presenter the `.aura-a/b/c`
+  keyframes in `export-html.ts` drift them, 40-56 s on the cover, 22-30 s on the closing slide,
+  and not at all under reduced motion.
 - **Library photos are the model's to place** (27 Sep 2026): each entry in `lib/slides/library.ts`
   carries a description written from the picture and the slides it suits; the system prompt lists
   them once, the output schema has `photo` (a library id or ""), and `normalizeSlide` turns a valid

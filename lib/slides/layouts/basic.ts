@@ -12,6 +12,7 @@ import {
   item,
   section,
   footer,
+  aura,
   coverFooter,
   coverFooterDark,
   photoPanel,
@@ -25,7 +26,8 @@ export function cover(s: Slide, t: BrandTheme): string {
     t,
     "#FFFFFF",
     "#000000",
-    displayTitle(s.title ?? "", "title", "#000000", "", 600) +
+    aura("cover") +
+      displayTitle(s.title ?? "", "title", "#000000", "", 600) +
       `<div class="ar" ${ed("subtitle", 200)} style="position:absolute;left:100px;top:718px;width:1720px;font-family:${MANROPE};font-weight:600;font-size:48px;line-height:1.1;letter-spacing:-.02em;color:#000000;animation-delay:.12s;">${esc(s.subtitle)}</div>` +
       coverFooter(t),
   );
@@ -248,7 +250,8 @@ export function thankYou(s: Slide, t: BrandTheme): string {
     t,
     "var(--accent)",
     "#FFFFFF",
-    `<div class="ar" ${ed("title")} style="position:absolute;left:100px;top:100px;width:1720px;font-family:${MANROPE};font-weight:500;font-size:144px;line-height:1;letter-spacing:-.02em;color:#FFFFFF;">${esc(s.title ?? "Thank you!")}</div>` +
+    aura("closing") +
+      `<div class="ar" ${ed("title")} style="position:absolute;left:100px;top:100px;width:1720px;font-family:${MANROPE};font-weight:500;font-size:144px;line-height:1;letter-spacing:-.02em;color:#FFFFFF;">${esc(s.title ?? "Thank you!")}</div>` +
       contacts +
       `<div style="position:absolute;left:100px;top:898px;width:1720px;opacity:.8;display:flex;gap:40px;">${channels}</div>`,
   );

@@ -53,7 +53,17 @@ html,body{width:100%;height:100%;background:#000;overflow:hidden;}
 @keyframes deckGrowW{from{transform:scaleX(0);}to{transform:scaleX(1);}}
 @keyframes deckGrowH{from{transform:scaleY(0);}to{transform:scaleY(1);}}
 @keyframes deckRiseSm{from{opacity:0;transform:translateY(14px);}to{opacity:1;transform:translateY(0);}}
+@keyframes auraA{0%{transform:translate(0,0) scale(1);}50%{transform:translate(-220px,160px) scale(1.12);}100%{transform:translate(120px,60px) scale(.94);}}
+@keyframes auraB{0%{transform:translate(0,0) scale(1);}50%{transform:translate(180px,-200px) scale(.9);}100%{transform:translate(-160px,-60px) scale(1.1);}}
+@keyframes auraC{0%{transform:translate(0,0) scale(1);}50%{transform:translate(260px,-120px) scale(1.15);}100%{transform:translate(-120px,80px) scale(.95);}}
 @media (prefers-reduced-motion: no-preference){
+.aura-a,.aura-b,.aura-c{will-change:transform;}
+.aura-closing .aura-a{animation:auraA 22s ease-in-out infinite alternate;}
+.aura-closing .aura-b{animation:auraB 26s ease-in-out infinite alternate;}
+.aura-closing .aura-c{animation:auraC 30s ease-in-out infinite alternate;}
+.aura-cover .aura-a{animation:auraA 40s ease-in-out infinite alternate;}
+.aura-cover .aura-b{animation:auraB 48s ease-in-out infinite alternate;}
+.aura-cover .aura-c{animation:auraC 56s ease-in-out infinite alternate;}
 [data-deck-active] .ar{animation:deckRise .7s cubic-bezier(.2,.7,.25,1) both;}
 [data-deck-active] .ars{animation:deckRiseSm .6s cubic-bezier(.2,.7,.25,1) both;}
 [data-deck-active] .af{animation:deckFade .85s ease both;}
