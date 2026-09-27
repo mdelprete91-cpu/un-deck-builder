@@ -270,6 +270,53 @@ export function closingFor(brandLabel?: string): SlideContent {
   return { layoutId: "thank-you", title: "Thanks", contacts: [contact] };
 }
 
+/** Layouts built for three or four blocks side by side, empty-looking with one. */
+const GRID_LAYOUTS = new Set<string>(["four-cards", "icon-cards", "steps", "three-columns", "list", "callout"]);
+
+/**
+ * A card grid holding one card is a lone box on an empty row (a one-step
+ * slide as "four-cards" with a single card, 27 Sep 2026, content QA): one
+ * point goes on the text-and-photo layout, which is drawn for it.
+ */
+function fixLonelyGrid(content: SlideContent): SlideContent {
+  if (!GRID_LAYOUTS.has(content.layoutId) || (content.blocks?.length ?? 0) !== 1) return content;
+  return { ...content, layoutId: "example-image-left" };
+}
+
+/** A ranking is sorted: the catalog says so, and the model sometimes forgets (Mombasa before Nakuru). */
+function sortRanking(content: SlideContent): SlideContent {
+  if (content.layoutId !== "chart-bars-horizontal" || !content.bars?.length) return content;
+  const bars = [...content.bars].sort((a, b) => b.value - a.value);
+  return bars.every((b, i) => b === content.bars![i]) ? content : { ...content, bars };
+}
+
+/** The figures a slide shows as its point: hero stat, stat values. */
+function figuresOf(content: SlideContent): string[] {
+  const norm = (v: string) => v.replace(/\s+/g, "").toLowerCase();
+  if (content.layoutId === "big-stat" || content.layoutId === "single-stat") return content.stat ? [norm(content.stat)] : [];
+  if (STATS_FAMILY.has(content.layoutId)) return (content.stats ?? []).map((x) => norm(x.value)).filter(Boolean);
+  return [];
+}
+
+/**
+ * Finishing passes over the complete deck (after the top-up): a stat slide
+ * whose every figure an earlier stat slide already showed is dropped ("12,450
+ * schools mapped" on three slides, 27 Sep 2026, content QA), and an agenda
+ * with no chapters to list goes.
+ */
+export function finishDeck(slides: SlideContent[]): SlideContent[] {
+  const shown = new Set<string>();
+  const out: SlideContent[] = [];
+  for (const s of slides) {
+    const figures = figuresOf(s);
+    if (figures.length && figures.every((f) => shown.has(f))) continue;
+    figures.forEach((f) => shown.add(f));
+    out.push(s);
+  }
+  const chapters = out.some((s) => s.layoutId === "section-divider");
+  return chapters ? out : out.filter((s) => s.layoutId !== "agenda");
+}
+
 /** Layouts whose items are a figure and a label. */
 const STATS_FAMILY = new Set<string>(["stat-grid", "two-stats", "brand-equity"]);
 
@@ -328,7 +375,7 @@ export function makeRhythm(opts: RhythmOptions = {}): (content: SlideContent) =>
       }
       return content;
     }
-    const fixed = fixEmptySection(fixHeroWithoutFigure(fixNonNumericStats(fixLonelyTimeline(fixDiagonalSeries(content)))));
+    const fixed = fixEmptySection(fixHeroWithoutFigure(fixNonNumericStats(fixLonelyTimeline(sortRanking(fixLonelyGrid(fixDiagonalSeries(content)))))));
     // A dropped slide never counts against the cap.
     if (!fixed || isRepeatChart(fixed, lastChart)) return null;
     const signature = signatureOf(fixed);

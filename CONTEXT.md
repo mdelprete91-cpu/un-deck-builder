@@ -434,6 +434,16 @@ guard, all pure functions, none touching the user's words:
   ✕ cover the whole stage, and in the editor the node is a control (`.set-node-live`, added by
   SlideFrame, never exported): hover on a stage lifts its node with an accent halo, Enter or Space
   sets it from the keyboard.
+- **Content QA** (`tools/qa-content.ts`, 27 Sep 2026): gpt-6-sol with reasoning judges each deck of
+  a suite run next to its brief and material on Mario's priorities, fidelity first: fidelity,
+  selection (which text is shown), arrangement (text where its shape fits), consistency across
+  parallel slides, no repetition, numbers with units and dates. About $0.26 for 23 decks;
+  `npx tsx --env-file=.env.local tools/qa-content.ts .omc/qa/<run>`. Titles-as-claims was tried and
+  dropped: it pushes the model to reinterpret the source, which Mario does not want. Measured on 23
+  use cases: 3.17 before, 3.24 after the rules below, within the noise of one run; the
+  deterministic passes are what reliably moved: `fixLonelyGrid` (one card on a grid layout goes
+  to text and photo), `sortRanking` (horizontal bars sorted), and `finishDeck` after the top-up (a
+  stat slide whose every figure an earlier one showed is dropped; an agenda with no chapters goes).
 - **Known limit, not guarded**: a PDF with no text layer (a scanned or rendered page) is read by
   the model as an image, and a digit can come back wrong (3,323 rejected schools read as 3,523,
   twice, 26 Sep 2026). The prompt says digit by digit; the fix is a PDF with a text layer.

@@ -20,7 +20,7 @@ import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { countFromBrief, seriesFromBrief, uniformFromBrief, MIN_SLIDES_WITH_CHAPTERS, TIERS_REQUEST } from "../lib/slides/brief";
 import { normalizeSlide, type LayoutId, type SlideContent } from "../lib/slides/schema";
-import { closingFor, makeRhythm, mergeContinuations, stripInventedYear, unifyLayouts } from "../lib/slides/rhythm";
+import { closingFor, finishDeck, makeRhythm, mergeContinuations, stripInventedYear, unifyLayouts } from "../lib/slides/rhythm";
 import { PARTNER_NAMES } from "../lib/slides/partners";
 import { extractDocx, extractPptx, extractXlsx, type Attachment } from "../lib/slides/attachments";
 
@@ -142,7 +142,8 @@ const STOP: Record<string, RegExp> = {
   // "per" is English too ("cost per school"), so it is not an Italian tell.
   it: /\b(il|di|delle|degli|dei|una|che|nel|della)\b/gi,
   es: /\b(el|de|para|los|las|una|que|y)\b/gi,
-  fr: /\b(le|les|des|pour|avec|et|une|sur|du)\b/gi,
+  // Words Italian does not share ("le" and "sur" do double duty).
+  fr: /\b(les|des|pour|avec|et|une|du|aux|est)\b/gi,
 };
 /** "240,000" as a slide may print it: "240K", "1.5M". */
 const compact = (n: string) => {
@@ -267,7 +268,7 @@ async function runPrompt(p: Prompt): Promise<Result> {
   }
   // What the editor does once the deck is complete (see runGenerate in app/page.tsx).
   const beforeMerge = slides.length;
-  slides = mergeContinuations(slides);
+  slides = finishDeck(mergeContinuations(slides));
   const merged = beforeMerge - slides.length;
   if (merged) warnings.push(`${merged} continued slide${merged === 1 ? "" : "s"} folded back`);
   if (uniformFromBrief(brief)) slides = unifyLayouts(slides);

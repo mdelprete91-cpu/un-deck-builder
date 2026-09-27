@@ -1,6 +1,6 @@
 import type { ImagePos, Slide, SlideContent } from "./schema";
 import { ensureId, isPage, normalizeSeries, normalizeSlide, PRIMARY_ARRAY } from "./schema";
-import { closingFor, mergeContinuations, unifyLayouts } from "./rhythm";
+import { closingFor, finishDeck, mergeContinuations, unifyLayouts } from "./rhythm";
 import { BRANDS } from "./brand";
 import { MAX_BLOCKS_PER_PAGE, PAGE_BLOCK_LIMITS, type PageBlockType } from "./pages/schema";
 import { defaultBlock, newPageItem } from "./pages/presets";
@@ -258,7 +258,7 @@ function reduce(state: DeckState, action: DeckAction): DeckState {
     }
     case "MERGE_CONTINUATIONS": {
       if (state.slides.some(isPage)) return state;
-      const merged = mergeContinuations(state.slides) as Slide[];
+      const merged = finishDeck(mergeContinuations(state.slides)) as Slide[];
       if (merged.length === state.slides.length) return state;
       return { ...state, slides: merged, activeIndex: Math.min(state.activeIndex, merged.length - 1) };
     }
