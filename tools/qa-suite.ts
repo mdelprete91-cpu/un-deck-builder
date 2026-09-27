@@ -352,6 +352,9 @@ async function runPrompt(p: Prompt): Promise<Result> {
   }
   if (e.tiers && !TIERS_REQUEST.test(brief)) findings.push("tiers asked, trigger silent");
   if (!e.tiers && TIERS_REQUEST.test(brief)) findings.push("tiers trigger fired uninvited");
+  // Library photos the model placed, for a look: slide number, layout, photo.
+  const placed = slides.map((s, i) => (s.image?.startsWith("/library/") ? `${i + 1}:${s.title?.slice(0, 24) ?? s.layoutId}=${s.image.slice(9, -4)}` : "")).filter(Boolean);
+  if (placed.length) warnings.push(`photos: ${placed.join(", ")}`);
   // Icons: every icon card carries its own, one per block, none repeated.
   for (const [i, s] of slides.entries()) {
     if (s.layoutId !== "icon-cards") continue;

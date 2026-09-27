@@ -7,6 +7,7 @@ import { AI_BLOCK_TYPES } from "./pages/schema";
 import type { DeckFormat } from "./state";
 import { PARTNER_NAMES } from "./partners";
 import { AI_ICONS } from "./icon-set";
+import { LIBRARY } from "./library";
 
 /**
  * System prompt: layout catalog + brand voice. Kept tight — prompt size
@@ -19,6 +20,9 @@ export function buildSystemPrompt(format: DeckFormat = "slides"): string {
 
 LAYOUT CATALOG (id: when to use. fields with hard word limits):
 ${catalogLines}
+
+PHOTOS for slides with a photo slot (callout, example-image-left, example-image-right, section-image-deep, section-image-light, photo): set "photo" to the id of the library photo that fits what the slide is about, never the same photo twice in a deck, and "" when none fits or on any other layout. The two buildings only for a slide about that office. Library (id: what it shows; suits):
+${LIBRARY.map((l) => `- ${l.id}: ${l.description} Suits: ${l.useFor}.`).join("\n")}
 
 ICONS for "icon-cards" (one per block, in block order, each the one that says what that card is about, never the same icon twice on a slide; [] on every other layout): ${AI_ICONS.join(", ")}
 
@@ -279,6 +283,7 @@ export const SLIDES_OUTPUT_SCHEMA = {
           series: { type: "array", items: { type: "string" } },
           current: { type: "integer" },
           icons: { type: "array", items: { type: "string" } },
+          photo: { type: "string" },
           contacts: {
             type: "array",
             items: {
@@ -310,6 +315,7 @@ export const SLIDES_OUTPUT_SCHEMA = {
           "series",
           "current",
           "icons",
+          "photo",
           "contacts",
         ],
         additionalProperties: false,

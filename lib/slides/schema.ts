@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { toChartColor } from "./chart-colors";
 import { cleanModelIcons } from "./icon-set";
+import { libraryPhoto, PHOTO_LAYOUTS } from "./library";
 import { normalizePage, pageBlockSchema, type PageBlock } from "./pages/schema";
 
 /** Layouts the AI is allowed to pick. */
@@ -166,6 +167,8 @@ export interface SlideContent {
   icons?: string[];
   /** The user picked an icon on this slide: an AI rewrite keeps the icons as they are. */
   iconsPinned?: boolean;
+  /** Model output only: a library photo id for the slide's photo slot, turned into `image` by normalizeSlide. */
+  photo?: string;
   /** Two-pager page ("a4-page"): the ordered block stack. */
   stack?: PageBlock[];
   /**
@@ -291,6 +294,7 @@ export const slideContentSchema = z.object({
   logos: z.record(z.string(), z.string()).optional(),
   icons: z.array(z.string()).optional(),
   iconsPinned: z.boolean().optional(),
+  photo: z.string().optional(),
   stack: z.array(pageBlockSchema).optional(),
   footerLabel: z.string().optional(),
 });
@@ -460,6 +464,14 @@ export function normalizeSlide(
       if (!Array.isArray(arr) || arr.length < min) return null;
       if (arr.length > max) (slide[field] as unknown[]) = arr.slice(0, max);
     }
+  }
+  // A library photo the model picked fills the photo slot, never over an
+  // image already there (the user's upload or pick); on a layout with no
+  // photo slot, or with an unknown id, it is dropped and the placeholder stays.
+  if (slide.photo !== undefined) {
+    const src = PHOTO_LAYOUTS.has(slide.layoutId) ? libraryPhoto(slide.photo) : undefined;
+    if (src && !slide.image && !slide.map) slide.image = src;
+    delete slide.photo;
   }
   // Icons: a pinned set is the user's and stays; otherwise only known names
   // from the curated list survive, and only where a layout draws them.

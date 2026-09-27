@@ -772,8 +772,8 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
         preserve: isPage(active)
           ? { footerLabel: active.footerLabel }
           : {
-              image: active.image,
-              imagePos: active.imagePos,
+              // A photo already on the slide stays; an empty slot lets the rewrite pick one from the library.
+              ...(active.image ? { image: active.image, imagePos: active.imagePos } : {}),
               logos: active.logos,
               grid: active.grid,
               map: active.map,

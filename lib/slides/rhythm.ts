@@ -353,6 +353,8 @@ export function makeRhythm(opts: RhythmOptions = {}): (content: SlideContent) =>
   let uniformLayout: LayoutId | null = null;
   /** What each accepted content slide said, for the repeat check. */
   const said = new Set<string>();
+  /** Library photos already placed: the same picture twice goes back to the placeholder. */
+  const photos = new Set<string>();
   const settle = (layoutId: LayoutId) => {
     run = layoutId === last ? run + 1 : 1;
     last = layoutId;
@@ -382,6 +384,13 @@ export function makeRhythm(opts: RhythmOptions = {}): (content: SlideContent) =>
     if (signature.split("|")[0] && said.has(signature)) return null;
     said.add(signature);
     content = fixed;
+    if (content.image && /^\/library\//.test(content.image)) {
+      if (photos.has(content.image)) {
+        const { image: _i, ...rest } = content;
+        void _i;
+        content = rest;
+      } else photos.add(content.image);
+    }
     if (CHART_FAMILY.has(content.layoutId)) lastChart = chartPairs(content);
     accepted++;
     let layoutId: LayoutId = content.layoutId;

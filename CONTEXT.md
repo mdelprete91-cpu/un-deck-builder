@@ -434,6 +434,13 @@ guard, all pure functions, none touching the user's words:
   ✕ cover the whole stage, and in the editor the node is a control (`.set-node-live`, added by
   SlideFrame, never exported): hover on a stage lifts its node with an accent halo, Enter or Space
   sets it from the keyboard.
+- **Library photos are the model's to place** (27 Sep 2026): each entry in `lib/slides/library.ts`
+  carries a description written from the picture and the slides it suits; the system prompt lists
+  them once, the output schema has `photo` (a library id or ""), and `normalizeSlide` turns a valid
+  id into `image` only on a layout with a photo slot (`PHOTO_LAYOUTS`) and only when the slot is
+  empty. The rhythm pass puts a repeated photo back to the placeholder. The two buildings are the
+  Giga Technology Center in Barcelona (Ca l'Alier) and in Geneva (Campus Biotech), for a slide
+  about that office only. A rewrite keeps a photo already on the slide and may fill an empty slot.
 - **Content QA** (`tools/qa-content.ts`, 27 Sep 2026): gpt-6-sol with reasoning judges each deck of
   a suite run next to its brief and material on Mario's priorities, fidelity first: fidelity,
   selection (which text is shown), arrangement (text where its shape fits), consistency across
