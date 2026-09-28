@@ -2,7 +2,7 @@ import type { Slide, LayoutId } from "../schema";
 import type { BrandTheme } from "../brand";
 import { iconInner } from "../icons";
 import { MANROPE, OPEN_SANS, HAIRLINE, esc, ed, dly, item, columns, section, footer, coverFooterDark, photoPanel, chartShades } from "./shared";
-import { DENSE, HEAD, CARD, BOTTOM, GAP, BAND_H, topOf, title, pointsOf, bullets, band, hasBand } from "./dense";
+import { DENSE, CARD, BOTTOM, GAP, BAND_H, topOf, title, pointsOf, bullets, band, hasBand } from "./dense";
 import { seriesColors } from "./charts";
 import { fmt, signedValue, numeric } from "./stats";
 import { stagesSlide } from "./progress";
