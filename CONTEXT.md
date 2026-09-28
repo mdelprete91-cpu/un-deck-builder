@@ -583,7 +583,11 @@ chart's grid and series colours, and the closing slide's accent surface for the 
   between the division label and the logo, grey 17px on two lines, white at 75% on dark footers,
   never on cover, agenda, divider, partner or closing slide (`NO_NOTES`). The model writes them
   from the material, numbered, with the superscripts kept in the text; "Footnote" in the slide bar
-  adds one ("1. ") when the slide has none, and emptying it removes it.
+  adds one ("1. ") when the slide has none; its ✕ on hover removes it (`data-item="notes"` on a
+  wrapper, `DELETE_ITEM` special-cases the path). A text points to a note with a superscript:
+  "Reference" in the slide bar (shown once the slide has a note; its mousedown is prevented so the
+  caret stays in the text) inserts the next number where the caret is, commits the text and adds
+  "N. " on a new line of the note; typing "^1" in any text does the same on commit (SlideFrame).
 - **None of them is in the rhythm pass or `LAYOUT_FAMILIES`**: the passes that swap layouts would
   cut their text down to cards, and the switcher has nothing of the same shape to offer.
 - **AI-added slides carry their own place.** The add schema gives every new slide `after` (the

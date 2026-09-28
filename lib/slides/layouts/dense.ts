@@ -407,5 +407,11 @@ const DARK_FOOTER: ReadonlySet<LayoutId> = new Set<LayoutId>(["three-columns", "
 export function footnote(s: Slide): string {
   if (NO_NOTES.has(s.layoutId) || !s.notes?.trim()) return "";
   const color = DARK_FOOTER.has(s.layoutId) ? "rgba(255,255,255,.75)" : "#6F6F6F";
-  return `<div ${ed("notes", 50)} data-notes style="position:absolute;left:560px;top:956px;width:920px;font-family:${OPEN_SANS};font-weight:500;font-size:17px;line-height:1.35;color:${color};white-space:pre-line;">${esc(s.notes)}</div>`;
+  // The ✕ on hover deletes it (DELETE_ITEM "notes"); data-item sits on a
+  // wrapper, never on the node with the fit budget (see CONTEXT.md).
+  return (
+    `<div ${item("notes")} style="position:absolute;left:560px;top:956px;width:920px;">` +
+    `<div ${ed("notes", 50)} data-notes style="font-family:${OPEN_SANS};font-weight:500;font-size:17px;line-height:1.35;color:${color};white-space:pre-line;">${esc(s.notes)}</div>` +
+    `</div>`
+  );
 }

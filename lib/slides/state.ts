@@ -341,6 +341,14 @@ function reduce(state: DeckState, action: DeckAction): DeckState {
       const slide = state.slides[action.index];
       if (!slide) return state;
       const [field, idxStr] = action.path.split(".");
+      // The footnote is one field, not an array: its ✕ removes it.
+      if (action.path === "notes") {
+        const { notes: _n, ...rest } = slide;
+        void _n;
+        const slides = [...state.slides];
+        slides[action.index] = rest as Slide;
+        return { ...state, ...remember(state), slides };
+      }
       // Agenda bullets are chapter titles: deleting one removes the matching
       // section-divider slide (chapter content stays).
       if (slide.layoutId === "agenda" && field === "bullets") {

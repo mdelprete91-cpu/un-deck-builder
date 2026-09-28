@@ -177,7 +177,8 @@ export default function SlideFrame({
       node.contentEditable = "plaintext-only";
       const original = node.innerText;
       const commit = () => {
-        const value = node.innerText;
+        // "^1" typed in any text becomes the superscript that points to footnote 1.
+        const value = node.innerText.replace(/\^([0-9])/g, (_, d: string) => "⁰¹²³⁴⁵⁶⁷⁸⁹"[Number(d)]);
         if (value !== original && onEditRef.current) {
           onEditRef.current(node.getAttribute("data-edit")!, value);
         }
