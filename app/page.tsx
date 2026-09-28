@@ -28,7 +28,7 @@ import ChartDataPanel from "@/components/ChartDataPanel";
 import ImagePickerModal from "@/components/ImagePickerModal";
 import EditWithAiModal from "@/components/EditWithAiModal";
 import SheetWizard from "@/components/SheetWizard";
-import { compileInsights, normalizeAnalysis, SHORT_BRIEF_WORDS, fileUseOf, fileUseQuestion, type SheetAnalysis, type SheetAnswers } from "@/lib/slides/sheet-questions";
+import { compileInsights, normalizeAnalysis, SHORT_BRIEF_WORDS, USE_QUESTION_ID, fileUseOf, fileUseQuestion, type SheetAnalysis, type SheetAnswers } from "@/lib/slides/sheet-questions";
 import { planReplica } from "@/lib/slides/replicate";
 import type { WizardSubject } from "@/components/SheetWizard";
 import LayoutSwitcher from "@/components/LayoutSwitcher";
@@ -518,7 +518,11 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
   /** The Generate press: first the questions still to ask, then the deck. */
   const onGenerate = () => {
     const brief = state.brief;
-    const queue = attachments.filter(canQuestion).filter((a) => !a.asked).map((a) => a.id);
+    // An attached deck is asked what to do with it on every press until the
+    // choice is made (Mario, 28 Sep 2026: a file whose questions were already
+    // answered went straight to the deck and the choice never showed).
+    const undecidedDeck = (a: Attachment) => a.kind === "text" && !!a.sourceSlides?.length && !a.answers?.[USE_QUESTION_ID];
+    const queue = attachments.filter(canQuestion).filter((a) => !a.asked || undecidedDeck(a)).map((a) => a.id);
     const words = brief.trim().split(/\s+/).filter(Boolean).length;
     const briefAlone = attachments.length === 0 && !twoPager && words > 0 && words < SHORT_BRIEF_WORDS;
     if (briefAlone && !(briefQ?.brief === brief && briefQ.asked)) queue.push("brief");
@@ -526,6 +530,7 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
     const toAsk = queue.filter((id) => {
       if (id === "brief") return !(briefQ?.brief === brief && briefQ.analysis?.questions.length === 0);
       const a = attachments.find((x) => x.id === id);
+      if (a && undecidedDeck(a)) return true;
       return !(a && canQuestion(a) && a.analysis && a.analysis.questions.length === 0);
     });
     if (toAsk.length === 0) return void runGenerate();
@@ -537,6 +542,11 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
       } else {
         const a = attachments.find((x) => x.id === id)!;
         if (canQuestion(a) && !a.analysis) void analyzeAttachment(a, brief);
+        // Read before the choice existed: the choice goes in front of its questions.
+        else if (a.kind === "text" && a.sourceSlides?.length && a.analysis && !a.analysis.questions.some((q) => q.id === USE_QUESTION_ID)) {
+          const analysis = { ...a.analysis, questions: [fileUseQuestion(planReplica(a.sourceSlides).contentCount), ...a.analysis.questions] };
+          setAttachments((list) => list.map((x) => (x.id === a.id && canQuestion(x) ? { ...x, analysis } : x)));
+        }
       }
     }
     setWizard({ queue, intent: "generate" });

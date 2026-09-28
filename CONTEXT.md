@@ -528,7 +528,10 @@ deck, a flat text in file order. Now:
 - **The wizard asks what to do with it**, first, for every pptx (`fileUseQuestion` in
   `sheet-questions.ts`, prepended by the client to the model's own questions, never empty so the
   file is always asked): replicate, reinterpret (one line in the file's insights), or use as a
-  source (the default when skipped). The row under the chip says "Replicate · 36 slides".
+  source (the default when skipped). Until that choice is made, every Generate press opens the
+  wizard on it, even for a file whose other questions were answered (`undecidedDeck` in
+  `onGenerate`; a file read before the choice existed gets it in front of its questions). The row
+  under the chip says "Replicate · 36 slides".
 - **Replicate is planned by the client** (`planReplica` in `lib/slides/replicate.ts`): the cover
   and every content slide in order, one agenda from the source's, a divider for each chapter the
   source's agendas mark as current and for each source divider, a chapter never opened twice (the
