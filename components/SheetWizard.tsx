@@ -146,6 +146,8 @@ export default function SheetWizard({
                   </div>
                   <p className="mt-5 text-base font-medium leading-snug text-ink">{q.question}</p>
                   {q.why && <p className="mt-1 text-[13px] text-ink-muted">{q.why}</p>}
+                  {/* Several answers can be right: say so, the squares alone are easy to miss. */}
+                  {q.kind === "multi" && <p className="mt-1 text-[13px] text-ink-faint">Choose one or more</p>}
 
                   {q.kind === "text" ? (
                     <textarea
@@ -159,7 +161,8 @@ export default function SheetWizard({
                     />
                   ) : (
                     <div key={q.id} role={q.kind === "multi" ? "group" : "radiogroup"} aria-label={q.question} className="mt-4 flex flex-col gap-1">
-                      {q.options.map((opt) => {
+                      {q.options.map((opt, oi) => {
+                        const detail = q.details?.[oi];
                         const current = answers[q.id];
                         const picked = Array.isArray(current) ? current.includes(opt) : current === opt;
                         return (
@@ -176,7 +179,7 @@ export default function SheetWizard({
                                 set(q.id, picked ? "" : opt);
                               }
                             }}
-                            className={`flex min-h-10 items-center gap-3 rounded-[10px] px-3 py-2 text-left text-sm transition-colors duration-100 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-giga/30 ${
+                            className={`flex min-h-10 ${detail ? "items-start" : "items-center"} gap-3 rounded-[10px] px-3 py-2 text-left text-sm transition-colors duration-100 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-giga/30 ${
                               picked ? "bg-giga-tint text-giga" : "text-ink hover:bg-mist"
                             }`}
                           >
@@ -185,13 +188,20 @@ export default function SheetWizard({
                                 glyph language as the Chapters pill. */}
                             <span
                               aria-hidden
-                              className={`flex h-4 w-4 shrink-0 items-center justify-center border transition-colors duration-100 ${
+                              className={`flex h-4 w-4 shrink-0 items-center justify-center border transition-colors duration-100 ${detail ? "mt-0.5 " : ""}${
                                 q.kind === "multi" ? "rounded-[4px]" : "rounded-full"
                               } ${picked ? "border-giga bg-giga text-white" : "border-mist-deep bg-surface"}`}
                             >
                               {picked && <Check size={11} strokeWidth={3} aria-hidden />}
                             </span>
-                            <span className="min-w-0 break-words">{opt}</span>
+                            {detail ? (
+                              <span className="min-w-0 break-words">
+                                <span className="block font-medium">{opt}</span>
+                                <span className={`mt-0.5 block text-[13px] ${picked ? "text-giga/80" : "text-ink-muted"}`}>{detail}</span>
+                              </span>
+                            ) : (
+                              <span className="min-w-0 break-words">{opt}</span>
+                            )}
                           </button>
                         );
                       })}

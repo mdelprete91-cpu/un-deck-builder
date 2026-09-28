@@ -355,7 +355,11 @@ or a drop on the box. They exist to give the model the facts; they are **not** d
   or text, whose options are quoted from the file (a sheet name, a header, a row, a period). The
   contract with the model is in `SHEET_ANALYSIS_INSTRUCTIONS`: ask only what the data cannot
   settle and that changes the slides, never slide count, colours or layouts, never "Other".
-  `normalizeAnalysis` drops what does not fit. **The questions are asked when Generate is pressed,
+  `normalizeAnalysis` drops what does not fit, and turns a single-choice question about what to
+  show, present or include into a multi-choice one unless it asks for the one main thing (Mario, 28
+  Sep 2026: "both scenarios" had no way in); the wizard says "Choose one or more" on those. A
+  client-written question may carry `details`, one line under each short option (the file-use
+  question: Replicate, Reinterpret, Use as a source). **The questions are asked when Generate is pressed,
   not when the file lands** (Mario, 25 Sep 2026, later the same day: the model must read each file
   next to the whole brief). `onGenerate` in `app/page.tsx` builds a queue of subjects still to ask
   (readable attachments without `asked`, plus `"brief"` when there is no file and the brief is under
