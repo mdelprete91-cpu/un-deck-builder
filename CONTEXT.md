@@ -548,7 +548,9 @@ deck, a flat text in file order. Now:
 - **The wizard asks what to do with it**, first, for every pptx and every PDF with text (`fileUseQuestion` in
   `sheet-questions.ts`, prepended by the client to the model's own questions, never empty so the
   file is always asked): replicate, reinterpret (one line in the file's insights), or use as a
-  source (the default when skipped). Until that choice is made, every Generate press opens the
+  source. Reinterpret comes first and is preselected (Mario, 28 Sep 2026), then Replicate, then
+  Use as a source; `preselectFileUse` writes the preselected answer and its insight the moment the
+  question is added, so a skip or a close means Reinterpret. Until that choice is made, every Generate press opens the
   wizard on it, even for a file whose other questions were answered (`undecidedDeck` in
   `onGenerate`; a file read before the choice existed gets it in front of its questions). The row
   under the chip says "Replicate · 36 slides".

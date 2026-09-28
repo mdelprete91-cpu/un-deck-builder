@@ -137,11 +137,15 @@ export const USE_QUESTION_ID = "use";
 export type FileUse = "replicate" | "reinterpret" | "source";
 // The choice is the short name; what it does is the line under it (Mario,
 // 28 Sep 2026: "too much text, make replicate / reinterpret / source clear").
+// Reinterpret first and preselected (Mario, 28 Sep 2026), then Replicate,
+// then Use as a source: the key order is the order on screen.
 const USE_OPTIONS: Record<FileUse, { label: string; detail: (n: number, unit?: string) => string }> = {
-  replicate: { label: "Replicate", detail: (n, unit = "slides") => `One slide for each of its ${n} content ${unit}, in order, every text and figure kept.` },
   reinterpret: { label: "Reinterpret", detail: () => "The same story in a new structure. Facts and figures kept." },
+  replicate: { label: "Replicate", detail: (n, unit = "slides") => `One slide for each of its ${n} content ${unit}, in order, every text and figure kept.` },
   source: { label: "Use as a source", detail: () => "Only what your brief asks for." },
 };
+/** The answer the question opens with, and what a skip or a close leaves. */
+export const DEFAULT_FILE_USE = USE_OPTIONS.reinterpret.label;
 export function fileUseQuestion(contentSlides: number, unit: "slides" | "pages" = "slides"): SheetQuestion {
   const keys = Object.keys(USE_OPTIONS) as FileUse[];
   return {
@@ -153,11 +157,23 @@ export function fileUseQuestion(contentSlides: number, unit: "slides" | "pages" 
     details: keys.map((k) => USE_OPTIONS[k].detail(contentSlides, unit)),
   };
 }
-/** The use chosen for a file; unanswered or skipped is "source". */
+/** The use chosen for a file; unanswered is the preselected "reinterpret", deselected is "source". */
 export function fileUseOf(answers: SheetAnswers | undefined): FileUse {
   const a = answers?.[USE_QUESTION_ID];
+  if (a === undefined) return "reinterpret";
   const text = typeof a === "string" ? a : "";
   return text.startsWith("Replicate") ? "replicate" : text.startsWith("Reinterpret") ? "reinterpret" : "source";
+}
+
+/**
+ * A file with the use question gets its preselected answer (Reinterpret),
+ * compiled into its insights, the moment the question is added: the model
+ * reads what the dialog shows as chosen, even when the user never touches it.
+ */
+export function preselectFileUse<T extends { analysis?: SheetAnalysis; answers?: SheetAnswers; insights?: string }>(x: T): T {
+  if (!x.analysis?.questions.some((q) => q.id === USE_QUESTION_ID) || x.answers?.[USE_QUESTION_ID] !== undefined) return x;
+  const answers = { ...(x.answers ?? {}), [USE_QUESTION_ID]: DEFAULT_FILE_USE };
+  return { ...x, answers, insights: compileInsights(x.analysis, answers) };
 }
 
 export function compileInsights(analysis: SheetAnalysis, answers: SheetAnswers): string {

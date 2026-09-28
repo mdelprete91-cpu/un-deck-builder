@@ -28,7 +28,7 @@ import ChartDataPanel from "@/components/ChartDataPanel";
 import ImagePickerModal from "@/components/ImagePickerModal";
 import EditWithAiModal from "@/components/EditWithAiModal";
 import SheetWizard from "@/components/SheetWizard";
-import { compileInsights, normalizeAnalysis, SHORT_BRIEF_WORDS, USE_QUESTION_ID, fileUseOf, fileUseQuestion, type SheetAnalysis, type SheetAnswers } from "@/lib/slides/sheet-questions";
+import { compileInsights, normalizeAnalysis, SHORT_BRIEF_WORDS, USE_QUESTION_ID, fileUseOf, fileUseQuestion, preselectFileUse, type SheetAnalysis, type SheetAnswers } from "@/lib/slides/sheet-questions";
 import { densityHint, planReplica, withContentDensity } from "@/lib/slides/replicate";
 import { readPdfSlides } from "@/lib/slides/pdf-source";
 /** How the file-use question counts a file: slides for a deck, pages for a PDF. */
@@ -445,7 +445,7 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
         ? { ...analysis, questions: [fileUseQuestion(planReplica(sourceSlides).contentCount, unitOf(a)), ...analysis.questions] }
         : analysis;
     const update = (patch: { analysis?: SheetAnalysis; analysisError?: string }) =>
-      setAttachments((list) => list.map((x) => (x.id === a.id && canQuestion(x) ? { ...x, ...patch } : x)));
+      setAttachments((list) => list.map((x) => (x.id === a.id && canQuestion(x) ? preselectFileUse({ ...x, ...patch }) : x)));
     update({ analysisError: undefined });
     try {
       // The analysis reads the first 12k characters: a long deck says how long it is, or the summary counts only what it saw.
@@ -559,7 +559,7 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
         // Read before the choice existed: the choice goes in front of its questions.
         else if (canQuestion(a) && a.sourceSlides?.length && a.analysis && !a.analysis.questions.some((q) => q.id === USE_QUESTION_ID)) {
           const analysis = { ...a.analysis, questions: [fileUseQuestion(planReplica(a.sourceSlides).contentCount, unitOf(a)), ...a.analysis.questions] };
-          setAttachments((list) => list.map((x) => (x.id === a.id && canQuestion(x) ? { ...x, analysis } : x)));
+          setAttachments((list) => list.map((x) => (x.id === a.id && canQuestion(x) ? preselectFileUse({ ...x, analysis }) : x)));
         }
       }
     }
