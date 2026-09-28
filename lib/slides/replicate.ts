@@ -1,5 +1,5 @@
 import type { SourceSlide } from "./pptx-source";
-import type { SlideContent } from "./schema";
+import { DENSITY_LAYOUTS, type SlideContent } from "./schema";
 import { MAX_SLIDES } from "./brief";
 
 /**
@@ -66,6 +66,25 @@ export function planReplica(slides: SourceSlide[]): { steps: ReplicateStep[]; co
     .map((st) => (st.kind === "fixed" && st.content.layoutId === "agenda" ? { ...st, content: { ...st.content, bullets: bullets.slice(0, 9) } } : st))
     .filter((st) => !(st.kind === "fixed" && st.content.layoutId === "agenda" && bullets.length < 2));
   return { steps: final, contentCount: final.filter((st) => st.kind === "content").length };
+}
+
+/** Past this many words a source slide is rebuilt at high density. */
+export const DENSE_WORDS = 70;
+/** The line the model reads about a source slide's density. */
+export function densityHint(source: SourceSlide): string {
+  return source.words > DENSE_WORDS
+    ? ` The source slide is text-dense (${source.words} words): keep all of it, with "density" set to "high" on a layout that has the variant, or on a dense layout.`
+    : "";
+}
+
+/**
+ * A dense source slide lands at high density whatever the model set (Mario,
+ * 28 Sep 2026: "dense content, dense layouts by default"): on a layout that
+ * has the variant and came back without it, density goes to "high". The
+ * five dense layouts are dense already.
+ */
+export function withSourceDensity(slide: SlideContent, source: SourceSlide): SlideContent {
+  return source.words > DENSE_WORDS && DENSITY_LAYOUTS.has(slide.layoutId) && !slide.density ? { ...slide, density: "high" } : slide;
 }
 
 /** The agenda must list exactly the dividers that survived (syncAgenda would do it too). */

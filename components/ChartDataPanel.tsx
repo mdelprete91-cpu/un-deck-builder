@@ -58,9 +58,10 @@ export default function ChartDataPanel({ slide, theme, onChange, onClose }: Char
     dirty.current = false;
   }, [slide.id, slide.bars, slide.series, multi]);
 
-  // chart-text draws costs below zero; every other chart starts at zero.
+  // Every chart draws negatives below its zero line (28 Sep 2026) except the
+  // donut, whose segments are shares of a total.
   const toNumber = (v: string) => {
-    if (slide.layoutId !== "chart-text") return numeric(v);
+    if (slide.layoutId === "donut-chart") return numeric(v);
     const n = parseFloat(String(v ?? "").replace(/[^0-9.\-]/g, ""));
     return Number.isFinite(n) ? n : 0;
   };
@@ -204,8 +205,10 @@ export default function ChartDataPanel({ slide, theme, onChange, onClose }: Char
       </Button>
       <p className="mt-2 shrink-0 text-[11px] leading-relaxed text-ink-muted">
         {multi
-          ? `Values are real numbers, one per series; the chart scales to the largest. ${rows.length} of ${limits.max} rows. Cmd+Z to undo.`
-          : `Values are real numbers, the chart scales to the largest. The dot picks a colour; automatic follows the brand. ${rows.length} of ${limits.max} rows. Cmd+Z to undo.`}
+          ? `Values are real numbers, negatives included, one per series; the chart scales to the largest. ${rows.length} of ${limits.max} rows. Cmd+Z to undo.`
+          : slide.layoutId === "donut-chart"
+            ? `Values are shares of a total, so a negative counts as 0. The dot picks a colour; automatic follows the brand. ${rows.length} of ${limits.max} rows. Cmd+Z to undo.`
+            : `Values are real numbers, negatives included; the chart scales to the largest. The dot picks a colour; automatic follows the brand. ${rows.length} of ${limits.max} rows. Cmd+Z to undo.`}
       </p>
     </div>
   );

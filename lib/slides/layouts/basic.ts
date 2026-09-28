@@ -33,11 +33,21 @@ export function cover(s: Slide, t: BrandTheme): string {
   );
 }
 
+/**
+ * Agenda. The items share one budget and one size (Mario, 28 Sep 2026: with
+ * a one-line budget each, a long chapter title shrank on its own and the
+ * list read in four sizes): a long title wraps to a second line at the size
+ * of the others, its text hanging after the number, and the whole list
+ * shrinks together only when it cannot fit.
+ */
 export function agenda(s: Slide, t: BrandTheme): string {
   const items = (s.bullets ?? [])
     .map(
       (bullet, i) =>
-        `<div class="ars" ${item(`bullets.${i}`)} style="padding:10px;height:73px;box-sizing:border-box;display:flex;align-items:center;margin-bottom:8px;font-family:${MANROPE};font-weight:600;font-size:48px;line-height:1.1;letter-spacing:-.02em;color:#FFFFFF;${dly(10 + i * 6)}"><span style="white-space:pre;">0${i + 1} | </span><span ${ed(`bullets.${i}`, 63)}>${esc(bullet)}</span></div>`,
+        `<div class="ars" ${item(`bullets.${i}`)} style="display:flex;gap:.35em;padding:.12em 0;${dly(10 + i * 6)}">` +
+        `<span style="flex:0 0 auto;white-space:pre;">${String(i + 1).padStart(2, "0")} |</span>` +
+        `<span ${ed(`bullets.${i}`)} style="flex:1;min-width:0;">${esc(bullet)}</span>` +
+        `</div>`,
     )
     .join("");
   return section(
@@ -45,7 +55,7 @@ export function agenda(s: Slide, t: BrandTheme): string {
     "var(--accent)",
     "#FFFFFF",
     `<div class="ar" ${ed("title", 780)} style="position:absolute;left:100px;top:100px;width:770px;font-family:${MANROPE};font-weight:500;font-size:144px;line-height:1.05;letter-spacing:-.02em;color:#FFFFFF;">${esc(s.title ?? "Agenda")}</div>` +
-      `<div style="position:absolute;left:920px;top:100px;width:925px;display:flex;flex-direction:column;">${items}</div>` +
+      `<div data-fit="790" style="position:absolute;left:920px;top:100px;width:925px;box-sizing:border-box;padding-right:28px;display:flex;flex-direction:column;gap:.3em;font-family:${MANROPE};font-weight:600;font-size:48px;line-height:1.12;letter-spacing:-.02em;color:#FFFFFF;">${items}</div>` +
       coverFooterDark(t),
   );
 }

@@ -1,7 +1,7 @@
 import type { Slide, LayoutId } from "../schema";
 import type { BrandTheme } from "../brand";
 import { iconInner } from "../icons";
-import { MANROPE, OPEN_SANS, HAIRLINE, esc, ed, dly, item, columns, section, footer, coverFooterDark, photoPanel, chartShades } from "./shared";
+import { MANROPE, OPEN_SANS, HAIRLINE, esc, ed, dly, item, columns, section, footer, photoPanel, chartShades } from "./shared";
 import { DENSE, CARD, BOTTOM, GAP, BAND_H, topOf, title, pointsOf, bullets, band, hasBand } from "./dense";
 import { seriesColors } from "./charts";
 import { fmt, signedValue, numeric } from "./stats";
@@ -250,7 +250,7 @@ function explanation(s: Slide, top: number): string {
 function legendRow(names: string[], colors: string[], y: number): string {
   if (names.length < 2) return "";
   return (
-    `<div style="position:absolute;left:${P.x}px;top:${y}px;width:${P.w}px;display:flex;flex-wrap:wrap;gap:6px 28px;">` +
+    `<div style="position:absolute;z-index:2;left:${P.x}px;top:${y}px;width:${P.w}px;display:flex;flex-wrap:wrap;gap:6px 28px;">` +
     names
       .map(
         (name, j) =>
@@ -293,8 +293,8 @@ function xLabels(labels: string[], y: number, colW: number): string {
     .map((l, i) => {
       const cx = P.x + colW * (i + 0.5);
       return rotated
-        ? `<div class="ars" ${ed(`bars.${i}.label`, 30)} style="position:absolute;left:${Math.round(cx - 140)}px;top:${y + 6}px;width:140px;text-align:right;${AXIS}color:#000000;transform:rotate(-45deg);transform-origin:right top;white-space:nowrap;overflow:hidden;${dly(18 + i)}">${esc(l)}</div>`
-        : `<div class="ars" ${ed(`bars.${i}.label`, 60)} style="position:absolute;left:${Math.round(cx - colW / 2 + 4)}px;top:${y}px;width:${Math.round(colW - 8)}px;text-align:center;${AXIS}color:#000000;${dly(18 + i * 2)}">${esc(l)}</div>`;
+        ? `<div class="ars" ${ed(`bars.${i}.label`, 30)} style="position:absolute;z-index:2;left:${Math.round(cx - 140)}px;top:${y + 6}px;width:140px;text-align:right;${AXIS}color:#000000;transform:rotate(-45deg);transform-origin:right top;white-space:nowrap;overflow:hidden;${dly(18 + i)}">${esc(l)}</div>`
+        : `<div class="ars" ${ed(`bars.${i}.label`, 60)} style="position:absolute;z-index:2;left:${Math.round(cx - colW / 2 + 4)}px;top:${y}px;width:${Math.round(colW - 8)}px;text-align:center;${AXIS}color:#000000;${dly(18 + i * 2)}">${esc(l)}</div>`;
     })
     .join("");
 }
@@ -359,7 +359,7 @@ function columnsChart(s: Slide, t: BrandTheme, mode: "single" | "grouped" | "sta
           return (
             `<div style="position:absolute;left:${x}px;top:${downBar ? y + zero : y + zero - h}px;width:${Math.round(barW)}px;height:${h}px;background:${mode === "single" ? colors[i] : colors[j]};border-radius:${downBar ? "0 0 3px 3px" : "3px 3px 0 0"};"></div>` +
             (showValues
-              ? `<div ${mode === "single" ? ed(`bars.${i}.value`, px + 8) : ""} style="position:absolute;left:${x - 30}px;top:${downBar ? y + zero + h + 6 : y + zero - h - px - 10}px;width:${Math.round(barW) + 60}px;${VALUE(px)}">${fmt(v)}</div>`
+              ? `<div ${mode === "single" ? ed(`bars.${i}.value`, px + 8) : ""} style="position:absolute;z-index:2;left:${x - 30}px;top:${downBar ? y + zero + h + 6 : y + zero - h - px - 10}px;width:${Math.round(barW) + 60}px;${VALUE(px)}">${fmt(v)}</div>`
               : "")
           );
         })
@@ -374,7 +374,7 @@ function columnsChart(s: Slide, t: BrandTheme, mode: "single" | "grouped" | "sta
     title(s) +
       explanation(s, top) +
       legendRow(series, colors, legendY) +
-      `<div data-chart style="position:absolute;left:${P.x}px;top:${y}px;width:${P.w}px;height:${H}px;"></div>` +
+      `<div data-chart style="position:absolute;z-index:1;left:${P.x}px;top:${y}px;width:${P.w}px;height:${H}px;"></div>` +
       axisAndGrid(y, max, lo, zero, H) +
       cols +
       xLabels(bars.map((b) => b.label), y + H + 14, colW) +
@@ -404,7 +404,7 @@ function hbarsChart(s: Slide, t: BrandTheme): string {
       const yy = Math.round(area.y + rowH * i + (rowH - barH) / 2);
       const left = v < 0;
       return (
-        `<div class="ars" ${ed(`bars.${i}.label`, barH + 6)} style="position:absolute;left:${P.x}px;top:${yy}px;width:${labelW - 20}px;height:${barH}px;display:flex;align-items:center;${AXIS}font-size:${px}px;color:#000000;${dly(10 + i * 3)}">${esc(b.label)}</div>` +
+        `<div class="ars" ${ed(`bars.${i}.label`, barH + 6)} style="position:absolute;z-index:2;left:${P.x}px;top:${yy}px;width:${labelW - 20}px;height:${barH}px;display:flex;align-items:center;${AXIS}font-size:${px}px;color:#000000;${dly(10 + i * 3)}">${esc(b.label)}</div>` +
         `<div class="agw" ${item(`bars.${i}`)} style="position:absolute;left:${left ? zeroX - w : zeroX}px;top:${yy}px;width:${w}px;height:${barH}px;background:${b.color ?? t.accent};border-radius:${left ? "3px 0 0 3px" : "0 3px 3px 0"};${left ? "transform-origin:right center;" : ""}${dly(10 + i * 3)}"></div>` +
         `<div class="ars" style="position:absolute;left:${left ? zeroX - w - 110 : zeroX + w + 10}px;top:${yy}px;width:100px;height:${barH}px;display:flex;align-items:center;${left ? "justify-content:flex-end;" : ""}${VALUE(px)}${dly(14 + i * 3)}">${fmt(v)}</div>`
       );
@@ -416,7 +416,7 @@ function hbarsChart(s: Slide, t: BrandTheme): string {
     "#000000",
     title(s) +
       explanation(s, top) +
-      `<div data-chart style="position:absolute;left:${area.x}px;top:${area.y}px;width:${area.w}px;height:${area.h}px;"></div>` +
+      `<div data-chart style="position:absolute;z-index:1;left:${area.x}px;top:${area.y}px;width:${area.w}px;height:${area.h}px;"></div>` +
       `<div style="position:absolute;left:${zeroX - 1}px;top:${area.y}px;width:2px;height:${n * rowH}px;background:#C9C9CF;"></div>` +
       rowsHtml +
       footer(t, "light"),
@@ -461,7 +461,7 @@ function lineChart(s: Slide, t: BrandTheme): string {
     title(s) +
       explanation(s, top) +
       legendRow(series, colors, top) +
-      `<div data-chart style="position:absolute;left:${P.x}px;top:${y}px;width:${P.w}px;height:${H}px;"></div>` +
+      `<div data-chart style="position:absolute;z-index:1;left:${P.x}px;top:${y}px;width:${P.w}px;height:${H}px;"></div>` +
       axisAndGrid(y, max, lo, zero, H) +
       `<svg class="af" width="1920" height="1080" viewBox="0 0 1920 1080" style="position:absolute;left:0;top:0;overflow:visible;pointer-events:none;${dly(14)}">${paths}</svg>` +
       ends +
@@ -532,31 +532,3 @@ export const DENSE_RENDERERS: Partial<Record<LayoutId, (s: Slide, t: BrandTheme)
   progress: (s, t) => stagesSlide(s, t, "progress", true),
 };
 
-/**
- * Agenda, proposed (Mario, 28 Sep 2026: "the font sizes differ with the
- * amount of text"). Every item had its own one-line budget, so a long
- * chapter title shrank on its own. Here the items share one budget and one
- * size: a long title wraps to a second line at the size of the others, its
- * text hanging after the number, and the whole list shrinks together only
- * when it cannot fit. Not wired yet: shown beside the current agenda for
- * approval.
- */
-export function agendaProposal(s: Slide, t: BrandTheme): string {
-  const items = (s.bullets ?? [])
-    .map(
-      (bullet, i) =>
-        `<div class="ars" ${item(`bullets.${i}`)} style="display:flex;gap:.35em;padding:.12em 0;${dly(10 + i * 6)}">` +
-        `<span style="flex:0 0 auto;white-space:pre;">${String(i + 1).padStart(2, "0")} |</span>` +
-        `<span ${ed(`bullets.${i}`)} style="flex:1;min-width:0;">${esc(bullet)}</span>` +
-        `</div>`,
-    )
-    .join("");
-  return section(
-    t,
-    "var(--accent)",
-    "#FFFFFF",
-    `<div class="ar" ${ed("title", 780)} style="position:absolute;left:100px;top:100px;width:770px;font-family:${MANROPE};font-weight:500;font-size:144px;line-height:1.05;letter-spacing:-.02em;color:#FFFFFF;">${esc(s.title ?? "Agenda")}</div>` +
-      `<div data-fit="790" style="position:absolute;left:920px;top:100px;width:925px;box-sizing:border-box;padding-right:28px;display:flex;flex-direction:column;gap:.3em;font-family:${MANROPE};font-weight:600;font-size:48px;line-height:1.12;letter-spacing:-.02em;color:#FFFFFF;">${items}</div>` +
-      coverFooterDark(t),
-  );
-}

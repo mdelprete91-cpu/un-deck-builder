@@ -341,6 +341,14 @@ export function clampWords(text: string, maxWords: number): string {
   return words.slice(0, maxWords).join(" ");
 }
 
+/** The layouts that have a high-density variant (layouts/density.ts `DENSE_RENDERERS`, keep the two in step). */
+export const DENSITY_LAYOUTS: ReadonlySet<LayoutId> = new Set<LayoutId>([
+  "four-cards", "icon-cards", "steps", "three-columns", "callout", "list", "example-image-left", "example-image-right",
+  "stat-grid", "brand-equity", "two-stats", "single-stat", "big-stat",
+  "chart-bars", "chart-columns-wide", "chart-columns-grouped", "chart-columns-stacked", "chart-bars-horizontal", "chart-line", "donut-chart",
+  "timeline", "timeline-phases", "progress",
+]);
+
 /** The layouts drawn for report-style decks (layouts/dense.ts). */
 export const DENSE_LAYOUTS: ReadonlySet<LayoutId> = new Set<LayoutId>(["bullet-columns", "figures-panel", "scenarios", "matrix", "chart-text"]);
 
@@ -535,7 +543,7 @@ export function normalizeSlide(
     }));
   }
   if (slide.notes !== undefined && !slide.notes.trim()) delete slide.notes;
-  if (!slide.density) delete slide.density;
+  if (!slide.density || !DENSITY_LAYOUTS.has(slide.layoutId)) delete slide.density;
   // A negative figure reads with a typographic minus ("−32.79"), not a hyphen.
   const minus = (v: string) => v.replace(/^-(?=\s?[\d$€£.]|USD|GMD|EUR)/, "\u2212");
   if (slide.stat) slide.stat = minus(slide.stat);

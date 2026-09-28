@@ -25,6 +25,8 @@ export interface SourceSlide {
   title: string;
   /** Everything the slide says, for the model: title, points, tables, charts, footnotes. */
   text: string;
+  /** Words of content (title, points, labels): a slide past 70 is rebuilt at high density. */
+  words: number;
   /** Agenda slides: the chapter titles, and which one this agenda marks as current (-1 if none). */
   chapters?: string[];
   current?: number;
@@ -313,7 +315,7 @@ export async function readPptx(buf: ArrayBuffer): Promise<{ text: string; slides
     for (const e of r.extras) if (e) parts.push(e);
     if (r.figures.length) parts.push(figureLine(r.figures));
     if (r.footnotes.length) parts.push(`Footnotes: ${r.footnotes.join(" ")}`);
-    const slide: SourceSlide = { n: r.n, kind, title, text: parts.join("\n") };
+    const slide: SourceSlide = { n: r.n, kind, title, text: parts.join("\n"), words };
     if (kind === "agenda") {
       const bullets = r.paras.filter((p) => !AGENDA_WORD.test(p.text) && !HANDLE.test(p.text) && !PURE_NUMBER.test(p.text) && p.text.length > 2);
       slide.chapters = bullets.map((p) => p.text);

@@ -8,7 +8,7 @@ import { isChartLayout, isPage, normalizeSlide, PRIMARY_ARRAY, type LayoutId, ty
 import { renderSlide } from "@/lib/slides/layouts";
 import { A4_PX } from "@/lib/slides/pages/a4";
 import { PAGE_BLOCK_LIMITS, type PageBlock } from "@/lib/slides/pages/schema";
-import { defaultContent } from "@/lib/slides/defaults";
+import { defaultContent, denseContent } from "@/lib/slides/defaults";
 import { familyOf } from "@/lib/slides/families";
 import { countFromBrief, seriesFromBrief, uniformFromBrief, MIN_SLIDES_WITH_CHAPTERS, TIERS_REQUEST } from "@/lib/slides/brief";
 import { makeRhythm, stripInventedYear } from "@/lib/slides/rhythm";
@@ -29,7 +29,7 @@ import ImagePickerModal from "@/components/ImagePickerModal";
 import EditWithAiModal from "@/components/EditWithAiModal";
 import SheetWizard from "@/components/SheetWizard";
 import { compileInsights, normalizeAnalysis, SHORT_BRIEF_WORDS, USE_QUESTION_ID, fileUseOf, fileUseQuestion, type SheetAnalysis, type SheetAnswers } from "@/lib/slides/sheet-questions";
-import { planReplica } from "@/lib/slides/replicate";
+import { densityHint, planReplica, withSourceDensity } from "@/lib/slides/replicate";
 import type { WizardSubject } from "@/components/SheetWizard";
 import LayoutSwitcher from "@/components/LayoutSwitcher";
 import { AttachmentError, canQuestion, MAX_ATTACHMENTS, MAX_REQUEST_BYTES, MAX_TEXT_TOTAL, readAttachment, readPdfAsText, totalRequestBytes, type Attachment } from "@/lib/slides/attachments";
@@ -678,7 +678,8 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
       if (st.kind === "fixed" && st.content.layoutId === "section-divider") chapter = st.content.title ?? "";
       return (
         `This is slide ${i + 1} of ${total} of the deck "${deckTitle}"${chapter ? `, in the chapter "${chapter}"` : ""}.` +
-        (st.kind === "cover" ? " It is the COVER: use the cover layout, the deck's title as written and, as subtitle, the document type and date the source slide gives." : "")
+        (st.kind === "cover" ? " It is the COVER: use the cover layout, the deck's title as written and, as subtitle, the document type and date the source slide gives." : "") +
+        (st.kind === "content" ? densityHint(st.source) : "")
       );
     });
     const results: (SlideContent | null | undefined)[] = steps.map((st) =>
@@ -726,7 +727,7 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
             return;
           }
           if (slide && !CHAPTER_LAYOUTS.has(slide.layoutId) && slide.layoutId !== "thank-you" && slide.layoutId !== "cover") {
-            results[i] = slide;
+            results[i] = withSourceDensity(slide, st.source);
             return;
           }
         } catch (err) {
@@ -836,6 +837,8 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
               map: active.map,
               // Icons the user picked stay; otherwise the rewrite brings icons for its own words.
               ...(active.iconsPinned ? { icons: active.icons, iconsPinned: true } : {}),
+              // A dense slide stays dense through a rewrite.
+              ...(active.density ? { density: active.density } : {}),
             },
         mergeImages: isPage(active) ? active.stack : undefined,
         keepColors: active.bars,
@@ -881,8 +884,8 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
     setLayoutSwitcher(false);
   };
 
-  const onInsertLayout = (layoutId: LayoutId) => {
-    dispatch({ type: "INSERT", content: defaultContent(layoutId) });
+  const onInsertLayout = (layoutId: LayoutId, dense = false) => {
+    dispatch({ type: "INSERT", content: dense ? denseContent(layoutId) : defaultContent(layoutId) });
     onDeckArrived();
   };
 

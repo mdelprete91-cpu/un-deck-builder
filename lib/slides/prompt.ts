@@ -39,6 +39,7 @@ RULES:
 - Write in the same language as the brief.
 - Only state facts given in the brief or the attached material. Never invent statistics, names, emails or dates: no year, quarter or period the brief does not give, not even in a subtitle. Giga's own figures (2.2M+ schools mapped, 146 countries, giga.global) belong only in a deck the brief makes about Giga. A brief that names neither Giga nor UNICEF gets a deck that names neither, outside the closing slide.
 - DENSE MATERIAL: when the brief asks to carry a report or a long deck in full, keep its text and figures as written on the dense layouts (bullet-columns, figures-panel, scenarios, matrix, chart-text) instead of cutting them down to cards: one source slide becomes one slide, its headers become the column or row labels, its sub-points stay sub-points ("- "). Their "items" and "stats" live inside each block; on every other layout set them to [].
+- DENSITY: "density" is "high" when a slide must carry more text than its layout's limits (a report or a dense source slide kept in full), else "". It exists on four-cards, icon-cards, steps, three-columns, callout, list, example-image-left/right, stat-grid, brand-equity, two-stats, single-stat, big-stat, every chart layout, timeline, timeline-phases and progress. There the fields stay the same, but a block may carry "items" (points, "- " for a sub-point, up to 80 words a block) instead of a short body, stat labels run to 30 words, a chart carries "subtitle" (a header) and "bullets" (the explanation, up to 8 points) beside the plot, and timeline or progress bodies run to 40 words. Chart values may be negative (costs) on every chart but the donut.
 - FOOTNOTES: "notes" carries the footnotes the material prints for that slide (sources, definitions, "1. Cumulative 5-years"), as written, <=40 words, numbered as in the material, with the matching superscript (¹ ²) kept in the slide text; "" when the slide has none, and always "" on cover, agenda, section-divider, partner and thank-you.
 - For chart-bars, values are relative heights 0-100.
 - For "partner", use it only when the brief names partners, and copy the names EXACTLY from this list (each maps to a real logo): ${PARTNER_NAMES.join(", ")}. Never invent partner names or write categories like "Telecom operators" — a name outside the list renders as plain text instead of a logo.
@@ -114,7 +115,7 @@ interface GenerateBody {
  * construction; this is what the model is told about the one slide it gets.
  */
 const REPLICATE_NOTE =
-  "You are rebuilding an existing deck on the brand template, one slide at a time. Return exactly ONE slide for the source slide below: its title copied as written (shortened only past the layout's limit), every point, figure, unit and date it states kept as written, its sub-points as sub-points (\"- \"), its footnotes in \"notes\" with their numbers and the matching superscripts in the text. Choose the layout that holds all of it: the dense layouts (bullet-columns, figures-panel, scenarios, matrix, chart-text) for slides with a lot of text, a chart layout when the slide is a chart (use the chart labels written on the slide, column by column; the chart data is only a fallback; when the slide has two charts side by side, as two scenarios, draw the first on chart-text and give the second's figures in its points, never one line of both), a stat or card layout only when the slide is that short. Never cut content to fit a simpler layout, never add content the source slide does not have, never write a cover, agenda, section-divider or thank-you here. The source's own header and footer lines (organisation handles, running headers) are not content. Write in the source slide's language.";
+  "You are rebuilding an existing deck on the brand template, one slide at a time. Return exactly ONE slide for the source slide below: its title copied as written (shortened only past the layout's limit), every point, figure, unit and date it states kept as written, its sub-points as sub-points (\"- \"), its footnotes in \"notes\" with their numbers and the matching superscripts in the text. If the slide is text-dense, pick the layout whose SHAPE matches the source slide and set \"density\" to \"high\" on it: labelled boxes or cards → four-cards, icon-cards or steps; rows of points → list or callout; figures with explanations → stat-grid, two-stats or single-stat; a chart → the chart layout of its kind (line, grouped or stacked columns, bars, donut) with its explanation in subtitle and bullets; phases or dates → timeline or progress. Use the dense layouts (bullet-columns for columns of prose points under long headers, figures-panel for outcome/benefits/costs rows, scenarios for options side by side, matrix for a grid, chart-text for a chart with numbered notes) only when no layout of the source's shape fits. Vary the layouts across the deck as the source varies. Choose the layout that holds all of it: a chart layout when the slide is a chart (use the chart labels written on the slide, column by column; the chart data is only a fallback; when the slide has two charts side by side, as two scenarios, draw the first on chart-text and give the second's figures in its points, never one line of both), a stat or card layout only when the slide is that short. Never cut content to fit a simpler layout, never add content the source slide does not have, never write a cover, agenda, section-divider or thank-you here. The source's own header and footer lines (organisation handles, running headers) are not content. Write in the source slide's language.";
 
 /**
  * Chapter opt-out. It lives in the user message, not the system prompt: the
@@ -316,6 +317,7 @@ export const SLIDES_OUTPUT_SCHEMA = {
           icons: { type: "array", items: { type: "string" } },
           photo: { type: "string" },
           notes: { type: "string" },
+          density: { type: "string", enum: ["", "high"] },
           contacts: {
             type: "array",
             items: {
@@ -349,6 +351,7 @@ export const SLIDES_OUTPUT_SCHEMA = {
           "icons",
           "photo",
           "notes",
+          "density",
           "contacts",
         ],
         additionalProperties: false,

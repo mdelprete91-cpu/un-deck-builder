@@ -74,7 +74,8 @@ Do not change these without asking Mario first. They are decisions, not defaults
    click on a node sets it: `data-set` / `data-value` on the node, read by SlideFrame as an edit
    of that path. Body limits are 12 words up to four stages, 8 with five or six. A third (Mario,
    28 Sep 2026): the five dense layouts in `lib/slides/layouts/dense.ts` and the footnote, see
-   "Dense layouts and footnotes" below.
+   "Dense layouts and footnotes" below. And every content layout has a high-density variant (Mario,
+   28 Sep 2026), see "High density" below.
 8. **Slide renderers emit HTML strings with inline styles only.** No Tailwind classes, no external
    CSS. The same markup has to survive the editor preview, the thumbnails, the print root, the
    self-contained HTML export, and the PPTX capture. A class that only exists in `globals.css`
@@ -559,6 +560,45 @@ deck, a flat text in file order. Now:
   on the slides (the suite's `use: "replicate"` case prints this).
 - **Known limits**: two charts on one source slide become one chart-text plus the second's figures
   in its points; which label belongs to which line is inferred from the top-to-bottom order.
+
+## High density
+
+Two kinds of decks come in: essential ones with little text, and report-style pptx at 150-250
+words a slide. Every content layout (cards and columns, stats, charts, timeline and progress) has a
+high-density variant, approved by Mario on 28 Sep 2026 from a design sheet: `density: "high"` on
+the slide, rendered by `DENSE_RENDERERS` in `lib/slides/layouts/density.ts`, which `renderSlide`
+picks over the layout's own renderer. Same fields, same geometry family, the dense layouts'
+grammar: 60px title on up to two lines (`topOf`, width-aware), #F7F7F7 cards, Manrope 30px
+headers in the accent, Open Sans 24px points in em under one `data-fit` per text group, the key
+message band where a card layout has `support`. Stats take labels of about 30 words; charts move
+right with the explanation card (`subtitle` + `bullets`, kept by `normalizeSlide` on dense charts)
+on the left; timeline and progress run through `stagesSlide(…, dense)`.
+
+- **Standard slides do not change.** A slide without `density` renders exactly as before;
+  `.omc/markup-baseline.ts` fingerprints every layout's markup (both palettes, defaults and chart
+  cases) and was identical before and after, the agenda aside (below).
+- **`DENSITY_LAYOUTS` in `schema.ts` and `DENSE_RENDERERS` must list the same layouts**;
+  `normalizeSlide` drops `density` elsewhere.
+- **The picker has two tabs** (`components/ThumbStrip.tsx`): "Slides" (the template, without the
+  five dense layouts) and "High density" (every variant, from `denseContent` in `defaults.ts`,
+  plus the five dense layouts).
+- **The model** has `density` in the output schema ("" or "high") and one DENSITY rule in the
+  prompt. In a replica a source slide past `DENSE_WORDS` (70) is flagged in its context, and
+  `withSourceDensity` sets "high" when the model picked a layout with a variant and left it off:
+  dense content lands dense by default (Mario's call). Luna still prefers the five dense layouts
+  for dense slides, which are dense too. A rewrite keeps the slide's density.
+- **Negative values** on every chart but the donut (a share): `signedValue` and a sign-aware `fmt`
+  (typographic minus) in `layouts/stats.ts`, `scaleOf` / `zeroLine` in `layouts/charts.ts`: the
+  zero line moves up, is drawn darker, bars hang from it, horizontal bars run left of it, stacked
+  columns stack negative parts down, and the axis reads max, 0, min. Written so that all-positive
+  data takes the very same expressions (the fingerprints prove it). The Data panel accepts
+  negatives everywhere but the donut, and says so. `normalizeSlide` turns a leading hyphen in a
+  stat into "−".
+- **The agenda shares one size** (Mario, 28 Sep 2026: long chapter titles shrank on their own,
+  four sizes on one slide): one `data-fit` container, a long title wraps to a second line at the
+  size of the others after its number, the list shrinks together only when it cannot fit.
+- `.omc/density-preview.ts` renders the design sheet (every layout standard beside dense, the
+  standard charts with negatives).
 
 ## Dense layouts and footnotes
 

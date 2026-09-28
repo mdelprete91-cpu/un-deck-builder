@@ -341,3 +341,32 @@ export function defaultContent(layoutId: LayoutId): SlideContent {
       return { layoutId, stack: presetStack("blank"), footerLabel: "" };
   }
 }
+
+/**
+ * Placeholder content for the high-density variant of a layout (the "High
+ * density" tab of the layout picker, 28 Sep 2026): the standard placeholder
+ * with `density: "high"`, its blocks turned into points with a sub-point,
+ * longer stat labels, and on a chart the explanation beside it.
+ */
+export function denseContent(layoutId: LayoutId): SlideContent {
+  const base = defaultContent(layoutId);
+  const out: SlideContent = { ...base, density: "high" };
+  if (base.blocks) {
+    out.blocks = base.blocks.map((b) => ({
+      label: b.label,
+      body: "",
+      items: [b.body || "A point from the material, as written", "A second point with its figure and unit", "- A sub-point under it"],
+    }));
+  }
+  if (base.stats) {
+    out.stats = base.stats.map((st) => ({ ...st, label: `${st.label}: what the figure measures, where it comes from and over which period` }));
+  }
+  if (base.bars) {
+    out.subtitle = "What the chart shows";
+    out.bullets = ["How the figures were counted and over which period", "- The assumption behind them", "What drives the change from one period to the next"];
+  }
+  if (base.support) {
+    out.support = `${base.support}. A second sentence with the context the figure needs: where it comes from, over which period, and what it compares with.`;
+  }
+  return out;
+}

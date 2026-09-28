@@ -24,7 +24,7 @@ import { closingFor, finishDeck, makeRhythm, mergeContinuations, stripInventedYe
 import { PARTNER_NAMES } from "../lib/slides/partners";
 import { extractDocx, extractPptx, extractXlsx, type Attachment } from "../lib/slides/attachments";
 import { readPptx } from "../lib/slides/pptx-source";
-import { planReplica } from "../lib/slides/replicate";
+import { densityHint, planReplica, withSourceDensity } from "../lib/slides/replicate";
 import { fillPhotos } from "../lib/slides/library";
 
 const URL = process.env.QA_URL ?? "http://localhost:3777";
@@ -230,7 +230,7 @@ async function replicatePrompt(p: Prompt, brief: string, path: string, t0: numbe
   let chapter = "";
   const contexts = steps.map((st, i) => {
     if (st.kind === "fixed" && st.content.layoutId === "section-divider") chapter = st.content.title ?? "";
-    return `This is slide ${i + 1} of ${steps.length + 1}${chapter ? `, in the chapter "${chapter}"` : ""}.` + (st.kind === "cover" ? " It is the COVER: use the cover layout, the deck's title as written and, as subtitle, the document type and date the source slide gives." : "");
+    return `This is slide ${i + 1} of ${steps.length + 1}${chapter ? `, in the chapter "${chapter}"` : ""}.` + (st.kind === "cover" ? " It is the COVER: use the cover layout, the deck's title as written and, as subtitle, the document type and date the source slide gives." : "") + (st.kind === "content" ? densityHint(st.source) : "");
   });
   let cursor = 0;
   const worker = async () => {
@@ -243,7 +243,7 @@ async function replicatePrompt(p: Prompt, brief: string, path: string, t0: numbe
         cost += out.usage ? (out.usage.inputTokens * 0.1 + out.usage.outputTokens * 0.5) / 1_000_000 : 0;
         const c = out.slides[0] ? normalizeSlide(out.slides[0], { brandId: BRAND_ID }) : null;
         if (c && st.kind === "cover") results[i] = { layoutId: "cover", title: c.title || st.source.title, subtitle: c.subtitle ?? "" };
-        else if (c && !STRUCTURAL.has(c.layoutId)) results[i] = c;
+        else if (c && !STRUCTURAL.has(c.layoutId)) results[i] = st.kind === "content" ? withSourceDensity(c, st.source) : c;
       }
       if (!results[i]) findings.push(`source slide ${st.source.n} not rebuilt`);
     }

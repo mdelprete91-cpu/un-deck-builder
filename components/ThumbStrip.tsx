@@ -5,7 +5,9 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { AI_LAYOUT_IDS, MANUAL_LAYOUT_IDS, type LayoutId, type Slide } from "@/lib/slides/schema";
 import type { BrandTheme } from "@/lib/slides/brand";
 import { renderSlide, LAYOUTS } from "@/lib/slides/layouts";
-import { defaultContent } from "@/lib/slides/defaults";
+import { defaultContent, denseContent } from "@/lib/slides/defaults";
+import { DENSE_RENDERERS } from "@/lib/slides/layouts/density";
+import { DENSE_LAYOUTS } from "@/lib/slides/schema";
 import { A4_PX } from "@/lib/slides/pages/a4";
 import { PAGE_PRESETS, presetStack } from "@/lib/slides/pages/presets";
 import Button from "@/components/Button";
@@ -33,11 +35,14 @@ function PickerModal({
   items,
   onPick,
   onClose,
+  tabs,
 }: {
   title: string;
   items: { id: string; label: string; html: string; size?: { w: number; h: number }; aspect: string }[];
   onPick: (id: string) => void;
   onClose: () => void;
+  /** A segmented control under the title (the layout picker's Slides / High density). */
+  tabs?: { options: { id: string; label: string }[]; value: string; onChange: (id: string) => void };
 }) {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -66,6 +71,27 @@ function PickerModal({
             className="-mr-2"
           />
         </div>
+        {tabs && (
+          <div role="tablist" aria-label="Density" className="mx-7 mt-4 flex h-10 w-fit items-center gap-1 rounded-full bg-canvas-2 p-1">
+            {tabs.options.map((o) => {
+              const on = tabs.value === o.id;
+              return (
+                <button
+                  key={o.id}
+                  type="button"
+                  role="tab"
+                  aria-selected={on}
+                  onClick={() => tabs.onChange(o.id)}
+                  className={`flex h-8 items-center rounded-full px-4 text-sm transition-colors duration-150 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-giga/30 ${
+                    on ? "bg-surface font-medium text-ink shadow-stripe" : "text-ink-muted hover:text-ink"
+                  }`}
+                >
+                  {o.label}
+                </button>
+              );
+            })}
+          </div>
+        )}
         {/* The preview is the whole card: no caption, the name is the tooltip. */}
         <div className="grid flex-1 grid-cols-3 gap-6 overflow-y-auto p-7">
           {items.map(({ id, label, html, size, aspect }) => (
@@ -90,18 +116,24 @@ function PickerModal({
   );
 }
 
+/**
+ * Two tabs (Mario, 28 Sep 2026): "Slides", the template's layouts as they
+ * are, and "High density", the dense variant of every layout that has one
+ * (layouts/density.ts) plus the five layouts drawn for dense material.
+ */
 function LayoutPickerModal({
   theme,
   onPick,
   onClose,
 }: {
   theme: BrandTheme;
-  onPick: (layoutId: LayoutId) => void;
+  onPick: (layoutId: LayoutId, dense: boolean) => void;
   onClose: () => void;
 }) {
-  const items = useMemo(
+  const [tab, setTab] = useState<"slides" | "dense">("slides");
+  const standard = useMemo(
     () =>
-      PICKER_LAYOUT_IDS.map((id) => ({
+      PICKER_LAYOUT_IDS.filter((id) => !DENSE_LAYOUTS.has(id)).map((id) => ({
         id,
         label: LAYOUTS[id].label,
         html: renderSlide({ ...defaultContent(id), id: `preview-${id}` }, theme),
@@ -109,12 +141,30 @@ function LayoutPickerModal({
       })),
     [theme],
   );
+  const dense = useMemo(
+    () =>
+      [...PICKER_LAYOUT_IDS.filter((id) => DENSE_RENDERERS[id]), ...PICKER_LAYOUT_IDS.filter((id) => DENSE_LAYOUTS.has(id))].map((id) => ({
+        id,
+        label: `${LAYOUTS[id].label}${DENSE_LAYOUTS.has(id) ? "" : " (high density)"}`,
+        html: renderSlide({ ...(DENSE_LAYOUTS.has(id) ? defaultContent(id) : denseContent(id)), id: `preview-dense-${id}` }, theme),
+        aspect: "aspect-video",
+      })),
+    [theme],
+  );
   return (
     <PickerModal
       title="Add a slide"
-      items={items}
-      onPick={(id) => onPick(id as LayoutId)}
+      items={tab === "slides" ? standard : dense}
+      onPick={(id) => onPick(id as LayoutId, tab === "dense" && !DENSE_LAYOUTS.has(id as LayoutId))}
       onClose={onClose}
+      tabs={{
+        options: [
+          { id: "slides", label: "Slides" },
+          { id: "dense", label: "High density" },
+        ],
+        value: tab,
+        onChange: (id) => setTab(id as "slides" | "dense"),
+      }}
     />
   );
 }
@@ -163,7 +213,7 @@ interface ThumbStripProps {
   theme: BrandTheme;
   activeIndex: number;
   dispatch: (action: DeckAction) => void;
-  onInsertLayout: (layoutId: LayoutId) => void;
+  onInsertLayout: (layoutId: LayoutId, dense?: boolean) => void;
   /** Two-pager decks add pages from presets and are A4-shaped. */
   twoPager?: boolean;
   onInsertPage?: (presetId: string) => void;
@@ -312,8 +362,8 @@ export default function ThumbStrip({
       {layoutsOpen && !twoPager && (
         <LayoutPickerModal
           theme={theme}
-          onPick={(id) => {
-            onInsertLayout(id);
+          onPick={(id, dense) => {
+            onInsertLayout(id, dense);
             setLayoutsOpen(false);
           }}
           onClose={() => setLayoutsOpen(false)}
