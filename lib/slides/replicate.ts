@@ -49,7 +49,13 @@ export function planReplica(slides: SourceSlide[]): { steps: ReplicateStep[]; co
       steps.push({ kind: "content", source: s });
       continue;
     }
-    if (s.kind === "cover" && !steps.length) steps.push({ kind: "cover", source: s });
+    // A first page that carries content (a report opening on its figures,
+    // the Mexico DQR) keeps it: the cover gets the title, and the page is
+    // replicated as a content slide too, as slidesFromTranscript does.
+    if (s.kind === "cover" && !steps.length && s.words > COVER_WORDS) {
+      steps.push({ kind: "cover", source: { ...s, text: `Title: ${s.title}`, words: words(s.title) } });
+      steps.push({ kind: "content", source: s });
+    } else if (s.kind === "cover" && !steps.length) steps.push({ kind: "cover", source: s });
     else if (s.kind === "agenda") {
       if (!agendaPlaced && chapters.length >= 2) {
         steps.push({ kind: "fixed", content: { layoutId: "agenda", title: "Agenda", bullets: chapters.slice(0, 9) } });
@@ -79,6 +85,9 @@ export function planReplica(slides: SourceSlide[]): { steps: ReplicateStep[]; co
     .filter((st) => !(st.kind === "fixed" && st.content.layoutId === "agenda" && bullets.length < 2));
   return { steps: final, contentCount: final.filter((st) => st.kind === "content").length };
 }
+
+/** A first slide past this many words carries content, not only the deck's title. */
+const COVER_WORDS = 40;
 
 /** Past this many words a source slide is rebuilt at high density. */
 export const DENSE_WORDS = 70;
@@ -150,6 +159,18 @@ export function withContentDensity(slide: SlideContent): SlideContent {
     return rest;
   }
   return slide;
+}
+
+/**
+ * A model slide set dense before `normalizeSlide` sees it, when it needs
+ * the dense variant: on a standard chart `normalizeSlide` deletes the
+ * explanation (`bullets`) that only the dense chart draws, and
+ * `withContentDensity` afterwards could no longer see it. Raw in, raw out.
+ */
+export function denseBeforeNormalize(raw: unknown): unknown {
+  if (typeof raw !== "object" || raw === null) return raw;
+  const slide = raw as SlideContent;
+  return DENSITY_LAYOUTS.has(slide.layoutId) && !slide.density && needsDensity(slide) ? { ...slide, density: "high" } : raw;
 }
 
 /** The agenda must list exactly the dividers that survived (syncAgenda would do it too). */

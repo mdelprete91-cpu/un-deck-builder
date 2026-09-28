@@ -89,6 +89,9 @@ interface GenerateBody {
   source?: string;
   /** Replicate: where it sits ("slide 12 of 37", its chapter, the deck's title). */
   sourceContext?: string;
+  /** Replicate, second attempt: what the first answer changed (fidelity.ts `repairNote`) and that answer. */
+  repair?: string;
+  previous?: SlideContent;
   /** Reference material attached to the brief; never persisted, see lib/slides/attachments.ts */
   attachments?: Attachment[];
   format?: DeckFormat;
@@ -115,7 +118,10 @@ interface GenerateBody {
  * construction; this is what the model is told about the one slide it gets.
  */
 const REPLICATE_NOTE =
-  "You are rebuilding an existing deck on the brand template, one slide at a time. Return exactly ONE slide for the source slide below: its title copied as written (shortened only past the layout's limit), every point, figure, unit and date it states kept as written, its sub-points as sub-points (\"- \"), its footnotes in \"notes\" with their numbers and the matching superscripts in the text. Pick the layout whose SHAPE matches the source slide, and set \"density\" to \"high\" only when its text does not fit that layout's standard word limits (a short slide stays standard, even in a dense deck): labelled boxes or cards → four-cards, icon-cards or steps; rows of points → list or callout; figures with explanations → stat-grid, two-stats or single-stat; a chart → the chart layout of its kind (line, grouped or stacked columns, bars, donut) with its explanation in subtitle and bullets; phases or dates → timeline or progress. Use the dense layouts (bullet-columns for columns of prose points under long headers, figures-panel for outcome/benefits/costs rows (its closing sentence in \"takeaway\"), scenarios for options side by side, matrix for a grid, chart-text for a chart with numbered notes, cascade for policies leading to objectives and one goal) only when no layout of the source's shape fits. Vary the layouts across the deck as the source varies. Choose the layout that holds all of it: a chart layout when the slide is a chart (use the chart labels written on the slide, column by column; the chart data is only a fallback; when the slide has two charts side by side, as two scenarios, draw the first on chart-text and give the second's figures in its points, never one line of both), a stat or card layout only when the slide is that short. Never cut content to fit a simpler layout, never add content the source slide does not have, never write a cover, agenda, section-divider or thank-you here. The source's own header and footer lines (organisation handles, running headers) are not content. Write in the source slide's language.";
+  "You are rebuilding an existing deck on the brand template, one slide at a time. Return exactly ONE slide for the source slide below: its title copied as written, never shortened (the slide fits it), every point, figure, unit and date it states kept as written, its sub-points as sub-points (\"- \"), its footnotes in \"notes\" with their numbers and the matching superscripts in the text. Pick the layout whose SHAPE matches the source slide, and set \"density\" to \"high\" only when its text does not fit that layout's standard word limits (a short slide stays standard, even in a dense deck): labelled boxes or cards → four-cards, icon-cards or steps; rows of points → list or callout; figures with explanations → stat-grid, two-stats or single-stat; a chart → the chart layout of its kind (line, grouped or stacked columns, bars, donut) with its explanation in subtitle and bullets; phases or dates → timeline or progress. Use the dense layouts (bullet-columns for columns of prose points under long headers, figures-panel for outcome/benefits/costs rows (its closing sentence in \"takeaway\"), scenarios for options side by side, matrix for a grid, chart-text for a chart with numbered notes, cascade for policies leading to objectives and one goal) only when no layout of the source's shape fits. Vary the layouts across the deck as the source varies. Choose the layout that holds all of it: a chart layout when the slide is a chart (use the chart labels written on the slide, column by column; the chart data is only a fallback; when the slide has two charts side by side, as two scenarios, draw the first on chart-text and give the second's figures in its points, never one line of both), a stat or card layout only when the slide is that short. Never cut content to fit a simpler layout, never add content the source slide does not have, never write a cover, agenda, section-divider or thank-you here. The source's own header and footer lines (organisation handles, running headers) are not content. Write in the source slide's language.";
+
+/** A source slide reaches the model whole up to here (12,000 before 28 Sep 2026: a dense slide lost its tail). */
+const REPLICATE_SOURCE_CHARS = 40_000;
 
 /**
  * Chapter opt-out. It lives in the user message, not the system prompt: the
@@ -202,8 +208,13 @@ export function buildUserMessage(body: GenerateBody): string {
       const n = body.count ?? 3;
       return `Existing deck (JSON): ${JSON.stringify(body.existingSlides ?? [])}\n\nDeck brief: ${body.brief}${brand}${language}${notes}\n\nRequest: ${body.instruction?.trim() || "continue and deepen the story"}\n\nAdd exactly ${n} new slide${n === 1 ? "" : "s"} fulfilling the request.\n- Return ONLY the new slides in "slides": never repeat, rewrite or include existing slides, and never add another cover, agenda or thank-you.\n- Give every new slide "after": the 1-based index of the existing slide it belongs after (0 = before the first slide), where it fits the story and the order of the material, inside the chapter it belongs to, never after a thank-you. New slides that go together share the number, in reading order. Set "insertAfter" to the first new slide's "after".\n- If the deck has an "agenda" slide, return its updated bullets (reflecting the deck after insertion, <=5 words each) in "agenda"; otherwise return an empty array.${noChapters}`;
     }
-    case "replicate":
-      return `Deck brief: ${body.brief}${brand}${language}${notes}\n\n${REPLICATE_NOTE}\n\n${body.sourceContext ?? ""}\n\nSource slide:\n<<<\n${(body.source ?? "").slice(0, 12000)}\n>>>`;
+    case "replicate": {
+      // A second attempt says what the first one changed, quoted, with that answer to fix.
+      const repair = body.repair?.trim()
+        ? `\n\n${body.repair.trim().slice(0, 6000)}${body.previous ? `\nYour first answer (JSON): ${JSON.stringify(body.previous).slice(0, 12000)}` : ""}`
+        : "";
+      return `Deck brief: ${body.brief}${brand}${language}${notes}\n\n${REPLICATE_NOTE}\n\n${body.sourceContext ?? ""}\n\nSource slide:\n<<<\n${(body.source ?? "").slice(0, REPLICATE_SOURCE_CHARS)}\n>>>${repair}`;
+    }
     case "regenerate":
       return `Current slide (JSON): ${JSON.stringify(body.targetSlide)}\n\nDeck brief: ${body.brief}${brand}${language}\n\nRewrite this single slide.${body.instruction ? ` Instruction: ${body.instruction}` : " Improve the copy."} You may switch to a more appropriate layout if the instruction calls for it. Return exactly one slide.`;
     default: {

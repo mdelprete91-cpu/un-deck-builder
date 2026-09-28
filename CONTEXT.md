@@ -511,7 +511,7 @@ guard, all pure functions, none touching the user's words:
   twice, 26 Sep 2026). The prompt says digit by digit; the fix is a PDF with a text layer.
 - **`lib/slides/voice.ts`**, in the route on every string the model wrote: the banned words
   (leveraging, synergies, cutting-edge, revolutionary, empower, unlock) become plain ones, forms
-  preserved, unless the brief itself uses the word.
+  preserved, unless the brief itself uses the word. Never in a replica: those are the source's words.
 - **Top-up**: a counted deck that arrives short gets up to two add requests for the missing
   slides (one came back empty once in twenty).
 
@@ -586,9 +586,53 @@ deck, a flat text in file order. Now:
   language, never a structural layout), 3,000 tokens, six calls at a time, landing in order as
   the prefix completes. The count and the order are the plan's by construction. No rhythm pass, no
   merge, no finish pass: the slides are the source's one to one; `FILL_PHOTOS` and
-  `ENSURE_CLOSING` only. A slide that fails twice is named in the error ("Source slide 14 could
-  not be rebuilt"). The Gambia deck: 36 slides, about 20 s, about $0.02, 190 of 193 source figures
-  on the slides (the suite's `use: "replicate"` case prints this).
+  `ENSURE_CLOSING` only. A slide that fails twice is no longer a red error: it is a "Not
+  replicated" line in the fidelity report (below), with its text. Only a replica where nothing
+  was rebuilt is still an error. The Gambia deck: 36 slides, about 35 s with the repair pass,
+  about $0.04.
+- **Replicate does not change the content** (Mario, 28 Sep 2026). In replicate mode only, and
+  nowhere else: the route skips `cleanVoice` (it turned the source's own "synergies" into "shared
+  gains", "leverage" into "use"); the source reaches the model whole up to 40,000 characters
+  (`REPLICATE_SOURCE_CHARS`, 12,000 before); the title is never shortened; a chart with an
+  explanation is made dense before `normalizeSlide` (`denseBeforeNormalize`), which would delete
+  its `bullets` on a standard chart; an answer with more items than its layout draws (`overLimits`
+  in `schema.ts`: `ARRAY_LIMITS`, ten points or five figures a dense block) is asked again once with
+  the count, and the second answer is kept as it is, its cut showing in the report; a first slide
+  past 40 words (a report opening on its figures, the Mexico DQR) is the cover with its title and a
+  content slide with everything (`planReplica`). `normalizeSlide` itself is unchanged.
+- **The fidelity check** (`lib/slides/fidelity.ts`, pure functions, `npx tsx tools/fidelity-test.ts`):
+  each source slide against the slide made from it, `steps[i]` against `results[i]`, never the
+  whole deck (a deck-wide substring test finds "2026" somewhere and calls every 2026 kept).
+  `sourceUnits` reads `SourceSlide.text`: lines (title, points, sub-points, footnotes, table cells
+  with a letter), figures (two digits or more, or a percentage; the chart labels written on the
+  slide; the series values only when the slide has no labels, since the labels win), speaker notes
+  left out, and a running header (`runningLines`: a short line on three slides or more) not
+  measured. `compareSlide` normalises case, punctuation, the typographic minus, thousands
+  separators, "76 %" and a footnote marker glued to a word; a figure must appear as written or,
+  on a chart, as a bar of the same value (3.10 is the bar 3.1; "240K" is not 240,000); each line is
+  aligned word by word against the slide's text (a fitting LCS: the slide's ends free, a gap inside
+  costs) and is identical, touched (85% or more), changed (50%) or missing; "added" is a run of
+  words the source never writes (bar values aside). `planLeftovers` lists what the plan itself
+  drops: slides past the ceiling, agenda lines no chapter carries (a chapter renamed on a later
+  agenda), a divider's strapline, the closing slide's extra lines.
+- **The repair pass**: a content slide with a wrong figure, a changed or missing line or added
+  text gets one more call with `repairNote` (the lines to write exactly, the figures, the text to
+  remove, quoted) and its first answer; the one with the higher `fidelityScore` stays. Same six
+  workers. Gambia through the app: first pass 313 of 336 figures and 93% of the words, after the
+  repair 328 of 336 and 97% (17 slides asked again, 14 closer); the Mexico DQR PDF 88% to 91% of
+  the words, all 59 figures; the text-less Mexico DQR_EN 99%, all 59 figures of the transcript.
+- **The report** (`components/FidelityReport.tsx` inside `GenerationReadout`, `fidelity` session
+  state in `page.tsx` like `chaptersSkipped`, cleared by the next generation and by opening a deck,
+  never saved): figures exact, text kept, lines reworded / missing / added, slides not rebuilt;
+  "Replicated exactly" when all of it is whole; "Review changes" opens the source and the deck side
+  by side, slide by slide, with Go to slide (the slide's place when it landed, or its title if the
+  deck moved since). A transcribed PDF adds "Source read from page images: check the figures",
+  since the comparison is with the transcript, not the file. The suite's `use: "replicate"` case
+  runs the same pass headless and prints the report before and after the repair; the old deck-wide
+  figure count is printed beside it for one release.
+- **What the check does not see**: words the source has anywhere on the slide (a card label that
+  repeats the title, a paragraph written twice, a short header whose words sit in another line)
+  are not "added" and not "missing".
 - **Known limits**: two charts on one source slide become one chart-text plus the second's figures
   in its points; which label belongs to which line is inferred from the top-to-bottom order.
 
@@ -1029,7 +1073,8 @@ echo "OPENAI_API_KEY=sk-..." > .env.local
 npm run dev
 ```
 
-There is no unit test suite. Two scripted checks call the real model: `tools/qa-generate.py`
+There is no unit test suite, apart from `npx tsx tools/fidelity-test.ts` (the replica's fidelity
+check, no model, no server). Two scripted checks call the real model: `tools/qa-generate.py`
 scores one deck against its source material, and **`tools/qa-suite.ts` runs twenty briefs of
 different nature** (and, with `QA_FILE=<json>`, any other set: `.omc/qa-usecases.json` holds
 twenty-one use cases with Word, PowerPoint, PDF, CSV, notes and workbooks from `.omc/qa-files/`,

@@ -202,10 +202,13 @@ export async function POST(request: Request): Promise<Response> {
           if (event.type === "response.output_text.delta") {
             raw += event.delta;
             for (const slide of parser.feed(event.delta)) {
+              // A replica keeps the source's words: the voice pass would turn
+              // the source's own "synergies" into "shared gains".
+              const clean = twoPager ? stripEmptyPage(slide) : stripEmptyFields(slide);
               send({
                 type: "slide",
                 index: index++,
-                slide: cleanVoice(twoPager ? stripEmptyPage(slide) : stripEmptyFields(slide), body.brief ?? ""),
+                slide: body.mode === "replicate" ? clean : cleanVoice(clean, body.brief ?? ""),
               });
             }
           } else if (event.type === "response.refusal.delta") {

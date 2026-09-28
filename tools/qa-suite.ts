@@ -19,13 +19,14 @@
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { countFromBrief, seriesFromBrief, uniformFromBrief, MIN_SLIDES_WITH_CHAPTERS, TIERS_REQUEST } from "../lib/slides/brief";
-import { normalizeSlide, type LayoutId, type SlideContent } from "../lib/slides/schema";
+import { normalizeSlide, overLimits, type LayoutId, type SlideContent } from "../lib/slides/schema";
 import { closingFor, finishDeck, makeRhythm, mergeContinuations, stripInventedYear, unifyLayouts } from "../lib/slides/rhythm";
 import { PARTNER_NAMES } from "../lib/slides/partners";
 import { extractDocx, extractPptx, extractXlsx, type Attachment } from "../lib/slides/attachments";
 import { readPptx } from "../lib/slides/pptx-source";
 import { readPdfSlides } from "../lib/slides/pdf-source";
-import { densityHint, planReplica, withContentDensity } from "../lib/slides/replicate";
+import { denseBeforeNormalize, densityHint, planReplica, withContentDensity } from "../lib/slides/replicate";
+import { compareSlide, fidelityScore, isFlawed, planLeftovers, repairNote, runningLines, sourceUnits, totals, type Leftover, type SlideFidelity, type Totals } from "../lib/slides/fidelity";
 import { fillPhotos } from "../lib/slides/library";
 
 const URL = process.env.QA_URL ?? "http://localhost:3777";
@@ -216,9 +217,13 @@ async function loadAttachment(path: string, id: string): Promise<Attachment> {
 /**
  * The editor's runReplicate, headless: the plan from lib/slides/replicate.ts,
  * one "replicate" call per cover and content slide, six at a time, fixed
- * agenda and dividers, closing slide and photos after. Scored like any deck,
- * plus the replica's own checks: the count and the order are the plan's, and
- * every figure the source writes is somewhere in the deck.
+ * agenda and dividers, closing slide and photos after; an answer with more
+ * items than its layout draws asked again once, a chart's explanation made
+ * dense before normalizeSlide, and the repair pass (one more call for a
+ * slide that changed its source, the closer of the two kept). Scored like
+ * any deck, plus the replica's own checks: the count and the order are the
+ * plan's, and the fidelity report the user sees (lib/slides/fidelity.ts),
+ * each source slide against its own slide, before and after the repair.
  */
 async function replicatePrompt(p: Prompt, brief: string, path: string, t0: number): Promise<Result> {
   const buf = readFileSync(path);
@@ -226,6 +231,12 @@ async function replicatePrompt(p: Prompt, brief: string, path: string, t0: numbe
   const { slides: source } = /\.pdf$/i.test(path) ? await readPdfSlides(ab) : await readPptx(ab);
   const { steps } = planReplica(source);
   const results: (SlideContent | null)[] = steps.map((st) => (st.kind === "fixed" ? normalizeSlide(st.content, { brandId: BRAND_ID }) : null));
+  const ignore = runningLines(source);
+  const reports: (SlideFidelity | null)[] = steps.map(() => null);
+  const firsts: (SlideFidelity | null)[] = steps.map(() => null);
+  let repairs = 0;
+  let repaired = 0;
+  const failedN: number[] = [];
   const findings: string[] = [];
   const warnings: string[] = [];
   let cost = 0;
@@ -234,20 +245,59 @@ async function replicatePrompt(p: Prompt, brief: string, path: string, t0: numbe
     if (st.kind === "fixed" && st.content.layoutId === "section-divider") chapter = st.content.title ?? "";
     return `This is slide ${i + 1} of ${steps.length + 1}${chapter ? `, in the chapter "${chapter}"` : ""}.` + (st.kind === "cover" ? " It is the COVER: use the cover layout, the deck's title as written and, as subtitle, the document type and date the source slide gives." : "") + (st.kind === "content" ? densityHint(st.source) : "");
   });
+  const call = async (i: number, text: string, extra: Record<string, unknown> = {}) => {
+    const out = await generate({ mode: "replicate", brief, brandLabel: BRAND_LABEL, format: "slides", source: text, sourceContext: contexts[i], ...extra });
+    cost += out.usage ? (out.usage.inputTokens * 0.1 + out.usage.outputTokens * 0.5) / 1_000_000 : 0;
+    return out.slides[0] ?? null;
+  };
+  const accept = (kind: "cover" | "content", title: string, raw: unknown): SlideContent | null => {
+    const c = raw ? normalizeSlide(denseBeforeNormalize(raw), { brandId: BRAND_ID }) : null;
+    if (c && kind === "cover") return { layoutId: "cover", title: c.title || title, subtitle: c.subtitle ?? "" };
+    if (c && !STRUCTURAL.has(c.layoutId)) return withContentDensity(c);
+    return null;
+  };
   let cursor = 0;
   const worker = async () => {
     while (cursor < steps.length) {
       const i = cursor++;
       const st = steps[i];
       if (st.kind === "fixed") continue;
-      for (let attempt = 0; attempt < 2 && !results[i]; attempt++) {
-        const out = await generate({ mode: "replicate", brief, brandLabel: BRAND_LABEL, format: "slides", source: st.source.text, sourceContext: contexts[i] });
-        cost += out.usage ? (out.usage.inputTokens * 0.1 + out.usage.outputTokens * 0.5) / 1_000_000 : 0;
-        const c = out.slides[0] ? normalizeSlide(out.slides[0], { brandId: BRAND_ID }) : null;
-        if (c && st.kind === "cover") results[i] = { layoutId: "cover", title: c.title || st.source.title, subtitle: c.subtitle ?? "" };
-        else if (c && !STRUCTURAL.has(c.layoutId)) results[i] = st.kind === "content" ? withContentDensity(c) : c;
+      const units = sourceUnits(st.source, ignore);
+      let hint: string | undefined;
+      let overflowing: unknown = null;
+      let slide: SlideContent | null = null;
+      for (let attempt = 0; attempt < 2 && !slide; attempt++) {
+        const raw = await call(i, st.source.text, hint ? { repair: hint } : {});
+        const over = st.kind === "content" && attempt === 0 ? overLimits(raw) : null;
+        if (over) {
+          overflowing = raw;
+          hint = `Your first answer put ${over.count} ${over.field} on a layout that holds ${over.max}. Pick a layout that holds all ${over.count}, or spread them over more blocks or columns; never cut or merge them.`;
+          continue;
+        }
+        slide = accept(st.kind, st.source.title, raw);
       }
-      if (!results[i]) findings.push(`source slide ${st.source.n} not rebuilt`);
+      if (!slide && overflowing) slide = accept(st.kind, st.source.title, overflowing);
+      if (!slide) {
+        findings.push(`source slide ${st.source.n} not rebuilt`);
+        failedN.push(st.source.n);
+        continue;
+      }
+      let report = compareSlide(st.source.n, st.source.title, units, slide);
+      firsts[i] = report;
+      if (st.kind === "content" && isFlawed(report)) {
+        repairs++;
+        const { image: _im, ...previous } = slide;
+        void _im;
+        const second = accept("content", st.source.title, await call(i, st.source.text, { repair: repairNote(report), previous }));
+        const again = second ? compareSlide(st.source.n, st.source.title, units, second) : null;
+        if (second && again && fidelityScore(again) > fidelityScore(report)) {
+          slide = second;
+          report = again;
+          repaired++;
+        }
+      }
+      reports[i] = report;
+      results[i] = slide;
     }
   };
   await Promise.all(Array.from({ length: 6 }, worker));
@@ -256,7 +306,19 @@ async function replicatePrompt(p: Prompt, brief: string, path: string, t0: numbe
   if (closing) slides.push(closing);
   slides = fillPhotos(slides);
   if (slides.length !== steps.length + 1) findings.push(`count ${slides.length}, plan ${steps.length + 1}`);
-  // Every figure the source writes, somewhere in the deck (chart data aside: its labels are what the slide shows).
+  // The fidelity report, as the sidebar shows it: first pass, then after the repair.
+  const leftovers: Leftover[] = [
+    ...steps.flatMap((st) => (st.kind !== "fixed" && failedN.includes(st.source.n) ? [{ n: st.source.n, title: st.source.title, lines: [], reason: "failed" as const }] : [])),
+    ...planLeftovers(source, steps, ignore),
+  ];
+  const line = (t: Totals) =>
+    `figures exact ${t.figures.ok}/${t.figures.total}, words kept ${t.words.kept}/${t.words.total} (${((t.words.kept / Math.max(1, t.words.total)) * 100).toFixed(1)}%), ${t.reworded} reworded, ${t.missing} missing, ${t.added} added, ${t.notRebuilt} not rebuilt`;
+  const kept = reports.filter((r): r is SlideFidelity => !!r);
+  warnings.push(`fidelity first pass: ${line(totals(firsts.filter((r): r is SlideFidelity => !!r), leftovers))}`);
+  warnings.push(`fidelity after repair (${repaired} of ${repairs} rewrites kept): ${line(totals(kept, leftovers))}`);
+  const wrong = kept.flatMap((r) => r.figures.wrong.map((w) => `${r.n}:${w.figure}`));
+  if (wrong.length) warnings.push(`figures changed: ${wrong.slice(0, 16).join(", ")}${wrong.length > 16 ? "…" : ""}`);
+  // The old deck-wide measure, kept one release for comparison: every source figure somewhere in the deck's JSON.
   const deckText = JSON.stringify(slides);
   const figures = new Set<string>();
   for (const s of source.filter((x) => x.kind === "content")) {
@@ -264,7 +326,7 @@ async function replicatePrompt(p: Prompt, brief: string, path: string, t0: numbe
     for (const m of prose.matchAll(/\d[\d,.]*\d%?|\d%/g)) if (m[0].replace(/[^\d]/g, "").length >= 2) figures.add(m[0].replace(/[.,]$/, ""));
   }
   const missing = [...figures].filter((f) => !deckText.includes(f));
-  if (figures.size) warnings.push(`figures kept ${figures.size - missing.length}/${figures.size}${missing.length ? ` (missing: ${missing.slice(0, 12).join(", ")}${missing.length > 12 ? "…" : ""})` : ""}`);
+  if (figures.size) warnings.push(`deck-wide figures (old measure) ${figures.size - missing.length}/${figures.size}`);
   const overflow = slides.flatMap(overflows);
   return { id: p.id, slides, layouts: slides.map((s) => s.layoutId), findings, warnings, overflow, cost, seconds: (Date.now() - t0) / 1000, truncated: false };
 }
