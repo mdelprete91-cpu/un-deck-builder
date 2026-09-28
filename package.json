@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "help:videos": "npx tsx --env-file=.env.local tools/help-video/voice.ts && npx tsx tools/help-video/record.ts create && npx tsx tools/help-video/assemble.ts create && npx tsx tools/help-video/record.ts edit && npx tsx tools/help-video/assemble.ts edit"
   },
   "dependencies": {
     "jszip": "^3.10.2",
@@ -30,6 +31,7 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.2.12",
+    "playwright": "^1.63.0",
     "tailwindcss": "^4",
     "typescript": "^5"
   }

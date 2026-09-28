@@ -194,16 +194,30 @@ writing over that deck. Remove that guard and the first debounce tick erases the
 still offering. `onDeckArrived` releases it, which is also what stops the offer from resurfacing
 behind a deck the user has since deleted; Discard calls `clearSaved`.
 
-**The tour is anchored by `data-tour` attributes.** `components/Tour.tsx` finds its target with
-`document.querySelector('[data-tour="…"]')`, so renaming or removing one of those attributes
-silently drops a step (a missing target is skipped on purpose: half the chrome only renders with
-slides). The steps themselves live in `INTRO_STEPS` and `EDITOR_STEPS` in `app/page.tsx` (anchors: `prompt`,
-`attach`, `chapters`, `generate`; `canvas`, `slide-bar`, `add-slides`, `insert`, `download`). **The tour
-never starts on its own** (Mario's call, 17 Sep 2026): the only entry point is "How it works" in the
-sidebar, which runs the intro steps on an empty editor and both phases once a deck exists. There is
-no "seen" flag anywhere, so nothing to bump. `onDeckArrived` stays the single place every path that
-puts slides on screen goes through (generate, restore, open a file, manual insert, drop an image); it
-now only retires the last-session offer.
+**"How it works" is two narrated videos, not a tour** (Mario, 28 Sep 2026; the spotlight tour
+is gone). `components/HelpModal.tsx` plays `public/help/create.mp4` ("Create a deck") or
+`edit.mp4` ("Edit your slides", the tab it opens on once a deck exists), with English captions
+(`.vtt`) and a chapter list (`.chapters.json`, imported at build time) that seeks and follows
+playback. The videos are the real editor, driven by `tools/help-video/`:
+
+- `script.json` is the narration, one scene per chapter; `voice.ts` turns it into ElevenLabs
+  clips (voice Bella, `ELEVENLABS_API_KEY` in `.env.local`, unchanged text is skipped) with
+  character timings.
+- `record.ts` runs the editor on `localhost:3777` in Playwright at 1920x1080, one function per
+  scene, each scene held for its clip. A fake cursor and a CSS camera on `<body>` (`stage.ts`)
+  do the pointing and the zooms. Model calls are recorded once to `.omc/help-video/fixtures` and
+  replayed after, a generation streamed back one slide at a time, so a re-record costs nothing;
+  delete a fixture to fetch it again. The edit video starts from a deck written in the script.
+- `assemble.ts` places each clip where its scene started, encodes H.264 with faststart, and
+  writes the poster, captions (one cue per sentence, from the voice timings) and chapters.
+- `npm run help:videos` runs all of it with the dev server up. Re-record when the chrome the
+  videos show changes. Selectors used: the `data-tour` attributes (kept for this), aria labels
+  and titles; a scene that cannot find its target logs a line and the video goes on, so read
+  the log and look at frames before shipping.
+
+`onDeckArrived` stays the single place every path that puts slides on screen goes through
+(generate, restore, open a file, manual insert, drop an image); it only retires the last-session
+offer.
 
 ## The AI layer
 
@@ -381,7 +395,7 @@ or a drop on the box. They exist to give the model the facts; they are **not** d
   the "+" button, the drop target, the Chapters pill and the Generate button. `AttachmentsRow` only
   renders the chips (`bg-giga-tint`, `text-giga`, inline SVG glyphs). The outer node keeps
   `data-tour="prompt"`, and the pill and the button carry `data-tour="chapters"` and
-  `data-tour="generate"`, so the tour still frames each of them.
+  `data-tour="generate"`, which the help-video recorder uses as selectors.
 
 ## What the pipeline decides without the model
 

@@ -1,0 +1,47 @@
+[
+ {
+  "id": "intro",
+  "title": "Start",
+  "start": 0.4
+ },
+ {
+  "id": "brief",
+  "title": "Write the brief",
+  "start": 9.1
+ },
+ {
+  "id": "attach",
+  "title": "Attach material",
+  "start": 18.3
+ },
+ {
+  "id": "chapters",
+  "title": "Chapters",
+  "start": 28.7
+ },
+ {
+  "id": "questions",
+  "title": "Answer a few questions",
+  "start": 36.1
+ },
+ {
+  "id": "generate",
+  "title": "Generate",
+  "start": 47.3
+ },
+ {
+  "id": "add",
+  "title": "Add slides",
+  "start": 56.5
+ },
+ {
+  "id": "present",
+  "title": "Present",
+  "start": 71.3
+ },
+ {
+  "id": "download",
+  "title": "Download",
+  "start": 84.3
+ }
+]

@@ -35,7 +35,7 @@ import { AttachmentError, canQuestion, MAX_ATTACHMENTS, MAX_REQUEST_BYTES, MAX_T
 import { mapSlotFor } from "@/lib/giga-maps/slot";
 import ThumbStrip from "@/components/ThumbStrip";
 import PrintRoot from "@/components/PrintRoot";
-import Tour, { type TourStep } from "@/components/Tour";
+import HelpModal from "@/components/HelpModal";
 import DeckName from "@/components/DeckName";
 import MobileGate from "@/components/MobileGate";
 import type { DeckState } from "@/lib/slides/state";
@@ -65,96 +65,6 @@ const CHAPTER_LAYOUTS = new Set<string>(["agenda", "section-divider"]);
 const SHOW_LAYOUT_SWITCH = false;
 
 
-/**
- * The worked example under the tour's brief step. One card, not a good/bad
- * pair: the step is anchored to the prompt box, and two cards do not fit in
- * the space below it without putting the tour's own buttons out of reach.
- */
-function BriefExample() {
-  return (
-    <div className="mt-3 rounded-xl bg-canvas-2 p-3">
-      <span className="mb-0.5 block text-[13px] font-normal text-ink-faint">
-        A brief that works
-      </span>
-      <p className="text-xs leading-relaxed text-ink">
-        A partnership pitch to a Kenyan telecom operator, in 10 slides: what Giga is, the gap in
-        real numbers, our ask, and what they get back.
-      </p>
-    </div>
-  );
-}
-
-/**
- * Phase one, on an empty editor: what the tool does, then the two controls
- * that decide what comes out of it. It stops at Generate because everything
- * past that point is chrome that has not rendered yet.
- */
-const INTRO_STEPS: TourStep[] = [
-  {
-    title: "You describe the deck. The template does the design.",
-    body: "Every slide comes from the approved Giga Slides template. The AI only picks which slides your story needs and writes the words, so a deck cannot come out off brand.",
-  },
-  {
-    target: "prompt",
-    title: "Write the brief here",
-    body: "Dense, not long. Give the story, the audience and the real numbers, and cut the filler: more context makes a better deck, more words don't.",
-  },
-  {
-    target: "attach",
-    title: "Attach the material",
-    body: "PDF, Word, PowerPoint, Excel, images, up to six. The deck is written from them; the brief decides the angle. An Excel file opens a few questions written for it, and any document that could become two different decks asks too. A clear file asks nothing.",
-  },
-  {
-    target: "prompt",
-    title: "And say how many slides",
-    body: "Ask for a count in the brief itself, like “in 10 slides”. Without one the AI decides.",
-    extra: <BriefExample />,
-  },
-  {
-    target: "chapters",
-    title: "Chapters, only if the deck needs them",
-    body: "On, the deck opens with an agenda and splits into sections. Off, it runs straight through. It applies to the next deck you generate, never to the one already on screen.",
-  },
-  {
-    target: "generate",
-    title: "Then generate",
-    body: "Slides appear one by one as they are written. Nothing is final: every word on every slide can be edited afterwards.",
-  },
-];
-
-/**
- * Phase two, once a deck is on screen, in the order the work happens: edit
- * what the AI wrote, redo a slide, add one, take the deck with you. Every
- * target below is chrome that only renders with slides.
- */
-const EDITOR_STEPS: TourStep[] = [
-  {
-    target: "canvas",
-    title: "Edit straight on the slide",
-    body: "Click any text to rewrite it. It resizes itself to fit. Drag a photo to reframe it, scroll to zoom.",
-  },
-  {
-    target: "slide-bar",
-    title: "The bar follows the slide",
-    body: "Redo the whole slide with a one-line instruction, add an element, swap the image, duplicate or delete. It always acts on the slide on screen.",
-  },
-  {
-    target: "add-slides",
-    title: "Add slides as you go",
-    body: "Describe what is missing and the AI writes it, picks where it belongs and updates the agenda. Nothing already on screen is touched.",
-  },
-  {
-    target: "insert",
-    title: "Or pick a layout yourself",
-    body: "Every template slide with placeholder text, including seven charts: columns, up to thirty of them, a ranking, a line over time, grouped and stacked columns, a donut. Click a chart to edit its numbers and series.",
-  },
-  {
-    target: "download",
-    title: "Download is the save",
-    body: "Nothing is stored on a server. Download the HTML deck before you close the tab, then use Upload next to it to reopen the file here and keep editing. PowerPoint and PDF are there too, for sending on.",
-  },
-];
-
 export default function Studio() {
   const [state, dispatch] = useReducer(deckReducer, initialDeckState);
   const [hydrated, setHydrated] = useState(false);
@@ -163,8 +73,8 @@ export default function Studio() {
   const [focusedBlock, setFocusedBlock] = useState(0);
   /** Last session's deck, offered on the empty state. Never applied on its own. */
   const [previous, setPrevious] = useState<Partial<DeckState> | null>(null);
-  /** The running tour, only ever started from "How it works". */
-  const [tour, setTour] = useState<TourStep[] | null>(null);
+  /** The How it works dialog: the create video on an empty editor, the edit one with a deck. */
+  const [help, setHelp] = useState<"create" | "edit" | null>(null);
   const abortRef = useRef<AbortController | null>(null);
   const theme = BRANDS[state.brandId];
   const twoPager = state.format === "two-pager";
@@ -189,15 +99,7 @@ export default function Studio() {
    */
   const onDeckArrived = () => setPrevious(null);
 
-  /**
-   * The tour never starts on its own (Mario, 17 Sep 2026): it runs from "How
-   * it works" in the sidebar, and covers the editor chrome only when there is
-   * a deck for it to point at.
-   */
-  const onHowItWorks = () =>
-    setTour(state.slides.length > 0 ? [...INTRO_STEPS, ...EDITOR_STEPS] : INTRO_STEPS);
-
-  const onTourDone = () => setTour(null);
+  const onHowItWorks = () => setHelp(state.slides.length > 0 ? "edit" : "create");
   // Autosave, debounced. Held off while last session's deck is still on offer:
   // that deck IS the saved session, and there is nothing worth saving over it
   // until the user takes it, drops it, or starts a deck of their own.
@@ -1282,7 +1184,7 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
         />
       </div>
 
-      {tour && <Tour steps={tour} onDone={onTourDone} />}
+      {help && <HelpModal initial={help} onClose={() => setHelp(null)} />}
 
       <PrintRoot slides={state.slides} theme={theme} />
     </div>

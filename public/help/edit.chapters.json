@@ -1,0 +1,42 @@
+[
+ {
+  "id": "text",
+  "title": "Edit text",
+  "start": 0.4
+ },
+ {
+  "id": "ai",
+  "title": "Edit with AI",
+  "start": 7.4
+ },
+ {
+  "id": "images",
+  "title": "Images",
+  "start": 21.9
+ },
+ {
+  "id": "icons",
+  "title": "Icons",
+  "start": 34.1
+ },
+ {
+  "id": "charts",
+  "title": "Charts and stats",
+  "start": 41.5
+ },
+ {
+  "id": "progress",
+  "title": "Progress and timelines",
+  "start": 49.1
+ },
+ {
+  "id": "elements",
+  "title": "Add and remove",
+  "start": 55.7
+ },
+ {
+  "id": "order",
+  "title": "Reorder",
+  "start": 63
+ }
+]

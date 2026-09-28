@@ -30,7 +30,7 @@ On **UNICEF Digital Inclusion** there is a second template: the **two-pager**, a
 - **Edit with AI**: the bar's button opens a dialog: say what should change in the words, and/or move the slide to another layout of its family (no AI call for that part). The AI never edits photos or images; Image in the bar does.
 - **Editing**: click any text on the slide to edit it (Escape cancels). Hover an element for ✕ to delete it, "+ Element" adds one back. Undo/redo with Cmd+Z / Cmd+Shift+Z or the toolbar arrows. Thumbnails: reorder, duplicate, delete. "Regenerate slide" rewrites the active slide with an instruction. The deck autosaves to localStorage as you work.
 - **Opening the app**: always on an empty editor. The autosave is a safety net, not a session that resumes on its own, so the deck from last time waits on a "Last session" card on the empty state, with Open and Discard. Only the logo lockup and the Chapters setting carry over.
-- **Product tour**: "How it works" in the sidebar walks the brief, attaching files (and the questions a file can raise), the Chapters toggle and Generate, and, once a deck exists, the canvas, the slide bar, Add slides, the layout picker with its charts, and Download. It never starts on its own. Above the button, after a generation, a small card with a party popper says what it cost (Haiku list price) and how long it took; the session total is in its tooltip.
+- **How it works**: the sidebar button opens two short narrated videos of the real editor, "Create a deck" (brief, attachments and their questions, Chapters, Generate, Add slides, Present, Download) and "Edit your slides" (text, Edit with AI, images, icons, charts, progress, elements, reorder), with captions and clickable chapters. `npm run help:videos` re-records them (see CONTEXT.md). Above the button, after a generation, a small card with a party popper says what it cost (Haiku list price) and how long it took; the session total is in its tooltip.
 - **Cover and closing aura**: an animated background (a Unicorn Studio scene, recoloured and bundled) behind the cover, white with UNICEF cyan waves, and the closing slide, cyan with lighter waves. It moves on the editing stage, in presentation mode and in the HTML file (offline); thumbnails, PDF and PowerPoint show a still.
 - **Present**: the play button next to Download shows the deck full screen from the slide on screen, with the template's animations; arrows, space or a click advance, Esc leaves. It is the same file Download writes.
 - **Download PDF**: browser print (Chrome, backgrounds on, scale 100%) — one slide per page at 1920×1080, or one A4 sheet per page for a two-pager.
@@ -61,7 +61,8 @@ lib/slides/
   export-html.ts  standalone deck serializer
   deck-file.ts  the deck file format: writes the embedded state block, reads it back
   storage.ts    localStorage autosave, and the previous-session slot behind it
-components/Tour.tsx           the spotlight tour, driven by data-tour attributes
+components/HelpModal.tsx      "How it works": the two help videos with chapters
+tools/help-video/             script, voice (ElevenLabs), Playwright recorder, ffmpeg assembly
 app/api/generate/route.ts     NDJSON streaming route (gpt-6-luna, Responses API)
 ```
 
