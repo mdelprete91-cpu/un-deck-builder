@@ -73,7 +73,8 @@ Do not change these without asking Mario first. They are decisions, not defaults
    the rest grey rings and "Next"; the bar fills to it. Absent, the slide is a plain sequence. A
    click on a node sets it: `data-set` / `data-value` on the node, read by SlideFrame as an edit
    of that path. Body limits are 12 words up to four stages, 8 with five or six. A third (Mario,
-   28 Sep 2026): the five dense layouts in `lib/slides/layouts/dense.ts` and the footnote, see
+   28 Sep 2026): the six dense layouts in `lib/slides/layouts/dense.ts` (cascade and the takeaway
+   added the same day from the patterns sheet) and the footnote, see
    "Dense layouts and footnotes" below. And every content layout has a high-density variant (Mario,
    28 Sep 2026), see "High density" below.
 8. **Slide renderers emit HTML strings with inline styles only.** No Tailwind classes, no external
@@ -590,8 +591,8 @@ on the left; timeline and progress run through `stagesSlide(…, dense)`.
 - **`DENSITY_LAYOUTS` in `schema.ts` and `DENSE_RENDERERS` must list the same layouts**;
   `normalizeSlide` drops `density` elsewhere.
 - **The picker has two tabs** (`components/ThumbStrip.tsx`): "Slides" (the template, without the
-  five dense layouts) and "High density" (every variant, from `denseContent` in `defaults.ts`,
-  plus the five dense layouts).
+  six dense layouts) and "High density" (every variant, from `denseContent` in `defaults.ts`,
+  plus the six dense layouts).
 - **The model** has `density` in the output schema ("" or "high") and one DENSITY rule in the
   prompt. In a replica the density follows the content, not the source's length (Mario, 28 Sep
   2026: "replicate does not mean high density"): `withContentDensity` in `replicate.ts` sets
@@ -620,7 +621,8 @@ Drawn 28 Sep 2026 for a 38-slide consulting-style investment case (the Gambia jo
 health connectivity case), where a slide carries 150-250 words and every figure has to stay, and
 approved by Mario the same day. `bullet-columns` (1-3 cards of points under a header, a key
 message in an accent band), `figures-panel` (rows Outcome/Benefits/Costs, figures in the accent
-beside a commentary), `scenarios` (2-3 options on accent tiles, a conclusion panel), `matrix`
+beside a commentary, a takeaway band under them), `cascade` (groups of policies with arrows down
+to objectives, converging on a goal band), `scenarios` (2-3 options on accent tiles, a conclusion panel), `matrix`
 (1-3 rows of 2-5 cells) and `chart-text` (an explanation card, a line chart of 1-3 series with
 negative values allowed, a numbered note per line). Same grammar as the rest, nothing new in
 colour or type: 60px title on two lines, #F7F7F7 cards, accent labels and hairlines, the
@@ -659,6 +661,42 @@ chart's grid and series colours, and the closing slide's accent surface for the 
   existing slide it goes behind) and `INSERT_SLIDES` splices each group there, last position
   first. A top-up of eight missing slides from three chapters used to land in one block after
   "Next steps" with the single `insertAfter`, which stays as the fallback.
+- **Cascade and the takeaway** (approved by Mario 28 Sep 2026 from a sheet of seven patterns; the
+  other five, annotated chart, twin charts, impact pathway, equation and the takeaway on
+  bullet-columns, were turned down and are not in the code). `cascade`: each block is a group,
+  `label` on an accent bar spanning its columns, `items` its policies, `stats[j].value` its
+  objectives (`label` unused, `normalizeSlide` moves a label-only objective to `value`), `support`
+  the goal on the takeaway band with a target icon. A group takes as many columns as its longer
+  tier and the shorter tier shares the width evenly: that is how an objective spans several
+  policies (Gambia: two objectives under four policies), no explicit links. Arrows run from the
+  finer tier's centres, or the coarser tier's when one would land between two boxes; the lowest
+  box of every column drops onto one rule into the goal. `takeaway` is a slide field like
+  `notes`, drawn only on `TAKEAWAY_LAYOUTS` (figures-panel for now, `normalizeSlide` drops it
+  elsewhere): `takeawayBand`, the key message's band with a white icon circle. In the output
+  schema; the model sets it when the material draws one closing sentence.
+- **Both are modular.** Almost every block has its own ✕ and the rest re-flows, so a slide never
+  shows a hole, an empty header or a dangling arrow. figures-panel: a row, a figure, a
+  commentary point, a row's whole commentary (`blocks.i.items`), the headers row
+  (`data-item="subtitle,support"`, the rule goes with it and the rows move up), the takeaway (the
+  rows get the height back and the figures stop pairing), the footnote; a row with no figures
+  gives its commentary the figures' column; with no commentary anywhere the figures take the full
+  width in a grid of two to four columns and the commentary header is not drawn. Without a
+  takeaway the markup is the approved figures-panel's, only the new `data-item` attributes added
+  (`.omc/figures-markup.ts` proves it). cascade: a group (with its policies and objectives), a
+  policy, an objective, the goal (the connector goes, the tiers take the height); a group with one
+  tier gives it the full height, top-aligned, with no arrows; groups re-flow to the 1720px.
+- **How the nested ✕ works.** `DELETE_ITEM` takes bare field names (`notes`, `takeaway`,
+  `support`, `subtitle`, comma-separated to remove several) and, on `NESTED_DELETE` layouts,
+  paths inside a block (`blocks.i.stats.j`, `blocks.i.items.j`, `blocks.i.items`,
+  `blocks.i.body`); a block left empty goes too, unless it is the last one. Items nest, so
+  `globals.css` shows the outline and the ✕ only on the innermost hovered item (`:has`), and an
+  item that holds others takes `item(path, "left")`: its ✕ on the top-left corner
+  (`data-item-corner`, read by SlideFrame), clear of its children's on the right. No inline Add:
+  Element adds a row or a group (a block with only `body`, drawn as one point or one policy), as
+  on the other dense layouts.
+- `.omc/modular-preview.ts` renders both layouts full and after deletions made by the real
+  reducer (`.omc/modular-shot.mts` for PNGs); `.omc/modular-editor.mts` drives the editor on the
+  local dev server (insert, ✕, undo/redo, HTML and PPTX export).
 - `.omc/dense-preview.ts` renders the Gambia slides in the five layouts with the real autofit,
   `.omc/render-deck.ts <qa deck.json>` renders a whole QA deck; both write to `public/`, delete
   the output after.

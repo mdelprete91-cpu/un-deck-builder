@@ -250,6 +250,23 @@ export function defaultContent(layoutId: LayoutId): SlideContent {
           ],
           items: ["What the figures mean for the decision", "Where they come from"],
         })),
+        takeaway: "The one sentence the figures add up to",
+      };
+    case "cascade":
+      return {
+        layoutId,
+        title: "The policies that carry the goal, and what they aim for",
+        blocks: [
+          { label: "First sector", body: "", items: ["The sector's strategic plan (years)"], stats: [{ value: "The first objective it sets, as written", label: "" }, { value: "The second objective it sets", label: "" }] },
+          { label: "Second sector", body: "", items: ["The sector's strategic plan (years)"], stats: [{ value: "The first objective it sets, as written", label: "" }, { value: "The second objective it sets", label: "" }] },
+          {
+            label: "A cross-cutting agenda",
+            body: "",
+            items: ["A national plan (years)", "A national policy (years)", "A development plan (years)", "A sector policy (years)"],
+            stats: [{ value: "The objective the first two policies share, as written", label: "" }, { value: "The objective the last two policies share", label: "" }],
+          },
+        ],
+        support: "The goal every objective converges on, in one sentence",
       };
     case "scenarios":
       return {

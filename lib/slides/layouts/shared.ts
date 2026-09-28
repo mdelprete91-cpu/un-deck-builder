@@ -57,9 +57,14 @@ export function dly(cs: number): string {
   return `animation-delay:${cs / 100}s;`;
 }
 
-/** Attribute marking a deletable element (card, stat, bullet…); value is the array path. */
-export function item(path: string): string {
-  return `data-item="${path}"`;
+/**
+ * Attribute marking a deletable element (card, stat, bullet…); value is the
+ * state path it removes. `corner` "left" puts its ✕ on the top-left corner,
+ * for an item that holds other items whose ✕ sit on the right (a
+ * figures-panel row and its commentary points).
+ */
+export function item(path: string, corner?: "left"): string {
+  return `data-item="${path}"${corner ? ` data-item-corner="${corner}"` : ""}`;
 }
 
 /**
@@ -218,8 +223,9 @@ export function heading60(
   left = 100,
   width = 900,
   fit = 160,
+  top = 100,
 ): string {
-  return `<div class="ar" ${ed(path, fit)} style="position:absolute;left:${left}px;top:100px;width:${width}px;font-family:${MANROPE};font-weight:500;font-size:60px;line-height:1.2;letter-spacing:-.022em;color:${color};white-space:pre-line;">${esc(text)}</div>`;
+  return `<div class="ar" ${ed(path, fit)} style="position:absolute;left:${left}px;top:${top}px;width:${width}px;font-family:${MANROPE};font-weight:500;font-size:60px;line-height:1.2;letter-spacing:-.022em;color:${color};white-space:pre-line;">${esc(text)}</div>`;
 }
 
 /**

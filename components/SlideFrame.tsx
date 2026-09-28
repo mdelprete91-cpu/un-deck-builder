@@ -215,6 +215,9 @@ export default function SlideFrame({
         // The ✕ overhangs the item's top-right corner (-24px). Keep it inside
         // when the item clips itself (partner logos) or when a clipping
         // ancestor would cut the overhang off (callout rows in the flex zone).
+        // An item that holds other items puts its ✕ on the top-left corner
+        // (data-item-corner="left"), clear of theirs on the right.
+        const left = node.getAttribute("data-item-corner") === "left";
         let inside = getComputedStyle(node).overflow === "hidden";
         if (!inside) {
           const overhang = 24 * (stage.getBoundingClientRect().width / size.w);
@@ -223,16 +226,21 @@ export default function SlideFrame({
             const cs = getComputedStyle(p);
             if (cs.overflow === "hidden" || cs.overflowX === "hidden" || cs.overflowY === "hidden") {
               const cr = p.getBoundingClientRect();
-              if (r.right + overhang > cr.right + 1 || r.top - overhang < cr.top - 1) {
+              const out = left ? r.left - overhang < cr.left - 1 : r.right + overhang > cr.right + 1;
+              if (out || r.top - overhang < cr.top - 1) {
                 inside = true;
                 break;
               }
             }
           }
         }
+        if (left) {
+          btn.style.right = "auto";
+          btn.style.left = inside ? "8px" : "-24px";
+        }
         if (inside) {
           btn.style.top = "8px";
-          btn.style.right = "8px";
+          if (!left) btn.style.right = "8px";
         }
         btn.addEventListener("click", (e) => {
           e.stopPropagation();

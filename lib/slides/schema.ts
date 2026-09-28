@@ -51,6 +51,9 @@ export const AI_LAYOUT_IDS = [
   "scenarios",
   "matrix",
   "chart-text",
+  // Policies cascading to objectives, converging on one goal (Mario approved
+  // it 28 Sep 2026 from the patterns sheet): layouts/dense.ts `cascade`.
+  "cascade",
   "example-image-left",
   "example-image-right",
   "partner",
@@ -100,7 +103,11 @@ export interface Block {
   body: string;
   /** Dense layouts: the block's points, one string each; "- " opens a sub-point. */
   items?: string[];
-  /** figures-panel: the row's figures; matrix: the row's cells (label = heading, value = text). */
+  /**
+   * figures-panel: the row's figures; matrix: the row's cells (label =
+   * heading, value = text); cascade: the group's objectives (value = text).
+   * On cascade `items` are the group's policies.
+   */
   stats?: Stat[];
 }
 export interface Stat {
@@ -190,6 +197,12 @@ export interface SlideContent {
   density?: "high";
   /** Footnotes, printed in the footer row (layouts/dense.ts `footnote`). */
   notes?: string;
+  /**
+   * The takeaway: one closing sentence in an accent band with an icon, at the
+   * bottom of the slide (layouts/dense.ts `takeawayBand`). Slide-level, like
+   * `notes`, so any layout could take it; drawn only on TAKEAWAY_LAYOUTS.
+   */
+  takeaway?: string;
   /** Two-pager page ("a4-page"): the ordered block stack. */
   stack?: PageBlock[];
   /**
@@ -329,6 +342,7 @@ export const slideContentSchema = z.object({
   stack: z.array(pageBlockSchema).optional(),
   footerLabel: z.string().optional(),
   notes: z.string().optional(),
+  takeaway: z.string().optional(),
   density: z
     .string()
     .optional()
@@ -350,7 +364,10 @@ export const DENSITY_LAYOUTS: ReadonlySet<LayoutId> = new Set<LayoutId>([
 ]);
 
 /** The layouts drawn for report-style decks (layouts/dense.ts). */
-export const DENSE_LAYOUTS: ReadonlySet<LayoutId> = new Set<LayoutId>(["bullet-columns", "figures-panel", "scenarios", "matrix", "chart-text"]);
+export const DENSE_LAYOUTS: ReadonlySet<LayoutId> = new Set<LayoutId>(["bullet-columns", "figures-panel", "scenarios", "matrix", "chart-text", "cascade"]);
+
+/** The layouts that draw `takeaway` (figures-panel only for now); `normalizeSlide` drops it elsewhere. */
+export const TAKEAWAY_LAYOUTS: ReadonlySet<LayoutId> = new Set<LayoutId>(["figures-panel"]);
 
 export type ArrayField = "bullets" | "blocks" | "stats" | "bars" | "contacts";
 
@@ -390,6 +407,7 @@ const ARRAY_LIMITS: Partial<Record<LayoutId, Partial<Record<ArrayField, [number,
   scenarios: { blocks: [1, 3] },
   matrix: { blocks: [1, 3] },
   "chart-text": { bars: [2, 12] },
+  cascade: { blocks: [1, 4] },
 };
 
 /** The editable item array of each layout (for add/delete element in the editor). */
@@ -426,7 +444,7 @@ export function splitBodyBlocks(body: string): Block[] {
 }
 
 function hasText(slide: SlideContent): boolean {
-  const strings = [slide.title, slide.subtitle, slide.stat, slide.support, slide.quote, slide.author, slide.body, ...(slide.bullets ?? [])];
+  const strings = [slide.title, slide.subtitle, slide.stat, slide.support, slide.quote, slide.author, slide.body, slide.takeaway, ...(slide.bullets ?? [])];
   for (const b of slide.blocks ?? []) {
     strings.push(b.label, b.body, ...(b.items ?? []));
     for (const x of b.stats ?? []) strings.push(x.value, x.label);
@@ -542,7 +560,21 @@ export function normalizeSlide(
       ...(b.stats ? { stats: b.stats.filter((x) => x.value.trim() || x.label.trim()).slice(0, 5) } : {}),
     }));
   }
+  // Cascade: an objective written in `label` moves to `value`; a group with
+  // neither policy nor objective is an empty header and goes (one stays).
+  // Six policies and four objectives a group at most, or the columns get
+  // too narrow to read.
+  if (slide.layoutId === "cascade" && slide.blocks) {
+    slide.blocks = slide.blocks.map((b) => ({
+      ...b,
+      ...(b.items ? { items: b.items.slice(0, 6) } : {}),
+      ...(b.stats ? { stats: b.stats.map((st) => ({ value: st.value.trim() ? st.value : st.label, label: "" })).slice(0, 4) } : {}),
+    }));
+    const full = slide.blocks.filter((b) => b.items?.length || b.stats?.length || b.body.trim());
+    if (full.length) slide.blocks = full;
+  }
   if (slide.notes !== undefined && !slide.notes.trim()) delete slide.notes;
+  if (slide.takeaway !== undefined && (!slide.takeaway.trim() || !TAKEAWAY_LAYOUTS.has(slide.layoutId))) delete slide.takeaway;
   if (!slide.density || !DENSITY_LAYOUTS.has(slide.layoutId)) delete slide.density;
   // A negative figure reads with a typographic minus ("−32.79"), not a hyphen.
   const minus = (v: string) => v.replace(/^-(?=\s?[\d$€£.]|USD|GMD|EUR)/, "\u2212");

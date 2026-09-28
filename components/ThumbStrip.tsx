@@ -119,7 +119,7 @@ function PickerModal({
 /**
  * Two tabs (Mario, 28 Sep 2026): "Slides", the template's layouts as they
  * are, and "High density", the dense variant of every layout that has one
- * (layouts/density.ts) plus the five layouts drawn for dense material.
+ * (layouts/density.ts) plus the six layouts drawn for dense material.
  */
 function LayoutPickerModal({
   theme,

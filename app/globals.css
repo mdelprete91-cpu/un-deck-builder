@@ -352,7 +352,9 @@ body {
 .slide-root [data-edit]:focus {
   box-shadow: 0 0 0 2px #277aff;
 }
-.slide-root [data-item]:hover {
+/* Items nest on the dense layouts (a row and its figures, a group and its
+   policies): only the innermost hovered one shows its outline and its ✕. */
+.slide-root [data-item]:hover:not(:has([data-item]:hover)) {
   outline: 2px dashed rgba(39, 122, 255, 0.4);
   outline-offset: 8px;
 }
@@ -404,7 +406,7 @@ body {
   justify-content: center;
   padding: 0;
 }
-.slide-root [data-item]:hover > .item-delete {
+.slide-root [data-item]:hover:not(:has([data-item]:hover)) > .item-delete {
   opacity: 1;
 }
 .slide-root .item-delete:hover {

@@ -1,4 +1,6 @@
 import type { Slide, Block, LayoutId } from "../schema";
+import { TAKEAWAY_LAYOUTS } from "../schema";
+import { ICON_LIBRARY } from "../icons";
 import type { BrandTheme } from "../brand";
 import { MANROPE, OPEN_SANS, HAIRLINE, esc, ed, dly, item, columns, section, footer, heading60 } from "./shared";
 import { seriesColors } from "./charts";
@@ -28,9 +30,12 @@ import { seriesColors } from "./charts";
  * The title's budget follows, so a guess that is wrong shrinks the title
  * rather than running it into the content.
  */
-export const oneLine = (s: Slide, width = 1720) => (s.title ?? "").trim().length <= Math.floor((50 * width) / 1720);
-export const topOf = (s: Slide, width = 1720) => (oneLine(s, width) ? 200 : 272);
-export const BOTTOM = 936; // 30px above the footer label, as on list and callout
+export const oneLine = (s: Slide, width = 1720) => (s.title ?? "").trim().length <= Math.floor((64 * width) / 1720);
+export const topOf = (s: Slide, width = 1720) => (oneLine(s, width) ? 172 : 244);
+// Dense slides sit higher than the standard ones (title at 72, not 100) so
+// the content ends 30px clear of the logo, not touching it.
+export const TITLE_TOP = 72;
+export const BOTTOM = 900;
 export const BAND_H = 124;
 export const GAP = 24;
 export const DENSE = `font-family:${OPEN_SANS};font-weight:500;font-size:24px;line-height:1.4;color:#000000;`;
@@ -39,7 +44,7 @@ export const HEAD = (px: number, color = "var(--accent)") =>
 export const CARD = "#F7F7F7";
 
 export function title(s: Slide, color = "#000000", width = 1720, left = 100): string {
-  return heading60(s.title ?? "", "title", color, left, width, oneLine(s, width) ? 76 : 150);
+  return heading60(s.title ?? "", "title", color, left, width, oneLine(s, width) ? 76 : 150, TITLE_TOP);
 }
 
 /**
@@ -122,52 +127,115 @@ export function bulletColumns(s: Slide, t: BrandTheme): string {
 }
 
 /**
+ * The takeaway (Mario approved it on figures-panel, 28 Sep 2026): the key
+ * message's band (the same 124px accent surface, white Manrope 30px) with a
+ * white icon circle at its left, one sentence closing the slide. `path` is
+ * the field it edits: `takeaway` on the layouts in TAKEAWAY_LAYOUTS
+ * (schema.ts), `support` where a layout owns the band (cascade's goal). The
+ * band is the deletable item; its ✕ removes the field (DELETE_ITEM).
+ */
+export function takeawayBand(t: BrandTheme, text: string | undefined, y: number, path = "takeaway", glyph = "lightbulb"): string {
+  const c = 72;
+  return (
+    `<div class="ars" ${item(path)} style="position:absolute;left:100px;top:${y}px;width:1720px;height:${BAND_H}px;box-sizing:border-box;background:var(--accent);padding:0 48px 0 26px;display:flex;align-items:center;gap:28px;${dly(30)}">` +
+    `<div style="flex:0 0 auto;width:${c}px;height:${c}px;border-radius:50%;background:#FFFFFF;display:flex;align-items:center;justify-content:center;">${icon(glyph, Math.round(c * 0.52), t.accent)}</div>` +
+    `<div ${ed(path, BAND_H - 32)} style="flex:1;min-width:0;${HEAD(30, "#FFFFFF")}">${esc(text)}</div>` +
+    `</div>`
+  );
+}
+
+/** A Lucide icon at a size and colour (the layouts own the wrapper, as on icon-cards). */
+function icon(name: string, px: number, color: string, stroke = 2): string {
+  return `<svg width="${px}" height="${px}" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="${stroke}" stroke-linecap="round" stroke-linejoin="round" style="display:block;">${ICON_LIBRARY[name] ?? ""}</svg>`;
+}
+
+export const hasTakeaway = (s: Slide) => TAKEAWAY_LAYOUTS.has(s.layoutId) && !!s.takeaway?.trim();
+
+/**
  * Figures and commentary (slides 12, 30, 34): rows named in the left column
  * (Outcome, Benefits, Costs), their figures in the middle, each a value in
  * the accent over its caption, and the commentary on the same row at the
- * right. `subtitle` and `support` head the two columns.
+ * right. `subtitle` and `support` head the two columns; `takeaway` closes
+ * the slide in its band.
+ *
+ * Every part is deletable in the editor and the rest re-flows:
+ * - a row (its ✕ at the top left), a figure, a commentary point, a row's
+ *   whole commentary (its ✕ at the commentary's top left), the headers row
+ *   (both headers go together), the takeaway band;
+ * - a row without figures gives its commentary the figures' column;
+ * - with no commentary on any row the figures take the full width, in a grid
+ *   of as many columns as the busiest row has figures (two to four), and the
+ *   commentary header is not drawn;
+ * - without the headers the rule goes with them and the rows move up;
+ * - with a takeaway the rows end above the band and the figures pair up two
+ *   to a line to give the height back (a figure with no value is a lead
+ *   line, "(cumulative 5-years):", and takes the whole line); without one
+ *   the slide is the approved figures-panel, geometry for geometry.
  */
 export function figuresPanel(s: Slide, t: BrandTheme): string {
   const TOP = topOf(s);
   const blocks = (s.blocks ?? []).slice(0, 4);
   const X = { label: 100, figures: 360, comment: 1180 };
   const W = { label: 236, figures: 780, comment: 640 };
-  const heads =
-    `<div class="ars" style="position:absolute;left:${X.figures}px;top:${TOP}px;width:${W.figures}px;${dly(6)}"><div ${ed("subtitle", 40)} style="${HEAD(30)}">${esc(s.subtitle)}</div></div>` +
-    `<div class="ars" style="position:absolute;left:${X.comment}px;top:${TOP}px;width:${W.comment}px;${dly(6)}"><div ${ed("support", 40)} style="${HEAD(30)}">${esc(s.support)}</div></div>` +
-    `<div style="position:absolute;left:100px;top:${TOP + 56}px;width:1720px;height:2px;background:var(--accent);"></div>`;
+  const takeaway = hasTakeaway(s);
+  const commented = blocks.some((b, i) => pointsOf(b, i).length > 0);
+  const figW = commented ? W.figures : 1820 - X.figures;
+  const headed = !!s.subtitle?.trim() || (commented && !!s.support?.trim());
+  // Full width: one grid column per figure of the busiest row, two to four.
+  const across = Math.min(4, Math.max(2, ...blocks.map((b) => (b.stats ?? []).filter((f) => f.value.trim()).length)));
+  const grid = !commented ? across : takeaway ? 2 : 0;
+  const heads = headed
+    ? `<div class="ars" ${item("subtitle,support")} style="position:absolute;left:${X.figures}px;top:${TOP}px;width:${figW}px;${dly(6)}"><div ${ed("subtitle", 40)} style="${HEAD(30)}">${esc(s.subtitle)}</div></div>` +
+      (commented
+        ? `<div class="ars" ${item("subtitle,support")} style="position:absolute;left:${X.comment}px;top:${TOP}px;width:${W.comment}px;${dly(6)}"><div ${ed("support", 40)} style="${HEAD(30)}">${esc(s.support)}</div></div>`
+        : "") +
+      `<div style="position:absolute;left:100px;top:${TOP + 56}px;width:1720px;height:2px;background:var(--accent);"></div>`
+    : "";
   const rows = blocks
     .map((b, i) => {
-      const figures = (b.stats ?? [])
+      const stats = b.stats ?? [];
+      const figures = stats
         .map(
           (f, j) =>
-            `<div><div ${ed(`blocks.${i}.stats.${j}.value`)} style="font-family:${MANROPE};font-weight:600;font-size:1.25em;line-height:1.25;letter-spacing:-.01em;color:var(--accent);">${esc(f.value)}</div>` +
+            `<div ${item(`blocks.${i}.stats.${j}`)}${grid && !f.value.trim() ? ` style="grid-column:1/-1;"` : ""}><div ${ed(`blocks.${i}.stats.${j}.value`)} style="font-family:${MANROPE};font-weight:600;font-size:1.25em;line-height:1.25;letter-spacing:-.01em;color:var(--accent);">${esc(f.value)}</div>` +
             `<div ${ed(`blocks.${i}.stats.${j}.label`)} style="margin-top:.1em;">${esc(f.label)}</div></div>`,
         )
         .join("");
-      const comment = pointsOf(b, i)
+      const points = pointsOf(b, i);
+      const comment = points
         .map(
           ({ text, path }) =>
-            `<div style="display:flex;gap:.6em;"><span style="flex:0 0 auto;width:.34em;height:.34em;margin-top:.53em;border-radius:50%;background:var(--accent);"></span><div ${ed(path)} style="flex:1;min-width:0;">${esc(text)}</div></div>`,
+            `<div ${item(path)} style="display:flex;gap:.6em;"><span style="flex:0 0 auto;width:.34em;height:.34em;margin-top:.53em;border-radius:50%;background:var(--accent);"></span><div ${ed(path)} style="flex:1;min-width:0;">${esc(text)}</div></div>`,
         )
         .join("");
+      const figStyle = grid
+        ? `display:grid;grid-template-columns:repeat(${grid},minmax(0,1fr));align-content:start;gap:.55em 32px;`
+        : `display:flex;flex-direction:column;gap:.55em;`;
       return (
-        `<div class="ars" ${item(`blocks.${i}`)} style="display:flex;gap:24px;padding:.75em 0;border-bottom:1px solid ${HAIRLINE};${dly(10 + i * 6)}">` +
+        `<div class="ars" ${item(`blocks.${i}`, "left")} style="display:flex;gap:24px;padding:.75em 0;border-bottom:1px solid ${HAIRLINE};${dly(10 + i * 6)}">` +
         `<div ${ed(`blocks.${i}.label`)} style="flex:0 0 ${W.label}px;font-family:${MANROPE};font-weight:600;font-size:1.2em;line-height:1.3;color:#000000;">${esc(b.label)}</div>` +
-        `<div style="flex:0 0 ${W.figures}px;display:flex;flex-direction:column;gap:.55em;">${figures}</div>` +
-        `<div style="flex:1;min-width:0;padding-left:40px;display:flex;flex-direction:column;gap:.45em;">${comment}</div>` +
+        (stats.length ? `<div style="${commented ? `flex:0 0 ${W.figures}px` : "flex:1;min-width:0"};${figStyle}">${figures}</div>` : "") +
+        // The commentary keeps its 40px as a margin, so its ✕ (top left)
+        // sits by the first point, clear of the figures' and the row's.
+        (points.length
+          ? `<div ${item(`blocks.${i}.items`, "left")} style="flex:1;min-width:0;margin-left:${stats.length ? 40 : 0}px;display:flex;flex-direction:column;gap:.45em;">${comment}</div>`
+          : commented
+            ? `<div style="flex:1;min-width:0;"></div>`
+            : "") +
         `</div>`
       );
     })
     .join("");
-  const zoneTop = TOP + 72;
+  const zoneTop = headed ? TOP + 72 : TOP;
+  const zoneBottom = takeaway ? BOTTOM - BAND_H - GAP : BOTTOM;
   return section(
     t,
     "#FFFFFF",
     "#000000",
     title(s) +
       heads +
-      `<div data-fit="${BOTTOM - zoneTop}" style="position:absolute;left:100px;top:${zoneTop}px;width:1748px;box-sizing:border-box;padding-right:28px;${DENSE}display:flex;flex-direction:column;">${rows}</div>` +
+      `<div data-fit="${zoneBottom - zoneTop}" style="position:absolute;left:100px;top:${zoneTop}px;width:1748px;box-sizing:border-box;padding-right:28px;${DENSE}display:flex;flex-direction:column;">${rows}</div>` +
+      (takeaway ? takeawayBand(t, s.takeaway, BOTTOM - BAND_H) : "") +
       footer(t, "light"),
   );
 }
@@ -259,12 +327,135 @@ export function matrix(s: Slide, t: BrandTheme): string {
   );
 }
 
+/** A 2px accent connector, horizontal or vertical. */
+const rule = (x: number, y: number, w: number, h: number) =>
+  `<div style="position:absolute;left:${Math.round(x)}px;top:${Math.round(y)}px;width:${Math.round(w)}px;height:${Math.round(h)}px;background:var(--accent);"></div>`;
+
+/** Boxes of one tier: `m` entries sharing `w` px from `x`, `IN` px apart. */
+function tierBoxes(x: number, w: number, m: number, gap: number): { x: number; w: number }[] {
+  const bw = (w - (m - 1) * gap) / m;
+  return Array.from({ length: m }, (_, j) => ({ x: x + j * (bw + gap), w: bw }));
+}
+
+/**
+ * Cascade (the Gambia case's "National reform momentum", approved 28 Sep
+ * 2026): policies cascading to objectives, converging on one goal.
+ *
+ * Data model, kept flat on purpose:
+ * - each block is a group: `label` heads it on an accent bar spanning its
+ *   columns; `items` are its policies (the upper tier; a block added with
+ *   Element has only `body`, drawn as its one policy); `stats[j].value` are
+ *   its objectives (the lower tier, `label` unused);
+ * - `support` is the goal, on the band with its icon circle.
+ * A group takes as many columns as its longer tier, and the shorter tier
+ * shares the group's width evenly: two objectives under four policies span
+ * two policies each, one policy over two objectives spans both. No explicit
+ * links: the order and the counts are the mapping.
+ *
+ * Re-flow after a deletion: the groups share the 1720px by their column
+ * counts; a group with only one tier gives it the full height (no arrows);
+ * the arrows run from the centres of the tier with more entries, or of the
+ * other tier when one of those would land between two boxes; the lowest box
+ * of every column drops onto one rule that falls into the goal, and without
+ * a goal the rule goes and the tiers take the height.
+ */
+export function cascade(s: Slide, t: BrandTheme): string {
+  const TOP = topOf(s);
+  const groups = (s.blocks ?? []).slice(0, 4).map((b, i) => ({
+    label: b.label,
+    policies: pointsOf(b, i),
+    objectives: (b.stats ?? []).map((st, j) => ({ text: st.value, path: `blocks.${i}.stats.${j}` })),
+  }));
+  const spans = groups.map((g) => Math.max(g.policies.length, g.objectives.length, 1));
+  const total = spans.reduce((a, b) => a + b, 0);
+  const IN = 16; // between the columns of a group
+  const OUT = 36; // between groups
+  const inner = spans.reduce((a, n) => a + (n - 1) * IN, 0) + (groups.length - 1) * OUT;
+  const cw = (1720 - inner) / Math.max(total, 1);
+  const goal = !!s.support?.trim();
+  const bandY = BOTTOM - BAND_H;
+  const JOIN = 44; // the drops and the rule over the band
+  const floor = goal ? bandY - JOIN : BOTTOM;
+  const HDR = 64;
+  const polY = TOP + HDR + 16;
+  const ARROW = 56;
+  const polH = Math.round((floor - polY - ARROW) * 0.44);
+  const objY = polY + polH + ARROW;
+
+  // A policy over its objectives is centred in its card; a card that runs
+  // the whole height (the group has one tier) reads from the top, like every
+  // other dense card. A card wider than half the slide centres its text,
+  // under the arrow and over the drop.
+  const card = (text: string, path: string, x: number, y: number, w: number, h: number, kind: "policy" | "objective", cs: number, middle = false) =>
+    `<div class="ars" ${item(path)} style="position:absolute;left:${Math.round(x)}px;top:${Math.round(y)}px;width:${Math.round(w)}px;height:${Math.round(h)}px;box-sizing:border-box;background:${CARD};` +
+    (kind === "objective" ? `border-top:4px solid var(--accent);padding:18px 4px 16px 18px;` : `padding:20px 4px 16px 18px;`) +
+    `align-items:${middle ? "center" : "flex-start"};${w > 900 ? "text-align:center;" : ""}` +
+    `display:flex;${dly(cs)}">` +
+    `<div ${ed(kind === "policy" ? path : `${path}.value`, Math.round(h) - 40)} data-fit-group="cascade-${kind}" style="${kind === "policy" ? `font-family:${MANROPE};font-weight:600;font-size:24px;line-height:1.3;letter-spacing:-.01em;color:#000000;` : DENSE}width:100%;padding-right:10px;">${esc(text)}</div></div>`;
+
+  let x = 100;
+  const drops: number[] = [];
+  const html = groups
+    .map((g, i) => {
+      const gx = x;
+      const gw = spans[i] * cw + (spans[i] - 1) * IN;
+      x += gw + OUT;
+      const P = g.policies.length;
+      const O = g.objectives.length;
+      // Inside the group's box: positions relative to (gx, TOP).
+      const rel = (bx: number) => bx - gx;
+      const pBoxes = tierBoxes(gx, gw, Math.max(P, 1), IN);
+      const oBoxes = tierBoxes(gx, gw, Math.max(O, 1), IN);
+      const both = P > 0 && O > 0;
+      const pH = both ? polH : floor - polY;
+      const oY = both ? objY : polY;
+      const policies = g.policies.map((p, j) => card(p.text, p.path, rel(pBoxes[j].x), polY - TOP, pBoxes[j].w, pH, "policy", 12 + i * 6 + j * 2, both)).join("");
+      const objectives = g.objectives.map((o, j) => card(o.text, o.path, rel(oBoxes[j].x), oY - TOP, oBoxes[j].w, floor - oY, "objective", 18 + i * 6 + j * 2)).join("");
+      // Arrows from the centres of the finer tier, unless one would land
+      // between two boxes of the other; then from the other's centres.
+      let arrows = "";
+      if (both) {
+        const centres = (bs: { x: number; w: number }[]) => bs.map((b) => b.x + b.w / 2);
+        const lands = (cx: number, bs: { x: number; w: number }[]) => bs.some((b) => cx >= b.x + 24 && cx <= b.x + b.w - 24);
+        const [fine, coarse] = P >= O ? [pBoxes, oBoxes] : [oBoxes, pBoxes];
+        const xs = centres(fine).every((cx) => lands(cx, coarse)) ? centres(fine) : centres(coarse);
+        arrows = xs
+          .map((ax) => `<div class="af" style="position:absolute;left:${Math.round(rel(ax) - 20)}px;top:${polY + polH + (ARROW - 40) / 2 - TOP}px;width:40px;height:40px;${dly(16 + i * 6)}">${icon("arrow-down", 40, t.accent, 2.2)}</div>`)
+          .join("");
+      }
+      for (const b of O ? oBoxes : pBoxes) drops.push(b.x + b.w / 2);
+      return (
+        `<div ${item(`blocks.${i}`)} style="position:absolute;left:${Math.round(gx)}px;top:${TOP}px;width:${Math.round(gw)}px;height:${floor - TOP}px;">` +
+        `<div class="ars" style="position:absolute;left:0;top:0;width:${Math.round(gw)}px;height:${HDR}px;box-sizing:border-box;background:var(--accent);padding:0 20px;display:flex;align-items:center;justify-content:center;text-align:center;${dly(8 + i * 6)}">` +
+        `<div ${ed(`blocks.${i}.label`, HDR - 8)} data-fit-group="cascade-head" style="${HEAD(26, "#FFFFFF")}">${esc(g.label)}</div></div>` +
+        policies +
+        arrows +
+        objectives +
+        `</div>`
+      );
+    })
+    .join("");
+  // Convergence: a drop under every column onto one rule, and one drop from
+  // the middle of the slide into the goal's band.
+  const joinY = floor + JOIN / 2;
+  const left = Math.min(960, ...drops);
+  const right = Math.max(960, ...drops);
+  const join = goal
+    ? `<div class="af" style="${dly(26)}">` +
+      drops.map((cx) => rule(cx - 1, floor, 2, JOIN / 2)).join("") +
+      rule(left - 1, joinY - 1, right - left + 2, 2) +
+      rule(959, joinY, 2, JOIN / 2) +
+      `</div>`
+    : "";
+  return section(t, "#FFFFFF", "#000000", title(s) + html + join + (goal ? takeawayBand(t, s.support, bandY, "support", "target") : "") + footer(t, "light"));
+}
+
 /** A figure that may be negative (costs drawn below zero). */
-function signed(v: unknown): number {
+export function signed(v: unknown): number {
   const n = parseFloat(String(v ?? "").replace(/[^0-9.\-]/g, ""));
   return Number.isFinite(n) ? n : 0;
 }
-const short = (n: number) => {
+export const short = (n: number) => {
   const r = Math.abs(n) >= 100 ? Math.round(n) : Math.round(n * 100) / 100;
   return r.toLocaleString("en-US");
 };

@@ -60,6 +60,7 @@ export const LAYOUTS: Record<LayoutId, { label: string; render: RenderFn }> = {
   scenarios: { label: "Scenarios", render: dense.scenarios },
   matrix: { label: "Matrix", render: dense.matrix },
   "chart-text": { label: "Chart + explanation", render: dense.chartText },
+  cascade: { label: "Cascade", render: dense.cascade },
   "a4-page": { label: "A4 page", render: renderPage },
 };
 
