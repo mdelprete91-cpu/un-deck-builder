@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
 import { PartyPopperIcon, type PartyPopperIconHandle } from "@/components/PartyPopperIcon";
 
 type Usage = { inputTokens: number; outputTokens: number };
@@ -9,14 +9,17 @@ type Usage = { inputTokens: number; outputTokens: number };
  * What the last generation cost and how long it took, under "How it works".
  * A small Canvas-2 card with the party popper, which pops once when a new
  * run lands (and again on hover), so the number reads as a small win rather
- * than a meter. The session total sits in the tooltip.
+ * than a meter. The session total sits in the tooltip. A replica adds its
+ * fidelity report under it (`children`, components/FidelityReport.tsx).
  */
 export default function GenerationReadout({
   lastRun,
   session,
+  children,
 }: {
   lastRun: Usage & { seconds: number };
   session: Usage;
+  children?: ReactNode;
 }) {
   const popper = useRef<PartyPopperIconHandle>(null);
   // A new run is a new object; the pop fires once per run, and once on
@@ -26,19 +29,22 @@ export default function GenerationReadout({
   }, [lastRun]);
 
   return (
-    <div
-      className="flex items-center gap-2.5 rounded-xl bg-canvas-2 px-3 py-2"
-      title={`Session so far: ${session.inputTokens.toLocaleString()} in · ${session.outputTokens.toLocaleString()} out tokens, ${formatCost(cost(session))}`}
-      onMouseEnter={() => popper.current?.startAnimation()}
-      onMouseLeave={() => popper.current?.stopAnimation()}
-    >
-      <PartyPopperIcon ref={popper} size={18} className="shrink-0 text-giga" />
-      <div className="min-w-0 leading-tight">
-        <p className="text-sm font-medium text-ink">Deck generated</p>
-        <p className="text-xs text-ink-muted">
-          {formatCost(cost(lastRun))} · {formatSeconds(lastRun.seconds)}
-        </p>
+    <div className="rounded-xl bg-canvas-2 px-3 py-2">
+      <div
+        className="flex items-center gap-2.5"
+        title={`Session so far: ${session.inputTokens.toLocaleString()} in · ${session.outputTokens.toLocaleString()} out tokens, ${formatCost(cost(session))}`}
+        onMouseEnter={() => popper.current?.startAnimation()}
+        onMouseLeave={() => popper.current?.stopAnimation()}
+      >
+        <PartyPopperIcon ref={popper} size={18} className="shrink-0 text-giga" />
+        <div className="min-w-0 leading-tight">
+          <p className="text-sm font-medium text-ink">Deck generated</p>
+          <p className="text-xs text-ink-muted">
+            {formatCost(cost(lastRun))} · {formatSeconds(lastRun.seconds)}
+          </p>
+        </div>
       </div>
+      {children}
     </div>
   );
 }

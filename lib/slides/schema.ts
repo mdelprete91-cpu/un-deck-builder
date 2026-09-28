@@ -484,6 +484,32 @@ export function normalizeSeries(slide: SlideContent): void {
   });
 }
 
+/**
+ * The first array of a model slide that holds more than its layout draws
+ * ("blocks 7 of 6"), or null. `normalizeSlide` cuts it silently; a replica
+ * asks again instead (runReplicate), since a cut there is lost source text.
+ * The dense layouts' own caps count too: ten points a column, five figures
+ * a row.
+ */
+export function overLimits(raw: unknown): { field: string; count: number; max: number } | null {
+  const parsed = slideContentSchema.safeParse(raw);
+  if (!parsed.success) return null;
+  const slide = parsed.data as SlideContent;
+  for (const [field, [, max]] of Object.entries(ARRAY_LIMITS[slide.layoutId] ?? {}) as [ArrayField, [number, number]][]) {
+    const count = (slide[field] as unknown[] | undefined)?.length ?? 0;
+    if (count > max) return { field, count, max };
+  }
+  if (DENSE_LAYOUTS.has(slide.layoutId)) {
+    for (const b of slide.blocks ?? []) {
+      const points = b.items?.filter((x) => x.trim()).length ?? 0;
+      const figures = b.stats?.length ?? 0;
+      if (points > 10) return { field: "points in one block", count: points, max: 10 };
+      if (figures > 5) return { field: "figures in one block", count: figures, max: 5 };
+    }
+  }
+  return null;
+}
+
 export function normalizeSlide(
   raw: unknown,
   opts: { keepClosingTitle?: boolean; brandId?: string } = {},

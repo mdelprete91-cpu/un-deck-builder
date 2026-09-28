@@ -4,7 +4,7 @@ import { ChartColumn, ChevronDown, ChevronUp, Play, Copy, History, Image as Imag
 import { useEffect, useLayoutEffect, useReducer, useRef, useState, type CSSProperties } from "react";
 import { BRANDS } from "@/lib/slides/brand";
 import { DEFAULT_DECK_NAME, deckReducer, initialDeckState, readPath } from "@/lib/slides/state";
-import { isChartLayout, isPage, normalizeSlide, PRIMARY_ARRAY, type LayoutId, type Slide, type SlideContent } from "@/lib/slides/schema";
+import { isChartLayout, isPage, normalizeSlide, overLimits, PRIMARY_ARRAY, type LayoutId, type Slide, type SlideContent } from "@/lib/slides/schema";
 import { renderSlide } from "@/lib/slides/layouts";
 import { A4_PX } from "@/lib/slides/pages/a4";
 import { PAGE_BLOCK_LIMITS, type PageBlock } from "@/lib/slides/pages/schema";
@@ -29,7 +29,8 @@ import ImagePickerModal from "@/components/ImagePickerModal";
 import EditWithAiModal from "@/components/EditWithAiModal";
 import SheetWizard from "@/components/SheetWizard";
 import { compileInsights, normalizeAnalysis, SHORT_BRIEF_WORDS, USE_QUESTION_ID, fileUseOf, fileUseQuestion, preselectFileUse, type SheetAnalysis, type SheetAnswers } from "@/lib/slides/sheet-questions";
-import { densityHint, planReplica, withContentDensity } from "@/lib/slides/replicate";
+import { denseBeforeNormalize, densityHint, planReplica, withContentDensity, type ReplicateStep } from "@/lib/slides/replicate";
+import { compareSlide, fidelityScore, isFlawed, planLeftovers, repairNote, runningLines, sourceUnits, totals, type DeckFidelity, type Leftover, type SlideFidelity } from "@/lib/slides/fidelity";
 import { readPdfSlides } from "@/lib/slides/pdf-source";
 import { MAX_TRANSCRIBED_PAGES, slidesFromTranscript, type Transcript } from "@/lib/slides/transcribe";
 /** How the file-use question counts a file: slides for a deck, pages for a PDF. */
@@ -370,6 +371,11 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
   const [attachError, setAttachError] = useState<string | null>(null);
   /** The count that made the last generation skip chapters, for the sidebar. */
   const [chaptersSkipped, setChaptersSkipped] = useState<number | null>(null);
+  // The last replica's fidelity report (lib/slides/fidelity.ts): session
+  // state like chaptersSkipped, cleared by the next generation, never saved.
+  const [fidelity, setFidelity] = useState<DeckFidelity | null>(null);
+  // PDFs whose pages the model transcribed: their report says the figures came from page images.
+  const transcribedRef = useRef(new Set<string>());
 
   const onAttach = async (files: File[]) => {
     setAttachError(null);
@@ -595,6 +601,7 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
   /** `fallback`: a replica that could not run, said in the sidebar once the deck generated from the file as a source is in. */
   const runGenerate = async (fallback?: string): Promise<void> => {
     const brief = state.brief;
+    setFidelity(null);
     // "Replicate it" on an attached deck: slide by slide, see runReplicate.
     // A PDF with no text layer is transcribed first (transcribeThenReplicate).
     const replica = !twoPager && !fallback ? attachments.find((x) => isDeckSource(x) && fileUseOf(x.answers) === "replicate") : undefined;
@@ -712,6 +719,7 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
       return runGenerate(`Could not read the pages of "${file.name}" to replicate them, so the deck uses it as a source.`);
     }
     setAttachments((list) => list.map((x) => (x.id === file.id && canQuestion(x) ? { ...x, sourceSlides } : x)));
+    transcribedRef.current.add(file.id);
     return runReplicate({ ...file, sourceSlides });
   };
 
@@ -727,7 +735,8 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
    * one; only empty photo slots are filled and the closing slide added.
    */
   const runReplicate = async (file: Extract<Attachment, { kind: "text" | "pdf" }>) => {
-    const { steps } = planReplica(file.sourceSlides ?? []);
+    const sources = file.sourceSlides ?? [];
+    const { steps } = planReplica(sources);
     if (!steps.length) return;
     abortRef.current?.abort();
     const controller = new AbortController();
@@ -755,6 +764,14 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
     const results: (SlideContent | null | undefined)[] = steps.map((st) =>
       st.kind === "fixed" ? normalizeSlide(st.content, { brandId: state.brandId }) : undefined,
     );
+    // The fidelity check (lib/slides/fidelity.ts): each source slide against
+    // the slide made from it, a running header left out.
+    const ignore = runningLines(sources);
+    const units = steps.map((st) => (st.kind === "fixed" ? null : sourceUnits(st.source, ignore)));
+    const reports: (SlideFidelity | null)[] = steps.map(() => null);
+    const firsts: (SlideFidelity | null)[] = steps.map(() => null);
+    let repairs = 0;
+    let repaired = 0;
     const failed: number[] = [];
     const usage = { inputTokens: 0, outputTokens: 0 };
     let next = 0;
@@ -770,42 +787,86 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
         dispatch({ type: "APPEND_SLIDE", content });
       }
     };
+    /** One call for step i: the slide as the model wrote it, before normalizeSlide. */
+    const call = async (i: number, source: string, extra: { repair?: string; previous?: SlideContent } = {}): Promise<unknown> => {
+      const res = await fetch("/api/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ mode: "replicate", brief, briefNotes, brandLabel: theme.label, format: "slides", source, sourceContext: contexts[i], ...extra }),
+        signal: controller.signal,
+      });
+      if (!res.ok || !res.body) throw new Error((await res.text().catch(() => "")) || `Request failed (${res.status})`);
+      let raw: unknown = null;
+      for (const line of (await res.text()).split("\n")) {
+        if (!line.trim()) continue;
+        const event = JSON.parse(line);
+        if (event.type === "slide" && raw === null) raw = event.slide;
+        else if (event.type === "done" && event.usage) {
+          usage.inputTokens += event.usage.inputTokens ?? 0;
+          usage.outputTokens += event.usage.outputTokens ?? 0;
+        } else if (event.type === "error") throw new Error(event.message ?? "Generation failed");
+      }
+      return raw;
+    };
+    /** The model's slide as this step takes it, or null. A chart's explanation is made dense before normalizeSlide could drop it. */
+    const accept = (st: Exclude<ReplicateStep, { kind: "fixed" }>, raw: unknown): SlideContent | null => {
+      const slide = normalizeSlide(denseBeforeNormalize(raw), { brandId: state.brandId });
+      if (!slide) return null;
+      if (st.kind === "cover") return { layoutId: "cover", title: slide.title || st.source.title, subtitle: slide.subtitle ?? "" };
+      if (CHAPTER_LAYOUTS.has(slide.layoutId) || slide.layoutId === "thank-you" || slide.layoutId === "cover") return null;
+      return withContentDensity(slide);
+    };
     const one = async (i: number) => {
       const st = steps[i];
       if (st.kind === "fixed") return;
-      for (let attempt = 0; attempt < 2; attempt++) {
+      let slide: SlideContent | null = null;
+      // More items than the layout draws would be cut by normalizeSlide:
+      // the first answer is asked again with the count, the second is kept
+      // as it is and the cut shows in the report.
+      let hint: string | undefined;
+      let overflowing: unknown = null;
+      for (let attempt = 0; attempt < 2 && !slide; attempt++) {
         try {
-          const res = await fetch("/api/generate", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ mode: "replicate", brief, briefNotes, brandLabel: theme.label, format: "slides", source: st.source.text, sourceContext: contexts[i] }),
-            signal: controller.signal,
-          });
-          if (!res.ok || !res.body) throw new Error((await res.text().catch(() => "")) || `Request failed (${res.status})`);
-          let slide: SlideContent | null = null;
-          for (const line of (await res.text()).split("\n")) {
-            if (!line.trim()) continue;
-            const event = JSON.parse(line);
-            if (event.type === "slide" && !slide) slide = normalizeSlide(event.slide, { brandId: state.brandId });
-            else if (event.type === "done" && event.usage) {
-              usage.inputTokens += event.usage.inputTokens ?? 0;
-              usage.outputTokens += event.usage.outputTokens ?? 0;
-            } else if (event.type === "error") throw new Error(event.message ?? "Generation failed");
+          const raw = await call(i, st.source.text, hint ? { repair: hint } : {});
+          const over = st.kind === "content" && attempt === 0 ? overLimits(raw) : null;
+          if (over) {
+            overflowing = raw;
+            hint = `Your first answer put ${over.count} ${over.field} on a layout that holds ${over.max}. Pick a layout that holds all ${over.count}, or spread them over more blocks or columns; never cut or merge them.`;
+            continue;
           }
-          if (slide && st.kind === "cover") {
-            results[i] = { layoutId: "cover", title: slide.title || st.source.title, subtitle: slide.subtitle ?? "" };
-            return;
-          }
-          if (slide && !CHAPTER_LAYOUTS.has(slide.layoutId) && slide.layoutId !== "thank-you" && slide.layoutId !== "cover") {
-            results[i] = withContentDensity(slide);
-            return;
+          slide = accept(st, raw);
+        } catch (err) {
+          if ((err as Error).name === "AbortError") throw err;
+        }
+      }
+      if (!slide && overflowing) slide = accept(st, overflowing);
+      if (!slide) {
+        failed.push(st.source.n);
+        results[i] = null;
+        return;
+      }
+      // The check, and one repair call when the slide changed the source:
+      // the precise list of what changed, the better of the two is kept.
+      let report = compareSlide(st.source.n, st.source.title, units[i]!, slide);
+      firsts[i] = report;
+      if (st.kind === "content" && isFlawed(report)) {
+        repairs++;
+        try {
+          const { image: _im, ...previous } = slide;
+          void _im;
+          const second = accept(st, await call(i, st.source.text, { repair: repairNote(report), previous }));
+          const again = second ? compareSlide(st.source.n, st.source.title, units[i]!, second) : null;
+          if (second && again && fidelityScore(again) > fidelityScore(report)) {
+            slide = second;
+            report = again;
+            repaired++;
           }
         } catch (err) {
           if ((err as Error).name === "AbortError") throw err;
         }
       }
-      failed.push(st.source.n);
-      results[i] = null;
+      reports[i] = report;
+      results[i] = slide;
     };
     try {
       flush();
@@ -827,7 +888,24 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
     dispatch({ type: "ENSURE_CLOSING" });
     dispatch({ type: "FILL_PHOTOS" });
     dispatch({ type: "GENERATION_DONE", usage });
-    if (failed.length) {
+    // The report replaces the red error: a slide that could not be rebuilt
+    // is one line in it, with its text. Only a replica with nothing rebuilt
+    // is still an error.
+    const leftovers: Leftover[] = [
+      ...steps.flatMap((st, i) => (st.kind !== "fixed" && failed.includes(st.source.n) ? [{ n: st.source.n, title: st.source.title, lines: units[i]?.lines ?? [], reason: "failed" as const }] : [])),
+      ...planLeftovers(sources, steps, ignore),
+    ].sort((x, y) => x.n - y.n);
+    let at = 0;
+    const slides: DeckFidelity["slides"] = [];
+    steps.forEach((_, i) => {
+      const r = reports[i];
+      const content = results[i];
+      if (r && content) slides.push({ ...r, at, layoutId: content.layoutId, deckTitle: content.title ?? "" });
+      if (content) at++;
+    });
+    const firstPass = totals(firsts.filter((r): r is SlideFidelity => !!r), leftovers);
+    setFidelity({ slides, leftovers, transcribed: transcribedRef.current.has(file.id), firstPass, repairs, repaired });
+    if (failed.length && !slides.some((s) => s.layoutId !== "cover")) {
       dispatch({
         type: "GENERATION_ERROR",
         error: `Source slide${failed.length === 1 ? "" : "s"} ${failed.sort((x, y) => x - y).join(", ")} could not be rebuilt. Add ${failed.length === 1 ? "it" : "them"} with Add slide or try again.`,
@@ -1142,6 +1220,7 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
       return;
     }
     dispatch({ type: "HYDRATE", state: result.state });
+    setFidelity(null);
     onDeckArrived();
     if (result.dropped > 0) {
       dispatch({
@@ -1190,6 +1269,7 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
   const onRestorePrevious = () => {
     if (!previous) return;
     dispatch({ type: "HYDRATE", state: previous });
+    setFidelity(null);
     onDeckArrived();
   };
 
@@ -1224,6 +1304,7 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
         onOpenSheet={(id) => setWizard({ queue: [id], intent: "edit" })}
         attachError={attachError}
         chaptersSkipped={chaptersSkipped}
+        fidelity={fidelity}
       />
 
       {/* Drop handling lives on <main> so it also works with an empty deck —

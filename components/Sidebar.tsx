@@ -8,6 +8,8 @@ import type { Attachment } from "@/lib/slides/attachments";
 import Button from "@/components/Button";
 import ThemeToggle from "@/components/ThemeToggle";
 import GenerationReadout from "@/components/GenerationReadout";
+import FidelityReport from "@/components/FidelityReport";
+import type { DeckFidelity } from "@/lib/slides/fidelity";
 import PromptBox from "@/components/PromptBox";
 import Select from "@/components/Select";
 
@@ -26,6 +28,8 @@ interface SidebarProps {
   attachError: string | null;
   /** Set when the last generation left chapters out because the brief named too few slides. */
   chaptersSkipped: number | null;
+  /** The last replica's fidelity report, shown in the generation readout. */
+  fidelity: DeckFidelity | null;
 }
 
 /** Sidebar section label — the BAG eyebrow at product scale. */
@@ -56,6 +60,7 @@ export default function Sidebar({
   onOpenSheet,
   attachError,
   chaptersSkipped,
+  fidelity,
 }: SidebarProps) {
   const [addBrief, setAddBrief] = useState("");
   const [addCount, setAddCount] = useState(2);
@@ -236,7 +241,13 @@ export default function Sidebar({
       )}
 
       <div className="mt-auto flex flex-col gap-4">
-        {state.lastRun && <GenerationReadout lastRun={state.lastRun} session={state.usage} />}
+        {state.lastRun && (
+          <GenerationReadout lastRun={state.lastRun} session={state.usage}>
+            {fidelity && hasSlides && !generating && (
+              <FidelityReport report={fidelity} slides={state.slides} onGoTo={(index) => dispatch({ type: "SET_ACTIVE", index })} />
+            )}
+          </GenerationReadout>
+        )}
         <div className="flex items-center justify-between gap-2">
           <Button variant="ghost" icon={CircleHelp} onClick={onHowItWorks}>
             How it works
