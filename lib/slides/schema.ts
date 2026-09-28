@@ -50,7 +50,18 @@ export const AI_LAYOUT_IDS = [
 ] as const;
 
 /** Manual-insert only: densely structured content the model would hallucinate. */
-export const MANUAL_LAYOUT_IDS = ["tiers-1", "tiers-2", "photo-full"] as const;
+export const MANUAL_LAYOUT_IDS = [
+  "tiers-1",
+  "tiers-2",
+  "photo-full",
+  // Dense layouts for report-style decks (28 Sep 2026, layouts/dense.ts),
+  // insert-only until Mario approves them; then they move to AI_LAYOUT_IDS.
+  "bullet-columns",
+  "figures-panel",
+  "scenarios",
+  "matrix",
+  "chart-text",
+] as const;
 
 /**
  * Retired layouts: kept only so decks saved before the ban still validate and
@@ -86,6 +97,10 @@ export function isPage(s: { layoutId: LayoutId }): boolean {
 export interface Block {
   label: string;
   body: string;
+  /** Dense layouts: the block's points, one string each; "- " opens a sub-point. */
+  items?: string[];
+  /** figures-panel: the row's figures; matrix: the row's cells (label = heading, value = text). */
+  stats?: Stat[];
 }
 export interface Stat {
   value: string;
@@ -106,6 +121,7 @@ export const SERIES_LAYOUTS: Partial<Record<LayoutId, [number, number]>> = {
   "chart-line": [1, 3],
   "chart-columns-grouped": [2, 3],
   "chart-columns-stacked": [2, 4],
+  "chart-text": [1, 3],
 };
 
 /** Every layout whose data the Data panel edits (a `bars` array, with or without series). */
@@ -169,6 +185,8 @@ export interface SlideContent {
   iconsPinned?: boolean;
   /** Model output only: a library photo id for the slide's photo slot, turned into `image` by normalizeSlide. */
   photo?: string;
+  /** Footnotes, printed in the footer row (layouts/dense.ts `footnote`). */
+  notes?: string;
   /** Two-pager page ("a4-page"): the ordered block stack. */
   stack?: PageBlock[];
   /**
@@ -222,21 +240,31 @@ export interface Slide extends SlideContent {
   id: string;
 }
 
-const blockSchema = z.object({
-  label: z.string().default(""),
-  body: z.string().default(""),
-});
 const statSchema = z.object({
   value: z.string().default(""),
   label: z.string().default(""),
+});
+const blockSchema = z.object({
+  label: z.string().default(""),
+  body: z.string().default(""),
+  items: z
+    .array(z.string())
+    .optional()
+    .transform((v) => (v && v.length ? v : undefined)),
+  stats: z
+    .array(statSchema)
+    .optional()
+    .transform((v) => (v && v.length ? v : undefined)),
 });
 const barSchema = z.object({
   label: z.string().default(""),
   // A real figure: 12,450 schools is a bar too. Until 25 Sep 2026 this
   // clamped at 100 and any larger number failed the slide silently.
-  value: z.coerce.number().min(0).default(0),
+  // Negative only on chart-text (costs below zero); every other chart draws
+  // from zero and clamps at render (`numeric` in layouts/stats.ts).
+  value: z.coerce.number().default(0),
   values: z
-    .array(z.coerce.number().min(0))
+    .array(z.coerce.number())
     .optional()
     .transform((v) => (v && v.length ? v : undefined)),
   // A hand-picked colour, one of CHART_COLORS; anything else is dropped so
@@ -297,6 +325,7 @@ export const slideContentSchema = z.object({
   photo: z.string().optional(),
   stack: z.array(pageBlockSchema).optional(),
   footerLabel: z.string().optional(),
+  notes: z.string().optional(),
 });
 
 export function clampWords(text: string, maxWords: number): string {
@@ -338,6 +367,11 @@ const ARRAY_LIMITS: Partial<Record<LayoutId, Partial<Record<ArrayField, [number,
   "example-image-left": { blocks: [1, 2] },
   "example-image-right": { blocks: [1, 2] },
   "thank-you": { contacts: [1, 2] },
+  "bullet-columns": { blocks: [1, 3] },
+  "figures-panel": { blocks: [1, 4] },
+  scenarios: { blocks: [1, 3] },
+  matrix: { blocks: [1, 3] },
+  "chart-text": { bars: [2, 12] },
 };
 
 /** The editable item array of each layout (for add/delete element in the editor). */
@@ -375,7 +409,10 @@ export function splitBodyBlocks(body: string): Block[] {
 
 function hasText(slide: SlideContent): boolean {
   const strings = [slide.title, slide.subtitle, slide.stat, slide.support, slide.quote, slide.author, slide.body, ...(slide.bullets ?? [])];
-  for (const b of slide.blocks ?? []) strings.push(b.label, b.body);
+  for (const b of slide.blocks ?? []) {
+    strings.push(b.label, b.body, ...(b.items ?? []));
+    for (const x of b.stats ?? []) strings.push(x.value, x.label);
+  }
   for (const x of slide.stats ?? []) strings.push(x.value, x.label);
   for (const b of slide.bars ?? []) strings.push(b.label);
   for (const c of slide.contacts ?? []) strings.push(c.name);
@@ -483,10 +520,16 @@ export function normalizeSlide(
     normalizeSeries(slide);
     // A chart reads its bars and nothing else: blocks or stats the model
     // wrote beside them (a grouped chart with two empty blocks, 26 Sep 2026)
-    // would only reach the editor as fields nothing renders.
-    delete slide.blocks;
+    // would only reach the editor as fields nothing renders. chart-text is
+    // the exception: its explanation is `bullets`, its notes `blocks`.
+    if (slide.layoutId === "chart-text") {
+      slide.blocks = slide.blocks?.slice(0, 3);
+      if (!slide.blocks?.length) delete slide.blocks;
+    } else {
+      delete slide.blocks;
+      delete slide.bullets;
+    }
     delete slide.stats;
-    delete slide.bullets;
   }
   return slide;
 }

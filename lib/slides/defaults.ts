@@ -224,6 +224,68 @@ export function defaultContent(layoutId: LayoutId): SlideContent {
         title: "Timeline",
         blocks: Array.from({ length: 4 }, () => ({ label: "2026", body: LOREM_ROW })),
       };
+    case "bullet-columns":
+      return {
+        layoutId,
+        title: "Two or three columns of points, with the key message below",
+        blocks: Array.from({ length: 3 }, (_, i) => ({
+          label: ["The challenge", "The opportunity", "The investment case"][i],
+          body: "",
+          items: ["A point from the material, as written", "A second point with its figure", "- A sub-point under it", "A third point"],
+        })),
+        support: "The one message the three columns add up to",
+      };
+    case "figures-panel":
+      return {
+        layoutId,
+        title: "The figures that carry the case, and what they mean",
+        subtitle: "In numbers",
+        support: "Commentary",
+        blocks: ["Outcome", "Benefits", "Costs"].map((label) => ({
+          label,
+          body: "",
+          stats: [
+            { value: "USD 00 million", label: "What the figure measures, over which period" },
+            { value: "00%", label: "What the figure measures" },
+          ],
+          items: ["What the figures mean for the decision", "Where they come from"],
+        })),
+      };
+    case "scenarios":
+      return {
+        layoutId,
+        title: "Two scenarios side by side, and what we recommend",
+        subtitle: "Observations and recommendations",
+        blocks: ["Scenario 1", "Scenario 2"].map((label) => ({
+          label,
+          body: "",
+          items: ["What the scenario assumes", "What it leaves out", "What it costs", "Its technology mix"],
+        })),
+        bullets: ["Which scenario serves the goal and why", "What it costs more", "What to highlight"],
+      };
+    case "matrix":
+      return {
+        layoutId,
+        title: "Where the impact lands, by pathway",
+        blocks: ["Schools", "Health facilities"].map((label) => ({
+          label,
+          body: "",
+          stats: ["Learning", "Employment", "Income", "Social", "Growth"].map((h) => ({ label: h, value: "The quantified effect in the country" })),
+        })),
+      };
+    case "chart-text":
+      return {
+        layoutId,
+        title: "A trend over five years, and how to read it",
+        subtitle: "Overview",
+        bullets: ["What the chart counts and how", "- The assumption behind it", "What drives the curve"],
+        series: ["Schools", "Health facilities"],
+        bars: ["2026", "27", "28", "29", "30", "2031"].map((label, i) => ({ label, value: i * 4, values: [i * i * 0.9, i * 0.2] })),
+        blocks: [
+          { label: "", body: "What the first line shows, and its value at the end" },
+          { label: "", body: "What the second line shows, and its value at the end" },
+        ],
+      };
     case "progress":
       return {
         layoutId,

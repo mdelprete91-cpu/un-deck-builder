@@ -58,6 +58,12 @@ export default function ChartDataPanel({ slide, theme, onChange, onClose }: Char
     dirty.current = false;
   }, [slide.id, slide.bars, slide.series, multi]);
 
+  // chart-text draws costs below zero; every other chart starts at zero.
+  const toNumber = (v: string) => {
+    if (slide.layoutId !== "chart-text") return numeric(v);
+    const n = parseFloat(String(v ?? "").replace(/[^0-9.\-]/g, ""));
+    return Number.isFinite(n) ? n : 0;
+  };
   const apply = (nextRows: Row[], nextSeries = series) => {
     setRows(nextRows);
     setSeries(nextSeries);
@@ -68,8 +74,8 @@ export default function ChartDataPanel({ slide, theme, onChange, onClose }: Char
       onChange(
         nextRows.map((r) => ({
           label: r.label,
-          value: numeric(r.values[0]),
-          ...(multi ? { values: r.values.map(numeric) } : {}),
+          value: toNumber(r.values[0]),
+          ...(multi ? { values: r.values.map(toNumber) } : {}),
           color: r.color,
         })),
         multi ? nextSeries : undefined,

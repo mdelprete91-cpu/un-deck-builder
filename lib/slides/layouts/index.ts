@@ -6,6 +6,7 @@ import * as stats from "./stats";
 import * as tables from "./tables";
 import * as charts from "./charts";
 import * as progressLayout from "./progress";
+import * as dense from "./dense";
 import { renderPage, type PageCtx } from "../pages/render";
 
 /**
@@ -53,11 +54,20 @@ export const LAYOUTS: Record<LayoutId, { label: string; render: RenderFn }> = {
   "thank-you": { label: "Thank you", render: basic.thankYou },
   "tiers-1": { label: "Partnership tiers (1/2)", render: tables.tiers1 },
   "tiers-2": { label: "Partnership tiers (2/2)", render: tables.tiers2 },
+  "bullet-columns": { label: "Bullet columns", render: dense.bulletColumns },
+  "figures-panel": { label: "Figures + commentary", render: dense.figuresPanel },
+  scenarios: { label: "Scenarios", render: dense.scenarios },
+  matrix: { label: "Matrix", render: dense.matrix },
+  "chart-text": { label: "Chart + explanation", render: dense.chartText },
   "a4-page": { label: "A4 page", render: renderPage },
 };
 
 export function renderSlide(slide: Slide, theme: BrandTheme, ctx?: PageCtx): string {
   const def = LAYOUTS[slide.layoutId];
   if (!def) return "";
-  return def.render(slide, theme, ctx);
+  const html = def.render(slide, theme, ctx);
+  // Footnotes sit in the footer row of any content slide: added here, once,
+  // inside the section's content box, so no renderer has to know about them.
+  const note = dense.footnote(slide);
+  return note ? html.replace(/<\/div><\/section>$/, `${note}</div></section>`) : html;
 }
