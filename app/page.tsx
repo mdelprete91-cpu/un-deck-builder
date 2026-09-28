@@ -30,6 +30,9 @@ import EditWithAiModal from "@/components/EditWithAiModal";
 import SheetWizard from "@/components/SheetWizard";
 import { compileInsights, normalizeAnalysis, SHORT_BRIEF_WORDS, USE_QUESTION_ID, fileUseOf, fileUseQuestion, type SheetAnalysis, type SheetAnswers } from "@/lib/slides/sheet-questions";
 import { densityHint, planReplica, withSourceDensity } from "@/lib/slides/replicate";
+import { readPdfSlides } from "@/lib/slides/pdf-source";
+/** How the file-use question counts a file: slides for a deck, pages for a PDF. */
+const unitOf = (a: { name: string }) => (/\.pdf$/i.test(a.name) ? ("pages" as const) : ("slides" as const));
 import type { WizardSubject } from "@/components/SheetWizard";
 import LayoutSwitcher from "@/components/LayoutSwitcher";
 import { AttachmentError, canQuestion, MAX_ATTACHMENTS, MAX_REQUEST_BYTES, MAX_TEXT_TOTAL, readAttachment, readPdfAsText, totalRequestBytes, type Attachment } from "@/lib/slides/attachments";
@@ -376,6 +379,17 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
         if (a.kind === "pdf" && totalRequestBytes(next.concat(a)) > MAX_REQUEST_BYTES) {
           a = await readPdfAsText(file);
         }
+        // A PDF is also read page by page, for "replicate it" (28 Sep 2026).
+        // A scan with no text layer has no pages to replicate and is simply
+        // used as a source.
+        if (/\.pdf$/i.test(file.name) && canQuestion(a)) {
+          try {
+            const { slides } = await readPdfSlides(await file.arrayBuffer());
+            if (slides.length) a = { ...a, sourceSlides: slides };
+          } catch {
+            // no text layer: nothing to replicate
+          }
+        }
         const textTotal = next
           .concat(a)
           .filter((x) => x.kind === "text")
@@ -425,10 +439,10 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
     if (!canQuestion(a)) return;
     const spreadsheet = a.kind === "text" && !!a.spreadsheet;
     // A PowerPoint file is always asked what to do with it, first (Mario, 28 Sep 2026).
-    const sourceSlides = a.kind === "text" ? a.sourceSlides : undefined;
+    const sourceSlides = a.sourceSlides;
     const withUse = (analysis: SheetAnalysis): SheetAnalysis =>
       sourceSlides?.length
-        ? { ...analysis, questions: [fileUseQuestion(planReplica(sourceSlides).contentCount), ...analysis.questions] }
+        ? { ...analysis, questions: [fileUseQuestion(planReplica(sourceSlides).contentCount, unitOf(a)), ...analysis.questions] }
         : analysis;
     const update = (patch: { analysis?: SheetAnalysis; analysisError?: string }) =>
       setAttachments((list) => list.map((x) => (x.id === a.id && canQuestion(x) ? { ...x, ...patch } : x)));
@@ -521,7 +535,7 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
     // An attached deck is asked what to do with it on every press until the
     // choice is made (Mario, 28 Sep 2026: a file whose questions were already
     // answered went straight to the deck and the choice never showed).
-    const undecidedDeck = (a: Attachment) => a.kind === "text" && !!a.sourceSlides?.length && !a.answers?.[USE_QUESTION_ID];
+    const undecidedDeck = (a: Attachment) => canQuestion(a) && !!a.sourceSlides?.length && !a.answers?.[USE_QUESTION_ID];
     const queue = attachments.filter(canQuestion).filter((a) => !a.asked || undecidedDeck(a)).map((a) => a.id);
     const words = brief.trim().split(/\s+/).filter(Boolean).length;
     const briefAlone = attachments.length === 0 && !twoPager && words > 0 && words < SHORT_BRIEF_WORDS;
@@ -543,8 +557,8 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
         const a = attachments.find((x) => x.id === id)!;
         if (canQuestion(a) && !a.analysis) void analyzeAttachment(a, brief);
         // Read before the choice existed: the choice goes in front of its questions.
-        else if (a.kind === "text" && a.sourceSlides?.length && a.analysis && !a.analysis.questions.some((q) => q.id === USE_QUESTION_ID)) {
-          const analysis = { ...a.analysis, questions: [fileUseQuestion(planReplica(a.sourceSlides).contentCount), ...a.analysis.questions] };
+        else if (canQuestion(a) && a.sourceSlides?.length && a.analysis && !a.analysis.questions.some((q) => q.id === USE_QUESTION_ID)) {
+          const analysis = { ...a.analysis, questions: [fileUseQuestion(planReplica(a.sourceSlides).contentCount, unitOf(a)), ...a.analysis.questions] };
           setAttachments((list) => list.map((x) => (x.id === a.id && canQuestion(x) ? { ...x, analysis } : x)));
         }
       }
@@ -563,7 +577,7 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
     const brief = state.brief;
     // "Replicate it" on an attached deck: slide by slide, see runReplicate.
     const replica = !twoPager
-      ? attachments.find((x): x is Extract<Attachment, { kind: "text" }> => x.kind === "text" && !!x.sourceSlides?.length && fileUseOf(x.answers) === "replicate")
+      ? attachments.find((x): x is Extract<Attachment, { kind: "text" | "pdf" }> => canQuestion(x) && !!x.sourceSlides?.length && fileUseOf(x.answers) === "replicate")
       : undefined;
     if (replica) return runReplicate(replica);
     // A two-pager is a fixed-length piece, so the count is the user's; a
@@ -656,7 +670,7 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
    * block. No rhythm pass and no merge: the slides are the source's, one to
    * one; only empty photo slots are filled and the closing slide added.
    */
-  const runReplicate = async (file: Extract<Attachment, { kind: "text" }>) => {
+  const runReplicate = async (file: Extract<Attachment, { kind: "text" | "pdf" }>) => {
     const { steps } = planReplica(file.sourceSlides ?? []);
     if (!steps.length) return;
     abortRef.current?.abort();

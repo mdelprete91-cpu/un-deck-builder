@@ -63,7 +63,7 @@ function resolve(base: string, target: string): string {
   return parts.join("/");
 }
 
-interface Para {
+export interface Para {
   text: string;
   level: number;
   /** Largest run size on the line, in hundredths of a point (0 if not set). */
@@ -114,10 +114,10 @@ function readTable(xml: string): string {
   return rows.length ? `Table:\n${rows.map((r) => `| ${r.join(" | ")} |`).join("\n")}` : "";
 }
 
-const PURE_NUMBER = /^[-–+~]?\s?[\d.,]+\s?%?$/;
-const FOOTNOTE = /^(\d{1,2}[.)]\s|[¹²³⁴⁵⁶⁷⁸⁹])/;
+export const PURE_NUMBER = /^[-–+~]?\s?[\d.,]+\s?%?$/;
+export const FOOTNOTE = /^(\d{1,2}[.)]\s|[¹²³⁴⁵⁶⁷⁸⁹])/;
 
-interface Raw {
+export interface Raw {
   n: number;
   title: string;
   lines: string[];
@@ -267,6 +267,15 @@ export async function readPptx(buf: ArrayBuffer): Promise<{ text: string; slides
     const r = await readSlide(zip, path, raws.length + 1, slideWidth);
     if (r) raws.push(r);
   }
+  return classify(raws);
+}
+
+/**
+ * From the text of each slide or page to the deck the replica reads: the
+ * boilerplate out, the heading found, the kind of each slide, the text for
+ * the model. Shared by the PowerPoint reader and the PDF one (pdf-source.ts).
+ */
+export function classify(raws: Raw[]): { text: string; slides: SourceSlide[] } {
 
   // Boilerplate: a line on more than half the slides (footer handles, the
   // running header "School & Health Facility Connectivity") says nothing.
@@ -280,6 +289,7 @@ export async function readPptx(buf: ArrayBuffer): Promise<{ text: string; slides
   const HANDLE = /^(@\S+|(www\.)?[a-z0-9-]+\.(org|com|global|net)(\/\S*)?|\d{1,3}\s*\|\s*\S+)$/i;
 
   const agendaTexts = new Set<string>();
+  let agendaSeen = 0;
   const slides: SourceSlide[] = raws.map((r) => {
     const lines = r.lines.filter((l) => !boiler.has(l) && !HANDLE.test(l.replace(/^- /, "")));
     // No title placeholder (most consulting decks draw the heading in a text
@@ -320,6 +330,10 @@ export async function readPptx(buf: ArrayBuffer): Promise<{ text: string; slides
       const bullets = r.paras.filter((p) => !AGENDA_WORD.test(p.text) && !HANDLE.test(p.text) && !PURE_NUMBER.test(p.text) && p.text.length > 2);
       slide.chapters = bullets.map((p) => p.text);
       slide.current = currentOf(bullets);
+      // No colour to read (a PDF): the k-th agenda opens the k-th chapter,
+      // the way a deck that repeats its agenda before each chapter runs.
+      if (slide.current < 0 && agendaSeen < slide.chapters.length) slide.current = agendaSeen;
+      agendaSeen++;
     }
     return slide;
   });

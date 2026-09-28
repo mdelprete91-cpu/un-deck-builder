@@ -30,6 +30,13 @@ interface Questioned {
   analysisError?: string;
   /** The wizard has shown this file once (answered, skipped or closed): Generate does not ask again. */
   asked?: boolean;
+  /**
+   * A PowerPoint or a PDF, slide by slide or page by page (pptx-source.ts,
+   * pdf-source.ts): the wizard asks what to do with it, and "replicate"
+   * builds the deck from these. Editor-only, never sent: the file itself
+   * already travels.
+   */
+  sourceSlides?: SourceSlide[];
 }
 
 export type Attachment =
@@ -46,12 +53,6 @@ export type Attachment =
       textOnly?: boolean;
       /** The text is an Excel workbook laid out as tables: the chip shows a sheet and the wizard always asks. */
       spreadsheet?: boolean;
-      /**
-       * A PowerPoint file, slide by slide (lib/slides/pptx-source.ts): the
-       * wizard asks what to do with it, and "replicate" builds the deck from
-       * these. Editor-only, never sent: the text already carries it all.
-       */
-      sourceSlides?: SourceSlide[];
     } & Questioned);
 
 /** The kinds the model reads and may have questions about (images are looked at, not questioned). */

@@ -537,7 +537,15 @@ deck, a flat text in file order. Now:
   agenda (named so, or repeating an earlier agenda; the chapter in progress is the bullet whose
   colour no other bullet shares), divider (a title and little else), closing, content.
   `extractPptx` is this reader's text, so "use as a source" reads the file better too.
-- **The wizard asks what to do with it**, first, for every pptx (`fileUseQuestion` in
+- **A PDF is read the same way, page by page** (`lib/slides/pdf-source.ts`, 28 Sep 2026): pdf.js
+  runs become lines, lines become paragraphs (a point opens at a bullet glyph, often a control or
+  private-use character, a size change or a gap; a word broken at a hyphen is mended), a number
+  alone is a chart label with its position, the footer's site and page number are dropped, and the
+  shared `classify` (in `pptx-source.ts`) does the rest. A PDF has no colours to read, so an agenda
+  repeated before each chapter opens the chapters in order. A PDF with no text layer has no pages:
+  it is used as a source, and the question is not asked. The Gambia PDF replicates to the same 36
+  slides as its pptx.
+- **The wizard asks what to do with it**, first, for every pptx and every PDF with text (`fileUseQuestion` in
   `sheet-questions.ts`, prepended by the client to the model's own questions, never empty so the
   file is always asked): replicate, reinterpret (one line in the file's insights), or use as a
   source (the default when skipped). Until that choice is made, every Generate press opens the

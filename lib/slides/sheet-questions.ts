@@ -137,12 +137,12 @@ export const USE_QUESTION_ID = "use";
 export type FileUse = "replicate" | "reinterpret" | "source";
 // The choice is the short name; what it does is the line under it (Mario,
 // 28 Sep 2026: "too much text, make replicate / reinterpret / source clear").
-const USE_OPTIONS: Record<FileUse, { label: string; detail: (n: number) => string }> = {
-  replicate: { label: "Replicate", detail: (n) => `One slide for each of its ${n} content slides, in order, every text and figure kept.` },
+const USE_OPTIONS: Record<FileUse, { label: string; detail: (n: number, unit?: string) => string }> = {
+  replicate: { label: "Replicate", detail: (n, unit = "slides") => `One slide for each of its ${n} content ${unit}, in order, every text and figure kept.` },
   reinterpret: { label: "Reinterpret", detail: () => "The same story in a new structure. Facts and figures kept." },
   source: { label: "Use as a source", detail: () => "Only what your brief asks for." },
 };
-export function fileUseQuestion(contentSlides: number): SheetQuestion {
+export function fileUseQuestion(contentSlides: number, unit: "slides" | "pages" = "slides"): SheetQuestion {
   const keys = Object.keys(USE_OPTIONS) as FileUse[];
   return {
     id: USE_QUESTION_ID,
@@ -150,7 +150,7 @@ export function fileUseQuestion(contentSlides: number): SheetQuestion {
     why: "",
     kind: "single",
     options: keys.map((k) => USE_OPTIONS[k].label),
-    details: keys.map((k) => USE_OPTIONS[k].detail(contentSlides)),
+    details: keys.map((k) => USE_OPTIONS[k].detail(contentSlides, unit)),
   };
 }
 /** The use chosen for a file; unanswered or skipped is "source". */

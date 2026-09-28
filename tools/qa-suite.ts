@@ -24,6 +24,7 @@ import { closingFor, finishDeck, makeRhythm, mergeContinuations, stripInventedYe
 import { PARTNER_NAMES } from "../lib/slides/partners";
 import { extractDocx, extractPptx, extractXlsx, type Attachment } from "../lib/slides/attachments";
 import { readPptx } from "../lib/slides/pptx-source";
+import { readPdfSlides } from "../lib/slides/pdf-source";
 import { densityHint, planReplica, withSourceDensity } from "../lib/slides/replicate";
 import { fillPhotos } from "../lib/slides/library";
 
@@ -221,7 +222,8 @@ async function loadAttachment(path: string, id: string): Promise<Attachment> {
  */
 async function replicatePrompt(p: Prompt, brief: string, path: string, t0: number): Promise<Result> {
   const buf = readFileSync(path);
-  const { slides: source } = await readPptx(buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength));
+  const ab = buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength);
+  const { slides: source } = /\.pdf$/i.test(path) ? await readPdfSlides(ab) : await readPptx(ab);
   const { steps } = planReplica(source);
   const results: (SlideContent | null)[] = steps.map((st) => (st.kind === "fixed" ? normalizeSlide(st.content, { brandId: BRAND_ID }) : null));
   const findings: string[] = [];

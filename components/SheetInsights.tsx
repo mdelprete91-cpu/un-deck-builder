@@ -45,10 +45,10 @@ export default function SheetInsights({
                 ? `${total} question${total === 1 ? "" : "s"} to answer`
                 : `${done} of ${total} answered`;
         // An attached deck says what Generate will do with it (Mario, 28 Sep 2026).
-        const use = a.kind === "text" && a.sourceSlides?.length ? fileUseOf(a.answers) : null;
+        const use = a.sourceSlides?.length ? fileUseOf(a.answers) : null;
         const useLine =
           use === "replicate"
-            ? `Replicate · ${planReplica(a.kind === "text" ? (a.sourceSlides ?? []) : []).steps.length + 1} slides`
+            ? `Replicate · ${planReplica(a.sourceSlides ?? []).steps.length + 1} slides`
             : use === "reinterpret"
               ? "Reinterpret"
               : use === "source"
