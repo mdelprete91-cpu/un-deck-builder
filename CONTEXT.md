@@ -260,7 +260,8 @@ offer.
   behavior when touching the route.
 - **The slide count comes from the brief.** `countFromBrief` in `app/page.tsx` reads "20-page",
   "in 6 slides", "Six slides", "10 diapositive" (digits or number words, English and Italian, from
-  two up to twenty) and sends it as `count`; one is never a count, "uno slide deck per UNICEF"
+  two up to `MAX_SLIDES`, forty since 28 Sep 2026, when a 38-slide investment case had to be
+  rebuilt with all its text) and sends it as `count`; one is never a count, "uno slide deck per UNICEF"
   read as one slide gave a cover and a closing slide and nothing else (23 Sep 2026); the user turn then demands exactly that many and the route
   sizes `max_tokens` to it (650 tokens a slide, all thirteen fields are required). A count
   followed by per / each / ogni ("one slide per objective") is a structure, not a length, and is
@@ -404,7 +405,7 @@ found the same slips in run after run with the rule in the prompt. Each got a de
 guard, all pure functions, none touching the user's words:
 
 - **`lib/slides/brief.ts`** reads the brief before the model does: `countFromBrief` (digits or
-  number words from two to twenty in English and Italian, slide words in five languages, a count
+  number words from two to forty in English and Italian, slide words in five languages, a count
   followed by per / each / ogni skipped, one is never a count), `seriesFromBrief` ("one slide
   per …"), `uniformFromBrief` ("same layout"), `languageOf` (stopword counts; the user turn then
   says "write every slide in Italian", because the same-language rule alone was ignored on short
@@ -433,7 +434,7 @@ guard, all pure functions, none touching the user's words:
   slide the one layout that holds the longest of them (list past four points), which the streaming
   pass could not know; `ENSURE_CLOSING` appends the default closing slide when the model left it
   out (a numbers deck of eight stats ended on a stat). A topped-up slide whose title the deck
-  already has is dropped as a repeat. The route budgets 800 tokens a slide (a fifteen-slide deck
+  already has is dropped as a repeat. The route budgets 800 tokens a slide, up to 36k for a forty-slide deck, and runs for up to 300 s (`maxDuration`; thirty slides from the Gambia pptx took 26 s) (a fifteen-slide deck
   with chapters from a long report was truncated at 650), and a named count under twelve with
   chapters on asks for at most two chapters.
 - **Icons are the model's, from a curated list** (Mario, 26 Sep 2026, after a globe on "Award"):

@@ -1,4 +1,5 @@
 import { CATALOG } from "./catalog";
+import { MAX_SLIDES } from "./brief";
 import type { Attachment } from "@/lib/slides/attachments";
 import type { ResponseInputContent } from "openai/resources/responses/responses";
 import { PAGE_CATALOG } from "./page-catalog";
@@ -205,7 +206,7 @@ export function buildUserMessage(body: GenerateBody): string {
           : `The brief asks for one slide per item: make exactly one slide for each item it lists, plus the cover and the closing slide${body.chapters === false ? "" : ", and the agenda and dividers if the deck has chapters"}.`
         : typeof body.count === "number"
           ? `Produce exactly ${body.count} slides, no more and no fewer, counting the cover and the closing slide${chaptersCount}.`
-          : "Choose the number of slides yourself (typically 8-14). A \"page\" in the brief means a slide.";
+          : `Choose the number of slides yourself (typically 8-14; when the brief asks to carry long material in full, as many as it takes, up to ${MAX_SLIDES}). A "page" in the brief means a slide.`;
       return `Brief: ${body.brief}${brand}${language}${notes}\n\nCreate the deck that best tells this story. ${length}${noChapters}`;
     }
   }

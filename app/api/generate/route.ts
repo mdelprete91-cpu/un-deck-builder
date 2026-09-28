@@ -12,10 +12,11 @@ import type { DeckFormat } from "@/lib/slides/state";
 import { SlideStreamParser } from "@/lib/slides/parse";
 import { sanitizeAttachments } from "@/lib/slides/attachments-server";
 import { fetchLinkedPages } from "@/lib/slides/links-server";
-import { languageOf } from "@/lib/slides/brief";
+import { languageOf, MAX_SLIDES } from "@/lib/slides/brief";
 import { cleanVoice } from "@/lib/slides/voice";
 
 export const runtime = "nodejs";
+export const maxDuration = 300;
 
 /**
  * GPT-6 Luna (Mario's call, 25 Sep 2026, in place of claude-haiku-4-5): the
@@ -26,7 +27,9 @@ export const runtime = "nodejs";
 const MODEL = "gpt-6-luna";
 /** No token for this long, or this long in all, and the stream is cut. */
 const IDLE_MS = 60_000;
-const TOTAL_MS = 240_000;
+// A forty-slide deck is about 32k output tokens: the whole stream has to fit
+// under the function limit below, with a margin to close it cleanly.
+const TOTAL_MS = 285_000;
 /**
  * Both prompts are built once at module load: nothing per-request may go in
  * here (that is what the user message is for), and building two strings costs
@@ -120,7 +123,7 @@ export async function POST(request: Request): Promise<Response> {
   // With `perItem` the named count is the items, and the cover and the
   // closing slide come on top of it.
   const named = typeof body.count === "number" ? body.count + (body.perItem ? 2 : 0) : 20;
-  const count = body.mode === "regenerate" ? 1 : Math.min(Math.max(named, 1), 22);
+  const count = body.mode === "regenerate" ? 1 : Math.min(Math.max(named, 1), MAX_SLIDES + 2);
   // Add mode carries extra output (insertAfter + refreshed agenda bullets).
   // Every slide carries all its required fields, so a content-heavy slide (a
   // PDF behind it) costs 400-750 tokens: 800 keeps twenty-two of them under
@@ -130,7 +133,7 @@ export async function POST(request: Request): Promise<Response> {
   // 800 a slide since 26 Sep 2026: a fifteen-slide deck with chapters from a
   // long report hit 650 and came back truncated.
   const perItem = twoPager ? 1600 : 800;
-  const maxTokens = Math.min(800 + perItem * count + (isAdd ? 400 : 0), 20000);
+  const maxTokens = Math.min(800 + perItem * count + (isAdd ? 400 : 0), 36000);
   const encoder = new TextEncoder();
 
   const stream = new ReadableStream({

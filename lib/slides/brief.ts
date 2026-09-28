@@ -22,7 +22,7 @@ export const MIN_SLIDES_WITH_CHAPTERS = 8;
 /**
  * Number words the brief may use instead of a digit ("Six slides" went
  * unread on 22 Sep 2026 and the model chose fourteen). English and Italian,
- * from two up to the route's ceiling of twenty. One is not here on purpose:
+ * from two up to `MAX_SLIDES`. One is not here on purpose:
  * "uno slide deck per UNICEF" and "one slide deck for the board" are
  * articles, and read as a count of one they produced a cover and a closing
  * slide and nothing else (23 Sep 2026). A deck of one slide does not exist.
@@ -41,11 +41,21 @@ const NUMBER_WORDS: Record<string, number> = {
   deux: 2, trois: 3, quatre: 4, cinq: 5, sept: 7, huit: 8, neuf: 9, dix: 10, onze: 11,
   douze: 12, treize: 13, quatorze: 14, quinze: 15, seize: 16, "dix-sept": 17, "dix-huit": 18,
   "dix-neuf": 19, vingt: 20,
+  // Tens past twenty (28 Sep 2026, when the ceiling went to forty); other
+  // counts past twenty are written in digits in practice.
+  thirty: 30, forty: 40, trenta: 30, quaranta: 40, treinta: 30, cuarenta: 40, trente: 30, quarante: 40,
 };
 
 /**
+ * The longest deck the route writes (Mario, 28 Sep 2026: a 38-slide
+ * investment case to rebuild with all its text; twenty was the ceiling
+ * before). The route budgets tokens and time for it.
+ */
+export const MAX_SLIDES = 40;
+
+/**
  * The slide count named in the brief ("a 20-page deck", "in 6 slides", "Six
- * slides", "10 diapositive"), clamped to the route's 1-20. Undefined when the
+ * slides", "10 diapositive"), clamped to `MAX_SLIDES`. Undefined when the
  * brief names none, and then the model chooses the length. Sent as `count` so
  * the prompt can demand it exactly and the route can budget output tokens for
  * it: left as prose, the model anchored on its own "typically 8-14" and the
@@ -65,7 +75,7 @@ export function countFromBrief(brief: string): number | undefined {
   if (!m) return undefined;
   const n = /^\d/.test(m[1]) ? parseInt(m[1], 10) : NUMBER_WORDS[m[1].toLowerCase()];
   if (!n || n < 2) return undefined;
-  return Math.min(20, n);
+  return Math.min(MAX_SLIDES, n);
 }
 
 /**

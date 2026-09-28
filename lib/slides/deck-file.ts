@@ -1,3 +1,4 @@
+import { MAX_SLIDES as MAX_GENERATED } from "./brief";
 import { z } from "zod";
 import { DEFAULT_DECK_NAME } from "./state";
 import { isBrandId } from "./brand";
@@ -182,7 +183,7 @@ export function parseDeckFile(html: string): DeckFileResult {
     slides,
     activeIndex: Math.min(Math.max(0, Math.trunc(raw.activeIndex ?? 0)), slides.length - 1),
     brief: raw.brief ?? "",
-    count: Math.min(20, Math.max(1, Math.trunc(raw.count ?? 8))),
+    count: Math.min(MAX_GENERATED, Math.max(1, Math.trunc(raw.count ?? 8))),
     chapters: raw.chapters ?? true,
   };
   // An unknown brand leaves the current one alone rather than picking for the user.
