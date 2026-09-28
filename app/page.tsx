@@ -29,7 +29,7 @@ import ImagePickerModal from "@/components/ImagePickerModal";
 import EditWithAiModal from "@/components/EditWithAiModal";
 import SheetWizard from "@/components/SheetWizard";
 import { compileInsights, normalizeAnalysis, SHORT_BRIEF_WORDS, USE_QUESTION_ID, fileUseOf, fileUseQuestion, type SheetAnalysis, type SheetAnswers } from "@/lib/slides/sheet-questions";
-import { densityHint, planReplica, withSourceDensity } from "@/lib/slides/replicate";
+import { densityHint, planReplica, withContentDensity } from "@/lib/slides/replicate";
 import { readPdfSlides } from "@/lib/slides/pdf-source";
 /** How the file-use question counts a file: slides for a deck, pages for a PDF. */
 const unitOf = (a: { name: string }) => (/\.pdf$/i.test(a.name) ? ("pages" as const) : ("slides" as const));
@@ -741,7 +741,7 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
             return;
           }
           if (slide && !CHAPTER_LAYOUTS.has(slide.layoutId) && slide.layoutId !== "thank-you" && slide.layoutId !== "cover") {
-            results[i] = withSourceDensity(slide, st.source);
+            results[i] = withContentDensity(slide);
             return;
           }
         } catch (err) {

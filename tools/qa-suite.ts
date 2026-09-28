@@ -25,7 +25,7 @@ import { PARTNER_NAMES } from "../lib/slides/partners";
 import { extractDocx, extractPptx, extractXlsx, type Attachment } from "../lib/slides/attachments";
 import { readPptx } from "../lib/slides/pptx-source";
 import { readPdfSlides } from "../lib/slides/pdf-source";
-import { densityHint, planReplica, withSourceDensity } from "../lib/slides/replicate";
+import { densityHint, planReplica, withContentDensity } from "../lib/slides/replicate";
 import { fillPhotos } from "../lib/slides/library";
 
 const URL = process.env.QA_URL ?? "http://localhost:3777";
@@ -245,7 +245,7 @@ async function replicatePrompt(p: Prompt, brief: string, path: string, t0: numbe
         cost += out.usage ? (out.usage.inputTokens * 0.1 + out.usage.outputTokens * 0.5) / 1_000_000 : 0;
         const c = out.slides[0] ? normalizeSlide(out.slides[0], { brandId: BRAND_ID }) : null;
         if (c && st.kind === "cover") results[i] = { layoutId: "cover", title: c.title || st.source.title, subtitle: c.subtitle ?? "" };
-        else if (c && !STRUCTURAL.has(c.layoutId)) results[i] = st.kind === "content" ? withSourceDensity(c, st.source) : c;
+        else if (c && !STRUCTURAL.has(c.layoutId)) results[i] = st.kind === "content" ? withContentDensity(c) : c;
       }
       if (!results[i]) findings.push(`source slide ${st.source.n} not rebuilt`);
     }

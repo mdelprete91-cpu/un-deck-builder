@@ -591,10 +591,14 @@ on the left; timeline and progress run through `stagesSlide(…, dense)`.
   five dense layouts) and "High density" (every variant, from `denseContent` in `defaults.ts`,
   plus the five dense layouts).
 - **The model** has `density` in the output schema ("" or "high") and one DENSITY rule in the
-  prompt. In a replica a source slide past `DENSE_WORDS` (70) is flagged in its context, and
-  `withSourceDensity` sets "high" when the model picked a layout with a variant and left it off:
-  dense content lands dense by default (Mario's call). Luna still prefers the five dense layouts
-  for dense slides, which are dense too. A rewrite keeps the slide's density.
+  prompt. In a replica the density follows the content, not the source's length (Mario, 28 Sep
+  2026: "replicate does not mean high density"): `withContentDensity` in `replicate.ts` sets
+  "high" when the slide's text runs past its layout's standard word limits (`STANDARD_LIMITS`, the
+  catalog's, plus a fifth), its blocks carry points or a chart carries an explanation, and removes
+  it when the text fits the standard version, whatever the model set. Luna still prefers the five
+  dense layouts for dense slides, which are dense by design. A rewrite keeps the slide's density.
+  A source "divider" with a line of text that opens nothing (the last slide, or one before another
+  divider) is replicated as a content slide, not dropped.
 - **Negative values** on every chart but the donut (a share): `signedValue` and a sign-aware `fmt`
   (typographic minus) in `layouts/stats.ts`, `scaleOf` / `zeroLine` in `layouts/charts.ts`: the
   zero line moves up, is drawn darker, bars hang from it, horizontal bars run left of it, stacked
