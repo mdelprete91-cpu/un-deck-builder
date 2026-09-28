@@ -197,10 +197,13 @@ still offering. `onDeckArrived` releases it, which is also what stops the offer 
 behind a deck the user has since deleted; Discard calls `clearSaved`.
 
 **"How it works" is two narrated videos, not a tour** (Mario, 28 Sep 2026; the spotlight tour
-is gone). `components/HelpModal.tsx` plays `public/help/create.mp4` ("Create a deck") or
-`edit.mp4` ("Edit your slides", the tab it opens on once a deck exists), with English captions
-(`.vtt`) and a chapter list (`.chapters.json`, imported at build time) that seeks and follows
-playback. The videos are the real editor, driven by `tools/help-video/`:
+is gone). `components/HelpModal.tsx` plays `public/help/create.mp4` and `edit.mp4` as one
+sequence, with English captions (`.vtt`). No tabs (Mario, the same day): the rail beside the
+player is the table of contents, the two videos as two numbered chapters that fold open onto
+their moments (`.chapters.json`, imported at build time; the chapter playing has an Ink ring on
+its number), the moment playing a Mist row with a hairline of Giga Blue for its progress, a click
+on any moment plays from there. It opens on the edit video once a deck exists. Durations are
+constants in `VIDEOS`: update them after a re-record. The videos are the real editor, driven by `tools/help-video/`:
 
 - `script.json` is the narration, one scene per chapter; `voice.ts` turns it into ElevenLabs
   clips (voice Bella, `ELEVENLABS_API_KEY` in `.env.local`, unchanged text is skipped) with
