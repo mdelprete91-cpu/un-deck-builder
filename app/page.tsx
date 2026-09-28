@@ -314,7 +314,7 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
             if (event.truncated && !opts.collectInsert) {
               dispatch({
                 type: "GENERATION_ERROR",
-                error: `The deck was cut short at ${received} slide${received === 1 ? "" : "s"}: the model ran out of room. Ask for fewer slides or a shorter brief, or add the rest with Add slides.`,
+                error: `The deck was cut short at ${received} slide${received === 1 ? "" : "s"}: the model ran out of room. Ask for fewer slides or a shorter brief, or generate the rest with Generate more slides.`,
               });
             }
           } else if (event.type === "error") {

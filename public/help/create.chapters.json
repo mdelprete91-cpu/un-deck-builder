@@ -31,17 +31,17 @@
  },
  {
   "id": "add",
-  "title": "Add slides",
-  "start": 56.5
+  "title": "Generate more slides",
+  "start": 57.5
  },
  {
   "id": "present",
   "title": "Present",
-  "start": 71.3
+  "start": 71.4
  },
  {
   "id": "download",
   "title": "Download",
-  "start": 84.3
+  "start": 84.4
  }
 ]

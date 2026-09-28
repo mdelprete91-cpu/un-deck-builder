@@ -197,12 +197,12 @@ const create: Record<string, Act> = {
   },
   add: async (p) => {
     await reset(p);
-    await click(p, 'button:has-text("Add slides")');
+    await click(p, 'button:has-text("Generate more slides")');
     const ta = 'textarea[placeholder^="E.g. team structure"]';
     await p.locator(ta).waitFor();
     await zoom(p, ta, 1.3);
     await type(p, ta, "One slide on the risks in the northern counties");
-    await click(p, 'div.pop-in button:has-text("Add slides")');
+    await click(p, 'div.pop-in button:has-text("Generate")');
     await reset(p);
     await sleep(2500);
     await click(p, '[data-tour="insert"]');

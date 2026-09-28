@@ -165,8 +165,9 @@ export default function Sidebar({
           onClick={() => setAddOpen(true)}
           disabled={generating}
           className="w-full"
+          title="The AI writes new slides from what you describe (Add slide, above the thumbnails, inserts a layout you pick)"
         >
-          Add slides
+          Generate more slides
         </Button>
       )}
 
@@ -179,10 +180,10 @@ export default function Sidebar({
             className="pop-in w-full max-w-md rounded-2xl bg-surface p-5 shadow-stripe-lg"
             onClick={(e) => e.stopPropagation()}
           >
-            <Eyebrow>Add slides</Eyebrow>
+            <Eyebrow>Generate more slides</Eyebrow>
             <p className="mb-3 text-xs leading-relaxed text-ink-muted">
-              Describe what to add. The AI writes the slides, picks where they fit and updates the
-              agenda.
+              Describe what&apos;s missing. The AI writes the slides, places them where they fit and
+              updates the agenda.
             </p>
             <textarea
               autoFocus
@@ -220,7 +221,7 @@ export default function Sidebar({
                   }}
                   disabled={generating || !addBrief.trim()}
                 >
-                  Add slides
+                  Generate
                 </Button>
               </div>
             </div>

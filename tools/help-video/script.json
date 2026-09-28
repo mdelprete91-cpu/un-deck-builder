@@ -2,28 +2,113 @@
   "create": {
     "title": "Create a deck",
     "scenes": [
-      { "id": "intro", "chapter": "Start", "text": "This is the deck builder. You describe the deck you need, and it builds it from the approved template, so the result is always on brand.", "action": "Empty editor, zoom on the prompt box." },
-      { "id": "brief", "chapter": "Write the brief", "text": "Start with the brief. Say what the deck is for, who it is for, and how many slides you want. The more concrete the brief, the better the deck.", "action": "Type a brief: 'Eight slides for the donor steering committee on school connectivity in Kenya in 2025.'" },
-      { "id": "attach", "chapter": "Attach material", "text": "Then attach your material: a PDF, a Word or PowerPoint file, an Excel sheet, or a link in the brief. The deck is written from it, and the brief decides the angle.", "action": "Click the plus, attach an Excel file and a PDF; the chips appear." },
-      { "id": "chapters", "chapter": "Chapters", "text": "Turn on Chapters if the deck needs an agenda and section dividers. Leave it off for a deck that runs straight through.", "action": "Zoom on the Chapters pill, toggle it." },
-      { "id": "questions", "chapter": "Answer a few questions", "text": "Press Generate. If the material leaves something open, like which sheet to use or what to headline, you get a few questions written for your files. Answer them, or skip.", "action": "Click Generate; the questions dialog opens; pick two answers; press Generate." },
-      { "id": "generate", "chapter": "Generate", "text": "The slides arrive one by one. Charts use the numbers from your sheet, and photos come from the Giga library.", "action": "The pill travels down into the slide bar; slides land; zoom on a chart slide." },
-      { "id": "add", "chapter": "Add slides", "text": "Need more? Add slides lets you describe what is missing, and it lands where it belongs. Or pick any layout yourself with Add slide.", "action": "Open Add slides, type a short request, submit; then open the Add slide picker and insert a layout." },
-      { "id": "present", "chapter": "Present", "text": "Press play to present full screen, with the template's animations. Use the arrow keys, and Escape to leave.", "action": "Click the play button; the cover animates; advance twice; Escape." },
-      { "id": "download", "chapter": "Download", "text": "Finally, download the deck as PDF, PowerPoint or HTML. Nothing is stored on a server, so keep the HTML file: upload it here again to continue editing.", "action": "Open the Download menu, zoom on the three options." }
+      {
+        "id": "intro",
+        "chapter": "Start",
+        "text": "This is the deck builder. You describe the deck you need, and it builds it from the approved template, so the result is always on brand.",
+        "action": "Empty editor, zoom on the prompt box."
+      },
+      {
+        "id": "brief",
+        "chapter": "Write the brief",
+        "text": "Start with the brief. Say what the deck is for, who it is for, and how many slides you want. The more concrete the brief, the better the deck.",
+        "action": "Type a brief: 'Eight slides for the donor steering committee on school connectivity in Kenya in 2025.'"
+      },
+      {
+        "id": "attach",
+        "chapter": "Attach material",
+        "text": "Then attach your material: a PDF, a Word or PowerPoint file, an Excel sheet, or a link in the brief. The deck is written from it, and the brief decides the angle.",
+        "action": "Click the plus, attach an Excel file and a PDF; the chips appear."
+      },
+      {
+        "id": "chapters",
+        "chapter": "Chapters",
+        "text": "Turn on Chapters if the deck needs an agenda and section dividers. Leave it off for a deck that runs straight through.",
+        "action": "Zoom on the Chapters pill, toggle it."
+      },
+      {
+        "id": "questions",
+        "chapter": "Answer a few questions",
+        "text": "Press Generate. If the material leaves something open, like which sheet to use or what to headline, you get a few questions written for your files. Answer them, or skip.",
+        "action": "Click Generate; the questions dialog opens; pick two answers; press Generate."
+      },
+      {
+        "id": "generate",
+        "chapter": "Generate",
+        "text": "The slides arrive one by one. Charts use the numbers from your sheet, and photos come from the Giga library.",
+        "action": "The pill travels down into the slide bar; slides land; zoom on a chart slide."
+      },
+      {
+        "id": "add",
+        "chapter": "Generate more slides",
+        "text": "Need more? Generate more slides lets you describe what is missing, and the new slides land where they belong. Or pick a layout yourself with Add slide.",
+        "action": "Open Generate more slides, type a short request, submit; then open the Add slide picker and insert a layout."
+      },
+      {
+        "id": "present",
+        "chapter": "Present",
+        "text": "Press play to present full screen, with the template's animations. Use the arrow keys, and Escape to leave.",
+        "action": "Click the play button; the cover animates; advance twice; Escape."
+      },
+      {
+        "id": "download",
+        "chapter": "Download",
+        "text": "Finally, download the deck as PDF, PowerPoint or HTML. Nothing is stored on a server, so keep the HTML file: upload it here again to continue editing.",
+        "action": "Open the Download menu, zoom on the three options."
+      }
     ]
   },
   "edit": {
     "title": "Edit your slides",
     "scenes": [
-      { "id": "text", "chapter": "Edit text", "text": "Click any text on a slide to rewrite it. The text resizes itself to fit the layout.", "action": "Click a title, type a new one; zoom in." },
-      { "id": "ai", "chapter": "Edit with AI", "text": "Edit with AI rewrites a slide from a one-line instruction, and shows the same content in other layouts, so you can switch with a click. It never changes your photos.", "action": "Open Edit with AI; type an instruction; hover the layout previews; pick one." },
-      { "id": "images", "chapter": "Images", "text": "Click a photo to replace it. Choose from the Giga library, upload your own, or render a live map of any country. Drag the photo to reframe it.", "action": "Click a photo; the picker opens on Library; pick a photo; drag it to reframe." },
-      { "id": "icons", "chapter": "Icons", "text": "Icons are picked to match each card. To change one, click it and search the full icon set.", "action": "Click an icon card's icon; search 'school'; pick one." },
-      { "id": "charts", "chapter": "Charts and stats", "text": "Click a chart to open its data. Edit the values, rename the series, or add a row, and the chart updates as you type.", "action": "Click a grouped chart; the Data panel opens; change a value; the bars move." },
-      { "id": "progress", "chapter": "Progress and timelines", "text": "On a progress slide, click a stage to mark it as in progress. Everything before it shows as done.", "action": "Click the third stage; the bar fills." },
-      { "id": "elements", "chapter": "Add and remove", "text": "Add an element to a slide, or hover one and delete it. Undo brings anything back.", "action": "Click Element; hover a card; click the cross; press Undo." },
-      { "id": "order", "chapter": "Reorder", "text": "Drag the thumbnails to reorder the deck. When it is ready, press play to present, or download it.", "action": "Drag a thumbnail; end on the play button." }
+      {
+        "id": "text",
+        "chapter": "Edit text",
+        "text": "Click any text on a slide to rewrite it. The text resizes itself to fit the layout.",
+        "action": "Click a title, type a new one; zoom in."
+      },
+      {
+        "id": "ai",
+        "chapter": "Edit with AI",
+        "text": "Edit with AI rewrites a slide from a one-line instruction, and shows the same content in other layouts, so you can switch with a click. It never changes your photos.",
+        "action": "Open Edit with AI; type an instruction; hover the layout previews; pick one."
+      },
+      {
+        "id": "images",
+        "chapter": "Images",
+        "text": "Click a photo to replace it. Choose from the Giga library, upload your own, or render a live map of any country. Drag the photo to reframe it.",
+        "action": "Click a photo; the picker opens on Library; pick a photo; drag it to reframe."
+      },
+      {
+        "id": "icons",
+        "chapter": "Icons",
+        "text": "Icons are picked to match each card. To change one, click it and search the full icon set.",
+        "action": "Click an icon card's icon; search 'school'; pick one."
+      },
+      {
+        "id": "charts",
+        "chapter": "Charts and stats",
+        "text": "Click a chart to open its data. Edit the values, rename the series, or add a row, and the chart updates as you type.",
+        "action": "Click a grouped chart; the Data panel opens; change a value; the bars move."
+      },
+      {
+        "id": "progress",
+        "chapter": "Progress and timelines",
+        "text": "On a progress slide, click a stage to mark it as in progress. Everything before it shows as done.",
+        "action": "Click the third stage; the bar fills."
+      },
+      {
+        "id": "elements",
+        "chapter": "Add and remove",
+        "text": "Add an element to a slide, or hover one and delete it. Undo brings anything back.",
+        "action": "Click Element; hover a card; click the cross; press Undo."
+      },
+      {
+        "id": "order",
+        "chapter": "Reorder",
+        "text": "Drag the thumbnails to reorder the deck. When it is ready, press play to present, or download it.",
+        "action": "Drag a thumbnail; end on the play button."
+      }
     ]
   }
 }
