@@ -67,6 +67,7 @@ for (const s of scenes) {
     if (to < from) continue;
     const start = s.at + a.character_start_times_seconds[from];
     const stop = s.at + a.character_end_times_seconds[to] + 0.25;
+    // No cue settings: HelpModal draws the captions itself, inset from the frame.
     cues.push(`${ts(start)} --> ${ts(stop)}\n${text.slice(from, to + 1)}`);
   }
 }

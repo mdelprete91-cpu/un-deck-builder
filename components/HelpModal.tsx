@@ -37,6 +37,14 @@ export default function HelpModal({ initial = "create", onClose }: { initial?: V
   /** Where to start once the next source has loaded (a click in the other video). */
   const pending = useRef<number | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
+  /**
+   * The caption on screen. Native cues sat on the frame's edges and under the
+   * controls (Mario, 28 Sep 2026), and Chrome ignores the VTT position
+   * settings, so the track is kept hidden (the CC menu still works) and the
+   * text is drawn here, inset from the sides and above the control bar.
+   */
+  const [caption, setCaption] = useState("");
+  const [captionsOn, setCaptionsOn] = useState(true);
   const video = VIDEOS.find((v) => v.id === current)!;
   const active = video.chapters.reduce((at, c, i) => (time + 0.05 >= c.start ? i : at), 0);
 
@@ -53,6 +61,7 @@ export default function HelpModal({ initial = "create", onClose }: { initial?: V
     if (id !== current) {
       pending.current = at;
       setTime(at);
+      setCaption("");
       setCurrent(id);
       return;
     }
@@ -85,7 +94,7 @@ export default function HelpModal({ initial = "create", onClose }: { initial?: V
         </div>
 
         <div className="flex min-h-0 flex-col gap-5 p-6 md:flex-row">
-          <div className="min-w-0 flex-1">
+          <div className="relative min-w-0 flex-1 self-start">
             <video
               key={current}
               ref={videoRef}
@@ -102,6 +111,26 @@ export default function HelpModal({ initial = "create", onClose }: { initial?: V
                 }
               }}
               onTimeUpdate={(e) => setTime(e.currentTarget.currentTime)}
+              onLoadedData={(e) => {
+                const tracks = e.currentTarget.textTracks;
+                const sync = () => {
+                  const track = tracks[0];
+                  if (!track) return;
+                  // The player's CC menu turns the track "showing": it stays ours, drawn below.
+                  if (track.mode === "showing") track.mode = "hidden";
+                  setCaptionsOn(track.mode !== "disabled");
+                };
+                const track = tracks[0];
+                if (track) {
+                  track.mode = "hidden";
+                  track.oncuechange = () => {
+                    const cue = track.activeCues?.[0] as VTTCue | undefined;
+                    setCaption(cue?.text ?? "");
+                  };
+                }
+                tracks.onchange = sync;
+                sync();
+              }}
               // One sequence: the second video starts where the first ends.
               onEnded={() => {
                 const i = VIDEOS.findIndex((v) => v.id === current);
@@ -111,6 +140,13 @@ export default function HelpModal({ initial = "create", onClose }: { initial?: V
             >
               <track kind="captions" src={`/help/${current}.vtt`} srcLang="en" label="English" default />
             </video>
+            {captionsOn && caption && (
+              <div aria-hidden className="pointer-events-none absolute inset-x-[8%] bottom-[14%] flex justify-center">
+                <span className="rounded-md bg-[rgba(17,17,17,0.78)] px-2.5 py-1 text-center text-[clamp(13px,1.6vw,20px)] leading-snug text-white">
+                  {caption}
+                </span>
+              </div>
+            )}
           </div>
 
           <nav aria-label="Chapters" className="flex shrink-0 flex-col gap-1 overflow-y-auto md:max-h-[70vh] md:w-72">

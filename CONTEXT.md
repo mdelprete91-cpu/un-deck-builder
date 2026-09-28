@@ -202,7 +202,11 @@ sequence, with English captions (`.vtt`). No tabs (Mario, the same day): the rai
 player is the table of contents, the two videos as two numbered chapters that fold open onto
 their moments (`.chapters.json`, imported at build time; the chapter playing has an Ink ring on
 its number), the moment playing a Mist row with a hairline of Giga Blue for its progress, a click
-on any moment plays from there. It opens on the edit video once a deck exists. Durations are
+on any moment plays from there. It opens on the edit video once a deck exists. Captions are
+drawn by the dialog, not the player: the track stays `hidden` (its cues drive an overlay inset 8%
+from the sides and 14% from the bottom, above the control bar), because native cues sat on the
+frame's edges and Chrome ignores the VTT position settings; the player's CC menu still turns them
+off. Durations are
 constants in `VIDEOS`: update them after a re-record. The videos are the real editor, driven by `tools/help-video/`:
 
 - `script.json` is the narration, one scene per chapter; `voice.ts` turns it into ElevenLabs
