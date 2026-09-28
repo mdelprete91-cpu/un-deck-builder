@@ -57,7 +57,9 @@ export default function PromptBox({
   const fileRef = useRef<HTMLInputElement>(null);
   const [dragging, setDragging] = useState(false);
   const [reading, setReading] = useState(false);
-  const canSend = !generating && !blocked && (brief.trim().length > 0 || attachments.length > 0);
+  // Not while a file is still being read: the press would run without it,
+  // and a PDF would miss the question of what to do with it (28 Sep 2026).
+  const canSend = !generating && !blocked && !reading && (brief.trim().length > 0 || attachments.length > 0);
 
   // The "+" introduces itself: on an empty editor the pill widens to say
   // "Attach" for two seconds, then folds back to the icon. Hover reopens it,

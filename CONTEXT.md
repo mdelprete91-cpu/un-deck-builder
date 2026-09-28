@@ -543,15 +543,35 @@ deck, a flat text in file order. Now:
   private-use character, a size change or a gap; a word broken at a hyphen is mended), a number
   alone is a chart label with its position, the footer's site and page number are dropped, and the
   shared `classify` (in `pptx-source.ts`) does the rest. A PDF has no colours to read, so an agenda
-  repeated before each chapter opens the chapters in order. A PDF with no text layer has no pages:
-  it is used as a source, and the question is not asked. The Gambia PDF replicates to the same 36
+  repeated before each chapter opens the chapters in order. The Gambia PDF replicates to the same 36
   slides as its pptx.
-- **The wizard asks what to do with it**, first, for every pptx and every PDF with text (`fileUseQuestion` in
+- **A PDF with no text layer is asked too, and transcribed on Replicate** (28 Sep 2026: text turned
+  into outlines on export from Figma or Illustrator, or a scan; the Mexico DQR in English and
+  Spanish read 0 pages and the question never showed). `onAttach` keeps its page count
+  (`pageCount`, from `readPdfSlides`, capped at 80) where it would have kept slides; `isDeckSource`
+  in `attachments.ts` is the one test for "ask what to do with this file", a pptx or any PDF. The
+  question names its pages. Reinterpret and Use as a source send the file whole as a document, as
+  before. Replicate, only when chosen and Generate pressed, runs `transcribeThenReplicate` in
+  `app/page.tsx` under the generating state: `app/api/transcribe` sends the PDF as the same
+  `input_file` block `/api/analyze` uses (gpt-6-luna, reasoning off, strict schema, at most
+  `MAX_TRANSCRIBED_PAGES`, `MAX_SLIDES` minus cover and closing) and gets back `{ title, subtitle,
+  pages: [{ n, title, lines, footnotes }] }`; `slidesFromTranscript` in `lib/slides/transcribe.ts`
+  runs the pages through `classify` into the same `SourceSlide`s, so `planReplica` and
+  `runReplicate` are unchanged. A first page past 40 words is content (a report opens on its
+  figures), and the cover is built from the document's title. The pages are kept on the
+  attachment, so a second press does not transcribe again. A failed transcription generates the
+  deck with the file as a source and says so in the sidebar's red box. The digits come from the
+  page image, so the known limit below applies (3,323 read as 3,523 on the Mexico DQR again).
+- **The wizard asks what to do with it**, first, for every pptx and every PDF (`fileUseQuestion` in
   `sheet-questions.ts`, prepended by the client to the model's own questions, never empty so the
   file is always asked): replicate, reinterpret (one line in the file's insights), or use as a
   source. Reinterpret comes first and is preselected (Mario, 28 Sep 2026), then Replicate, then
   Use as a source; `preselectFileUse` writes the preselected answer and its insight the moment the
-  question is added, so a skip or a close means Reinterpret. Until that choice is made, every Generate press opens the
+  question is added, so a skip or a close means Reinterpret. The question does not wait on the
+  model's analysis: `analyzeAttachment` puts it up the moment the wizard opens and the model's own
+  questions join it when they land (a slow analysis once left only "Skip the questions", which
+  skipped this one too). Generate is disabled while a file is still being read, or a press would
+  run without it. Until that choice is made, every Generate press opens the
   wizard on it, even for a file whose other questions were answered (`undecidedDeck` in
   `onGenerate`; a file read before the choice existed gets it in front of its questions). The row
   under the chip says "Replicate · 36 slides".

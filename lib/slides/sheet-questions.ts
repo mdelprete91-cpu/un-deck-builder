@@ -128,7 +128,7 @@ export function normalizeAnalysis(raw: unknown): SheetAnalysis | null {
  */
 /**
  * What to do with an attached deck (Mario, 28 Sep 2026): asked first, by the
- * client, for every PowerPoint file, whatever the model's own questions. The
+ * client, for every PowerPoint file and every PDF, whatever the model's own questions. The
  * answer is not an insight like the others: "replicate" switches Generate to
  * the batched, one-slide-per-slide path (app/page.tsx), "reinterpret" adds a
  * line to the file's insights, "source" is the default reading.
@@ -141,7 +141,8 @@ export type FileUse = "replicate" | "reinterpret" | "source";
 // then Use as a source: the key order is the order on screen.
 const USE_OPTIONS: Record<FileUse, { label: string; detail: (n: number, unit?: string) => string }> = {
   reinterpret: { label: "Reinterpret", detail: () => "The same story in a new structure. Facts and figures kept." },
-  replicate: { label: "Replicate", detail: (n, unit = "slides") => `One slide for each of its ${n} content ${unit}, in order, every text and figure kept.` },
+  // n is 0 for a PDF pdf.js could not open: the pages are counted when the model reads them.
+  replicate: { label: "Replicate", detail: (n, unit = "slides") => `One slide for each of its ${n ? `${n} content ` : ""}${unit}, in order, every text and figure kept.` },
   source: { label: "Use as a source", detail: () => "Only what your brief asks for." },
 };
 /** The answer the question opens with, and what a skip or a close leaves. */

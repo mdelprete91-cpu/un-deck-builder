@@ -16,14 +16,16 @@ import { classify, FOOTNOTE, PURE_NUMBER, type Para, type Raw, type SourceSlide 
 
 type Item = { str: string; transform: number[]; hasEOL?: boolean };
 
-export async function readPdfSlides(data: ArrayBuffer): Promise<{ text: string; slides: SourceSlide[] }> {
+export async function readPdfSlides(data: ArrayBuffer): Promise<{ text: string; slides: SourceSlide[]; pages: number }> {
   const pdfjs = await import("pdfjs-dist/legacy/build/pdf.mjs");
   if (typeof window !== "undefined") {
     pdfjs.GlobalWorkerOptions.workerSrc = new URL("pdfjs-dist/legacy/build/pdf.worker.min.mjs", import.meta.url).toString();
   }
   const doc = await pdfjs.getDocument({ data: new Uint8Array(data) }).promise;
   const raws: Raw[] = [];
-  for (let n = 1; n <= Math.min(doc.numPages, 80); n++) {
+  // The page count travels too: a PDF with no text layer has pages but no slides (see transcribe.ts).
+  const pages = Math.min(doc.numPages, 80);
+  for (let n = 1; n <= pages; n++) {
     const page = await doc.getPage(n);
     const height = page.getViewport({ scale: 1 }).height;
     const content = await page.getTextContent();
@@ -98,5 +100,5 @@ export async function readPdfSlides(data: ArrayBuffer): Promise<{ text: string; 
     }
     if (raw.paras.length) raws.push(raw);
   }
-  return classify(raws);
+  return { ...classify(raws), pages };
 }

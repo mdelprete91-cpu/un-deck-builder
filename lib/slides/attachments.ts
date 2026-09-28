@@ -37,6 +37,21 @@ interface Questioned {
    * already travels.
    */
   sourceSlides?: SourceSlide[];
+  /**
+   * A PDF with no text for pdf.js to read (type turned into outlines, a
+   * scan): its page count, capped like readPdfSlides. The use question is
+   * asked all the same, and "replicate" has the model transcribe the pages
+   * when Generate is pressed (lib/slides/transcribe.ts).
+   */
+  pageCount?: number;
+}
+
+/**
+ * A file the wizard asks what to do with: a PowerPoint, or any PDF, with a
+ * text layer or not (Mario, 28 Sep 2026: "always, for a PDF as for a pptx").
+ */
+export function isDeckSource(a: Attachment): a is Extract<Attachment, { kind: "pdf" | "text" }> {
+  return canQuestion(a) && (!!a.sourceSlides?.length || a.pageCount !== undefined);
 }
 
 export type Attachment =

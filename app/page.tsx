@@ -31,11 +31,15 @@ import SheetWizard from "@/components/SheetWizard";
 import { compileInsights, normalizeAnalysis, SHORT_BRIEF_WORDS, USE_QUESTION_ID, fileUseOf, fileUseQuestion, preselectFileUse, type SheetAnalysis, type SheetAnswers } from "@/lib/slides/sheet-questions";
 import { densityHint, planReplica, withContentDensity } from "@/lib/slides/replicate";
 import { readPdfSlides } from "@/lib/slides/pdf-source";
+import { MAX_TRANSCRIBED_PAGES, slidesFromTranscript, type Transcript } from "@/lib/slides/transcribe";
 /** How the file-use question counts a file: slides for a deck, pages for a PDF. */
 const unitOf = (a: { name: string }) => (/\.pdf$/i.test(a.name) ? ("pages" as const) : ("slides" as const));
+/** The content slides or pages the file-use question names: the plan's, or a text-less PDF's pages (transcribed on Generate). */
+const replicaCountOf = (a: Attachment) =>
+  canQuestion(a) && a.sourceSlides?.length ? planReplica(a.sourceSlides).contentCount : Math.min(canQuestion(a) ? (a.pageCount ?? 0) : 0, MAX_TRANSCRIBED_PAGES);
 import type { WizardSubject } from "@/components/SheetWizard";
 import LayoutSwitcher from "@/components/LayoutSwitcher";
-import { AttachmentError, canQuestion, MAX_ATTACHMENTS, MAX_REQUEST_BYTES, MAX_TEXT_TOTAL, readAttachment, readPdfAsText, totalRequestBytes, type Attachment } from "@/lib/slides/attachments";
+import { AttachmentError, canQuestion, isDeckSource, MAX_ATTACHMENTS, MAX_REQUEST_BYTES, MAX_TEXT_TOTAL, readAttachment, readPdfAsText, totalRequestBytes, type Attachment } from "@/lib/slides/attachments";
 import { mapSlotFor } from "@/lib/giga-maps/slot";
 import ThumbStrip from "@/components/ThumbStrip";
 import PrintRoot from "@/components/PrintRoot";
@@ -380,14 +384,19 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
           a = await readPdfAsText(file);
         }
         // A PDF is also read page by page, for "replicate it" (28 Sep 2026).
-        // A scan with no text layer has no pages to replicate and is simply
-        // used as a source.
+        // One with no text layer (outlined type from Figma or Illustrator, a
+        // scan) keeps its page count instead: the use question is asked for
+        // every PDF all the same, and a replica transcribes its pages on
+        // Generate (runGenerate). Before, it had no slides, so the question
+        // never showed.
         if (/\.pdf$/i.test(file.name) && canQuestion(a)) {
           try {
-            const { slides } = await readPdfSlides(await file.arrayBuffer());
+            const { slides, pages } = await readPdfSlides(await file.arrayBuffer());
             if (slides.length) a = { ...a, sourceSlides: slides };
+            else if (a.kind === "pdf") a = { ...a, pageCount: pages };
           } catch {
-            // no text layer: nothing to replicate
+            // pdf.js could not open it; the model may still read it.
+            if (a.kind === "pdf") a = { ...a, pageCount: 0 };
           }
         }
         const textTotal = next
@@ -438,18 +447,24 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
   const analyzeAttachment = async (a: Attachment, brief: string) => {
     if (!canQuestion(a)) return;
     const spreadsheet = a.kind === "text" && !!a.spreadsheet;
-    // A PowerPoint file is always asked what to do with it, first (Mario, 28 Sep 2026).
-    const sourceSlides = a.sourceSlides;
+    // A PowerPoint file or a PDF is always asked what to do with it, first (Mario, 28 Sep 2026).
     const withUse = (analysis: SheetAnalysis): SheetAnalysis =>
-      sourceSlides?.length
-        ? { ...analysis, questions: [fileUseQuestion(planReplica(sourceSlides).contentCount, unitOf(a)), ...analysis.questions] }
-        : analysis;
+      isDeckSource(a) ? { ...analysis, questions: [fileUseQuestion(replicaCountOf(a), unitOf(a)), ...analysis.questions] } : analysis;
     const update = (patch: { analysis?: SheetAnalysis; analysisError?: string }) =>
       setAttachments((list) => list.map((x) => (x.id === a.id && canQuestion(x) ? preselectFileUse({ ...x, ...patch }) : x)));
-    update({ analysisError: undefined });
+    // The use question does not wait on the model: it shows the moment the
+    // wizard opens, and the model's own questions join it when they land. A
+    // slow analysis (the Gambia pptx sat on "Reading the file…" past 90 s,
+    // 28 Sep 2026) left only "Skip the questions", which skipped this one too.
+    update(isDeckSource(a) && !a.analysis ? { analysisError: undefined, analysis: withUse({ summary: "", questions: [] }) } : { analysisError: undefined });
     try {
       // The analysis reads the first 12k characters: a long deck says how long it is, or the summary counts only what it saw.
-      const text = a.kind === "text" && a.sourceSlides?.length ? `A PowerPoint deck of ${a.sourceSlides.length} slides; the text of the first ones follows.\n\n${a.text}` : a.kind === "text" ? a.text : "";
+      const text =
+        a.kind === "text" && a.sourceSlides?.length
+          ? `${unitOf(a) === "pages" ? `A PDF of ${a.sourceSlides.length} pages` : `A PowerPoint deck of ${a.sourceSlides.length} slides`}; the text of the first ones follows.\n\n${a.text}`
+          : a.kind === "text"
+            ? a.text
+            : "";
       const payload = a.kind === "pdf" ? { name: a.name, pdf: a.data } : { name: a.name, text };
       const res = await fetch("/api/analyze", {
         method: "POST",
@@ -535,7 +550,7 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
     // An attached deck is asked what to do with it on every press until the
     // choice is made (Mario, 28 Sep 2026: a file whose questions were already
     // answered went straight to the deck and the choice never showed).
-    const undecidedDeck = (a: Attachment) => canQuestion(a) && !!a.sourceSlides?.length && !a.answers?.[USE_QUESTION_ID];
+    const undecidedDeck = (a: Attachment) => isDeckSource(a) && !a.answers?.[USE_QUESTION_ID];
     const queue = attachments.filter(canQuestion).filter((a) => !a.asked || undecidedDeck(a)).map((a) => a.id);
     const words = brief.trim().split(/\s+/).filter(Boolean).length;
     const briefAlone = attachments.length === 0 && !twoPager && words > 0 && words < SHORT_BRIEF_WORDS;
@@ -557,8 +572,8 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
         const a = attachments.find((x) => x.id === id)!;
         if (canQuestion(a) && !a.analysis) void analyzeAttachment(a, brief);
         // Read before the choice existed: the choice goes in front of its questions.
-        else if (canQuestion(a) && a.sourceSlides?.length && a.analysis && !a.analysis.questions.some((q) => q.id === USE_QUESTION_ID)) {
-          const analysis = { ...a.analysis, questions: [fileUseQuestion(planReplica(a.sourceSlides).contentCount, unitOf(a)), ...a.analysis.questions] };
+        else if (isDeckSource(a) && a.analysis && !a.analysis.questions.some((q) => q.id === USE_QUESTION_ID)) {
+          const analysis = { ...a.analysis, questions: [fileUseQuestion(replicaCountOf(a), unitOf(a)), ...a.analysis.questions] };
           setAttachments((list) => list.map((x) => (x.id === a.id && canQuestion(x) ? preselectFileUse({ ...x, analysis }) : x)));
         }
       }
@@ -573,13 +588,16 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
   };
 
 
-  const runGenerate = async () => {
+  /** `fallback`: a replica that could not run, said in the sidebar once the deck generated from the file as a source is in. */
+  const runGenerate = async (fallback?: string): Promise<void> => {
     const brief = state.brief;
     // "Replicate it" on an attached deck: slide by slide, see runReplicate.
-    const replica = !twoPager
-      ? attachments.find((x): x is Extract<Attachment, { kind: "text" | "pdf" }> => canQuestion(x) && !!x.sourceSlides?.length && fileUseOf(x.answers) === "replicate")
-      : undefined;
-    if (replica) return runReplicate(replica);
+    // A PDF with no text layer is transcribed first (transcribeThenReplicate).
+    const replica = !twoPager && !fallback ? attachments.find((x) => isDeckSource(x) && fileUseOf(x.answers) === "replicate") : undefined;
+    if (replica && canQuestion(replica)) {
+      if (replica.kind === "pdf" && !replica.sourceSlides?.length) return transcribeThenReplicate(replica);
+      return runReplicate(replica);
+    }
     // A two-pager is a fixed-length piece, so the count is the user's; a
     // slide deck takes the number the brief names, if any.
     const count = twoPager ? state.count : countFromBrief(brief);
@@ -657,6 +675,40 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
     }
     if (received > 0 && TIERS_REQUEST.test(brief)) dispatch({ type: "INSERT_TIERS" });
     if (received > 0) onDeckArrived();
+    if (received > 0 && fallback) dispatch({ type: "GENERATION_ERROR", error: fallback });
+  };
+
+  /**
+   * Replicate on a PDF pdf.js could not read (outlined type, a scan; 28 Sep
+   * 2026): the model transcribes its pages first (app/api/transcribe), under
+   * the generating state, and the replica then runs on that text as on any
+   * PDF. The pages are kept on the attachment, so a second press does not
+   * read them again. A failed transcription is not a dead end: the deck is
+   * generated with the file as a source, and the sidebar says so.
+   */
+  const transcribeThenReplicate = async (file: Extract<Attachment, { kind: "pdf" }>): Promise<void> => {
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
+    dispatch({ type: "GENERATION_START", replace: true });
+    let sourceSlides: ReturnType<typeof slidesFromTranscript> = [];
+    try {
+      const res = await fetch("/api/transcribe", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: file.name, pdf: file.data, pages: file.pageCount || MAX_TRANSCRIBED_PAGES }),
+        signal: controller.signal,
+      });
+      if (!res.ok) throw new Error((await res.text().catch(() => "")) || `Request failed (${res.status})`);
+      sourceSlides = slidesFromTranscript((await res.json()) as Transcript);
+    } catch (err) {
+      if ((err as Error).name === "AbortError") return;
+    }
+    if (!planReplica(sourceSlides).steps.length) {
+      return runGenerate(`Could not read the pages of "${file.name}" to replicate them, so the deck uses it as a source.`);
+    }
+    setAttachments((list) => list.map((x) => (x.id === file.id && canQuestion(x) ? { ...x, sourceSlides } : x)));
+    return runReplicate({ ...file, sourceSlides });
   };
 
   /**
