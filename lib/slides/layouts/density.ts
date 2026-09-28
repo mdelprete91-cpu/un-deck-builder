@@ -51,7 +51,7 @@ function fourCards(s: Slide, t: BrandTheme): string {
       const x = cols.xs[i];
       const y = grid && i >= 2 ? top + cardH + GAP : top;
       return (
-        `<div class="ars" ${item(`blocks.${i}`)} style="position:absolute;left:${x}px;top:${y}px;width:${cols.width}px;height:${cardH}px;box-sizing:border-box;background:${CARD};padding:${PAD};${dly(8 + i * 8)}">` +
+        `<div class="ars" ${item(`blocks.${i}`, "left")} style="position:absolute;left:${x}px;top:${y}px;width:${cols.width}px;height:${cardH}px;box-sizing:border-box;background:${CARD};padding:${PAD};${dly(8 + i * 8)}">` +
         cardText(s, i, cardH - 60, "cards") +
         `</div>`
       );
@@ -68,7 +68,7 @@ function iconCards(s: Slide, t: BrandTheme): string {
   const cards = blocks
     .map(
       (_, i) =>
-        `<div class="ars" ${item(`blocks.${i}`)} style="position:absolute;left:${xs[i]}px;top:${top}px;width:${width}px;height:${h}px;box-sizing:border-box;background:${CARD};padding:${PAD};${dly(8 + i * 8)}">` +
+        `<div class="ars" ${item(`blocks.${i}`, "left")} style="position:absolute;left:${xs[i]}px;top:${top}px;width:${width}px;height:${h}px;box-sizing:border-box;background:${CARD};padding:${PAD};${dly(8 + i * 8)}">` +
         `<svg data-icon-pick="${i}" width="72" height="72" viewBox="0 0 24 24" fill="none" stroke="${t.accent}" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" style="display:block;margin-bottom:18px;">${iconInner(s.icons?.[i], i)}</svg>` +
         cardText(s, i, h - 60 - 90, "cards") +
         `</div>`,
@@ -85,7 +85,7 @@ function steps(s: Slide, t: BrandTheme): string {
   const cards = blocks
     .map(
       (_, i) =>
-        `<div class="ars" ${item(`blocks.${i}`)} style="position:absolute;left:${xs[i]}px;top:${top}px;width:${width}px;height:${h}px;box-sizing:border-box;background:${CARD};padding:${PAD};${dly(8 + i * 8)}">` +
+        `<div class="ars" ${item(`blocks.${i}`, "left")} style="position:absolute;left:${xs[i]}px;top:${top}px;width:${width}px;height:${h}px;box-sizing:border-box;background:${CARD};padding:${PAD};${dly(8 + i * 8)}">` +
         `<div style="font-family:${MANROPE};font-weight:600;font-size:44px;line-height:1.1;color:var(--accent);margin-bottom:16px;">${i + 1}</div>` +
         cardText(s, i, h - 60 - 64, "cards", undefined, "#000000") +
         `</div>`,
@@ -104,7 +104,7 @@ function threeColumns(s: Slide, t: BrandTheme): string {
   const cols = blocks
     .map(
       (_, i) =>
-        `<div class="ars" ${item(`blocks.${i}`)} style="position:absolute;left:${xs[i]}px;top:${top}px;width:${width}px;height:${h}px;${dly(10 + i * 8)}">` +
+        `<div class="ars" ${item(`blocks.${i}`, "left")} style="position:absolute;left:${xs[i]}px;top:${top}px;width:${width}px;height:${h}px;${dly(10 + i * 8)}">` +
         `<div style="font-family:${MANROPE};font-weight:600;font-size:44px;line-height:1.1;color:var(--accent-soft);margin-bottom:16px;">${i + 1}</div>` +
         cardText(s, i, h - 64, "cols", ink, "#FFFFFF") +
         `</div>`,
@@ -125,13 +125,21 @@ function rows(s: Slide, t: BrandTheme, photo?: "left" | "right"): string {
       const points = pointsOf(b, i)
         .map(({ text, path }) =>
           /^[-–]\s/.test(text)
-            ? `<div style="padding-left:.94em;"><div ${ed(path)} style="padding-left:.9em;text-indent:-.9em;">${esc(text.replace(/^-\s/, "– "))}</div></div>`
-            : `<div style="display:flex;gap:.6em;"><span style="flex:0 0 auto;width:.34em;height:.34em;margin-top:.53em;border-radius:50%;background:var(--accent);"></span><div ${ed(path)} style="flex:1;min-width:0;">${esc(text)}</div></div>`,
+            ? `<div ${item(path)} style="padding-left:.94em;"><div ${ed(path)} style="padding-left:.9em;text-indent:-.9em;">${esc(text.replace(/^-\s/, "– "))}</div></div>`
+            : `<div ${item(path)} style="display:flex;gap:.6em;"><span style="flex:0 0 auto;width:.34em;height:.34em;margin-top:.53em;border-radius:50%;background:var(--accent);"></span><div ${ed(path)} style="flex:1;min-width:0;">${esc(text)}</div></div>`,
         )
         .join("");
-      const head = `<div ${ed(`blocks.${i}.label`)} style="${labelW ? `flex:0 0 ${labelW}px;` : "margin-bottom:.35em;"}font-family:${MANROPE};font-weight:600;font-size:1.25em;line-height:1.3;color:var(--accent);">${esc(b.label)}</div>`;
+      // The header is deletable: without one, a labelled row keeps its
+      // column empty (the points stay aligned with the other rows) and a row
+      // beside the photo starts on its points.
+      const headText = `<div ${ed(`blocks.${i}.label`)} style="font-family:${MANROPE};font-weight:600;font-size:1.25em;line-height:1.3;color:var(--accent);">${esc(b.label)}</div>`;
+      const head = b.label?.trim()
+        ? `<div ${item(`blocks.${i}.label`)} style="${labelW ? `flex:0 0 ${labelW}px;` : "margin-bottom:.35em;"}">${headText}</div>`
+        : labelW
+          ? `<div style="flex:0 0 ${labelW}px;"></div>`
+          : "";
       return (
-        `<div class="ars" ${item(`blocks.${i}`)} style="${labelW ? "display:flex;gap:40px;" : ""}padding:.7em 0;border-bottom:1px solid ${HAIRLINE};${dly(8 + i * 6)}">` +
+        `<div class="ars" ${item(`blocks.${i}`, "left")} style="${labelW ? "display:flex;gap:40px;" : ""}padding:.7em 0;border-bottom:1px solid ${HAIRLINE};${dly(8 + i * 6)}">` +
         head +
         `<div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:.4em;">${points}</div>` +
         `</div>`
@@ -166,7 +174,7 @@ function statGrid(s: Slide, t: BrandTheme): string {
   const stats = (s.stats ?? []).slice(0, 6);
   const top = topOf(s);
   const intro = s.body?.trim()
-    ? `<div class="ar" ${ed("body", 108)} style="position:absolute;left:100px;top:${top}px;width:1720px;${DENSE}font-size:26px;">${esc(s.body)}</div>`
+    ? `<div ${item("body")} style="position:absolute;left:100px;top:${top}px;width:1720px;"><div class="ar" ${ed("body", 108)} style="${DENSE}font-size:26px;">${esc(s.body)}</div></div>`
     : "";
   const gridTop = intro ? top + 140 : top;
   const n = Math.max(stats.length, 1);
@@ -179,9 +187,9 @@ function statGrid(s: Slide, t: BrandTheme): string {
       const x = xs[i % perRow];
       const y = gridTop + Math.floor(i / perRow) * (rowH + GAP);
       return (
-        `<div class="ars" ${item(`stats.${i}`)} style="position:absolute;left:${x}px;top:${y}px;width:${width}px;height:${rowH}px;box-sizing:border-box;border-top:4px solid var(--accent);padding-top:22px;${dly(8 + i * 5)}">` +
+        `<div class="ars" ${item(`stats.${i}`, "left")} style="position:absolute;left:${x}px;top:${y}px;width:${width}px;height:${rowH}px;box-sizing:border-box;border-top:4px solid var(--accent);padding-top:22px;${dly(8 + i * 5)}">` +
         `<div ${ed(`stats.${i}.value`, 84, "stat")} style="${STAT(72)}padding-right:28px;">${esc(st.value)}</div>` +
-        `<div ${ed(`stats.${i}.label`, rowH - 26 - 96)} style="margin-top:12px;${DENSE}padding-right:28px;">${esc(st.label)}</div>` +
+        (st.label?.trim() ? `<div ${item(`stats.${i}.label`)} style="margin-top:12px;"><div ${ed(`stats.${i}.label`, rowH - 26 - 96)} style="${DENSE}padding-right:28px;">${esc(st.label)}</div></div>` : "") +
         `</div>`
       );
     })
@@ -198,9 +206,9 @@ function twoStats(s: Slide, t: BrandTheme): string {
   const rowsHtml = stats
     .map(
       (st, i) =>
-        `<div class="ars" ${item(`stats.${i}`)} style="position:absolute;left:100px;top:${top + i * (rowH + GAP)}px;width:1720px;height:${rowH}px;box-sizing:border-box;background:${CARD};padding:32px 36px;display:flex;gap:48px;${dly(10 + i * 10)}">` +
+        `<div class="ars" ${item(`stats.${i}`, "left")} style="position:absolute;left:100px;top:${top + i * (rowH + GAP)}px;width:1720px;height:${rowH}px;box-sizing:border-box;background:${CARD};padding:32px 36px;display:flex;gap:48px;${dly(10 + i * 10)}">` +
         `<div ${ed(`stats.${i}.value`, rowH - 64, "stat")} style="flex:0 0 560px;${STAT(96)}white-space:normal;">${esc(st.value)}</div>` +
-        `<div ${ed(`stats.${i}.label`, rowH - 64)} style="flex:1;min-width:0;${DENSE}font-size:26px;padding-right:28px;">${esc(st.label)}</div>` +
+        (st.label?.trim() ? `<div ${item(`stats.${i}.label`)} style="flex:1;min-width:0;"><div ${ed(`stats.${i}.label`, rowH - 64)} style="${DENSE}font-size:26px;padding-right:28px;">${esc(st.label)}</div></div>` : "") +
         `</div>`,
     )
     .join("");
@@ -219,7 +227,9 @@ function oneStat(s: Slide, t: BrandTheme, dark: boolean): string {
     text,
     (hasTitle ? title(s, text) : "") +
       `<div class="ar" ${ed("stat", 200)} style="position:absolute;left:100px;top:${hasTitle ? top : 100}px;width:720px;${STAT(180, color)}">${esc(s.stat)}</div>` +
-      `<div class="ar" ${ed("support", BOTTOM - (hasTitle ? top : 100) - 40)} style="position:absolute;left:880px;top:${hasTitle ? top + 16 : 116}px;width:940px;${DENSE}font-size:28px;line-height:1.45;color:${text};padding-right:28px;box-sizing:border-box;${dly(14)}">${esc(s.support)}</div>` +
+      (s.support?.trim()
+        ? `<div ${item("support")} style="position:absolute;left:880px;top:${hasTitle ? top + 16 : 116}px;width:940px;"><div class="ar" ${ed("support", BOTTOM - (hasTitle ? top : 100) - 40)} style="${DENSE}font-size:28px;line-height:1.45;color:${text};padding-right:28px;box-sizing:border-box;${dly(14)}">${esc(s.support)}</div></div>`
+        : "") +
       footer(t, dark ? "dark" : "light"),
   );
 }

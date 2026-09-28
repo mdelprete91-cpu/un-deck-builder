@@ -60,6 +60,10 @@ export function pointsOf(b: Block, i: number): { text: string; path: string }[] 
  * A bullet list in em: a point is an accent dot and its text; a point that
  * starts with a dash is a sub-point, indented, the en dash its marker. The
  * dash is part of the text, so editing never loses the level.
+ *
+ * Every point and the header are deletable (`data-item` on a wrapper, never
+ * on the node with the text: see CONTEXT.md), and a header left empty is
+ * not drawn, so a deleted header gives its line back to the points.
  */
 export function bullets(
   points: { text: string; path: string }[],
@@ -73,8 +77,8 @@ export function bullets(
     .map(({ text, path }) => {
       const sub = /^[-–]\s/.test(text);
       return sub
-        ? `<div style="padding-left:.94em;"><div ${ed(path)} style="padding-left:.9em;text-indent:-.9em;">${esc(text.replace(/^-\s/, "– "))}</div></div>`
-        : `<div style="display:flex;gap:.6em;">` +
+        ? `<div ${item(path)} style="padding-left:.94em;"><div ${ed(path)} style="padding-left:.9em;text-indent:-.9em;">${esc(text.replace(/^-\s/, "– "))}</div></div>`
+        : `<div ${item(path)} style="display:flex;gap:.6em;">` +
             `<span style="flex:0 0 auto;width:.34em;height:.34em;margin-top:.53em;border-radius:50%;background:${ink?.dot ?? "var(--accent)"};"></span>` +
             `<div ${ed(path)} style="flex:1;min-width:0;">${esc(text)}</div>` +
             `</div>`;
@@ -82,8 +86,8 @@ export function bullets(
     .join("");
   // The header, when there is one, is inside the budget: header and points
   // shrink as one, and a short header leaves its room to the points.
-  const top = head
-    ? `<div ${ed(head.path)} style="font-family:${MANROPE};font-weight:600;font-size:1.25em;line-height:1.3;letter-spacing:-.01em;color:${head.color ?? "var(--accent)"};margin-bottom:.35em;">${esc(head.text)}</div>`
+  const top = head?.text?.trim()
+    ? `<div ${item(head.path)}><div ${ed(head.path)} style="font-family:${MANROPE};font-weight:600;font-size:1.25em;line-height:1.3;letter-spacing:-.01em;color:${head.color ?? "var(--accent)"};margin-bottom:.35em;">${esc(head.text)}</div></div>`
     : "";
   return `<div data-fit="${fit}"${group ? ` data-fit-group="${group}"` : ""} style="${DENSE}${ink ? `color:${ink.text};` : ""}padding-right:28px;display:flex;flex-direction:column;gap:.45em;">${top}${rows}</div>`;
 }
@@ -91,7 +95,7 @@ export function bullets(
 /** The key message under the content: white on the accent, full width. */
 export function band(s: Slide, y: number): string {
   return (
-    `<div class="ars" style="position:absolute;left:100px;top:${y}px;width:1720px;height:${BAND_H}px;box-sizing:border-box;background:var(--accent);padding:0 48px;display:flex;align-items:center;${dly(30)}">` +
+    `<div class="ars" ${item("support")} style="position:absolute;left:100px;top:${y}px;width:1720px;height:${BAND_H}px;box-sizing:border-box;background:var(--accent);padding:0 48px;display:flex;align-items:center;${dly(30)}">` +
     `<div ${ed("support", 92)} style="width:100%;${HEAD(30, "#FFFFFF")}">${esc(s.support)}</div>` +
     `</div>`
   );
@@ -113,7 +117,7 @@ export function bulletColumns(s: Slide, t: BrandTheme): string {
   const cards = blocks
     .map(
       (b, i) =>
-        `<div class="ars" ${item(`blocks.${i}`)} style="position:absolute;left:${xs[i]}px;top:${TOP}px;width:${width}px;height:${h}px;box-sizing:border-box;background:${CARD};padding:32px 8px 28px 36px;display:flex;flex-direction:column;gap:18px;${dly(8 + i * 8)}">` +
+        `<div class="ars" ${item(`blocks.${i}`, "left")} style="position:absolute;left:${xs[i]}px;top:${TOP}px;width:${width}px;height:${h}px;box-sizing:border-box;background:${CARD};padding:32px 8px 28px 36px;display:flex;flex-direction:column;gap:18px;${dly(8 + i * 8)}">` +
         bullets(pointsOf(b, i), h - 60, "cols", { path: `blocks.${i}.label`, text: b.label }) +
         `</div>`,
     )
@@ -258,7 +262,7 @@ export function scenarios(s: Slide, t: BrandTheme): string {
     .map((b, i) => {
       const y = TOP + i * (rowH + GAP);
       return (
-        `<div class="ars" ${item(`blocks.${i}`)} style="position:absolute;left:100px;top:${y}px;width:${right - 100}px;height:${rowH}px;${dly(8 + i * 8)}">` +
+        `<div class="ars" ${item(`blocks.${i}`, "left")} style="position:absolute;left:100px;top:${y}px;width:${right - 100}px;height:${rowH}px;${dly(8 + i * 8)}">` +
         `<div style="position:absolute;left:0;top:0;width:${TILE}px;height:${rowH}px;box-sizing:border-box;background:var(--accent);padding:28px;display:flex;align-items:center;">` +
         `<div ${ed(`blocks.${i}.label`, rowH - 56)} style="${HEAD(32, "#FFFFFF")}">${esc(b.label)}</div></div>` +
         `<div style="position:absolute;left:${TILE}px;top:0;width:${right - 100 - TILE}px;height:${rowH}px;box-sizing:border-box;background:${CARD};padding:26px 8px 20px 36px;">` +
@@ -302,13 +306,13 @@ export function matrix(s: Slide, t: BrandTheme): string {
       const cw = Math.floor((1720 - TILE - CGAP - CGAP * (m - 1)) / m);
       const y = TOP + i * (rowH + GAP);
       return (
-        `<div class="ars" ${item(`blocks.${i}`)} style="position:absolute;left:100px;top:${y}px;width:1720px;height:${rowH}px;${dly(8 + i * 8)}">` +
+        `<div class="ars" ${item(`blocks.${i}`, "left")} style="position:absolute;left:100px;top:${y}px;width:1720px;height:${rowH}px;${dly(8 + i * 8)}">` +
         `<div style="position:absolute;left:0;top:0;width:${TILE}px;height:${rowH}px;box-sizing:border-box;background:var(--accent);padding:24px;display:flex;align-items:center;">` +
         `<div ${ed(`blocks.${i}.label`, rowH - 48)} style="${HEAD(30, "#FFFFFF")}">${esc(b.label)}</div></div>` +
         cells
           .map(
             (c, j) =>
-              `<div style="position:absolute;left:${TILE + CGAP + j * (cw + CGAP)}px;top:0;width:${cw}px;height:${rowH}px;box-sizing:border-box;background:${CARD};padding:22px 4px 18px 24px;">` +
+              `<div ${item(`blocks.${i}.stats.${j}`)} style="position:absolute;left:${TILE + CGAP + j * (cw + CGAP)}px;top:0;width:${cw}px;height:${rowH}px;box-sizing:border-box;background:${CARD};padding:22px 4px 18px 24px;">` +
               `<div data-fit="${rowH - 40}" data-fit-group="matrix" style="${DENSE}font-size:22px;padding-right:20px;">` +
               `<div ${ed(`blocks.${i}.stats.${j}.label`)} style="font-family:${MANROPE};font-weight:600;font-size:1.05em;line-height:1.3;color:var(--accent);">${esc(c.label)}</div>` +
               `<div ${ed(`blocks.${i}.stats.${j}.value`)} style="margin-top:.4em;">${esc(c.value)}</div>` +
@@ -550,7 +554,9 @@ export function chartText(s: Slide, t: BrandTheme): string {
   const noteRows = notes
     .map(
       (b, j) =>
-        `<div style="display:flex;gap:.7em;"><div style="flex:0 0 auto;width:1.35em;height:1.35em;border-radius:50%;background:${colors[j] ?? colors[0]};color:#FFFFFF;font-family:${MANROPE};font-weight:600;font-size:1em;line-height:1.35em;text-align:center;margin-top:.02em;">${j + 1}</div><div ${ed(`blocks.${j}.body`)} style="flex:1;min-width:0;">${esc(b.body)}</div></div>`,
+        // The ✕ on the number (top left): on the right it would overhang the
+        // fit container, which has no room for it, and read as overflow.
+        `<div ${item(`blocks.${j}`, "left")} style="display:flex;gap:.7em;"><div style="flex:0 0 auto;width:1.35em;height:1.35em;border-radius:50%;background:${colors[j] ?? colors[0]};color:#FFFFFF;font-family:${MANROPE};font-weight:600;font-size:1em;line-height:1.35em;text-align:center;margin-top:.02em;">${j + 1}</div><div ${ed(`blocks.${j}.body`)} style="flex:1;min-width:0;">${esc(b.body)}</div></div>`,
     )
     .join("");
   const panel =

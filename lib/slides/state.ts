@@ -1,4 +1,4 @@
-import type { Block, ImagePos, LayoutId, Slide, SlideContent } from "./schema";
+import type { ImagePos, Slide, SlideContent } from "./schema";
 import { ensureId, isPage, normalizeSeries, normalizeSlide, PRIMARY_ARRAY } from "./schema";
 import { closingFor, finishDeck, mergeContinuations, unifyLayouts } from "./rhythm";
 import { BRANDS } from "./brand";
@@ -7,6 +7,7 @@ import { MAX_BLOCKS_PER_PAGE, PAGE_BLOCK_LIMITS, type PageBlockType } from "./pa
 import { defaultBlock, newPageItem } from "./pages/presets";
 import { newItem, defaultContent } from "./defaults";
 import { tierDefaultGrid } from "./layouts/tables";
+import { addPart, deleteModular, insertPoint, isModular } from "./modular";
 import type { BrandId } from "./brand";
 
 interface Snapshot {
@@ -105,6 +106,10 @@ export type DeckAction =
   | { type: "EDIT_FIELD"; index: number; path: string; value: string }
   | { type: "DELETE_ITEM"; index: number; path: string }
   | { type: "ADD_ITEM"; index: number; path?: string }
+  /** High density: a new point after the one at `path` (Enter); that one keeps `before` when given. */
+  | { type: "INSERT_POINT"; index: number; path: string; text: string; before?: string }
+  /** High density: one entry of the Element menu (modular.ts `addPart`), `focus` the text that had the caret. */
+  | { type: "ADD_PART"; index: number; part: string; focus?: string | null }
   | { type: "ADD_BLOCK"; index: number; at: number; blockType: PageBlockType }
   | { type: "DELETE_BLOCK"; index: number; block: number }
   | { type: "MOVE_BLOCK"; index: number; from: number; to: number }
@@ -132,8 +137,6 @@ export type DeckAction =
 
 /** Slide fields a ✕ may remove outright (DELETE_ITEM with a bare field name). */
 const FIELD_ITEMS: ReadonlySet<string> = new Set(["notes", "takeaway", "support", "subtitle"]);
-/** Layouts whose blocks carry deletable elements of their own (figures, points, policies, objectives). */
-const NESTED_DELETE: ReadonlySet<LayoutId> = new Set<LayoutId>(["figures-panel", "cascade"]);
 
 /** Set a dotted path ("blocks.2.body") inside a slide, immutably. */
 export function setPath(slide: Slide, path: string, value: unknown): Slide {
@@ -345,10 +348,18 @@ function reduce(state: DeckState, action: DeckAction): DeckState {
       // path like "blocks.2" — remove one element from the slide's item array
       const slide = state.slides[action.index];
       if (!slide) return state;
+      // A high-density slide: points, headers, figures, the band, a block
+      // down to its minimum (modular.ts decides, the editor draws no ✕
+      // where it refuses).
+      if (!isPage(slide) && isModular(slide)) {
+        const next = deleteModular(slide, action.path);
+        if (!next) return state;
+        const slides = [...state.slides];
+        slides[action.index] = next;
+        return { ...state, ...remember(state), slides };
+      }
       const [field, idxStr] = action.path.split(".");
-      // A field, not an array (the footnote, the takeaway, cascade's goal,
-      // figures-panel's headers row as "subtitle,support"): its ✕ removes
-      // the fields it names.
+      // A field, not an array (the footnote): its ✕ removes the fields it names.
       if (/^[a-z]+(,[a-z]+)*$/i.test(action.path)) {
         const names = action.path.split(",");
         if (!names.every((n) => FIELD_ITEMS.has(n))) return state;
@@ -356,36 +367,6 @@ function reduce(state: DeckState, action: DeckAction): DeckState {
         for (const n of names) delete rest[n];
         const slides = [...state.slides];
         slides[action.index] = rest as unknown as Slide;
-        return { ...state, ...remember(state), slides };
-      }
-      // Inside a block (figures-panel, cascade): a figure or objective
-      // ("blocks.1.stats.0"), a point or policy ("blocks.1.items.2", or
-      // "blocks.1.body" when the block has only a body), a row's whole
-      // commentary ("blocks.1.items"). A block left with nothing in it goes
-      // too, unless it is the last one: then its last element stays.
-      const inner = /^blocks\.(\d+)\.(?:(items|stats)(?:\.(\d+))?|(body))$/.exec(action.path);
-      if (inner && NESTED_DELETE.has(slide.layoutId)) {
-        const b = Number(inner[1]);
-        const block = slide.blocks?.[b];
-        if (!block) return state;
-        const next: Block = structuredClone(block);
-        if (inner[4] || (inner[2] === "items" && inner[3] === undefined)) {
-          next.body = "";
-          if (!inner[4]) delete next.items;
-        } else {
-          const arr = next[inner[2] as "items" | "stats"];
-          if (!arr || inner[3] === undefined) return state;
-          arr.splice(Number(inner[3]), 1);
-          if (!arr.length) delete next[inner[2] as "items" | "stats"];
-        }
-        const empty = !next.items?.length && !next.stats?.length && !next.body.trim();
-        const clone = structuredClone(slide);
-        if (empty) {
-          if ((slide.blocks?.length ?? 0) <= 1) return state;
-          clone.blocks!.splice(b, 1);
-        } else clone.blocks![b] = next;
-        const slides = [...state.slides];
-        slides[action.index] = clone;
         return { ...state, ...remember(state), slides };
       }
       // Agenda bullets are chapter titles: deleting one removes the matching
@@ -628,6 +609,16 @@ function reduce(state: DeckState, action: DeckAction): DeckState {
       ((clone[spec.field] ??= [] as never) as unknown[]).push(newItem(spec.field));
       const slides = [...state.slides];
       slides[action.index] = clone;
+      return { ...state, ...remember(state), slides };
+    }
+    case "INSERT_POINT":
+    case "ADD_PART": {
+      const slide = state.slides[action.index];
+      if (!slide || isPage(slide)) return state;
+      const r = action.type === "INSERT_POINT" ? insertPoint(slide, action.path, action.text, action.before) : addPart(slide, action.part, action.focus);
+      if (!r) return state;
+      const slides = [...state.slides];
+      slides[action.index] = r.slide;
       return { ...state, ...remember(state), slides };
     }
     case "ADD_BLOCK": {

@@ -1,7 +1,7 @@
 import type { Slide } from "../schema";
 import type { BrandTheme } from "../brand";
 import { MANROPE, BODY30, esc, ed, dly, item, section, footer, heading80 } from "./shared";
-import { BOTTOM, DENSE, title, topOf } from "./dense";
+import { BOTTOM, DENSE, bullets, pointsOf, title, topOf } from "./dense";
 
 /**
  * Where a process stands (Mario, 26 Sep 2026: "a slide that represents a
@@ -90,7 +90,9 @@ export function stagesSlide(s: Slide, t: BrandTheme, mode: "progress" | "timelin
       // the status line, 26 Sep 2026). Children are placed inside it.
       const top = TRACK - 96;
       return (
-        `<div class="ars" ${item(`blocks.${i}`)} style="position:absolute;left:${left}px;top:${top}px;width:${Math.round(colW)}px;height:${BOX_H}px;${dly(10 + i * 8)}">` +
+        // Dense stages hold points of their own, each with its ✕ on the
+        // right, so the stage's ✕ moves to the top-left corner.
+        `<div class="ars" ${item(`blocks.${i}`, dense ? "left" : undefined)} style="position:absolute;left:${left}px;top:${top}px;width:${Math.round(colW)}px;height:${BOX_H}px;${dly(10 + i * 8)}">` +
         // A timeline's date sits above the track, bottom-aligned to it, so
         // the slide balances around the line (Mario, 27 Sep 2026: with the
         // date under the dot the space above the track sat empty).
@@ -102,7 +104,12 @@ export function stagesSlide(s: Slide, t: BrandTheme, mode: "progress" | "timelin
         (state === "date"
           ? ""
           : `<div ${ed(`blocks.${i}.label`, 96)} style="font-family:${MANROPE};font-weight:600;font-size:${dense ? 30 : 36}px;line-height:1.25;letter-spacing:-.01em;color:${state === "current" ? "var(--accent)" : "#161616"};">${esc(stage.label)}</div>`) +
-        (dense
+        // A dense stage with points (a replica's, or one given a second point
+        // with Enter) lists them, left-aligned under the centred label; a
+        // stage with only its body keeps the paragraph.
+        (dense && stage.items?.length
+          ? `<div style="${state === "date" ? "" : "margin-top:12px;"}text-align:left;">${bullets(pointsOf(stage, i), BOX_H - (state === "date" ? midY - top + 44 : 168) - (state === "date" ? 20 : 70), "stages", undefined, state === "next" ? { text: "#5D5D5D", dot: "var(--accent)" } : undefined)}</div>`
+          : dense
           ? `<div ${ed(`blocks.${i}.body`, BOX_H - (state === "date" ? midY - top + 44 : 168) - (state === "date" ? 20 : 70))} data-fit-group="stages" style="${state === "date" ? "" : "margin-top:12px;"}${DENSE}color:${state === "next" ? "#5D5D5D" : "#000000"};">${esc(stage.body)}</div>`
           : `<div ${ed(`blocks.${i}.body`, 250)} style="${state === "date" ? "" : "margin-top:14px;"}${BODY30}color:${state === "next" ? "#5D5D5D" : "#000000"};">${esc(stage.body)}</div>`) +
         `</div>` +

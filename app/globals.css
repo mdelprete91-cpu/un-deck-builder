@@ -358,6 +358,11 @@ body {
   outline: 2px dashed rgba(39, 122, 255, 0.4);
   outline-offset: 8px;
 }
+/* An item that cannot go (the last point of a block, a block at its
+   minimum): SlideFrame gives it no ✕, so no outline either. */
+.slide-root [data-item].item-fixed:hover {
+  outline: none;
+}
 /* Tier check cells: make toggleability visible — pointer, tinted hover, and a
    ghost check appearing on empty cells (inline opacity 0 keeps exports clean) */
 .slide-root [data-cell] {

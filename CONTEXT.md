@@ -147,7 +147,8 @@ the slide untouched if an intermediate node is missing, so a renderer that puts 
 value read from a module constant produces a field the user can click, type into, and watch revert.
 That was the closing slide's social row: it now lives in `slide.channels`, seeded from
 `DEFAULT_CHANNELS` by `normalizeSlide` and, for decks saved before it moved, by `loadDeck`. Deleting
-is a separate contract: the ✕ from `item()` only works for the layout's `PRIMARY_ARRAY` field.
+is a separate contract: on a standard slide the ✕ from `item()` only works for the layout's
+`PRIMARY_ARRAY` field (and the footnote); on a high-density slide `deleteModular` decides (below).
 
 **Forced content.** The closing slide is always titled "Thanks" (`normalizeSlide`), except when a
 deck file is reopened: that title is the user's own output, so `normalizeSlide(raw, {
@@ -705,15 +706,54 @@ chart's grid and series colours, and the closing slide's accent surface for the 
   (`.omc/figures-markup.ts` proves it). cascade: a group (with its policies and objectives), a
   policy, an objective, the goal (the connector goes, the tiers take the height); a group with one
   tier gives it the full height, top-aligned, with no arrows; groups re-flow to the 1720px.
-- **How the nested ✕ works.** `DELETE_ITEM` takes bare field names (`notes`, `takeaway`,
-  `support`, `subtitle`, comma-separated to remove several) and, on `NESTED_DELETE` layouts,
-  paths inside a block (`blocks.i.stats.j`, `blocks.i.items.j`, `blocks.i.items`,
-  `blocks.i.body`); a block left empty goes too, unless it is the last one. Items nest, so
-  `globals.css` shows the outline and the ✕ only on the innermost hovered item (`:has`), and an
-  item that holds others takes `item(path, "left")`: its ✕ on the top-left corner
-  (`data-item-corner`, read by SlideFrame), clear of its children's on the right. No inline Add:
-  Element adds a row or a group (a block with only `body`, drawn as one point or one policy), as
-  on the other dense layouts.
+- **Every high-density slide is modular** (Mario, 28 Sep 2026: "every high-density slide must be
+  totally modular"; before, only figures-panel and cascade were, and there was no way to add a
+  point to a step). `lib/slides/modular.ts` holds the model, pure functions shared by the reducer
+  and the editor; `isModular` is the six dense layouts plus any slide with `density: "high"`.
+  - **Points** are strings in a list: a block's `items` (or its `body`, drawn as its one point;
+    a second point folds the body into `items`), the explanation or conclusion `bullets`, a
+    chart-text note (`blocks[j].body`). SlideFrame takes `pointOps` on these slides: Enter splits
+    at the caret (`INSERT_POINT`, the current point keeps the text left of the caret, one undo
+    step), on a sub-point the new one is a sub-point, Enter on an empty sub-point outdents it;
+    Backspace or Delete on an empty point removes it (caret to the end of the previous one); Tab
+    and Shift+Tab add or drop the "- " (not on cascade policies, notes or a stage's lone
+    paragraph). A key that changed the slide marks its node done so the blur commit does not
+    write the old text back, and the caret is placed after the next draw (`pendingCaret`).
+  - **The ✕** is `DELETE_ITEM` routed to `deleteModular`: bare fields (`support`, `takeaway`,
+    `subtitle`, `notes`, `body`, `subtitle,support`), a header or a stat's explanation emptied
+    (`blocks.i.label`, `stats.i.label`, and the renderers skip an empty one), a point, a figure,
+    objective or cell, a chart-text note, a block down to `PRIMARY_ARRAY.min`. It refuses the last
+    point of a block (the block's own ✕ removes the block), the last element of a chart's
+    explanation card, a block under the minimum; figures-panel, cascade and matrix keep the
+    approved rule that a block emptied by its last ✕ goes too. SlideFrame's `canDeleteItem` is a
+    dry run of the same function: a refused item gets `.item-fixed`, no ✕ and no outline.
+  - **Element** is a menu on these slides (`addOptions` / `addPart`, one candidate table, action
+    `ADD_PART`): Point (after the point with the caret, in the block with the caret, else the last
+    block or the explanation), the block noun up to the layout max, Figure / Objective / Cell /
+    Note where the layout has them, then only the optional parts that are missing (Header, Key
+    message, Goal, Takeaway, Headers, Intro, Explanation, Heading, Conclusion, Footnote). The
+    trigger and the rows prevent mousedown so the caret stays in the text; the text being typed
+    is committed first; the new text is focused with its placeholder selected (`focusRequest`).
+  - **Room at 18px.** Every add is first rendered offscreen with the real autofit
+    (`lib/slides/fit-check.ts`, `roomFor`): refused with a message when any text that was at 18px
+    or more would drop under it, a new text would land under it, or a budget would clip. Limits
+    in `modular.ts`: ten points a list, six policies and four objectives a cascade group, five
+    figures or cells a row, three notes. `normalizeSlide` allows all of it (its caps are the same
+    or looser; an empty header or stat explanation is valid).
+  - **Markup.** Every point and header sits in a `data-item` wrapper (never on the node that
+    carries `data-fit`), a block that holds items puts its ✕ on the top-left corner, the band,
+    the intro, a stat's explanation and a one-stat's text are wrapped the same way. With every
+    part present the dense markup is the approved one plus those attributes and wrappers
+    (`.omc/dense-dump.ts` before and after); standard slides are byte-identical
+    (`.omc/markup-baseline.ts`). A dense stage with `items` lists them under its label (before
+    this the High density timeline, phases and progress drew an empty stage: `denseContent` gives
+    stages `items` and the dense stage read only `body`); a stage with only a body keeps its
+    paragraph.
+  - `.omc/modular-all.mts <outdir>` drives every layout of the High density tab on the local dev
+    server: Enter, Backspace, every menu entry, the ✕ on everything down to the minimum, undo and
+    redo, every part added back, text sizes, HTML and PPTX export, and the Process case (a point
+    and a sub-point in Step 3, deleted, undone). `.omc/modular-audit.mts` prints what each layout
+    offers.
 - `.omc/modular-preview.ts` renders both layouts full and after deletions made by the real
   reducer (`.omc/modular-shot.mts` for PNGs); `.omc/modular-editor.mts` drives the editor on the
   local dev server (insert, ✕, undo/redo, HTML and PPTX export).

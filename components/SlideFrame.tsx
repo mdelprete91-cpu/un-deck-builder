@@ -6,6 +6,71 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { autofitAll, refitNode } from "@/lib/slides/autofit";
 import type { ImagePos } from "@/lib/slides/schema";
 
+/**
+ * Point editing on a high-density slide (lib/slides/modular.ts): Enter
+ * splits, Backspace on an empty point removes it, Tab / Shift+Tab nest.
+ */
+export interface PointOps {
+  /** Is `path` a point? */
+  isPoint: (path: string) => boolean;
+  /** The point keeps `before`, a new point with `after` follows; its path, or null when there is no room. */
+  split: (path: string, before: string, after: string) => string | null;
+  /** Remove the (empty) point; the path the caret goes to, or null when it cannot go. */
+  remove: (path: string) => string | null;
+  /** Whether the point can be a sub-point. */
+  nests: (path: string) => boolean;
+}
+
+/** A text to focus once the next slide is drawn, its placeholder selected. */
+export interface FocusRequest {
+  path: string;
+}
+
+type Caret = number | "end" | "all";
+
+/** Where the selection starts and ends in a node's text. */
+function caretIn(node: HTMLElement): [number, number] {
+  const len = (node.textContent ?? "").length;
+  const sel = window.getSelection();
+  if (!sel?.rangeCount) return [len, len];
+  const r = sel.getRangeAt(0);
+  if (!node.contains(r.startContainer) || !node.contains(r.endContainer)) return [len, len];
+  const pre = document.createRange();
+  pre.selectNodeContents(node);
+  pre.setEnd(r.startContainer, r.startOffset);
+  const start = pre.toString().length;
+  pre.setEnd(r.endContainer, r.endOffset);
+  return [start, pre.toString().length];
+}
+
+/** Focus a text and put the caret at an offset, at the end, or around all of it. */
+function placeCaret(node: HTMLElement, at: Caret): void {
+  node.focus();
+  const sel = window.getSelection();
+  if (!sel) return;
+  const range = document.createRange();
+  range.selectNodeContents(node);
+  if (at === "end") range.collapse(false);
+  else if (typeof at === "number") {
+    const walker = document.createTreeWalker(node, NodeFilter.SHOW_TEXT);
+    let left = at;
+    let placed = false;
+    for (let t = walker.nextNode(); t; t = walker.nextNode()) {
+      const n = (t.textContent ?? "").length;
+      if (left <= n) {
+        range.setStart(t, left);
+        range.collapse(true);
+        placed = true;
+        break;
+      }
+      left -= n;
+    }
+    if (!placed) range.collapse(at <= 0);
+  }
+  sel.removeAllRanges();
+  sel.addRange(range);
+}
+
 interface SlideFrameProps {
   html: string;
   editable?: boolean;
@@ -24,6 +89,13 @@ interface SlideFrameProps {
    * for that slot; on a page every slot also gets its own upload button.
    */
   onPickImage?: ((path: string) => void) | null;
+  /** High density: Enter / Backspace / Tab on points. */
+  pointOps?: PointOps | null;
+  /** High density: an item whose delete would be refused gets no ✕. */
+  canDeleteItem?: ((path: string) => boolean) | null;
+  /** A text to focus once the slide is drawn (after an Element menu add). */
+  focusRequest?: FocusRequest | null;
+  onFocusDone?: () => void;
   /** When set, a click on a chart ([data-chart]) opens the data panel. */
   onChartClick?: (() => void) | null;
   /** Called after each autofit pass with how many text nodes ended up smaller than drawn. */
@@ -97,6 +169,10 @@ export default function SlideFrame({
   onPickImage,
   onChartClick,
   onAutofit,
+  pointOps,
+  canDeleteItem,
+  focusRequest,
+  onFocusDone,
   onFocusBlock,
   focusedBlock,
   onMoveBlock,
@@ -125,6 +201,18 @@ export default function SlideFrame({
   onPickIconRef.current = onPickIcon;
   const onUploadLogoRef = useRef(onUploadLogo);
   onUploadLogoRef.current = onUploadLogo;
+  // Kept current in a layout effect, which runs before the wiring effect
+  // below and before any key reaches the slide.
+  const pointOpsRef = useRef(pointOps);
+  const canDeleteRef = useRef(canDeleteItem);
+  const onFocusDoneRef = useRef(onFocusDone);
+  useLayoutEffect(() => {
+    pointOpsRef.current = pointOps;
+    canDeleteRef.current = canDeleteItem;
+    onFocusDoneRef.current = onFocusDone;
+  });
+  // Where the caret goes once the slide a point key changed is drawn.
+  const pendingCaret = useRef<{ path: string; at: Caret } | null>(null);
   // The two-pager callbacks travel together in one ref: the wiring effect
   // must not re-run when a parent re-renders, and one ref is one lint waiver
   // rather than four.
@@ -176,7 +264,11 @@ export default function SlideFrame({
     stage.querySelectorAll<HTMLElement>("[data-edit]").forEach((node) => {
       node.contentEditable = "plaintext-only";
       const original = node.innerText;
+      const path = node.getAttribute("data-edit")!;
+      // A point key already wrote this text into the change it made.
+      let done = false;
       const commit = () => {
+        if (done) return;
         // "^1" typed in any text becomes the superscript that points to footnote 1.
         const value = node.innerText.replace(/\^([0-9])/g, (_, d: string) => "⁰¹²³⁴⁵⁶⁷⁸⁹"[Number(d)]);
         if (value !== original && onEditRef.current) {
@@ -187,6 +279,49 @@ export default function SlideFrame({
         if (e.key === "Escape") {
           node.innerText = original;
           node.blur();
+          return;
+        }
+        const ops = pointOpsRef.current;
+        if (!ops || e.isComposing || e.metaKey || e.ctrlKey || e.altKey || !ops.isPoint(path)) return;
+        const text = node.textContent ?? "";
+        const sub = /^[-–]\s/.test(text);
+        const rest = sub ? text.slice(2) : text;
+        const go = (to: string, at: Caret) => {
+          done = true;
+          pendingCaret.current = { path: to, at };
+        };
+        if (e.key === "Enter" && !e.shiftKey) {
+          e.preventDefault();
+          // An empty sub-point steps out to a point; an empty point stays.
+          if (!rest.trim()) {
+            if (sub) {
+              go(path, 0);
+              onEditRef.current?.(path, "");
+            }
+            return;
+          }
+          const [a, b] = caretIn(node);
+          const after = text.slice(Math.max(b, sub ? 2 : 0));
+          const next = ops.split(path, text.slice(0, a), sub ? `- ${after.replace(/^\s+/, "")}` : after);
+          if (next) go(next, sub ? 2 : 0);
+          return;
+        }
+        if ((e.key === "Backspace" || e.key === "Delete") && !rest.trim()) {
+          e.preventDefault();
+          const next = ops.remove(path);
+          if (next) go(next, "end");
+          return;
+        }
+        if (e.key === "Tab" && ops.nests(path)) {
+          e.preventDefault();
+          const [a] = caretIn(node);
+          if (!e.shiftKey && !sub) {
+            go(path, a + 2);
+            onEditRef.current?.(path, `- ${text}`);
+          } else if (e.shiftKey && sub) {
+            go(path, Math.max(0, a - 2));
+            onEditRef.current?.(path, rest);
+          }
         }
       };
       const onInput = () => refitNode(node);
@@ -204,6 +339,12 @@ export default function SlideFrame({
     stage.querySelectorAll(".item-delete").forEach((b) => b.remove());
     if (onDeleteItemRef.current) {
       stage.querySelectorAll<HTMLElement>("[data-item]").forEach((node) => {
+        // Refused here (the last point of a block, a block at its minimum):
+        // no ✕, and no outline promising one.
+        if (canDeleteRef.current && !canDeleteRef.current(node.getAttribute("data-item")!)) {
+          node.classList.add("item-fixed");
+          return;
+        }
         if (getComputedStyle(node).position === "static") {
           node.style.position = "relative";
         }
@@ -497,6 +638,20 @@ export default function SlideFrame({
     // box.w: the ✕ placement measures rects, which are all zero until the
     // container is first measured — re-wire once the real size lands.
   }, [html, editable, onAddItem, box.w, size.w, focusedBlock]);
+
+  // After the slide is drawn and wired: the caret where a point key or an
+  // Element menu add left it (the new point, the restored part).
+  useEffect(() => {
+    const stage = stageRef.current;
+    if (!stage || !editable) return;
+    const want = pendingCaret.current ?? (focusRequest ? { path: focusRequest.path, at: "all" as Caret } : null);
+    if (!want) return;
+    const node = [...stage.querySelectorAll<HTMLElement>("[data-edit]")].find((n) => n.getAttribute("data-edit") === want.path);
+    if (!node) return;
+    pendingCaret.current = null;
+    if (focusRequest) onFocusDoneRef.current?.();
+    placeCaret(node, want.at);
+  }, [html, editable, focusRequest]);
 
   // Fit, then overscan by two source pixels: a fractional container width
   // otherwise leaves a sub-pixel sliver of the container showing along one

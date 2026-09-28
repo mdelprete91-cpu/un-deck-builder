@@ -1,6 +1,6 @@
 "use client";
 
-import { ChartColumn, ChevronDown, Play, Copy, History, Image as ImageIcon, LayoutTemplate, LoaderCircle, Plus, Redo2, Superscript, Trash2, Undo2, Upload } from "lucide-react";
+import { ChartColumn, ChevronDown, ChevronUp, Play, Copy, History, Image as ImageIcon, LayoutTemplate, LoaderCircle, Plus, Redo2, Superscript, Trash2, Undo2, Upload } from "lucide-react";
 import { useEffect, useLayoutEffect, useReducer, useRef, useState, type CSSProperties } from "react";
 import { BRANDS } from "@/lib/slides/brand";
 import { DEFAULT_DECK_NAME, deckReducer, initialDeckState, readPath } from "@/lib/slides/state";
@@ -45,6 +45,10 @@ import ThumbStrip from "@/components/ThumbStrip";
 import PrintRoot from "@/components/PrintRoot";
 import HelpModal from "@/components/HelpModal";
 import { NO_NOTES } from "@/lib/slides/layouts/dense";
+import { addOptions, addPart, deleteModular, insertPoint, isModular, nests, pointAt, removePoint, type AddOption } from "@/lib/slides/modular";
+import { roomFor } from "@/lib/slides/fit-check";
+import type { FocusRequest, PointOps } from "@/components/SlideFrame";
+import { createPortal } from "react-dom";
 import DeckName from "@/components/DeckName";
 import MobileGate from "@/components/MobileGate";
 import type { DeckState } from "@/lib/slides/state";
@@ -999,6 +1003,55 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
         : { type: "ADD_ITEM", index: state.activeIndex },
     );
 
+  // High density (lib/slides/modular.ts): Element is a menu of what can be
+  // added where the caret is, points are split and joined from the keyboard,
+  // and an add that would push text under 18px is refused.
+  const modular = !!active && !isPage(active) && isModular(active);
+  const [addFocus, setAddFocus] = useState<string | null>(null);
+  const [focusRequest, setFocusRequest] = useState<FocusRequest | null>(null);
+  /** The slide text that has the caret, if any. */
+  const editingPath = () =>
+    (document.activeElement as HTMLElement | null)?.closest<HTMLElement>('[data-tour="canvas"] [data-edit]')?.getAttribute("data-edit") ?? null;
+  const noRoom = (what: string) =>
+    dispatch({ type: "GENERATION_ERROR", error: `No room for another ${what} on this slide: the text would drop below 18px. Shorten the text or move some of it to a new slide.` });
+  const addMenu: AddOption[] | null = modular ? addOptions(active, addFocus) : null;
+  const onAddPart = (id: string) => {
+    if (!active || !modular) return;
+    const r = addPart(active, id, addFocus);
+    if (!r) return;
+    if (!roomFor(active, r.slide, theme)) return noRoom(addMenu?.find((o) => o.id === id)?.label.toLowerCase() ?? "element");
+    // Commit the text being typed first (its own undo step), then the add.
+    (document.activeElement as HTMLElement | null)?.closest<HTMLElement>('[data-tour="canvas"] [data-edit]')?.blur();
+    dispatch({ type: "ADD_PART", index: state.activeIndex, part: id, focus: addFocus });
+    if (r.focus) setFocusRequest({ path: r.focus });
+  };
+  const pointOps: PointOps | null =
+    modular && active
+      ? {
+          isPoint: (path) => !!pointAt(active, path),
+          split: (path, before, after) => {
+            const r = insertPoint(active, path, after, before);
+            if (!r) {
+              dispatch({ type: "GENERATION_ERROR", error: "This list is full: ten points at most. Start a new block or a new slide." });
+              return null;
+            }
+            if (!roomFor(active, r.slide, theme)) {
+              noRoom("point");
+              return null;
+            }
+            dispatch({ type: "INSERT_POINT", index: state.activeIndex, path, text: after, before });
+            return r.path;
+          },
+          remove: (path) => {
+            const r = removePoint(active, path);
+            if (!r) return null;
+            dispatch({ type: "DELETE_ITEM", index: state.activeIndex, path: pointAt(active, path)?.list.kind === "notes" ? path.replace(/\.body$/, "") : path });
+            return r.focus;
+          },
+          nests: (path) => nests(active, path),
+        }
+      : null;
+
   const isChart = !!active && isChartLayout(active.layoutId);
   const activeHtml = active
     ? renderSlide(active, theme, { index: state.activeIndex, total: state.slides.length })
@@ -1337,6 +1390,10 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
                       dispatch({ type: "DELETE_ITEM", index: state.activeIndex, path })
                     }
                     onAddItem={null}
+                    pointOps={pointOps}
+                    canDeleteItem={modular ? (path) => deleteModular(active, path) !== null : null}
+                    focusRequest={focusRequest}
+                    onFocusDone={() => setFocusRequest(null)}
                     onToggleCell={(row, col) =>
                       dispatch({ type: "TOGGLE_CELL", index: state.activeIndex, row, col })
                     }
@@ -1396,7 +1453,10 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
                     flightRef={flightRef}
                     onEditWithAi={() => setAiModal(true)}
                     canAddItem={canAddItem}
-                    canAddNote={!isPage(active) && !NO_NOTES.has(active.layoutId) && !active.notes?.trim()}
+                    addMenu={addMenu}
+                    onOpenAddMenu={() => setAddFocus(editingPath())}
+                    onAddPart={onAddPart}
+                    canAddNote={!modular && !isPage(active) && !NO_NOTES.has(active.layoutId) && !active.notes?.trim()}
                     onAddNote={() => dispatch({ type: "EDIT_FIELD", index: state.activeIndex, path: "notes", value: "1. " })}
                     canReference={!isPage(active) && !!active.notes?.trim()}
                     onReference={onReference}
@@ -1746,6 +1806,9 @@ function SlideActions({
   flightRef,
   onEditWithAi,
   canAddItem,
+  addMenu,
+  onOpenAddMenu,
+  onAddPart,
   canAddNote,
   onAddNote,
   canReference,
@@ -1767,6 +1830,11 @@ function SlideActions({
   /** Opens the Edit with AI dialog, which lives at page level. */
   onEditWithAi: () => void;
   canAddItem: boolean;
+  /** High density: Element opens this menu (points, blocks, the optional parts that are missing) instead of adding a block. */
+  addMenu: AddOption[] | null;
+  /** The menu opens: the caller notes which text had the caret. */
+  onOpenAddMenu: () => void;
+  onAddPart: (id: string) => void;
   /** A content slide with no footnote yet: "Footnote" adds one in the footer row. */
   canAddNote: boolean;
   onAddNote: () => void;
@@ -1830,6 +1898,17 @@ function SlideActions({
     settled.current = true;
   }, []);
   void onRegenerate;
+  // The Element menu, above its button. It lives in a portal: the bar clips
+  // its content. Mousedown is prevented on the button and the entries, so
+  // the caret stays in the slide's text (as on Reference) and "Point" goes
+  // where it is.
+  const [addAt, setAddAt] = useState<DOMRect | null>(null);
+  useEffect(() => {
+    if (!addAt) return;
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setAddAt(null);
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [addAt]);
   // One Button spec for every action, no dividers: the gap separates, a
   // slightly wider one sets the slide-level pair (duplicate, delete) apart.
   // Edit with AI is the bar's one accent, as DESIGN.md says. Actions that do
@@ -1857,10 +1936,29 @@ function SlideActions({
             <Button variant="primary" onClick={onEditWithAi} disabled={busy} style={{ "--i": 0 } as CSSProperties}>
               Edit with AI
             </Button>
-            {canAddItem && (
-              <Button variant="secondary" icon={Plus} onClick={onAddItem} title="Add an element to this slide">
+            {addMenu ? (
+              <Button
+                variant="secondary"
+                icon={Plus}
+                iconRight={ChevronUp}
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={(e) => {
+                  if (addAt) return setAddAt(null);
+                  onOpenAddMenu();
+                  setAddAt(e.currentTarget.getBoundingClientRect());
+                }}
+                aria-haspopup="menu"
+                aria-expanded={!!addAt}
+                title="Add a point, a block or a part this slide is missing"
+              >
                 Element
               </Button>
+            ) : (
+              canAddItem && (
+                <Button variant="secondary" icon={Plus} onClick={onAddItem} title="Add an element to this slide">
+                  Element
+                </Button>
+              )
             )}
             {canReference && (
               <Button
@@ -1931,6 +2029,37 @@ function SlideActions({
         </div>
         </div>
       </div>
+      {addAt &&
+        addMenu &&
+        createPortal(
+          <>
+            <div className="fixed inset-0 z-40" onMouseDown={() => setAddAt(null)} />
+            <div
+              role="menu"
+              aria-label="Add to this slide"
+              className="pop-in fixed z-50 w-64 rounded-2xl bg-surface p-1.5 shadow-menu"
+              style={{ left: addAt.left, bottom: window.innerHeight - addAt.top + 8 }}
+            >
+              {addMenu.map((o) => (
+                <button
+                  key={o.id}
+                  role="menuitem"
+                  disabled={o.disabled}
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => {
+                    setAddAt(null);
+                    onAddPart(o.id);
+                  }}
+                  className="block w-full rounded-[10px] px-2.5 py-1.5 text-left text-sm text-ink transition-colors duration-100 hover:bg-mist disabled:pointer-events-none disabled:text-ink-faint"
+                >
+                  {o.label}
+                  {o.hint && <span className="block text-xs text-ink-muted">{o.hint}</span>}
+                </button>
+              ))}
+            </div>
+          </>,
+          document.body,
+        )}
     </div>
   );
 }
