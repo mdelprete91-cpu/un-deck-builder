@@ -1,7 +1,7 @@
 import type { Slide } from "../schema";
 import type { BrandTheme } from "../brand";
 import { MANROPE, OPEN_SANS, esc, ed, dly, item, section, footer, heading80 } from "./shared";
-import { numeric, fmt } from "./stats";
+import { fmt, signedValue } from "./stats";
 
 /**
  * The full-width charts (25 Sep 2026). The template has no slide with thirty
@@ -32,6 +32,28 @@ const TITLE_FIT = 190;
 const LEGEND_Y = 296;
 const LABEL_TOP = PLOT.y + PLOT.h + 16;
 
+/**
+ * The scale of a chart that may hold negatives: the unit of height and the
+ * zero line's y inside a plot of `h`, with `room` px kept for the value over
+ * the tallest bar and, when a value is negative, as much under the lowest.
+ * All positive, it is the scale the charts always had (zero at the bottom,
+ * the same expressions in the same order), so their markup does not change.
+ */
+function scaleOf(values: number[], h: number, room: number) {
+  const max = Math.max(...values, 1);
+  const lo = Math.min(0, ...values);
+  const below = lo < 0 ? room : 0;
+  const usable = h - room - below;
+  const zero = h - below - (lo < 0 ? Math.round((-lo / (max - lo)) * usable) : 0);
+  const size = (v: number) => Math.round((Math.abs(v) / (max - lo)) * usable);
+  return { max, lo, zero, size };
+}
+
+/** The darker zero line, only when something falls below it. */
+function zeroLine(lo: number, zero: number, w = PLOT.w): string {
+  return lo < 0 ? `<div style="position:absolute;left:0;top:${zero - 1}px;width:${w}px;height:2px;background:#C9C9CF;"></div>` : "";
+}
+
 /** Horizontal hairlines at 0, ¼, ½, ¾ and the max. */
 function gridLines(): string {
   return Array.from(
@@ -41,14 +63,26 @@ function gridLines(): string {
   ).join("");
 }
 
-/** max / half / 0 in the left margin, right-aligned to the plot. */
-function yAxis(max: number): string {
+/**
+ * max / half / 0 in the left margin, right-aligned to the plot. With
+ * negative values (28 Sep 2026) the labels are max, 0 on the zero line and
+ * the minimum at the bottom, and the zero line is drawn darker (`zeroLine`).
+ */
+function yAxis(max: number, lo = 0, zero = PLOT.h): string {
+  const marks: [number, string][] =
+    lo < 0
+      ? ([
+          [0, fmt(max)],
+          [zero, "0"],
+          [PLOT.h, fmt(lo)],
+        ] as [number, string][]).filter(([top, label], i) => !(i === 0 && (label === "0" || zero - top < 30)))
+      : [
+          [0, fmt(max)],
+          [PLOT.h / 2, fmt(max / 2)],
+          [PLOT.h, "0"],
+        ];
   return (
-    [
-      [0, fmt(max)],
-      [PLOT.h / 2, fmt(max / 2)],
-      [PLOT.h, "0"],
-    ] as [number, string][]
+    marks
   )
     .map(
       ([top, label]) =>
@@ -111,7 +145,7 @@ function legend(series: string[], colors: string[]): string {
 }
 
 function valuesOf(b: { value: number; values?: number[] }, k: number): number[] {
-  const v = (b.values ?? [b.value]).map(numeric);
+  const v = (b.values ?? [b.value]).map(signedValue);
   while (v.length < k) v.push(0);
   return v.slice(0, k);
 }
@@ -124,20 +158,21 @@ export function columnsWide(s: Slide, t: BrandTheme): string {
   const n = Math.max(bars.length, 1);
   const colW = PLOT.w / n;
   const barW = Math.min(120, Math.round(colW * 0.68));
-  const max = Math.max(...bars.map((b) => numeric(b.value)), 1);
   // The figure over each column shrinks with the count; past twenty
   // columns it may spill past its column ("12,450" is wider than 53px),
   // which neighbours tolerate because the values differ in length.
   const px = n <= 8 ? 30 : n <= 16 ? 24 : n <= 22 ? 20 : 16;
   const labelW = Math.round(colW * (n > 12 ? 1.4 : 1));
+  const { max, lo, zero, size } = scaleOf(bars.map((b) => signedValue(b.value)), PLOT.h, px + 20);
   const cols = bars
     .map((b, i) => {
-      const v = numeric(b.value);
-      const h = Math.max(6, Math.round((v / max) * (PLOT.h - px - 20)));
+      const v = signedValue(b.value);
+      const h = Math.max(6, size(v));
       const x = Math.round(colW * i + (colW - barW) / 2);
+      const down = v < 0;
       return (
-        `<div class="agh" ${item(`bars.${i}`)} style="position:absolute;left:${x}px;top:${PLOT.h - h}px;width:${barW}px;height:${h}px;background:${b.color ?? t.accent};border-radius:4px 4px 0 0;${dly(10 + i * 2)}"></div>` +
-        `<div class="ars" ${ed(`bars.${i}.value`, px + 8)} style="position:absolute;left:${Math.round(colW * (i + 0.5) - labelW / 2)}px;top:${PLOT.h - h - px - 14}px;width:${labelW}px;${VALUE(px)}${dly(14 + i * 2)}">${fmt(v)}</div>`
+        `<div class="agh" ${item(`bars.${i}`)} style="position:absolute;left:${x}px;top:${down ? zero : zero - h}px;width:${barW}px;height:${h}px;background:${b.color ?? t.accent};border-radius:${down ? "0 0 4px 4px" : "4px 4px 0 0"};${down ? "transform-origin:top;" : ""}${dly(10 + i * 2)}"></div>` +
+        `<div class="ars" ${ed(`bars.${i}.value`, px + 8)} style="position:absolute;left:${Math.round(colW * (i + 0.5) - labelW / 2)}px;top:${down ? zero + h + 8 : zero - h - px - 14}px;width:${labelW}px;${VALUE(px)}${dly(14 + i * 2)}">${fmt(v)}</div>`
       );
     })
     .join("");
@@ -146,8 +181,8 @@ export function columnsWide(s: Slide, t: BrandTheme): string {
     "#FFFFFF",
     "#000000",
     heading80(s.title ?? "", "title", "#000000", 1720, TITLE_FIT) +
-      yAxis(max) +
-      `<div data-chart style="position:absolute;left:${PLOT.x}px;top:${PLOT.y}px;width:${PLOT.w}px;height:${PLOT.h}px;">${gridLines()}${cols}</div>` +
+      yAxis(max, lo, zero) +
+      `<div data-chart style="position:absolute;left:${PLOT.x}px;top:${PLOT.y}px;width:${PLOT.w}px;height:${PLOT.h}px;">${gridLines()}${zeroLine(lo, zero)}${cols}</div>` +
       xLabels(bars, colW) +
       footer(t, "light"),
   );
@@ -161,25 +196,44 @@ export function barsHorizontal(s: Slide, t: BrandTheme): string {
   const rowH = Math.min(96, AREA.h / n);
   const barH = Math.round(Math.min(56, rowH * 0.62));
   const px = n <= 8 ? 30 : 24;
-  const max = Math.max(...bars.map((b) => numeric(b.value)), 1);
+  const values = bars.map((b) => signedValue(b.value));
+  const max = Math.max(...values, 1);
+  // Negatives run left of a zero line inside the same area, the value at
+  // the bar's far end on either side (28 Sep 2026). All positive, zero is
+  // the area's left edge and the bars are what they always were.
+  const lo = Math.min(0, ...values);
+  const room = lo < 0 ? 160 : 0;
+  const span = max - lo;
+  const zeroX = AREA.x + (lo < 0 ? room + Math.round((-lo / span) * (AREA.w - room * 2)) : 0);
+  const usableW = AREA.w - room * 2;
   const rows = bars
     .map((b, i) => {
-      const v = numeric(b.value);
-      const w = Math.max(6, Math.round((v / max) * AREA.w));
+      const v = values[i];
+      const w = Math.max(6, Math.round((Math.abs(v) / span) * usableW));
       const y = Math.round(AREA.y + rowH * i + (rowH - barH) / 2);
+      const left = v < 0;
       return (
         `<div class="ars" ${ed(`bars.${i}.label`, barH + 6)} style="position:absolute;left:100px;top:${y}px;width:${AREA.x - 130}px;height:${barH}px;display:flex;align-items:center;font-family:${OPEN_SANS};font-weight:500;font-size:${px}px;line-height:1.2;color:#000000;${dly(10 + i * 4)}">${esc(b.label)}</div>` +
-        `<div class="agw" ${item(`bars.${i}`)} style="position:absolute;left:${AREA.x}px;top:${y}px;width:${w}px;height:${barH}px;background:${b.color ?? t.accent};border-radius:0 4px 4px 0;${dly(10 + i * 4)}"></div>` +
-        `<div class="ars" ${ed(`bars.${i}.value`, barH + 6)} style="position:absolute;left:${AREA.x + w + 20}px;top:${y}px;width:200px;height:${barH}px;display:flex;align-items:center;font-family:${MANROPE};font-weight:600;font-size:${px}px;line-height:1.2;color:#000000;white-space:nowrap;${dly(14 + i * 4)}">${fmt(v)}</div>`
+        `<div class="agw" ${item(`bars.${i}`)} style="position:absolute;left:${left ? zeroX - w : zeroX}px;top:${y}px;width:${w}px;height:${barH}px;background:${b.color ?? t.accent};border-radius:${left ? "4px 0 0 4px" : "0 4px 4px 0"};${left ? "transform-origin:right center;" : ""}${dly(10 + i * 4)}"></div>` +
+        `<div class="ars" ${ed(`bars.${i}.value`, barH + 6)} style="position:absolute;left:${left ? zeroX - w - 220 : zeroX + w + 20}px;top:${y}px;width:200px;height:${barH}px;display:flex;align-items:center;${left ? "justify-content:flex-end;" : ""}font-family:${MANROPE};font-weight:600;font-size:${px}px;line-height:1.2;color:#000000;white-space:nowrap;${dly(14 + i * 4)}">${fmt(v)}</div>`
       );
     })
     .join("");
-  // Vertical hairlines at 0, ½ and the max, their labels under the rows.
-  const guides = ([0, 0.5, 1] as const)
+  // Vertical hairlines at 0, ½ and the max, their labels under the rows;
+  // with negatives, at the minimum, 0 (darker) and the max.
+  const marks: [number, number][] =
+    lo < 0
+      ? [
+          [zeroX - Math.round((-lo / span) * usableW), lo],
+          [zeroX, 0],
+          [zeroX + Math.round((max / span) * usableW), max],
+        ]
+      : ([0, 0.5, 1] as const).map((f) => [Math.round(AREA.x + AREA.w * f), max * f]);
+  const guides = marks
     .map(
-      (f) =>
-        `<div style="position:absolute;left:${Math.round(AREA.x + AREA.w * f)}px;top:${AREA.y}px;width:1px;height:${AREA.h}px;background:${GRID};"></div>` +
-        `<div style="position:absolute;left:${Math.round(AREA.x + AREA.w * f - 100)}px;top:${AREA.y + AREA.h + 12}px;width:200px;text-align:center;${AXIS}">${fmt(max * f)}</div>`,
+      ([x, v]) =>
+        `<div style="position:absolute;left:${x}px;top:${AREA.y}px;width:${lo < 0 && v === 0 ? 2 : 1}px;height:${AREA.h}px;background:${lo < 0 && v === 0 ? "#C9C9CF" : GRID};"></div>` +
+        `<div style="position:absolute;left:${x - 100}px;top:${AREA.y + AREA.h + 12}px;width:200px;text-align:center;${AXIS}">${fmt(v)}</div>`,
     )
     .join("");
   return section(
@@ -203,9 +257,14 @@ export function line(s: Slide, t: BrandTheme): string {
   const n = Math.max(bars.length, 1);
   const colW = PLOT.w / n;
   const rows = bars.map((b) => valuesOf(b, k));
-  const max = Math.max(...rows.flat(), 1);
+  const lo = Math.min(0, ...rows.flat());
+  // All below zero, the scale tops out at zero (not at a phantom 1).
+  const max = lo < 0 ? Math.max(0, ...rows.flat()) || 0.0001 : Math.max(...rows.flat(), 1);
   const top = 40;
-  const yOf = (v: number) => Math.round(PLOT.h - (v / max) * (PLOT.h - top));
+  // Below zero the line keeps going (28 Sep 2026); all positive, the same
+  // expression as always.
+  const yOf = (v: number) => (lo < 0 ? Math.round(PLOT.h - 40 - ((v - lo) / (max - lo)) * (PLOT.h - top - 40)) : Math.round(PLOT.h - (v / max) * (PLOT.h - top)));
+  const zero = yOf(0);
   const paths = series
     .map((_, j) => {
       const pts = rows.map((r, i) => `${Math.round(colW * (i + 0.5))},${yOf(r[j])}`);
@@ -230,8 +289,8 @@ export function line(s: Slide, t: BrandTheme): string {
     "#000000",
     heading80(s.title ?? "", "title", "#000000", 1720, TITLE_FIT) +
       legend(series, colors) +
-      yAxis(max) +
-      `<div data-chart style="position:absolute;left:${PLOT.x}px;top:${PLOT.y}px;width:${PLOT.w}px;height:${PLOT.h}px;">${gridLines()}` +
+      yAxis(max, lo, zero) +
+      `<div data-chart style="position:absolute;left:${PLOT.x}px;top:${PLOT.y}px;width:${PLOT.w}px;height:${PLOT.h}px;">${gridLines()}${zeroLine(lo, zero)}` +
       `<svg class="af" width="${PLOT.w}" height="${PLOT.h}" viewBox="0 0 ${PLOT.w} ${PLOT.h}" style="position:absolute;left:0;top:0;overflow:visible;${dly(16)}">${paths}</svg>` +
       labels +
       `</div>` +
@@ -252,20 +311,21 @@ export function columnsGrouped(s: Slide, t: BrandTheme): string {
   const groupW = Math.min(420, colW * 0.74);
   const barW = Math.round((groupW - gap * (k - 1)) / k);
   const rows = bars.map((b) => valuesOf(b, k));
-  const max = Math.max(...rows.flat(), 1);
   const showValues = n * k <= 18;
   const px = n <= 5 ? 24 : 20;
+  const { max, lo, zero, size } = scaleOf(rows.flat(), PLOT.h, px + 20);
   const cols = rows
     .map((r, i) => {
       const x0 = Math.round(colW * i + (colW - groupW) / 2);
       const group = r
         .map((v, j) => {
-          const h = Math.max(6, Math.round((v / max) * (PLOT.h - px - 20)));
+          const h = Math.max(6, size(v));
           const x = x0 + j * (barW + gap);
+          const down = v < 0;
           return (
-            `<div class="agh" style="position:absolute;left:${x}px;top:${PLOT.h - h}px;width:${barW}px;height:${h}px;background:${colors[j]};border-radius:4px 4px 0 0;${dly(10 + i * 3 + j)}"></div>` +
+            `<div class="agh" style="position:absolute;left:${x}px;top:${down ? zero : zero - h}px;width:${barW}px;height:${h}px;background:${colors[j]};border-radius:${down ? "0 0 4px 4px" : "4px 4px 0 0"};${down ? "transform-origin:top;" : ""}${dly(10 + i * 3 + j)}"></div>` +
             (showValues
-              ? `<div class="ars" style="position:absolute;left:${x - 20}px;top:${PLOT.h - h - px - 12}px;width:${barW + 40}px;${VALUE(px)}${dly(14 + i * 3 + j)}">${fmt(v)}</div>`
+              ? `<div class="ars" style="position:absolute;left:${x - 20}px;top:${down ? zero + h + 8 : zero - h - px - 12}px;width:${barW + 40}px;${VALUE(px)}${dly(14 + i * 3 + j)}">${fmt(v)}</div>`
               : "")
           );
         })
@@ -279,8 +339,8 @@ export function columnsGrouped(s: Slide, t: BrandTheme): string {
     "#000000",
     heading80(s.title ?? "", "title", "#000000", 1720, TITLE_FIT) +
       legend(series, colors) +
-      yAxis(max) +
-      `<div data-chart style="position:absolute;left:${PLOT.x}px;top:${PLOT.y}px;width:${PLOT.w}px;height:${PLOT.h}px;">${gridLines()}${cols}</div>` +
+      yAxis(max, lo, zero) +
+      `<div data-chart style="position:absolute;left:${PLOT.x}px;top:${PLOT.y}px;width:${PLOT.w}px;height:${PLOT.h}px;">${gridLines()}${zeroLine(lo, zero)}${cols}</div>` +
       xLabels(bars, colW) +
       footer(t, "light"),
   );
@@ -297,25 +357,42 @@ export function columnsStacked(s: Slide, t: BrandTheme): string {
   const barW = Math.min(160, Math.round(colW * 0.6));
   const rows = bars.map((b) => valuesOf(b, k));
   const totals = rows.map((r) => r.reduce((a, b) => a + b, 0));
-  const max = Math.max(...totals, 1);
   const px = n <= 6 ? 26 : 22;
-  const usable = PLOT.h - px - 20;
+  // Positive parts stack up from zero, negative parts stack down from it
+  // (28 Sep 2026); the figure is the net total, over the column or under it.
+  const ups = rows.map((r) => r.filter((v) => v > 0).reduce((a, b) => a + b, 0));
+  const downs = rows.map((r) => r.filter((v) => v < 0).reduce((a, b) => a + b, 0));
+  const anyDown = downs.some((d) => d < 0);
+  const max = anyDown ? Math.max(...ups, 1) : Math.max(...totals, 1);
+  const lo = Math.min(0, ...downs);
+  const below = lo < 0 ? px + 20 : 0;
+  const usable = PLOT.h - px - 20 - below;
+  const span = max - lo;
+  const zero = PLOT.h - below - (lo < 0 ? Math.round((-lo / span) * usable) : 0);
   const cols = rows
     .map((r, i) => {
       const x = Math.round(colW * i + (colW - barW) / 2);
-      const total = Math.round((totals[i] / max) * usable);
-      let y = PLOT.h;
+      let up = zero;
+      let down = zero;
       const segs = r
         .map((v, j) => {
-          const h = Math.round((v / max) * usable);
-          y -= h;
+          if (v < 0) {
+            const h = Math.round((-v / span) * usable);
+            const seg = `<div style="position:absolute;left:0;top:${down}px;width:${barW}px;height:${h}px;background:${colors[j]};"></div>`;
+            down += h;
+            return seg;
+          }
+          const h = Math.round((v / span) * usable);
+          up -= h;
           const radius = j === k - 1 ? "border-radius:4px 4px 0 0;" : "";
-          return `<div style="position:absolute;left:0;top:${y}px;width:${barW}px;height:${h}px;background:${colors[j]};${radius}"></div>`;
+          return `<div style="position:absolute;left:0;top:${up}px;width:${barW}px;height:${h}px;background:${colors[j]};${radius}"></div>`;
         })
         .join("");
+      // All positive: the total's own rounding, as the label always sat.
+      const labelTop = !anyDown ? PLOT.h - Math.round((totals[i] / max) * usable) - px - 12 : totals[i] < 0 ? down + 8 : up - px - 12;
       return (
         `<div class="agh" ${item(`bars.${i}`)} style="position:absolute;left:${x}px;top:0;width:${barW}px;height:${PLOT.h}px;${dly(10 + i * 3)}">${segs}</div>` +
-        `<div class="ars" style="position:absolute;left:${Math.round(colW * i)}px;top:${PLOT.h - total - px - 12}px;width:${Math.round(colW)}px;${VALUE(px)}${dly(14 + i * 3)}">${fmt(totals[i])}</div>`
+        `<div class="ars" style="position:absolute;left:${Math.round(colW * i)}px;top:${labelTop}px;width:${Math.round(colW)}px;${VALUE(px)}${dly(14 + i * 3)}">${fmt(totals[i])}</div>`
       );
     })
     .join("");
@@ -325,8 +402,8 @@ export function columnsStacked(s: Slide, t: BrandTheme): string {
     "#000000",
     heading80(s.title ?? "", "title", "#000000", 1720, TITLE_FIT) +
       legend(series, colors) +
-      yAxis(max) +
-      `<div data-chart style="position:absolute;left:${PLOT.x}px;top:${PLOT.y}px;width:${PLOT.w}px;height:${PLOT.h}px;">${gridLines()}${cols}</div>` +
+      yAxis(max, lo, zero) +
+      `<div data-chart style="position:absolute;left:${PLOT.x}px;top:${PLOT.y}px;width:${PLOT.w}px;height:${PLOT.h}px;">${gridLines()}${zeroLine(lo, zero)}${cols}</div>` +
       xLabels(bars, colW) +
       footer(t, "light"),
   );

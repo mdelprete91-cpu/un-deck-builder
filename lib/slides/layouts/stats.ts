@@ -201,8 +201,23 @@ export function numeric(value: unknown): number {
   return Number.isFinite(n) ? Math.max(0, n) : 0;
 }
 
+/**
+ * A chart value that keeps its sign (28 Sep 2026: costs arrive negative,
+ * -32.79, and every chart but the donut draws them below zero). The donut
+ * alone keeps `numeric`, since a share cannot be negative.
+ */
+export function signedValue(value: unknown): number {
+  const n = parseFloat(String(value ?? "").replace(/[−–]/g, "-").replace(/[^0-9.\-]/g, ""));
+  return Number.isFinite(n) ? n : 0;
+}
+
+/** A figure for a chart: thousands grouped, one decimal below, a typographic minus when negative. */
 export const fmt = (n: number): string =>
-  n >= 1000 ? `${Math.round(n).toLocaleString("en-US")}` : `${Math.round(n * 10) / 10}`;
+  n < 0
+    ? `\u2212${fmt(-n)}`
+    : n >= 1000
+      ? `${Math.round(n).toLocaleString("en-US")}`
+      : `${Math.round(n * 10) / 10}`;
 
 /**
  * Column chart with grid lines and legend, 2–5 bars (template 16).
@@ -217,7 +232,14 @@ export function chartBars(s: Slide, t: BrandTheme): string {
   const AREA = { x: 1042, y: 108, w: 753, h: 705 };
   const colW = AREA.w / bars.length;
   const barW = Math.min(156, Math.round(colW) - 40);
-  const max = Math.max(...bars.map((b) => numeric(b.value)), 1);
+  const values = bars.map((b) => signedValue(b.value));
+  const max = Math.max(...values, 1);
+  // Negatives hang from a zero line (28 Sep 2026); all positive, zero is the
+  // area's floor and every expression is the one the template always had.
+  const lo = Math.min(0, ...values);
+  const below = lo < 0 ? 48 : 0;
+  const usable = AREA.h - 87 - below;
+  const zero = AREA.h - below - (lo < 0 ? Math.round((-lo / (max - lo)) * usable) : 0);
 
   const grid = Array.from(
     { length: 11 },
@@ -226,28 +248,38 @@ export function chartBars(s: Slide, t: BrandTheme): string {
   ).join("");
   const cols = bars
     .map((b, i) => {
-      const v = numeric(b.value);
-      const h = Math.max(6, Math.round((v / max) * (AREA.h - 87)));
+      const v = values[i];
+      const h = Math.max(6, Math.round((Math.abs(v) / (max - lo)) * usable));
       const x = Math.round(colW * i + (colW - barW) / 2);
+      const down = v < 0;
       return (
-        `<div class="agh" ${item(`bars.${i}`)} style="position:absolute;left:${x}px;top:${AREA.h - h}px;width:${barW}px;height:${h}px;background:${shades[i % shades.length]};border-radius:4px 4px 0 0;${dly(10 + i * 8)}"></div>` +
-        `<div class="ars" ${ed(`bars.${i}.value`, 44)} style="position:absolute;left:${x - 30}px;top:${AREA.h - h - 48}px;width:${barW + 60}px;text-align:center;font-family:${MANROPE};font-weight:600;font-size:30px;line-height:1.2;color:#000000;${dly(14 + i * 8)}">${fmt(v)}</div>`
+        `<div class="agh" ${item(`bars.${i}`)} style="position:absolute;left:${x}px;top:${down ? zero : zero - h}px;width:${barW}px;height:${h}px;background:${shades[i % shades.length]};border-radius:${down ? "0 0 4px 4px" : "4px 4px 0 0"};${down ? "transform-origin:top;" : ""}${dly(10 + i * 8)}"></div>` +
+        `<div class="ars" ${ed(`bars.${i}.value`, 44)} style="position:absolute;left:${x - 30}px;top:${down ? zero + h + 8 : zero - h - 48}px;width:${barW + 60}px;text-align:center;font-family:${MANROPE};font-weight:600;font-size:30px;line-height:1.2;color:#000000;${dly(14 + i * 8)}">${fmt(v)}</div>`
       );
     })
     .join("");
-  const yAxis = [
-    [84, fmt(max)],
-    [398, fmt(max / 2)],
-    [789, "0"],
-  ]
+  const yAxis = (
+    lo < 0
+      ? [
+          [84, fmt(max)],
+          [AREA.y + zero - 24, "0"],
+          [789, fmt(lo)],
+        ]
+      : [
+          [84, fmt(max)],
+          [398, fmt(max / 2)],
+          [789, "0"],
+        ]
+  )
     .map(
       ([top, label]) =>
         `<div style="position:absolute;left:858px;top:${top}px;width:156px;text-align:right;${BODY32}color:#6F6F6F;">${label}</div>`,
     )
     .join("");
   const legend = bars
-    .map((b, i) => legendRow(`bars.${i}.label`, 102, 346 + i * 115, shades[i % shades.length], b.label, 12 + i * 6, fmt(numeric(b.value))))
+    .map((b, i) => legendRow(`bars.${i}.label`, 102, 346 + i * 115, shades[i % shades.length], b.label, 12 + i * 6, fmt(values[i])))
     .join("");
+  const zeroRule = lo < 0 ? `<div style="position:absolute;left:0;top:${zero - 1}px;width:${AREA.w}px;height:2px;background:#C9C9CF;"></div>` : "";
 
   return section(
     t,
@@ -256,7 +288,7 @@ export function chartBars(s: Slide, t: BrandTheme): string {
     heading80(s.title ?? "", "title", "#000000", 740, 230) +
       legend +
       yAxis +
-      `<div data-chart style="position:absolute;left:${AREA.x}px;top:${AREA.y}px;width:${AREA.w}px;height:${AREA.h}px;">${grid}${cols}</div>` +
+      `<div data-chart style="position:absolute;left:${AREA.x}px;top:${AREA.y}px;width:${AREA.w}px;height:${AREA.h}px;">${grid}${zeroRule}${cols}</div>` +
       footer(t, "light"),
   );
 }

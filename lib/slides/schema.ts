@@ -186,6 +186,8 @@ export interface SlideContent {
   iconsPinned?: boolean;
   /** Model output only: a library photo id for the slide's photo slot, turned into `image` by normalizeSlide. */
   photo?: string;
+  /** "high": the layout's high-density variant (layouts/density.ts), for slides that carry a report's text. */
+  density?: "high";
   /** Footnotes, printed in the footer row (layouts/dense.ts `footnote`). */
   notes?: string;
   /** Two-pager page ("a4-page"): the ordered block stack. */
@@ -327,6 +329,10 @@ export const slideContentSchema = z.object({
   stack: z.array(pageBlockSchema).optional(),
   footerLabel: z.string().optional(),
   notes: z.string().optional(),
+  density: z
+    .string()
+    .optional()
+    .transform((v) => (v === "high" ? ("high" as const) : undefined)),
 });
 
 export function clampWords(text: string, maxWords: number): string {
@@ -529,13 +535,19 @@ export function normalizeSlide(
     }));
   }
   if (slide.notes !== undefined && !slide.notes.trim()) delete slide.notes;
+  if (!slide.density) delete slide.density;
+  // A negative figure reads with a typographic minus ("−32.79"), not a hyphen.
+  const minus = (v: string) => v.replace(/^-(?=\s?[\d$€£.]|USD|GMD|EUR)/, "\u2212");
+  if (slide.stat) slide.stat = minus(slide.stat);
+  if (slide.stats) slide.stats = slide.stats.map((st) => ({ ...st, value: minus(st.value) }));
   if (isChartLayout(slide.layoutId)) {
     normalizeSeries(slide);
     // A chart reads its bars and nothing else: blocks or stats the model
     // wrote beside them (a grouped chart with two empty blocks, 26 Sep 2026)
     // would only reach the editor as fields nothing renders. chart-text is
     // the exception: its explanation is `bullets`, its notes `blocks`.
-    if (slide.layoutId === "chart-text") {
+    if (slide.layoutId === "chart-text" || slide.density === "high") {
+      // A dense chart keeps its explanation (subtitle + bullets) beside the plot.
       slide.blocks = slide.blocks?.slice(0, 3);
       if (!slide.blocks?.length) delete slide.blocks;
     } else {

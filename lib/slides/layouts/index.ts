@@ -7,6 +7,7 @@ import * as tables from "./tables";
 import * as charts from "./charts";
 import * as progressLayout from "./progress";
 import * as dense from "./dense";
+import { DENSE_RENDERERS } from "./density";
 import { renderPage, type PageCtx } from "../pages/render";
 
 /**
@@ -65,7 +66,9 @@ export const LAYOUTS: Record<LayoutId, { label: string; render: RenderFn }> = {
 export function renderSlide(slide: Slide, theme: BrandTheme, ctx?: PageCtx): string {
   const def = LAYOUTS[slide.layoutId];
   if (!def) return "";
-  const html = def.render(slide, theme, ctx);
+  // The high-density variant when the slide asks for it and the layout has one.
+  const denseRender = slide.density === "high" ? DENSE_RENDERERS[slide.layoutId] : undefined;
+  const html = denseRender ? denseRender(slide, theme) : def.render(slide, theme, ctx);
   // Footnotes sit in the footer row of any content slide: added here, once,
   // inside the section's content box, so no renderer has to know about them.
   const note = dense.footnote(slide);

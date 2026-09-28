@@ -28,25 +28,25 @@ import { seriesColors } from "./charts";
  * The title's budget follows, so a guess that is wrong shrinks the title
  * rather than running it into the content.
  */
-const oneLine = (s: Slide) => (s.title ?? "").trim().length <= 50;
-const topOf = (s: Slide) => (oneLine(s) ? 200 : 272);
-const BOTTOM = 936; // 30px above the footer label, as on list and callout
-const BAND_H = 124;
-const GAP = 24;
-const DENSE = `font-family:${OPEN_SANS};font-weight:500;font-size:24px;line-height:1.4;color:#000000;`;
-const HEAD = (px: number, color = "var(--accent)") =>
+export const oneLine = (s: Slide, width = 1720) => (s.title ?? "").trim().length <= Math.floor((50 * width) / 1720);
+export const topOf = (s: Slide, width = 1720) => (oneLine(s, width) ? 200 : 272);
+export const BOTTOM = 936; // 30px above the footer label, as on list and callout
+export const BAND_H = 124;
+export const GAP = 24;
+export const DENSE = `font-family:${OPEN_SANS};font-weight:500;font-size:24px;line-height:1.4;color:#000000;`;
+export const HEAD = (px: number, color = "var(--accent)") =>
   `font-family:${MANROPE};font-weight:600;font-size:${px}px;line-height:1.3;letter-spacing:-.01em;color:${color};`;
-const CARD = "#F7F7F7";
+export const CARD = "#F7F7F7";
 
-function title(s: Slide): string {
-  return heading60(s.title ?? "", "title", "#000000", 100, 1720, oneLine(s) ? 76 : 150);
+export function title(s: Slide, color = "#000000", width = 1720, left = 100): string {
+  return heading60(s.title ?? "", "title", color, left, width, oneLine(s, width) ? 76 : 150);
 }
 
 /**
  * A block's points with their edit paths: `items` when it has them, else its
  * `body` as one point (a block added with "Add element" has only a body).
  */
-function pointsOf(b: Block, i: number): { text: string; path: string }[] {
+export function pointsOf(b: Block, i: number): { text: string; path: string }[] {
   if (b.items?.length) return b.items.map((text, j) => ({ text, path: `blocks.${i}.items.${j}` }));
   return b.body?.trim() ? [{ text: b.body, path: `blocks.${i}.body` }] : [];
 }
@@ -56,11 +56,13 @@ function pointsOf(b: Block, i: number): { text: string; path: string }[] {
  * starts with a dash is a sub-point, indented, the en dash its marker. The
  * dash is part of the text, so editing never loses the level.
  */
-function bullets(
+export function bullets(
   points: { text: string; path: string }[],
   fit: number,
   group?: string,
   head?: { path: string; text?: string; color?: string },
+  /** On an accent surface: white text and dots. */
+  ink?: { text: string; dot: string },
 ): string {
   const rows = points
     .map(({ text, path }) => {
@@ -68,7 +70,7 @@ function bullets(
       return sub
         ? `<div style="padding-left:.94em;"><div ${ed(path)} style="padding-left:.9em;text-indent:-.9em;">${esc(text.replace(/^-\s/, "– "))}</div></div>`
         : `<div style="display:flex;gap:.6em;">` +
-            `<span style="flex:0 0 auto;width:.34em;height:.34em;margin-top:.53em;border-radius:50%;background:var(--accent);"></span>` +
+            `<span style="flex:0 0 auto;width:.34em;height:.34em;margin-top:.53em;border-radius:50%;background:${ink?.dot ?? "var(--accent)"};"></span>` +
             `<div ${ed(path)} style="flex:1;min-width:0;">${esc(text)}</div>` +
             `</div>`;
     })
@@ -78,11 +80,11 @@ function bullets(
   const top = head
     ? `<div ${ed(head.path)} style="font-family:${MANROPE};font-weight:600;font-size:1.25em;line-height:1.3;letter-spacing:-.01em;color:${head.color ?? "var(--accent)"};margin-bottom:.35em;">${esc(head.text)}</div>`
     : "";
-  return `<div data-fit="${fit}"${group ? ` data-fit-group="${group}"` : ""} style="${DENSE}padding-right:28px;display:flex;flex-direction:column;gap:.45em;">${top}${rows}</div>`;
+  return `<div data-fit="${fit}"${group ? ` data-fit-group="${group}"` : ""} style="${DENSE}${ink ? `color:${ink.text};` : ""}padding-right:28px;display:flex;flex-direction:column;gap:.45em;">${top}${rows}</div>`;
 }
 
 /** The key message under the content: white on the accent, full width. */
-function band(s: Slide, y: number): string {
+export function band(s: Slide, y: number): string {
   return (
     `<div class="ars" style="position:absolute;left:100px;top:${y}px;width:1720px;height:${BAND_H}px;box-sizing:border-box;background:var(--accent);padding:0 48px;display:flex;align-items:center;${dly(30)}">` +
     `<div ${ed("support", 92)} style="width:100%;${HEAD(30, "#FFFFFF")}">${esc(s.support)}</div>` +
@@ -90,7 +92,7 @@ function band(s: Slide, y: number): string {
   );
 }
 
-const hasBand = (s: Slide) => !!s.support?.trim();
+export const hasBand = (s: Slide) => !!s.support?.trim();
 
 /**
  * Bullet columns (slides 4, 6, 17, 23, 24, 26, 27 of the Gambia case): one to

@@ -1,6 +1,7 @@
 import type { Slide } from "../schema";
 import type { BrandTheme } from "../brand";
 import { MANROPE, BODY30, esc, ed, dly, item, section, footer, heading80 } from "./shared";
+import { BOTTOM, DENSE, title, topOf } from "./dense";
 
 /**
  * Where a process stands (Mario, 26 Sep 2026: "a slide that represents a
@@ -43,22 +44,27 @@ export function timeline(s: Slide, t: BrandTheme): string {
   return stagesSlide(s, t, "timeline");
 }
 
-function stagesSlide(s: Slide, t: BrandTheme, mode: "progress" | "timeline"): string {
+export function stagesSlide(s: Slide, t: BrandTheme, mode: "progress" | "timeline", dense = false): string {
+  // High density (28 Sep 2026): the same track and nodes under a 60px title
+  // on up to two lines, the stage boxes running to 936, labels at 30px and
+  // bodies in Open Sans 24px, about forty words a stage.
+  const TRACK = dense ? topOf(s) + 120 : TRACK_Y;
+  const BOX_H = dense ? BOTTOM - (TRACK - 96) : STAGE_H;
   const stages = (s.blocks ?? []).slice(0, 6);
   const n = Math.max(stages.length, 1);
   const cur = Number(s.current);
   const current = mode === "progress" && Number.isFinite(cur) && cur >= 1 && cur <= n ? Math.round(cur) : 0;
   const colW = 1720 / n;
   const cx = (i: number) => Math.round(100 + colW * (i + 0.5));
-  const midY = TRACK_Y + TRACK_H / 2;
+  const midY = TRACK + TRACK_H / 2;
 
   const x0 = cx(0);
   const x1 = cx(n - 1);
-  const track = `<div style="position:absolute;left:${x0}px;top:${TRACK_Y}px;width:${x1 - x0}px;height:${TRACK_H}px;border-radius:${TRACK_H / 2}px;background:${GREY};"></div>`;
+  const track = `<div style="position:absolute;left:${x0}px;top:${TRACK}px;width:${x1 - x0}px;height:${TRACK_H}px;border-radius:${TRACK_H / 2}px;background:${GREY};"></div>`;
   const fillTo = current ? cx(current - 1) : x0;
   const fill =
     current > 1
-      ? `<div class="agw" style="position:absolute;left:${x0}px;top:${TRACK_Y}px;width:${fillTo - x0}px;height:${TRACK_H}px;border-radius:${TRACK_H / 2}px;background:var(--accent);${dly(12)}"></div>`
+      ? `<div class="agw" style="position:absolute;left:${x0}px;top:${TRACK}px;width:${fillTo - x0}px;height:${TRACK_H}px;border-radius:${TRACK_H / 2}px;background:var(--accent);${dly(12)}"></div>`
       : "";
 
   const cols = stages
@@ -82,26 +88,28 @@ function stagesSlide(s: Slide, t: BrandTheme, mode: "progress" | "timeline"): st
       // One box per stage, from the status line to the end of the body, so
       // the delete frame and its ✕ cover the whole stage (they covered only
       // the status line, 26 Sep 2026). Children are placed inside it.
-      const top = TRACK_Y - 96;
+      const top = TRACK - 96;
       return (
-        `<div class="ars" ${item(`blocks.${i}`)} style="position:absolute;left:${left}px;top:${top}px;width:${Math.round(colW)}px;height:${STAGE_H}px;${dly(10 + i * 8)}">` +
+        `<div class="ars" ${item(`blocks.${i}`)} style="position:absolute;left:${left}px;top:${top}px;width:${Math.round(colW)}px;height:${BOX_H}px;${dly(10 + i * 8)}">` +
         // A timeline's date sits above the track, bottom-aligned to it, so
         // the slide balances around the line (Mario, 27 Sep 2026: with the
         // date under the dot the space above the track sat empty).
         (state === "date"
-          ? `<div style="position:absolute;left:10px;bottom:${STAGE_H - (midY - top) + 34}px;width:${w}px;text-align:center;"><div ${ed(`blocks.${i}.label`, 96)} style="font-family:${MANROPE};font-weight:600;font-size:36px;line-height:1.25;letter-spacing:-.01em;color:var(--accent);">${esc(stage.label)}</div></div>`
+          ? `<div style="position:absolute;left:10px;bottom:${BOX_H - (midY - top) + 34}px;width:${w}px;text-align:center;"><div ${ed(`blocks.${i}.label`, 96)} style="font-family:${MANROPE};font-weight:600;font-size:${dense ? 30 : 36}px;line-height:1.25;letter-spacing:-.01em;color:var(--accent);">${esc(stage.label)}</div></div>`
           : `<div style="position:absolute;left:0;top:0;width:100%;text-align:center;font-family:${MANROPE};font-weight:600;font-size:26px;line-height:1.3;color:${accentText ? "var(--accent)" : "#8F8F8F"};">${number}${status ? `<span style="font-weight:500;color:#6F6F6F;"> · ${status}</span>` : ""}</div>`) +
         `<div class="af" ${state === "date" ? "" : `data-set="current" data-value="${i + 1}" title="Mark this stage as in progress"`} style="position:absolute;left:${cx(i) - left - size / 2}px;top:${midY - top - size / 2}px;width:${size}px;height:${size}px;border-radius:50%;${node}display:flex;align-items:center;justify-content:center;${dly(14 + i * 8)}">${inner}</div>` +
         `<div style="position:absolute;left:10px;top:${state === "date" ? midY - top + 44 : 168}px;width:${w}px;text-align:center;">` +
         (state === "date"
           ? ""
-          : `<div ${ed(`blocks.${i}.label`, 96)} style="font-family:${MANROPE};font-weight:600;font-size:36px;line-height:1.25;letter-spacing:-.01em;color:${state === "current" ? "var(--accent)" : "#161616"};">${esc(stage.label)}</div>`) +
-        `<div ${ed(`blocks.${i}.body`, 250)} style="${state === "date" ? "" : "margin-top:14px;"}${BODY30}color:${state === "next" ? "#5D5D5D" : "#000000"};">${esc(stage.body)}</div>` +
+          : `<div ${ed(`blocks.${i}.label`, 96)} style="font-family:${MANROPE};font-weight:600;font-size:${dense ? 30 : 36}px;line-height:1.25;letter-spacing:-.01em;color:${state === "current" ? "var(--accent)" : "#161616"};">${esc(stage.label)}</div>`) +
+        (dense
+          ? `<div ${ed(`blocks.${i}.body`, BOX_H - (state === "date" ? midY - top + 44 : 168) - (state === "date" ? 20 : 70))} data-fit-group="stages" style="${state === "date" ? "" : "margin-top:12px;"}${DENSE}color:${state === "next" ? "#5D5D5D" : "#000000"};">${esc(stage.body)}</div>`
+          : `<div ${ed(`blocks.${i}.body`, 250)} style="${state === "date" ? "" : "margin-top:14px;"}${BODY30}color:${state === "next" ? "#5D5D5D" : "#000000"};">${esc(stage.body)}</div>`) +
         `</div>` +
         `</div>`
       );
     })
     .join("");
 
-  return section(t, "#FFFFFF", "#000000", heading80(s.title ?? "", "title", "#000000", 1720, 190) + track + fill + cols + footer(t, "light"));
+  return section(t, "#FFFFFF", "#000000", (dense ? title(s) : heading80(s.title ?? "", "title", "#000000", 1720, 190)) + track + fill + cols + footer(t, "light"));
 }
