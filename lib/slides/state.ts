@@ -91,7 +91,14 @@ export type DeckAction =
   | { type: "SET_IMAGE_POS"; index: number; pos: ImagePos; path?: string }
   | { type: "SET_LOGO_TONE"; id: string; tone: "light" | "dark" }
   | { type: "SET_ICON"; index: number; block: number; icon: string; path?: string }
-  | { type: "INSERT_SLIDES"; at: number | null; contents: SlideContent[]; agenda?: string[] }
+  | {
+      type: "INSERT_SLIDES";
+      at: number | null;
+      contents: SlideContent[];
+      agenda?: string[];
+      /** Per slide, the existing slide it goes after (0 = first); overrides `at` where set. */
+      positions?: (number | null)[];
+    }
   | { type: "GENERATION_ERROR"; error: string }
   | { type: "CLEAR_ERROR" }
   | { type: "EDIT_FIELD"; index: number; path: string; value: string }
@@ -495,8 +502,18 @@ function reduce(state: DeckState, action: DeckAction): DeckState {
       // and the agenda slide, if any, gets its refreshed bullets.
       if (action.contents.length === 0) return state;
       const slides = [...state.slides];
-      const at = Math.max(0, Math.min(action.at ?? slides.length, slides.length));
-      slides.splice(at, 0, ...action.contents.map(ensureId));
+      const n = slides.length;
+      const clamp = (v: number | null | undefined) => Math.max(0, Math.min(v ?? n, n));
+      // Each slide may carry its own place (a top-up that fills three chapters
+      // at once, 28 Sep 2026: one position put eight slides in one block
+      // after "Next steps"). Positions refer to the deck before insertion, so
+      // groups are spliced from the last position back, each group in order.
+      const place = action.contents.map((c, i) => ({ c: ensureId(c), at: clamp(action.positions?.[i] ?? action.at) }));
+      const groups = new Map<number, Slide[]>();
+      for (const { c, at: p } of place) (groups.get(p) ?? groups.set(p, []).get(p)!).push(c);
+      for (const p of [...groups.keys()].sort((a, b) => b - a)) slides.splice(p, 0, ...groups.get(p)!);
+      const firstAt = Math.min(...place.map((x) => x.at));
+      const at = firstAt + [...groups.keys()].filter((p) => p < firstAt).length;
       if (action.agenda && action.agenda.length > 0) {
         const ai = slides.findIndex((s) => s.layoutId === "agenda");
         if (ai >= 0) slides[ai] = { ...slides[ai], bullets: action.agenda.slice(0, 9) };

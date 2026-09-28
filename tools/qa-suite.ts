@@ -259,12 +259,21 @@ async function runPrompt(p: Prompt): Promise<Result> {
     cost += usage(add.usage);
     // A topped-up slide with a title the deck already has is a repeat, whatever the instruction said.
     const titles = new Set(slides.map((s) => (s.title ?? "").trim().toLowerCase()).filter(Boolean));
+    // Each added slide goes where its own "after" says (the editor's INSERT_SLIDES), never past the closing slide.
+    const fallback = add.meta?.insertAfter ?? slides.length - 1;
     const extra = add.slides
-      .map((raw) => normalizeSlide(raw, { brandId: BRAND_ID }))
-      .filter((s): s is SlideContent => !!s && !STRUCTURAL.has(s.layoutId) && !titles.has((s.title ?? "").trim().toLowerCase()))
+      .map((raw) => ({ s: normalizeSlide(raw, { brandId: BRAND_ID }), after: (raw as { after?: number }).after }))
+      .filter((x): x is { s: SlideContent; after: number | undefined } => !!x.s && !STRUCTURAL.has(x.s.layoutId) && !titles.has((x.s.title ?? "").trim().toLowerCase()))
       .slice(0, missing);
-    const at = Math.min(Math.max(add.meta?.insertAfter ?? slides.length - 1, 1), slides.length - 1);
-    slides = [...slides.slice(0, at), ...extra, ...slides.slice(at)];
+    const clamp = (v: number) => Math.min(Math.max(v, 1), slides.length - 1);
+    const groups = new Map<number, SlideContent[]>();
+    for (const x of extra) {
+      const at = clamp(typeof x.after === "number" ? x.after : fallback);
+      (groups.get(at) ?? groups.set(at, []).get(at)!).push(x.s);
+    }
+    const next = [...slides];
+    for (const at of [...groups.keys()].sort((a, b) => b - a)) next.splice(at, 0, ...groups.get(at)!);
+    slides = next;
     warnings.push(`topped up: +${extra.length} after a short deck of ${slides.length - extra.length}`);
   }
   // What the editor does once the deck is complete (see runGenerate in app/page.tsx).
@@ -391,7 +400,8 @@ async function runPrompt(p: Prompt): Promise<Result> {
   slides.forEach((s, i) => {
     if (!STRUCTURAL.has(s.layoutId) && !NO_TITLE.has(s.layoutId) && !s.title?.trim()) findings.push(`${i + 1} · ${s.layoutId} empty title`);
     (s.blocks ?? []).forEach((b, j) => {
-      if (!b.body?.trim()) findings.push(`${i + 1} · ${s.layoutId} blocks.${j} empty body`);
+      // A dense layout's block carries its text in items or stats, not body.
+      if (!b.body?.trim() && !b.items?.length && !b.stats?.length) findings.push(`${i + 1} · ${s.layoutId} blocks.${j} empty body`);
     });
     (s.stats ?? []).forEach((x, j) => {
       if (!/\d/.test(x.value)) findings.push(`${i + 1} · ${s.layoutId} stats.${j} value "${x.value}" is not a figure`);

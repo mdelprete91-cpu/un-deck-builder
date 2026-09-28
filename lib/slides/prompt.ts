@@ -38,6 +38,8 @@ RULES:
 - Voice: plain, declarative, public-good. Sentence case everywhere (never Title Case in body text). Banned words: leveraging, synergies, cutting-edge, revolutionary, empower, unlock.
 - Write in the same language as the brief.
 - Only state facts given in the brief or the attached material. Never invent statistics, names, emails or dates: no year, quarter or period the brief does not give, not even in a subtitle. Giga's own figures (2.2M+ schools mapped, 146 countries, giga.global) belong only in a deck the brief makes about Giga. A brief that names neither Giga nor UNICEF gets a deck that names neither, outside the closing slide.
+- DENSE MATERIAL: when the brief asks to carry a report or a long deck in full, keep its text and figures as written on the dense layouts (bullet-columns, figures-panel, scenarios, matrix, chart-text) instead of cutting them down to cards: one source slide becomes one slide, its headers become the column or row labels, its sub-points stay sub-points ("- "). Their "items" and "stats" live inside each block; on every other layout set them to [].
+- FOOTNOTES: "notes" carries the footnotes the material prints for that slide (sources, definitions, "1. Cumulative 5-years"), as written, <=40 words, numbered as in the material, with the matching superscript (¹ ²) kept in the slide text; "" when the slide has none, and always "" on cover, agenda, section-divider, partner and thank-you.
 - For chart-bars, values are relative heights 0-100.
 - For "partner", use it only when the brief names partners, and copy the names EXACTLY from this list (each maps to a real logo): ${PARTNER_NAMES.join(", ")}. Never invent partner names or write categories like "Telecom operators" — a name outside the list renders as plain text instead of a logo.
 - Every slide object includes every field of the output schema. Set fields the chosen layout does not use to "" (strings), [] (arrays) or 0 (numbers) — never invent content for them.`;
@@ -184,7 +186,7 @@ export function buildUserMessage(body: GenerateBody): string {
   switch (body.mode) {
     case "add": {
       const n = body.count ?? 3;
-      return `Existing deck (JSON): ${JSON.stringify(body.existingSlides ?? [])}\n\nDeck brief: ${body.brief}${brand}${language}${notes}\n\nRequest: ${body.instruction?.trim() || "continue and deepen the story"}\n\nAdd exactly ${n} new slide${n === 1 ? "" : "s"} fulfilling the request.\n- Return ONLY the new slides in "slides": never repeat, rewrite or include existing slides, and never add another cover, agenda or thank-you.\n- Set "insertAfter" to the 1-based index of the existing slide the new slides belong after (0 = before the first slide). Pick where they best fit the story, keeping any thank-you last.\n- If the deck has an "agenda" slide, return its updated bullets (reflecting the deck after insertion, <=5 words each) in "agenda"; otherwise return an empty array.${noChapters}`;
+      return `Existing deck (JSON): ${JSON.stringify(body.existingSlides ?? [])}\n\nDeck brief: ${body.brief}${brand}${language}${notes}\n\nRequest: ${body.instruction?.trim() || "continue and deepen the story"}\n\nAdd exactly ${n} new slide${n === 1 ? "" : "s"} fulfilling the request.\n- Return ONLY the new slides in "slides": never repeat, rewrite or include existing slides, and never add another cover, agenda or thank-you.\n- Give every new slide "after": the 1-based index of the existing slide it belongs after (0 = before the first slide), where it fits the story and the order of the material, inside the chapter it belongs to, never after a thank-you. New slides that go together share the number, in reading order. Set "insertAfter" to the first new slide's "after".\n- If the deck has an "agenda" slide, return its updated bullets (reflecting the deck after insertion, <=5 words each) in "agenda"; otherwise return an empty array.${noChapters}`;
     }
     case "regenerate":
       return `Current slide (JSON): ${JSON.stringify(body.targetSlide)}\n\nDeck brief: ${body.brief}${brand}${language}\n\nRewrite this single slide.${body.instruction ? ` Instruction: ${body.instruction}` : " Improve the copy."} You may switch to a more appropriate layout if the instruction calls for it. Return exactly one slide.`;
@@ -254,8 +256,21 @@ export const SLIDES_OUTPUT_SCHEMA = {
             type: "array",
             items: {
               type: "object",
-              properties: { label: { type: "string" }, body: { type: "string" } },
-              required: ["label", "body"],
+              properties: {
+                label: { type: "string" },
+                body: { type: "string" },
+                items: { type: "array", items: { type: "string" } },
+                stats: {
+                  type: "array",
+                  items: {
+                    type: "object",
+                    properties: { value: { type: "string" }, label: { type: "string" } },
+                    required: ["value", "label"],
+                    additionalProperties: false,
+                  },
+                },
+              },
+              required: ["label", "body", "items", "stats"],
               additionalProperties: false,
             },
           },
@@ -285,6 +300,7 @@ export const SLIDES_OUTPUT_SCHEMA = {
           current: { type: "integer" },
           icons: { type: "array", items: { type: "string" } },
           photo: { type: "string" },
+          notes: { type: "string" },
           contacts: {
             type: "array",
             items: {
@@ -317,6 +333,7 @@ export const SLIDES_OUTPUT_SCHEMA = {
           "current",
           "icons",
           "photo",
+          "notes",
           "contacts",
         ],
         additionalProperties: false,
@@ -336,7 +353,14 @@ export const ADD_OUTPUT_SCHEMA = {
   properties: {
     insertAfter: { type: "integer" },
     agenda: { type: "array", items: { type: "string" } },
-    slides: SLIDES_OUTPUT_SCHEMA.properties.slides,
+    slides: {
+      type: "array",
+      items: {
+        ...SLIDES_OUTPUT_SCHEMA.properties.slides.items,
+        properties: { ...SLIDES_OUTPUT_SCHEMA.properties.slides.items.properties, after: { type: "integer" } },
+        required: [...SLIDES_OUTPUT_SCHEMA.properties.slides.items.required, "after"],
+      },
+    },
   },
   required: ["insertAfter", "agenda", "slides"],
   additionalProperties: false,

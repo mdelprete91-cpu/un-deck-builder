@@ -72,7 +72,9 @@ Do not change these without asking Mario first. They are decisions, not defaults
    "Done", the current one a larger accent ring with its label in the accent and "In progress",
    the rest grey rings and "Next"; the bar fills to it. Absent, the slide is a plain sequence. A
    click on a node sets it: `data-set` / `data-value` on the node, read by SlideFrame as an edit
-   of that path. Body limits are 12 words up to four stages, 8 with five or six.
+   of that path. Body limits are 12 words up to four stages, 8 with five or six. A third (Mario,
+   28 Sep 2026): the five dense layouts in `lib/slides/layouts/dense.ts` and the footnote, see
+   "Dense layouts and footnotes" below.
 8. **Slide renderers emit HTML strings with inline styles only.** No Tailwind classes, no external
    CSS. The same markup has to survive the editor preview, the thumbnails, the print root, the
    self-contained HTML export, and the PPTX capture. A class that only exists in `globals.css`
@@ -502,6 +504,51 @@ guard, all pure functions, none touching the user's words:
 
 Left to the model, and it still slips about once in twenty: Giga's own figures in a deck that
 never named Giga, a year in a body ("by 2030"), a KR renumbered, the lockup's name as a title.
+
+## Dense layouts and footnotes
+
+Drawn 28 Sep 2026 for a 38-slide consulting-style investment case (the Gambia joint school and
+health connectivity case), where a slide carries 150-250 words and every figure has to stay, and
+approved by Mario the same day. `bullet-columns` (1-3 cards of points under a header, a key
+message in an accent band), `figures-panel` (rows Outcome/Benefits/Costs, figures in the accent
+beside a commentary), `scenarios` (2-3 options on accent tiles, a conclusion panel), `matrix`
+(1-3 rows of 2-5 cells) and `chart-text` (an explanation card, a line chart of 1-3 series with
+negative values allowed, a numbered note per line). Same grammar as the rest, nothing new in
+colour or type: 60px title on two lines, #F7F7F7 cards, accent labels and hairlines, the
+chart's grid and series colours, and the closing slide's accent surface for the band.
+
+- **Blocks carry `items` and `stats`.** A point is one string in `blocks[i].items` ("- " opens a
+  sub-point, the dash stays in the text so an edit keeps the level); a figure or a matrix cell is
+  `blocks[i].stats[j]` (`value`, `label`). Both are in the output schema on every block (required,
+  like everything) and empty elsewhere; `normalizeSlide` caps ten points and five figures. A block
+  added with Element has only `body`, which the renderers show as one point.
+- **A text group shrinks as one.** Body text is Open Sans 500 at 24px, children sized in em under
+  one container that carries `data-fit` (headers inside the same budget), with `data-fit-group`
+  across columns, rows or cells so parallel text keeps one size. The Gambia text lands at 18-21px,
+  the source deck's own 9pt. The containers keep 28px on the right: the delete ✕ overhangs an item
+  by 24px and would otherwise read as overflow. The content starts at 200 under a title of at most
+  50 characters, at 272 under a longer one; the title's budget follows, so a wrong guess shrinks
+  the title instead of overlapping.
+- **`chart-text` is a chart** (`bars`, `series` in `SERIES_LAYOUTS`, the Data panel) that keeps
+  `bullets` (the explanation) and `blocks` (a note per series); `normalizeSlide` deletes those
+  only on the other charts. Its values may be negative (costs), so `barSchema` no longer clamps
+  at zero: every other chart clamps at render through `numeric`, and the Data panel keeps the sign
+  only on this layout. The lines are an SVG over the whole slide with `pointer-events:none`, or it
+  swallows every click on the slide.
+- **Footnotes** are `slide.notes`, printed by `renderSlide` (not the renderers) in the footer row
+  between the division label and the logo, grey 17px on two lines, white at 75% on dark footers,
+  never on cover, agenda, divider, partner or closing slide (`NO_NOTES`). The model writes them
+  from the material, numbered, with the superscripts kept in the text; "Footnote" in the slide bar
+  adds one ("1. ") when the slide has none, and emptying it removes it.
+- **None of them is in the rhythm pass or `LAYOUT_FAMILIES`**: the passes that swap layouts would
+  cut their text down to cards, and the switcher has nothing of the same shape to offer.
+- **AI-added slides carry their own place.** The add schema gives every new slide `after` (the
+  existing slide it goes behind) and `INSERT_SLIDES` splices each group there, last position
+  first. A top-up of eight missing slides from three chapters used to land in one block after
+  "Next steps" with the single `insertAfter`, which stays as the fallback.
+- `.omc/dense-preview.ts` renders the Gambia slides in the five layouts with the real autofit,
+  `.omc/render-deck.ts <qa deck.json>` renders a whole QA deck; both write to `public/`, delete
+  the output after.
 
 ## Charts
 

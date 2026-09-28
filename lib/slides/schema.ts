@@ -43,6 +43,14 @@ export const AI_LAYOUT_IDS = [
   // Drawn 26 Sep 2026 from timeline-phases with Mario's approval: stages on a
   // progress bar, done / in progress / next (layouts/progress.ts).
   "progress",
+  // Dense layouts for report-style decks, where a slide carries 150-250
+  // words and every figure stays (Mario approved them 28 Sep 2026, drawn
+  // for the Gambia joint investment case): layouts/dense.ts.
+  "bullet-columns",
+  "figures-panel",
+  "scenarios",
+  "matrix",
+  "chart-text",
   "example-image-left",
   "example-image-right",
   "partner",
@@ -54,13 +62,6 @@ export const MANUAL_LAYOUT_IDS = [
   "tiers-1",
   "tiers-2",
   "photo-full",
-  // Dense layouts for report-style decks (28 Sep 2026, layouts/dense.ts),
-  // insert-only until Mario approves them; then they move to AI_LAYOUT_IDS.
-  "bullet-columns",
-  "figures-panel",
-  "scenarios",
-  "matrix",
-  "chart-text",
 ] as const;
 
 /**
@@ -334,6 +335,9 @@ export function clampWords(text: string, maxWords: number): string {
   return words.slice(0, maxWords).join(" ");
 }
 
+/** The layouts drawn for report-style decks (layouts/dense.ts). */
+export const DENSE_LAYOUTS: ReadonlySet<LayoutId> = new Set<LayoutId>(["bullet-columns", "figures-panel", "scenarios", "matrix", "chart-text"]);
+
 export type ArrayField = "bullets" | "blocks" | "stats" | "bars" | "contacts";
 
 /**
@@ -516,6 +520,15 @@ export function normalizeSlide(
     slide.icons = slide.layoutId === "icon-cards" ? cleanModelIcons(slide.icons) : undefined;
     if (!slide.icons) delete slide.icons;
   }
+  // Dense layouts: a column holds ten points at most, a row five figures or cells.
+  if (DENSE_LAYOUTS.has(slide.layoutId) && slide.blocks) {
+    slide.blocks = slide.blocks.map((b) => ({
+      ...b,
+      ...(b.items ? { items: b.items.filter((x) => x.trim()).slice(0, 10) } : {}),
+      ...(b.stats ? { stats: b.stats.filter((x) => x.value.trim() || x.label.trim()).slice(0, 5) } : {}),
+    }));
+  }
+  if (slide.notes !== undefined && !slide.notes.trim()) delete slide.notes;
   if (isChartLayout(slide.layoutId)) {
     normalizeSeries(slide);
     // A chart reads its bars and nothing else: blocks or stats the model

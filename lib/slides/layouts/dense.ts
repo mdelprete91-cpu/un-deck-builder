@@ -405,7 +405,7 @@ export const NO_NOTES: ReadonlySet<LayoutId> = new Set<LayoutId>([
 const DARK_FOOTER: ReadonlySet<LayoutId> = new Set<LayoutId>(["three-columns", "big-stat", "section-image-deep", "quote"]);
 
 export function footnote(s: Slide): string {
-  if (NO_NOTES.has(s.layoutId) || s.notes === undefined) return "";
+  if (NO_NOTES.has(s.layoutId) || !s.notes?.trim()) return "";
   const color = DARK_FOOTER.has(s.layoutId) ? "rgba(255,255,255,.75)" : "#6F6F6F";
   return `<div ${ed("notes", 50)} data-notes style="position:absolute;left:560px;top:956px;width:920px;font-family:${OPEN_SANS};font-weight:500;font-size:17px;line-height:1.35;color:${color};white-space:pre-line;">${esc(s.notes)}</div>`;
 }

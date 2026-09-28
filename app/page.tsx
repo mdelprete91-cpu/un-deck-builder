@@ -1,6 +1,6 @@
 "use client";
 
-import { ChartColumn, ChevronDown, Play, Copy, History, Image as ImageIcon, LayoutTemplate, LoaderCircle, Plus, Redo2, Trash2, Undo2, Upload } from "lucide-react";
+import { ChartColumn, ChevronDown, Play, Copy, History, Image as ImageIcon, LayoutTemplate, LoaderCircle, Plus, Redo2, Superscript, Trash2, Undo2, Upload } from "lucide-react";
 import { useEffect, useLayoutEffect, useReducer, useRef, useState, type CSSProperties } from "react";
 import { BRANDS } from "@/lib/slides/brand";
 import { DEFAULT_DECK_NAME, deckReducer, initialDeckState, readPath } from "@/lib/slides/state";
@@ -36,6 +36,7 @@ import { mapSlotFor } from "@/lib/giga-maps/slot";
 import ThumbStrip from "@/components/ThumbStrip";
 import PrintRoot from "@/components/PrintRoot";
 import HelpModal from "@/components/HelpModal";
+import { NO_NOTES } from "@/lib/slides/layouts/dense";
 import DeckName from "@/components/DeckName";
 import MobileGate from "@/components/MobileGate";
 import type { DeckState } from "@/lib/slides/state";
@@ -252,6 +253,8 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
       let buffer = "";
       let received = 0;
       const collected: SlideContent[] = [];
+      /** Add mode: where each collected slide goes, from its own "after". */
+      const positions: (number | null)[] = [];
       let meta: { insertAfter?: number; agenda?: string[] } | null = null;
       for (;;) {
         const { done, value } = await reader.read();
@@ -279,6 +282,8 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
             if (!content) continue;
             if (opts.collectInsert) {
               collected.push(content);
+              const after = (event.slide as { after?: unknown }).after;
+              positions.push(typeof after === "number" && Number.isFinite(after) ? Math.round(after) : null);
             } else if (opts.targetIndex != null) {
               dispatch({
                 type: "REPLACE_SLIDE",
@@ -323,12 +328,15 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
         // whatever the instruction said ("Key risks" twice, 26 Sep 2026).
         const existing = (body.existingSlides as SlideContent[] | undefined) ?? [];
         const titles = new Set(existing.map((s) => (s.title ?? "").trim().toLowerCase()).filter(Boolean));
-        const fresh = collected.filter((s) => !titles.has((s.title ?? "").trim().toLowerCase()));
+        const keep = collected.map((s) => !titles.has((s.title ?? "").trim().toLowerCase()));
+        const fresh = collected.filter((_, i) => keep[i]).slice(0, cap);
+        const freshAt = positions.filter((_, i) => keep[i]).slice(0, cap);
         if (fresh.length > 0) {
           dispatch({
             type: "INSERT_SLIDES",
             at: meta?.insertAfter ?? null,
-            contents: fresh.slice(0, cap),
+            contents: fresh,
+            positions: freshAt,
             agenda: meta?.agenda,
           });
         }
@@ -1147,6 +1155,8 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
                     flightRef={flightRef}
                     onEditWithAi={() => setAiModal(true)}
                     canAddItem={canAddItem}
+                    canAddNote={!isPage(active) && !NO_NOTES.has(active.layoutId) && !active.notes?.trim()}
+                    onAddNote={() => dispatch({ type: "EDIT_FIELD", index: state.activeIndex, path: "notes", value: "1. " })}
                     canEditData={isChart}
                     onRegenerate={onRegenerateSlide}
                     onAddItem={onAddItem}
@@ -1493,6 +1503,8 @@ function SlideActions({
   flightRef,
   onEditWithAi,
   canAddItem,
+  canAddNote,
+  onAddNote,
   canEditData,
   canChangeImage,
   onRegenerate,
@@ -1510,6 +1522,9 @@ function SlideActions({
   /** Opens the Edit with AI dialog, which lives at page level. */
   onEditWithAi: () => void;
   canAddItem: boolean;
+  /** A content slide with no footnote yet: "Footnote" adds one in the footer row. */
+  canAddNote: boolean;
+  onAddNote: () => void;
   canEditData: boolean;
   canChangeImage: boolean;
   onRegenerate: (instruction: string) => void;
@@ -1597,6 +1612,11 @@ function SlideActions({
             {canAddItem && (
               <Button variant="secondary" icon={Plus} onClick={onAddItem} title="Add an element to this slide">
                 Element
+              </Button>
+            )}
+            {canAddNote && (
+              <Button variant="secondary" icon={Superscript} onClick={onAddNote} title="Add a footnote in the footer row">
+                Footnote
               </Button>
             )}
             {canEditData && (
