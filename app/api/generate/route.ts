@@ -98,12 +98,14 @@ export async function POST(request: Request): Promise<Response> {
   // Pages the brief links to travel like text attachments (public http(s)
   // only, three at most, a failed fetch is skipped). Not for regenerate: one
   // slide's rewrite does not need the whole page again.
-  const oneSlide = body.mode === "regenerate";
+  // A replicated slide is one slide from its own source text: no links, no files.
+  const oneSlide = body.mode === "regenerate" || body.mode === "replicate";
   const linked = oneSlide ? [] : await fetchLinkedPages(body.brief ?? "");
   body = {
     ...body,
     attachments: [...attachments, ...linked],
-    language: languageOf(body.brief ?? ""),
+    // A replicated slide keeps the source's language, whatever the brief's.
+    language: body.mode === "replicate" ? undefined : languageOf(body.brief ?? ""),
     briefNotes: typeof body.briefNotes === "string" ? body.briefNotes.slice(0, 2000) : undefined,
   };
   if (!body.brief?.trim() && !oneSlide) {
@@ -123,7 +125,7 @@ export async function POST(request: Request): Promise<Response> {
   // With `perItem` the named count is the items, and the cover and the
   // closing slide come on top of it.
   const named = typeof body.count === "number" ? body.count + (body.perItem ? 2 : 0) : 20;
-  const count = body.mode === "regenerate" ? 1 : Math.min(Math.max(named, 1), MAX_SLIDES + 2);
+  const count = oneSlide ? 1 : Math.min(Math.max(named, 1), MAX_SLIDES + 2);
   // Add mode carries extra output (insertAfter + refreshed agenda bullets).
   // Every slide carries all its required fields, so a content-heavy slide (a
   // PDF behind it) costs 400-750 tokens: 800 keeps twenty-two of them under
@@ -133,7 +135,9 @@ export async function POST(request: Request): Promise<Response> {
   // 800 a slide since 26 Sep 2026: a fifteen-slide deck with chapters from a
   // long report hit 650 and came back truncated.
   const perItem = twoPager ? 1600 : 800;
-  const maxTokens = Math.min(800 + perItem * count + (isAdd ? 400 : 0), 36000);
+  // A replicated slide carries a whole source slide: up to 250 words and a
+  // chart, in the dense layouts' items and stats.
+  const maxTokens = body.mode === "replicate" ? 3000 : Math.min(800 + perItem * count + (isAdd ? 400 : 0), 36000);
   const encoder = new TextEncoder();
 
   const stream = new ReadableStream({

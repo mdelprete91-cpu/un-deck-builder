@@ -1,5 +1,6 @@
 import JSZip from "jszip";
 import type { SheetAnalysis, SheetAnswers } from "./sheet-questions";
+import { readPptx, type SourceSlide } from "./pptx-source";
 
 /**
  * Files attached to the brief. They travel with the generate/add request
@@ -45,6 +46,12 @@ export type Attachment =
       textOnly?: boolean;
       /** The text is an Excel workbook laid out as tables: the chip shows a sheet and the wizard always asks. */
       spreadsheet?: boolean;
+      /**
+       * A PowerPoint file, slide by slide (lib/slides/pptx-source.ts): the
+       * wizard asks what to do with it, and "replicate" builds the deck from
+       * these. Editor-only, never sent: the text already carries it all.
+       */
+      sourceSlides?: SourceSlide[];
     } & Questioned);
 
 /** The kinds the model reads and may have questions about (images are looked at, not questioned). */
@@ -114,7 +121,9 @@ export async function readAttachment(file: File): Promise<Attachment> {
     return textAttachment(file.name, await extractDocx(await file.arrayBuffer()));
   }
   if (e === "pptx") {
-    return textAttachment(file.name, await extractPptx(await file.arrayBuffer()));
+    const { text, slides } = await readPptx(await file.arrayBuffer());
+    if (slides.length === 0) throw new AttachmentError("This PowerPoint file has no slides.");
+    return { ...textAttachment(file.name, text), sourceSlides: slides };
   }
   if (e === "xlsx" || e === "xlsm") {
     return { ...textAttachment(file.name, await extractXlsx(await file.arrayBuffer())), spreadsheet: true };
@@ -243,23 +252,11 @@ export async function extractDocx(buf: ArrayBuffer): Promise<string> {
   return xmlToLines(await doc.async("string"), "w:t", "w:p");
 }
 
+/** A PowerPoint file as text, in presentation order (see lib/slides/pptx-source.ts). */
 export async function extractPptx(buf: ArrayBuffer): Promise<string> {
-  const zip = await JSZip.loadAsync(buf);
-  const slides = Object.keys(zip.files)
-    .map((p) => ({ p, n: Number(/^ppt\/slides\/slide(\d+)\.xml$/.exec(p)?.[1]) }))
-    .filter((s) => Number.isFinite(s.n))
-    .sort((a, b) => a.n - b.n);
+  const { text, slides } = await readPptx(buf);
   if (slides.length === 0) throw new AttachmentError("This PowerPoint file has no slides.");
-  const parts: string[] = [];
-  for (const s of slides) {
-    const xml = await zip.file(s.p)!.async("string");
-    const body = xmlToLines(xml, "a:t", "a:p");
-    const notesPath = `ppt/notesSlides/notesSlide${s.n}.xml`;
-    const notesFile = zip.file(notesPath);
-    const notes = notesFile ? xmlToLines(await notesFile.async("string"), "a:t", "a:p") : "";
-    parts.push(`Slide ${s.n}:\n${body}${notes.trim() ? `\nSpeaker notes: ${notes}` : ""}`);
-  }
-  return parts.join("\n\n");
+  return text;
 }
 
 /* ------------------------------------------------------------------ */

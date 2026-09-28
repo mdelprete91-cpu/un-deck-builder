@@ -116,9 +116,43 @@ export function normalizeAnalysis(raw: unknown): SheetAnalysis | null {
  * the question and the answer in plain words. Unanswered questions are
  * left out; nothing at all returns an empty string.
  */
+/**
+ * What to do with an attached deck (Mario, 28 Sep 2026): asked first, by the
+ * client, for every PowerPoint file, whatever the model's own questions. The
+ * answer is not an insight like the others: "replicate" switches Generate to
+ * the batched, one-slide-per-slide path (app/page.tsx), "reinterpret" adds a
+ * line to the file's insights, "source" is the default reading.
+ */
+export const USE_QUESTION_ID = "use";
+export type FileUse = "replicate" | "reinterpret" | "source";
+const USE_OPTIONS: Record<FileUse, (n: number) => string> = {
+  replicate: (n) => `Replicate it: one slide for each of its ${n} content slides, in order, every text and figure kept, on the brand's layouts`,
+  reinterpret: () => "Reinterpret it: tell the same story in a new structure, facts and figures kept",
+  source: () => "Use it as a source: take what the brief needs",
+};
+export function fileUseQuestion(contentSlides: number): SheetQuestion {
+  return {
+    id: USE_QUESTION_ID,
+    question: "What should the deck do with this file?",
+    why: "Replicate rebuilds it slide by slide; the other two let the brief decide the length.",
+    kind: "single",
+    options: (Object.keys(USE_OPTIONS) as FileUse[]).map((k) => USE_OPTIONS[k](contentSlides)),
+  };
+}
+/** The use chosen for a file; unanswered or skipped is "source". */
+export function fileUseOf(answers: SheetAnswers | undefined): FileUse {
+  const a = answers?.[USE_QUESTION_ID];
+  const text = typeof a === "string" ? a : "";
+  return text.startsWith("Replicate") ? "replicate" : text.startsWith("Reinterpret") ? "reinterpret" : "source";
+}
+
 export function compileInsights(analysis: SheetAnalysis, answers: SheetAnswers): string {
   const lines: string[] = [];
+  if (fileUseOf(answers) === "reinterpret") {
+    lines.push("Reinterpret this file: tell its story in a new structure of your choosing, keeping its facts and figures.");
+  }
   for (const q of analysis.questions) {
+    if (q.id === USE_QUESTION_ID) continue;
     const a = answers[q.id];
     const text = Array.isArray(a) ? a.filter(Boolean).join(", ") : (a ?? "").trim();
     if (!text) continue;

@@ -84,6 +84,7 @@ export type DeckAction =
   | { type: "SET_COUNT"; count: number }
   | { type: "SET_CHAPTERS"; chapters: boolean }
   | { type: "GENERATION_START"; replace: boolean }
+  | { type: "FILL_PHOTOS" }
   | { type: "APPEND_SLIDE"; content: SlideContent }
   | { type: "REPLACE_SLIDE"; index: number; content: SlideContent }
   | { type: "GENERATION_DONE"; usage?: { inputTokens: number; outputTokens: number } }
@@ -266,6 +267,13 @@ function reduce(state: DeckState, action: DeckAction): DeckState {
       const closing = normalizeSlide(closingFor(BRANDS[state.brandId]?.label), { brandId: state.brandId });
       if (!closing) return state;
       return { ...state, slides: [...state.slides, ensureId(closing)] };
+    }
+    case "FILL_PHOTOS": {
+      // A replicated deck keeps its slides one to one (no merge, no finish
+      // pass): only its empty photo slots are filled.
+      if (state.slides.some(isPage)) return state;
+      const filled = fillPhotos(state.slides) as Slide[];
+      return filled.every((m, i) => m === state.slides[i]) ? state : { ...state, slides: filled };
     }
     case "MERGE_CONTINUATIONS": {
       if (state.slides.some(isPage)) return state;

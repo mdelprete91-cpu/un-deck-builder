@@ -3,7 +3,8 @@
 import { FileSpreadsheet, FileText, LoaderCircle, MessageCircleQuestion } from "lucide-react";
 import Button from "@/components/Button";
 import { canQuestion, type Attachment } from "@/lib/slides/attachments";
-import { answeredCount } from "@/lib/slides/sheet-questions";
+import { answeredCount, fileUseOf } from "@/lib/slides/sheet-questions";
+import { planReplica } from "@/lib/slides/replicate";
 
 /**
  * The line under a chip whose file raised questions: where they stand
@@ -43,6 +44,16 @@ export default function SheetInsights({
               : done === 0
                 ? `${total} question${total === 1 ? "" : "s"} to answer`
                 : `${done} of ${total} answered`;
+        // An attached deck says what Generate will do with it (Mario, 28 Sep 2026).
+        const use = a.kind === "text" && a.sourceSlides?.length ? fileUseOf(a.answers) : null;
+        const useLine =
+          use === "replicate"
+            ? `Replicate · ${planReplica(a.kind === "text" ? (a.sourceSlides ?? []) : []).steps.length + 1} slides`
+            : use === "reinterpret"
+              ? "Reinterpret"
+              : use === "source"
+                ? "Use as a source"
+                : null;
         return (
           <div key={a.id} className="flex items-center justify-between gap-2 rounded-2xl border border-hairline-light bg-canvas py-1 pl-3 pr-1">
             <span className="flex min-w-0 items-center gap-1.5 text-xs text-ink">
@@ -51,7 +62,7 @@ export default function SheetInsights({
               ) : (
                 spreadsheet ? <FileSpreadsheet size={12} className="shrink-0 text-giga" aria-hidden /> : <FileText size={12} className="shrink-0 text-giga" aria-hidden />
               )}
-              <span className="truncate">{status}</span>
+              <span className="truncate">{useLine && !reading && !a.analysisError ? `${useLine} · ${status}` : status}</span>
             </span>
             {!reading && (
               <Button variant="ghost" icon={MessageCircleQuestion} onClick={() => onOpen(a.id)} disabled={disabled}>

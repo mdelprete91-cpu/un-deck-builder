@@ -23,6 +23,8 @@ import { normalizeSlide, type LayoutId, type SlideContent } from "../lib/slides/
 import { closingFor, finishDeck, makeRhythm, mergeContinuations, stripInventedYear, unifyLayouts } from "../lib/slides/rhythm";
 import { PARTNER_NAMES } from "../lib/slides/partners";
 import { extractDocx, extractPptx, extractXlsx, type Attachment } from "../lib/slides/attachments";
+import { readPptx } from "../lib/slides/pptx-source";
+import { planReplica } from "../lib/slides/replicate";
 import { fillPhotos } from "../lib/slides/library";
 
 const URL = process.env.QA_URL ?? "http://localhost:3777";
@@ -46,6 +48,8 @@ interface Prompt {
   files?: string[];
   /** The answer to the composer's "what should the deck draw from it" card. */
   insights?: string;
+  /** "replicate": the first file is a pptx rebuilt slide by slide, as runReplicate does in the editor. */
+  use?: "replicate";
   expect: {
     count?: number;
     min?: number;
@@ -208,6 +212,61 @@ async function loadAttachment(path: string, id: string): Promise<Attachment> {
   return { id, name, kind: "text", text: text.slice(0, 60_000), bytes: text.length, truncated: text.length > 60_000 };
 }
 
+/**
+ * The editor's runReplicate, headless: the plan from lib/slides/replicate.ts,
+ * one "replicate" call per cover and content slide, six at a time, fixed
+ * agenda and dividers, closing slide and photos after. Scored like any deck,
+ * plus the replica's own checks: the count and the order are the plan's, and
+ * every figure the source writes is somewhere in the deck.
+ */
+async function replicatePrompt(p: Prompt, brief: string, path: string, t0: number): Promise<Result> {
+  const buf = readFileSync(path);
+  const { slides: source } = await readPptx(buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength));
+  const { steps } = planReplica(source);
+  const results: (SlideContent | null)[] = steps.map((st) => (st.kind === "fixed" ? normalizeSlide(st.content, { brandId: BRAND_ID }) : null));
+  const findings: string[] = [];
+  const warnings: string[] = [];
+  let cost = 0;
+  let chapter = "";
+  const contexts = steps.map((st, i) => {
+    if (st.kind === "fixed" && st.content.layoutId === "section-divider") chapter = st.content.title ?? "";
+    return `This is slide ${i + 1} of ${steps.length + 1}${chapter ? `, in the chapter "${chapter}"` : ""}.` + (st.kind === "cover" ? " It is the COVER: use the cover layout, the deck's title as written and, as subtitle, the document type and date the source slide gives." : "");
+  });
+  let cursor = 0;
+  const worker = async () => {
+    while (cursor < steps.length) {
+      const i = cursor++;
+      const st = steps[i];
+      if (st.kind === "fixed") continue;
+      for (let attempt = 0; attempt < 2 && !results[i]; attempt++) {
+        const out = await generate({ mode: "replicate", brief, brandLabel: BRAND_LABEL, format: "slides", source: st.source.text, sourceContext: contexts[i] });
+        cost += out.usage ? (out.usage.inputTokens * 0.1 + out.usage.outputTokens * 0.5) / 1_000_000 : 0;
+        const c = out.slides[0] ? normalizeSlide(out.slides[0], { brandId: BRAND_ID }) : null;
+        if (c && st.kind === "cover") results[i] = { layoutId: "cover", title: c.title || st.source.title, subtitle: c.subtitle ?? "" };
+        else if (c && !STRUCTURAL.has(c.layoutId)) results[i] = c;
+      }
+      if (!results[i]) findings.push(`source slide ${st.source.n} not rebuilt`);
+    }
+  };
+  await Promise.all(Array.from({ length: 6 }, worker));
+  let slides = results.filter((s): s is SlideContent => !!s);
+  const closing = normalizeSlide(closingFor(BRAND_LABEL), { brandId: BRAND_ID });
+  if (closing) slides.push(closing);
+  slides = fillPhotos(slides);
+  if (slides.length !== steps.length + 1) findings.push(`count ${slides.length}, plan ${steps.length + 1}`);
+  // Every figure the source writes, somewhere in the deck (chart data aside: its labels are what the slide shows).
+  const deckText = JSON.stringify(slides);
+  const figures = new Set<string>();
+  for (const s of source.filter((x) => x.kind === "content")) {
+    const prose = s.text.split("\n").filter((l) => !/^(- series|Chart \(|Figures written)/.test(l)).join(" ");
+    for (const m of prose.matchAll(/\d[\d,.]*\d%?|\d%/g)) if (m[0].replace(/[^\d]/g, "").length >= 2) figures.add(m[0].replace(/[.,]$/, ""));
+  }
+  const missing = [...figures].filter((f) => !deckText.includes(f));
+  if (figures.size) warnings.push(`figures kept ${figures.size - missing.length}/${figures.size}${missing.length ? ` (missing: ${missing.slice(0, 12).join(", ")}${missing.length > 12 ? "…" : ""})` : ""}`);
+  const overflow = slides.flatMap(overflows);
+  return { id: p.id, slides, layouts: slides.map((s) => s.layoutId), findings, warnings, overflow, cost, seconds: (Date.now() - t0) / 1000, truncated: false };
+}
+
 async function runPrompt(p: Prompt): Promise<Result> {
   const brief = p.brief ?? readFileSync(join("tools/qa-briefs", p.briefFile!), "utf8");
   const count = countFromBrief(brief);
@@ -232,6 +291,7 @@ async function runPrompt(p: Prompt): Promise<Result> {
     if (!chapters && CHAPTER_LAYOUTS.has(c.layoutId)) return null;
     return rhythm(stripInventedYear(c, brief));
   };
+  if (p.use === "replicate") return replicatePrompt(p, brief, paths[0], t0);
   const first = await generate({ mode: "generate", brief, attachments, brandLabel: BRAND_LABEL, chapters, format: "slides", count, perItem });
   // gpt-6-luna list price (25 Sep 2026), the same as GenerationReadout.
   const usage = (u?: { inputTokens: number; outputTokens: number }) => (u ? (u.inputTokens * 0.1 + u.outputTokens * 0.5) / 1_000_000 : 0);

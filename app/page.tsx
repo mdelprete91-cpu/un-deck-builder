@@ -28,7 +28,8 @@ import ChartDataPanel from "@/components/ChartDataPanel";
 import ImagePickerModal from "@/components/ImagePickerModal";
 import EditWithAiModal from "@/components/EditWithAiModal";
 import SheetWizard from "@/components/SheetWizard";
-import { compileInsights, normalizeAnalysis, SHORT_BRIEF_WORDS, type SheetAnalysis, type SheetAnswers } from "@/lib/slides/sheet-questions";
+import { compileInsights, normalizeAnalysis, SHORT_BRIEF_WORDS, fileUseOf, fileUseQuestion, type SheetAnalysis, type SheetAnswers } from "@/lib/slides/sheet-questions";
+import { planReplica } from "@/lib/slides/replicate";
 import type { WizardSubject } from "@/components/SheetWizard";
 import LayoutSwitcher from "@/components/LayoutSwitcher";
 import { AttachmentError, canQuestion, MAX_ATTACHMENTS, MAX_REQUEST_BYTES, MAX_TEXT_TOTAL, readAttachment, readPdfAsText, totalRequestBytes, type Attachment } from "@/lib/slides/attachments";
@@ -241,7 +242,8 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
       const res = await fetch("/api/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
+        // The slide-by-slide reading of a PowerPoint is the editor's: its text already travels.
+        body: JSON.stringify(body, (k, v) => (k === "sourceSlides" ? undefined : v)),
         signal: controller.signal,
       });
       if (!res.ok || !res.body) {
@@ -422,27 +424,37 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
   const analyzeAttachment = async (a: Attachment, brief: string) => {
     if (!canQuestion(a)) return;
     const spreadsheet = a.kind === "text" && !!a.spreadsheet;
+    // A PowerPoint file is always asked what to do with it, first (Mario, 28 Sep 2026).
+    const sourceSlides = a.kind === "text" ? a.sourceSlides : undefined;
+    const withUse = (analysis: SheetAnalysis): SheetAnalysis =>
+      sourceSlides?.length
+        ? { ...analysis, questions: [fileUseQuestion(planReplica(sourceSlides).contentCount), ...analysis.questions] }
+        : analysis;
     const update = (patch: { analysis?: SheetAnalysis; analysisError?: string }) =>
       setAttachments((list) => list.map((x) => (x.id === a.id && canQuestion(x) ? { ...x, ...patch } : x)));
     update({ analysisError: undefined });
     try {
-      const payload = a.kind === "pdf" ? { name: a.name, pdf: a.data } : { name: a.name, text: a.text };
+      // The analysis reads the first 12k characters: a long deck says how long it is, or the summary counts only what it saw.
+      const text = a.kind === "text" && a.sourceSlides?.length ? `A PowerPoint deck of ${a.sourceSlides.length} slides; the text of the first ones follows.\n\n${a.text}` : a.kind === "text" ? a.text : "";
+      const payload = a.kind === "pdf" ? { name: a.name, pdf: a.data } : { name: a.name, text };
       const res = await fetch("/api/analyze", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ ...payload, kind: spreadsheet ? "spreadsheet" : "document", brief }),
       });
       if (!res.ok) throw new Error((await res.text()) || `HTTP ${res.status}`);
-      const analysis = normalizeAnalysis(await res.json());
-      if (!analysis) throw new Error("The file gave no questions");
+      const read = normalizeAnalysis(await res.json());
+      if (!read) throw new Error("The file gave no questions");
+      const analysis = withUse(read);
       update({ analysis });
       if (analysis.questions.length === 0) passOver(a.id);
     } catch (err) {
       // A document that could not be read is not worth a red box: the file still travels whole.
       if (spreadsheet) update({ analysisError: err instanceof Error ? err.message : "Analysis failed" });
       else {
-        update({ analysis: { summary: "", questions: [] } });
-        passOver(a.id);
+        const analysis = withUse({ summary: "", questions: [] });
+        update({ analysis });
+        if (analysis.questions.length === 0) passOver(a.id);
       }
     }
   };
@@ -539,6 +551,11 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
 
   const runGenerate = async () => {
     const brief = state.brief;
+    // "Replicate it" on an attached deck: slide by slide, see runReplicate.
+    const replica = !twoPager
+      ? attachments.find((x): x is Extract<Attachment, { kind: "text" }> => x.kind === "text" && !!x.sourceSlides?.length && fileUseOf(x.answers) === "replicate")
+      : undefined;
+    if (replica) return runReplicate(replica);
     // A two-pager is a fixed-length piece, so the count is the user's; a
     // slide deck takes the number the brief names, if any.
     const count = twoPager ? state.count : countFromBrief(brief);
@@ -616,6 +633,126 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
     }
     if (received > 0 && TIERS_REQUEST.test(brief)) dispatch({ type: "INSERT_TIERS" });
     if (received > 0) onDeckArrived();
+  };
+
+  /**
+   * Replicating a deck (Mario, 28 Sep 2026): the plan (lib/slides/replicate.ts)
+   * fixes every slide of the new deck before any call, the agenda and the
+   * dividers built from the source's structure; the cover and each content
+   * slide are one call each (mode "replicate", only that slide's text),
+   * six at a time, and land in order as the prefix completes. The count and
+   * the order are the source's by construction: a single call for a deck of
+   * thirty returned twenty-one and a top-up that put eight slides in one
+   * block. No rhythm pass and no merge: the slides are the source's, one to
+   * one; only empty photo slots are filled and the closing slide added.
+   */
+  const runReplicate = async (file: Extract<Attachment, { kind: "text" }>) => {
+    const { steps } = planReplica(file.sourceSlides ?? []);
+    if (!steps.length) return;
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
+    dispatch({ type: "GENERATION_START", replace: true });
+    const brief = state.brief;
+    const briefNotes = [
+      briefQ?.brief === brief && briefQ.analysis ? compileInsights(briefQ.analysis, briefQ.answers) : "",
+      file.analysis ? compileInsights(file.analysis, file.answers ?? {}) : "",
+    ]
+      .filter(Boolean)
+      .join(" ");
+    const total = steps.length + 1;
+    const first = steps[0];
+    const deckTitle = first.kind === "cover" ? first.source.title : file.name;
+    let chapter = "";
+    const contexts = steps.map((st, i) => {
+      if (st.kind === "fixed" && st.content.layoutId === "section-divider") chapter = st.content.title ?? "";
+      return (
+        `This is slide ${i + 1} of ${total} of the deck "${deckTitle}"${chapter ? `, in the chapter "${chapter}"` : ""}.` +
+        (st.kind === "cover" ? " It is the COVER: use the cover layout, the deck's title as written and, as subtitle, the document type and date the source slide gives." : "")
+      );
+    });
+    const results: (SlideContent | null | undefined)[] = steps.map((st) =>
+      st.kind === "fixed" ? normalizeSlide(st.content, { brandId: state.brandId }) : undefined,
+    );
+    const failed: number[] = [];
+    const usage = { inputTokens: 0, outputTokens: 0 };
+    let next = 0;
+    let firstLanding = true;
+    const flush = () => {
+      while (next < steps.length && results[next] !== undefined) {
+        const content = results[next++];
+        if (!content) continue;
+        if (firstLanding) {
+          firstLanding = false;
+          flightRef.current = genPillRef.current?.getBoundingClientRect() ?? null;
+        }
+        dispatch({ type: "APPEND_SLIDE", content });
+      }
+    };
+    const one = async (i: number) => {
+      const st = steps[i];
+      if (st.kind === "fixed") return;
+      for (let attempt = 0; attempt < 2; attempt++) {
+        try {
+          const res = await fetch("/api/generate", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ mode: "replicate", brief, briefNotes, brandLabel: theme.label, format: "slides", source: st.source.text, sourceContext: contexts[i] }),
+            signal: controller.signal,
+          });
+          if (!res.ok || !res.body) throw new Error((await res.text().catch(() => "")) || `Request failed (${res.status})`);
+          let slide: SlideContent | null = null;
+          for (const line of (await res.text()).split("\n")) {
+            if (!line.trim()) continue;
+            const event = JSON.parse(line);
+            if (event.type === "slide" && !slide) slide = normalizeSlide(event.slide, { brandId: state.brandId });
+            else if (event.type === "done" && event.usage) {
+              usage.inputTokens += event.usage.inputTokens ?? 0;
+              usage.outputTokens += event.usage.outputTokens ?? 0;
+            } else if (event.type === "error") throw new Error(event.message ?? "Generation failed");
+          }
+          if (slide && st.kind === "cover") {
+            results[i] = { layoutId: "cover", title: slide.title || st.source.title, subtitle: slide.subtitle ?? "" };
+            return;
+          }
+          if (slide && !CHAPTER_LAYOUTS.has(slide.layoutId) && slide.layoutId !== "thank-you" && slide.layoutId !== "cover") {
+            results[i] = slide;
+            return;
+          }
+        } catch (err) {
+          if ((err as Error).name === "AbortError") throw err;
+        }
+      }
+      failed.push(st.source.n);
+      results[i] = null;
+    };
+    try {
+      flush();
+      let cursor = 0;
+      const worker = async () => {
+        while (cursor < steps.length) {
+          const i = cursor++;
+          await one(i);
+          flush();
+        }
+      };
+      await Promise.all(Array.from({ length: 6 }, worker));
+      flush();
+    } catch (err) {
+      if ((err as Error).name === "AbortError") return;
+      dispatch({ type: "GENERATION_ERROR", error: (err as Error).message });
+      return;
+    }
+    dispatch({ type: "ENSURE_CLOSING" });
+    dispatch({ type: "FILL_PHOTOS" });
+    dispatch({ type: "GENERATION_DONE", usage });
+    if (failed.length) {
+      dispatch({
+        type: "GENERATION_ERROR",
+        error: `Source slide${failed.length === 1 ? "" : "s"} ${failed.sort((x, y) => x - y).join(", ")} could not be rebuilt. Add ${failed.length === 1 ? "it" : "them"} with Add slide or try again.`,
+      });
+    }
+    onDeckArrived();
   };
 
   /**

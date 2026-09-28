@@ -505,6 +505,47 @@ guard, all pure functions, none touching the user's words:
 Left to the model, and it still slips about once in twenty: Giga's own figures in a deck that
 never named Giga, a year in a body ("by 2030"), a KR renumbered, the lockup's name as a title.
 
+## Replicating a deck
+
+"Replicate it in a more beautiful way, all text are important" with the 38-slide Gambia pptx
+attached came back as 11 slides (28 Sep 2026): no count in the brief, one call for the whole
+deck, a flat text in file order. Now:
+
+- **A PowerPoint file is read as a deck** (`lib/slides/pptx-source.ts`, `readPptx`): slides in
+  presentation order (`sldIdLst`), hidden ones skipped, the heading found by type size when there
+  is no title placeholder, shapes in reading order (wide shapes by their top, narrow ones column by
+  column, so a column header stays with its points), levels relative to the shape ("- " for a
+  sub-point), tables as pipe rows, charts from their chart part, footnotes apart (a numbered line in
+  small type or any sentence at 8pt or less, the shape's list style counting when runs set no
+  size), and lines on more than a quarter of the slides dropped as boilerplate (agenda slides left
+  out of that count). **Hand-drawn chart labels win over chart data**: the Gambia deck writes 3.10,
+  6.12, 11.65, 21.59 over a series whose data says otherwise, so the numbers drawn as text are
+  grouped by the axis label they stand over ("28: 3.10, 0.44 | 29: …", the axis being the row with
+  the most period labels) and the prompt says they win. Each slide gets a kind: cover (the first),
+  agenda (named so, or repeating an earlier agenda; the chapter in progress is the bullet whose
+  colour no other bullet shares), divider (a title and little else), closing, content.
+  `extractPptx` is this reader's text, so "use as a source" reads the file better too.
+- **The wizard asks what to do with it**, first, for every pptx (`fileUseQuestion` in
+  `sheet-questions.ts`, prepended by the client to the model's own questions, never empty so the
+  file is always asked): replicate, reinterpret (one line in the file's insights), or use as a
+  source (the default when skipped). The row under the chip says "Replicate · 36 slides".
+- **Replicate is planned by the client** (`planReplica` in `lib/slides/replicate.ts`): the cover
+  and every content slide in order, one agenda from the source's, a divider for each chapter the
+  source's agendas mark as current and for each source divider, a chapter never opened twice (the
+  appendix repeats the agenda), the source's mid-deck "Thank you" moved to the end. The source
+  decides the chapters whatever the Chapters toggle says (Mario's call). Ceiling `MAX_SLIDES`.
+- **One call per slide** (`runReplicate` in `app/page.tsx`, mode `replicate` in the route):
+  only that slide's text, its place ("slide 12 of 36, in the chapter …"), `REPLICATE_NOTE` in
+  `prompt.ts` (title as written, every point and figure, dense layouts, notes, the source's
+  language, never a structural layout), 3,000 tokens, six calls at a time, landing in order as
+  the prefix completes. The count and the order are the plan's by construction. No rhythm pass, no
+  merge, no finish pass: the slides are the source's one to one; `FILL_PHOTOS` and
+  `ENSURE_CLOSING` only. A slide that fails twice is named in the error ("Source slide 14 could
+  not be rebuilt"). The Gambia deck: 36 slides, about 20 s, about $0.02, 190 of 193 source figures
+  on the slides (the suite's `use: "replicate"` case prints this).
+- **Known limits**: two charts on one source slide become one chart-text plus the second's figures
+  in its points; which label belongs to which line is inferred from the top-to-bottom order.
+
 ## Dense layouts and footnotes
 
 Drawn 28 Sep 2026 for a 38-slide consulting-style investment case (the Gambia joint school and
