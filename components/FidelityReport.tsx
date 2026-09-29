@@ -8,9 +8,8 @@ import type { Slide } from "@/lib/slides/schema";
 
 /**
  * The fidelity report of a replica (lib/slides/fidelity.ts), inside the
- * generation readout: how many figures are exact, how much of the source's
- * text is kept word for word, what changed. "Review changes" opens the
- * detail, the source and the deck side by side, slide by slide, with "Go to
+ * generation readout: one percentage and "Review". The detail (figures
+ * exact, words kept, what changed, what the app put back) is in the review, the source and the deck side by side, slide by slide, with "Go to
  * slide". Session state in page.tsx, cleared by the next generation.
  *
  * Colour follows DESIGN.md: what is kept in Ink, differences in Muted Ink
@@ -28,66 +27,16 @@ export default function FidelityReport({
 }) {
   const [open, setOpen] = useState(false);
   const t = totals(report.slides, report.leftovers);
-  const exact = isExact(t);
-  const wrong = t.figures.total - t.figures.ok;
-  const restored = restoredLine(report);
-  const renamed = report.leftovers.filter((l) => l.reason === "renamed").reduce((n, l) => n + l.lines.length, 0);
+  const score = fidelityScore(t);
   return (
     <div className="mt-2.5 border-t border-hairline pt-2.5">
-      <p className="text-[13px] text-ink-faint">Source fidelity</p>
-      {exact ? (
-        <>
-          <p className="mt-1 text-xs leading-relaxed text-ink">Replicated exactly: every figure and line of the source is in the deck.</p>
-          {(restored || renamed > 0) && (
-            <Button variant="secondary" className="mt-2.5 w-full" onClick={() => setOpen(true)}>
-              Review
-            </Button>
-          )}
-        </>
-      ) : (
-        <>
-          <dl className="mt-1 flex flex-col gap-0.5 text-xs leading-relaxed">
-            <Row label="Figures exact">
-              {t.figures.total ? (
-                <>
-                  <span className="text-ink">
-                    {t.figures.ok} / {t.figures.total} ({pct(t.figures.ok, t.figures.total)}%)
-                  </span>
-                  {wrong > 0 && <span className="text-status-red"> · {wrong} changed</span>}
-                </>
-              ) : (
-                <span className="text-ink-muted">None in the source</span>
-              )}
-            </Row>
-            <Row label="Text kept">
-              <span className="text-ink">{pct(t.words.kept, t.words.total)}%</span>
-              <span className="text-ink-muted"> of the words</span>
-            </Row>
-            <Row label="Changed">
-              <span className="text-ink-muted">
-                {t.reworded} reworded, {t.missing} missing, {t.added} added
-              </span>
-            </Row>
-            {t.notRebuilt > 0 && (
-              <Row label="Not rebuilt">
-                <span className="text-status-red">
-                  {t.notRebuilt} slide{t.notRebuilt === 1 ? "" : "s"}
-                </span>
-              </Row>
-            )}
-          </dl>
-          <Button variant="secondary" className="mt-2.5 w-full" onClick={() => setOpen(true)}>
-            Review changes
-          </Button>
-        </>
-      )}
-      {restored && <p className="mt-2 text-xs leading-relaxed text-ink-muted">{restored}</p>}
-      {renamed > 0 && (
-        <p className="mt-2 text-xs leading-relaxed text-ink-muted">
-          {renamed} chapter name{renamed === 1 ? " is" : "s are"} worded differently on another agenda of the source; the deck names each chapter once.
-        </p>
-      )}
-      {report.transcribed && <p className="mt-2 text-xs leading-relaxed text-ink-muted">Source read from page images: check the figures.</p>}
+      <div className="flex items-baseline justify-between gap-3">
+        <p className="text-[13px] text-ink-faint">Source fidelity</p>
+        <p className="text-sm font-medium tabular-nums text-ink">{score}%</p>
+      </div>
+      <Button variant="secondary" className="mt-2.5 w-full" onClick={() => setOpen(true)}>
+        Review
+      </Button>
       {open && (
         <FidelityReview
           report={report}
@@ -119,13 +68,15 @@ function restoredLine(report: DeckFidelity): string {
   return `${text[0].toUpperCase()}${text.slice(1)}.`;
 }
 
-function Row({ label, children }: { label: string; children: ReactNode }) {
-  return (
-    <div className="flex items-baseline justify-between gap-3">
-      <dt className="shrink-0 text-ink-muted">{label}</dt>
-      <dd className="min-w-0 text-right tabular-nums">{children}</dd>
-    </div>
-  );
+/**
+ * One number for the card: the weaker of figures exact and words kept, so a
+ * changed figure is never hidden behind a lot of kept text. 100 only when
+ * nothing changed, nothing is missing and every slide was rebuilt.
+ */
+function fidelityScore(t: Totals): number {
+  if (isExact(t)) return 100;
+  const score = Math.min(pct(t.figures.ok, t.figures.total), pct(t.words.kept, t.words.total));
+  return Math.min(score, 99);
 }
 
 /** Rounded down, so 99.6% never reads as a clean 100%. */
