@@ -30,6 +30,23 @@ export interface SourceSlide {
   /** Agenda slides: the chapter titles, and which one this agenda marks as current (-1 if none). */
   chapters?: string[];
   current?: number;
+  /**
+   * Where the text sits (a PowerPoint slide only): every text box and chart,
+   * in slide fractions, in reading order. What the app's rebuild reads the
+   * source's structure from (lib/slides/restore.ts): a grid of headers over
+   * their values, columns, a chart with its own notes.
+   */
+  boxes?: SourceBox[];
+}
+
+export interface SourceBox {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  kind: "text" | "chart" | "legend";
+  /** The box's lines as `text` writes them ("- " on a sub-point); footnotes and chart labels are not here. */
+  lines: string[];
 }
 
 const decode = (s: string) =>
@@ -119,6 +136,7 @@ export const FOOTNOTE = /^(\d{1,2}[.)]\s|[¹²³⁴⁵⁶⁷⁸⁹])/;
 
 export interface Raw {
   n: number;
+  boxes?: SourceBox[];
   title: string;
   lines: string[];
   /** Numbers drawn as text on the slide (chart labels), with where they sit. */
@@ -129,24 +147,63 @@ export interface Raw {
   paras: Para[];
 }
 
-async function readSlide(zip: JSZip, path: string, n: number, slideWidth: number): Promise<Raw | null> {
+/**
+ * The slide's shapes with their place on the slide. A shape inside a group
+ * is written in the group's own coordinates; each group maps them back
+ * (its `chOff`/`chExt` onto its `off`/`ext`), so two scenarios drawn as two
+ * groups do not read as one column.
+ */
+function shapesOf(xml: string): { xml: string; i: number; x: number; y: number; w: number; h: number }[] {
+  type T = (v: { x: number; y: number; w: number; h: number }) => { x: number; y: number; w: number; h: number };
+  const stack: T[] = [];
+  const out: { xml: string; i: number; x: number; y: number; w: number; h: number }[] = [];
+  const num = (re: RegExp, text: string) => re.exec(text)?.slice(1).map(Number);
+  for (const m of xml.matchAll(/<p:grpSp>|<p:grpSp\s[^>]*>|<\/p:grpSp>|<p:sp\b[\s\S]*?<\/p:sp>|<p:graphicFrame\b[\s\S]*?<\/p:graphicFrame>/g)) {
+    const tag = m[0];
+    if (tag === "</p:grpSp>") {
+      stack.pop();
+      continue;
+    }
+    if (tag.startsWith("<p:grpSp")) {
+      const pr = /<p:grpSpPr\b[\s\S]*?<\/p:grpSpPr>/.exec(xml.slice(m.index!))?.[0] ?? "";
+      const off = num(/<a:off x="(-?\d+)" y="(-?\d+)"\/>/, pr);
+      const ext = num(/<a:ext cx="(\d+)" cy="(\d+)"\/>/, pr);
+      const choff = num(/<a:chOff x="(-?\d+)" y="(-?\d+)"\/>/, pr);
+      const chext = num(/<a:chExt cx="(\d+)" cy="(\d+)"\/>/, pr);
+      const t: T =
+        off && ext && choff && chext && chext[0] && chext[1]
+          ? (v) => {
+              const sx = ext[0] / chext[0];
+              const sy = ext[1] / chext[1];
+              return { x: off[0] + (v.x - choff[0]) * sx, y: off[1] + (v.y - choff[1]) * sy, w: v.w * sx, h: v.h * sy };
+            }
+          : (v) => v;
+      stack.push(t);
+      continue;
+    }
+    const off = num(/<a:off x="(-?\d+)" y="(-?\d+)"\/>/, tag);
+    const ext = num(/<a:ext cx="(\d+)" cy="(\d+)"\/>/, tag);
+    let v = { x: off?.[0] ?? 0, y: off?.[1] ?? 0, w: ext?.[0] ?? 0, h: ext?.[1] ?? 0 };
+    for (let k = stack.length - 1; k >= 0; k--) v = stack[k](v);
+    out.push({ xml: tag, i: out.length, ...v });
+  }
+  return out;
+}
+
+async function readSlide(zip: JSZip, path: string, n: number, slideWidth: number, slideHeight = slideWidth * 0.5625): Promise<Raw | null> {
   const xml = await zip.file(path)?.async("string");
   if (!xml) return null;
   if (/<p:sld\b[^>]*\bshow="0"/.test(xml)) return null;
   const dir = path.slice(0, path.lastIndexOf("/"));
   const relsPath = `${dir}/_rels/${path.slice(path.lastIndexOf("/") + 1)}.rels`;
   const rels = relsOf((await zip.file(relsPath)?.async("string")) ?? "");
-  const raw: Raw = { n, title: "", lines: [], figures: [], footnotes: [], extras: [], paras: [] };
+  const raw: Raw = { n, title: "", lines: [], figures: [], footnotes: [], extras: [], paras: [], boxes: [] };
 
   // Shapes in reading order, not XML order: a column's header is often
   // written after its points. Shapes as wide as most of the slide (a title,
   // a key-message band) read by their top; narrower ones column by column,
   // top to bottom, so a header stays with the points under it.
-  const shapes = [...xml.matchAll(/<p:sp\b[\s\S]*?<\/p:sp>|<p:graphicFrame\b[\s\S]*?<\/p:graphicFrame>/g)].map((m, i) => {
-    const off = /<a:off x="(-?\d+)" y="(-?\d+)"\/>/.exec(m[0]);
-    const ext = /<a:ext cx="(\d+)" cy="(\d+)"\/>/.exec(m[0]);
-    return { xml: m[0], i, x: Number(off?.[1] ?? 0), y: Number(off?.[2] ?? 0), w: Number(ext?.[1] ?? 0) };
-  });
+  const shapes = shapesOf(xml);
   const wide = (sh: { w: number }) => sh.w > slideWidth * 0.6;
   const narrow = shapes.filter((sh) => !wide(sh));
   const narrowTop = Math.min(...narrow.map((sh) => sh.y));
@@ -157,14 +214,51 @@ async function readSlide(zip: JSZip, path: string, n: number, slideWidth: number
     ...shapes.filter((sh) => wide(sh) && sh.y > narrowTop).sort((p, q) => p.y - q.y),
   ];
 
-  for (const { xml: shape, x: shapeX, y: shapeY } of ordered) {
+  const at = (sh: { x: number; y: number; w: number; h: number }) => ({ x: sh.x / slideWidth, y: sh.y / slideHeight, w: sh.w / slideWidth, h: sh.h / slideHeight });
+  const charts = ordered.filter((sh) => sh.xml.startsWith("<p:graphicFrame") && /<c:chart\b/.test(sh.xml));
+  // A legend drawn as text boxes: small single lines stacked right under a
+  // chart, inside its width (the Gambia cost charts name their three series
+  // so). Their names are the chart's series, not footnotes.
+  const legendOf = new Map<number, string[]>();
+  const legendShapes = new Set<number>();
+  for (const [ci, c] of charts.entries()) {
+    const under = ordered.filter((sh) => {
+      if (!sh.xml.startsWith("<p:sp")) return false;
+      const paras = paragraphs(sh.xml);
+      return (
+        paras.length === 1 &&
+        !PURE_NUMBER.test(paras[0].text) &&
+        paras[0].size > 0 &&
+        paras[0].size <= 1000 &&
+        sh.y >= c.y + c.h * 0.9 &&
+        sh.y <= c.y + c.h + slideHeight * 0.12 &&
+        sh.x >= c.x - slideWidth * 0.02 &&
+        sh.x < c.x + c.w
+      );
+    });
+    if (under.length >= 2) {
+      under.sort((p, q) => p.y - q.y || p.x - q.x);
+      legendOf.set(ci, under.map((sh) => paragraphs(sh.xml)[0].text));
+      for (const sh of under) legendShapes.add(sh.i);
+    }
+  }
+
+  for (const sh of ordered) {
+    const { xml: shape, x: shapeX, y: shapeY } = sh;
+    if (legendShapes.has(sh.i)) continue;
     if (shape.startsWith("<p:graphicFrame")) {
       if (/<a:tbl\b/.test(shape)) raw.extras.push(readTable(shape));
       const chartId = /<c:chart\b[^>]*r:id="([^"]+)"/.exec(shape)?.[1];
       const target = chartId ? rels.get(chartId) : undefined;
       if (target) {
         const chartXml = await zip.file(resolve(dir, target))?.async("string");
-        if (chartXml) raw.extras.push(readChart(chartXml));
+        if (chartXml) {
+          raw.extras.push(readChart(chartXml));
+          const legend = legendOf.get(charts.indexOf(sh));
+          if (legend) raw.extras.push(`Chart legend: ${legend.join(" | ")}`);
+          raw.boxes!.push({ ...at(sh), kind: "chart", lines: [] });
+          if (legend) raw.boxes!.push({ ...at(sh), kind: "legend", lines: legend });
+        }
       }
       continue;
     }
@@ -183,12 +277,18 @@ async function readSlide(zip: JSZip, path: string, n: number, slideWidth: number
     // Levels count from the shape's own top level: a box whose points all sit
     // at level 1 has no sub-points.
     const base = Math.min(...paras.map((p) => p.level));
+    const box: string[] = [];
     for (const p of paras) {
       if (PURE_NUMBER.test(p.text)) raw.figures.push({ text: p.text, x: shapeX, y: shapeY });
       // A numbered line in small type, or any sentence in 8pt or less, is a footnote.
       else if (p.size > 0 && ((FOOTNOTE.test(p.text) && p.size <= 1000) || (p.size <= 800 && p.text.length > 25))) raw.footnotes.push(p.text);
-      else raw.lines.push(`${p.level > base ? "- " : ""}${p.text}`);
+      else {
+        const line = `${p.level > base ? "- " : ""}${p.text}`;
+        raw.lines.push(line);
+        box.push(line);
+      }
     }
+    if (box.length) raw.boxes!.push({ ...at(sh), kind: "text", lines: box });
   }
   const notesTarget = [...rels.values()].find((t) => /notesSlide\d+\.xml$/.test(t));
   const notesXml = notesTarget ? await zip.file(resolve(dir, notesTarget))?.async("string") : undefined;
@@ -262,9 +362,10 @@ export async function readPptx(buf: ArrayBuffer): Promise<{ text: string; slides
       .map((s) => s.p);
   }
   const slideWidth = Number(/<p:sldSz\b[^>]*\bcx="(\d+)"/.exec(pres)?.[1] ?? 12192000);
+  const slideHeight = Number(/<p:sldSz\b[^>]*\bcy="(\d+)"/.exec(pres)?.[1] ?? slideWidth * 0.5625);
   const raws: Raw[] = [];
   for (const path of paths) {
-    const r = await readSlide(zip, path, raws.length + 1, slideWidth);
+    const r = await readSlide(zip, path, raws.length + 1, slideWidth, slideHeight);
     if (r) raws.push(r);
   }
   return classify(raws);
@@ -326,6 +427,12 @@ export function classify(raws: Raw[]): { text: string; slides: SourceSlide[] } {
     if (r.figures.length) parts.push(figureLine(r.figures));
     if (r.footnotes.length) parts.push(`Footnotes: ${r.footnotes.join(" ")}`);
     const slide: SourceSlide = { n: r.n, kind, title, text: parts.join("\n"), words };
+    if (r.boxes?.length) {
+      // The boxes say what the text says: boilerplate and handles out, the heading kept where it sits.
+      slide.boxes = r.boxes
+        .map((b) => (b.kind === "text" ? { ...b, lines: b.lines.filter((l) => lines.includes(l)) } : b))
+        .filter((b) => b.kind !== "text" || b.lines.length);
+    }
     if (kind === "agenda") {
       const bullets = r.paras.filter((p) => !AGENDA_WORD.test(p.text) && !HANDLE.test(p.text) && !PURE_NUMBER.test(p.text) && p.text.length > 2);
       slide.chapters = bullets.map((p) => p.text);

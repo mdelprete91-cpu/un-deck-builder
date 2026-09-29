@@ -307,7 +307,7 @@ async function replicatePrompt(p: Prompt, brief: string, path: string, t0: numbe
       const done =
         st.kind === "cover"
           ? restoreCover(st.source.n, st.source.title, units, slide ?? { layoutId: "cover", title: st.source.title, subtitle: "" }, estimateFits)
-          : restoreSlide(st.source.n, st.source.title, units, slide, estimateFits, { cont });
+          : restoreSlide(st.source.n, st.source.title, units, slide, estimateFits, { cont, boxes: st.source.boxes });
       putBack += done.putBack;
       rebuilt += done.rebuilt ? 1 : 0;
       continued += done.slides.length - 1;

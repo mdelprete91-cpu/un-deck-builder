@@ -43,7 +43,9 @@ export interface SourceEntry {
   text: string;
   /** Written as a sub-point ("- " in the source). */
   sub: boolean;
-  kind: "title" | "text" | "cell" | "note" | "figure";
+  kind: "title" | "text" | "cell" | "note" | "figure" | "legend";
+  /** A legend name: the chart it names a series of (0-based, in the order the source lists its charts). */
+  chart?: number;
 }
 
 /** A chart the source slide draws: its columns (axis label, values top to bottom), from the labels written on the slide or, without them, the chart's data. */
@@ -213,6 +215,7 @@ export function sourceUnits(source: Pick<SourceSlide, "text">, ignore: Set<strin
   const dataCharts: SourceChart[] = [];
   const labelCharts: SourceChart[] = [];
   const floating: string[] = [];
+  const legends: string[][] = [];
   let labelled = false;
   let mode: "text" | "table" | "chart" = "text";
   const addLine = (text: string, kind: SourceEntry["kind"] = "text", sub = false) => {
@@ -281,6 +284,17 @@ export function sourceUnits(source: Pick<SourceSlide, "text">, ignore: Set<strin
       }
       continue;
     }
+    if (/^Chart legend:/.test(raw)) {
+      const chartIndex = legends.length;
+      const names = raw.replace(/^Chart legend:\s*/, "").split(" | ").map((x) => x.trim()).filter(Boolean);
+      legends.push(names);
+      for (const name of names) {
+        const before = entries.length;
+        addLine(name, "legend");
+        if (entries.length > before) entries[entries.length - 1].chart = chartIndex;
+      }
+      continue;
+    }
     if (/^Footnotes:/.test(raw)) {
       const notes = raw.replace(/^Footnotes:\s*/, "");
       for (const note of notes.split(/;\s+(?=\d{1,2}[.)]?\s)|\s+(?=\d{1,2}[.)]\s)/)) addLine(note, "note");
@@ -296,6 +310,25 @@ export function sourceUnits(source: Pick<SourceSlide, "text">, ignore: Set<strin
   const unique = new Map<string, Figure>();
   for (const f of figures) if (!unique.has(f.key)) unique.set(f.key, f);
   const vocabulary = new Set(tokens(source.text.split("\n").filter((l) => !/^Speaker notes:/.test(l)).join(" ")));
+  // Series names: the chart's own when its data names them, else its legend.
+  // A hand-labelled chart lists each column's labels top to bottom, which is
+  // the series ranked by value, not in the legend's order: the data's last
+  // values (stale as figures, right as a ranking) say which is which.
+  dataCharts.forEach((c, i) => {
+    const legend = legends[i];
+    if (legend?.length === c.series?.length && c.series?.some((x) => !x)) c.series = legend;
+  });
+  labelCharts.forEach((c, i) => {
+    const legend = legends[i];
+    const k = Math.max(0, ...c.columns.map((col) => col.values.length));
+    if (!legend || legend.length !== k) return;
+    const data = dataCharts[i];
+    const last = data?.columns[data.columns.length - 1]?.values.map(Number);
+    if (data && last?.length === k && last.every(Number.isFinite)) {
+      const order = last.map((v, j) => ({ v, j })).sort((a, b) => b.v - a.v).map((x) => x.j);
+      c.series = order.map((j) => legend[j]);
+    } else c.series = legend;
+  });
   return { lines, figures: [...unique.values()], vocabulary, entries, charts: labelled ? labelCharts : dataCharts.filter((c) => c.columns.length), floating };
 }
 
@@ -508,7 +541,7 @@ export interface DeckFidelity {
    * `putBack` lines the app wrote back, `rebuilt` built from the source,
    * `parts` the slides it became (more than one when continued).
    */
-  slides: (SlideFidelity & { at: number; layoutId: string; deckTitle: string; putBack?: number; rebuilt?: boolean; parts?: number })[];
+  slides: (SlideFidelity & { at: number; layoutId: string; deckTitle: string; putBack?: number; putBackLines?: string[]; rebuilt?: boolean; parts?: number })[];
   /** Source slides or lines that did not become a slide: a failed call, the 40-slide ceiling, an agenda or divider line. */
   leftovers: Leftover[];
   /** A PDF with no text layer: the source was the model's transcription. */

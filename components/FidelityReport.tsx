@@ -139,7 +139,8 @@ type Diff =
   | { kind: "figure"; figure: string; source: string; deck: string }
   | { kind: "reworded" | "changed"; source: string; deck: string; figures: string[] }
   | { kind: "missing"; source: string; figures: string[] }
-  | { kind: "added"; deck: string };
+  | { kind: "added"; deck: string }
+  | { kind: "restored"; source: string };
 
 /** A normalised figure as people write it: "1274" is "1,274". */
 const shown = (key: string) => (/^-?\d{4,}$/.test(key) ? Number(key).toLocaleString("en-US") : key);
@@ -150,6 +151,7 @@ const TAG: Record<Diff["kind"], string> = {
   changed: "Changed",
   missing: "Missing",
   added: "Added",
+  restored: "Put back by the app",
 };
 
 function FidelityReview({
@@ -193,6 +195,7 @@ function FidelityReview({
           ...s.lines.touched.map((p): Diff => ({ kind: "reworded", source: p.source, deck: p.deck, figures: on(p.source) })),
           ...s.lines.missing.map((source): Diff => ({ kind: "missing", source, figures: on(source) })),
           ...s.added.map((deck): Diff => ({ kind: "added", deck })),
+          ...(s.putBackLines ?? []).map((source): Diff => ({ kind: "restored", source })),
         ],
       };
     })
@@ -354,10 +357,10 @@ function DiffRow({ d }: { d: Diff }) {
       </p>
       <div className="grid grid-cols-2 gap-x-6 text-sm leading-relaxed">
         <p className="min-w-0 break-words text-ink">
-          {d.kind === "added" ? <Faint>Not in the source</Faint> : <Marked text={source} against={d.kind === "missing" || !deck ? null : deck} />}
+          {d.kind === "added" ? <Faint>Not in the source</Faint> : <Marked text={source} against={d.kind === "missing" || d.kind === "restored" || !deck ? null : deck} />}
         </p>
         <p className="min-w-0 break-words text-ink">
-          {d.kind === "missing" || !deck ? <Faint>Not on the slide</Faint> : <Marked text={deck} against={d.kind === "added" ? null : source} />}
+          {d.kind === "restored" ? <Faint>On the slide, word for word</Faint> : d.kind === "missing" || !deck ? <Faint>Not on the slide</Faint> : <Marked text={deck} against={d.kind === "added" ? null : source} />}
         </p>
       </div>
     </li>

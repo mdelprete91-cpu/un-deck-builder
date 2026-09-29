@@ -538,7 +538,13 @@ deck, a flat text in file order. Now:
   the most period labels) and the prompt says they win. Each slide gets a kind: cover (the first),
   agenda (named so, or repeating an earlier agenda; the chapter in progress is the bullet whose
   colour no other bullet shares), divider (a title and little else), closing, content.
-  `extractPptx` is this reader's text, so "use as a source" reads the file better too.
+  `extractPptx` is this reader's text, so "use as a source" reads the file better too. Shapes in
+  a group are placed through the group's transform (`shapesOf`: Gambia 15 draws each scenario as
+  a group, and in group coordinates the two scenarios' notes read as one interleaved column). A
+  legend drawn as text boxes (small single lines stacked under a chart, inside its width) is
+  "Chart legend: a | b | c" after the chart's data, not footnotes. Every slide keeps `boxes`:
+  each text box and chart with its place in slide fractions, what the rebuild reads the source's
+  structure from (29 Sep 2026).
 - **A PDF is read the same way, page by page** (`lib/slides/pdf-source.ts`, 28 Sep 2026): pdf.js
   runs become lines, lines become paragraphs (a point opens at a bullet glyph, often a control or
   private-use character, a size change or a gap; a word broken at a hyphen is mended), a number
@@ -641,16 +647,35 @@ deck, a flat text in file order. Now:
      line replaces, in place, the stretch `compareSlide` matched it to, only when that makes it
      whole and breaks no other line ("School Connectivity" also sits inside a longer line). A
      missing line goes after the point that precedes it in the source (first under the header
-     that precedes it), else before the point that follows it, else in the nearest block with
-     room, else in a new block; "- " stays; a footnote goes to `notes`; the title is the source's.
+     that precedes it), else before the point that follows it; when those neighbours are on the
+     slide but their list is full the slide is rebuilt (never at the end of an unrelated block),
+     and only a line whose neighbours are all missing opens a new block; "- " stays; a footnote goes to `notes`; the title is the source's.
      A wrong chart value is set on its bar (`fixBars`, when the slide's chart has the source's
      columns); a figure with no bar to hold it is written as one point the way the source writes
      it ("27: -1.37, -8.91, -9.76; 28: …"). The Element menu's own functions in `modular.ts`
      (`addPointAt`, `pointLists`) insert, so the ten-point limit holds and the slide stays
      editable; a layout with a high-density variant goes dense.
-  2. **Rebuild** (`rebuild`): when the put-back slide does not hold it all (no room, over its
-     limits, or `readable` in `fit-check.ts` finds a text under 18px or clipped), the slide is
-     built from the source alone: `bullet-columns` with the lines in source order, one to three
+  2. **Rebuild** (`rebuildFromBoxes`, then `rebuild`): when the put-back slide does not hold it
+     all (no room, over its limits, or `readable` in `fit-check.ts` finds a text under 18px or
+     clipped), the slide is built from the source alone. A PowerPoint source is rebuilt from its
+     structure first (the product owner, 29 Sep 2026: the line-order rebuild read as a dump):
+     a grid (a row of three to five header boxes over a row of value boxes in the same columns,
+     a label box to their left, a caption between) is a `matrix`, the label as the row, each cell
+     header and value, the caption as the band, and when the heading was read as the first row's
+     label, the line over everything is the title (Gambia 10: "School & Health Connectivity",
+     rows School and Health, five effects each, then Scope and Why on a continuation); each chart
+     is a `chart-text` slide with the boxes in its column (the scenario heading over it as the
+     heading, its notes as the explanation), the second chart on the continuation titled "(cont.)"
+     (Gambia 15: 2 km, then 20 km); the series take the legend's names, matched to the labels'
+     top-to-bottom order by the data's ranking of the last values, and a legend too long for its
+     two rows goes by the words that set each series apart ("health facilities") with the full
+     names as the chart's numbered notes; a column only partly labelled (two of three labels over
+     2031) is not drawn with an invented value but written out, and a chart whose complete
+     columns do not cover most of its axis stays text; the rest is columns as the source sets
+     them, a full-width line opening a section (its band when it is up to 60 words), a one-line
+     header box joined to the box under it, a header with its points as the column's label, more
+     than three columns merged neighbour to neighbour. This is kept only when the comparison finds
+     every line and figure; else, and for a PDF, the lines in order: `bullet-columns` with the lines in source order, one to three
      columns, a column opening on a header when it starts with one (a short line with no full stop
      and no figure), sub-points kept, footnotes to `notes` up to 36 words (as points past that);
      `chart-text` when the source draws a chart the renderer can draw (2-12 columns, 1-3 values
@@ -667,11 +692,13 @@ deck, a flat text in file order. Now:
   the title. `readable` renders the slide offscreen with the real autofit; `estimateFits` stands in
   for it in node (the tests, `qa-suite.ts`). The cover (`restoreCover`) takes the source's other
   lines in its subtitle ("Investment Case · September 2026"), and past 18 words a content slide
-  after it. Gambia through the app, clean runs: 336 / 336 figures and every line after the app,
-  the model alone at 315-329 figures and 98-99% of the words; 0-9 lines put back, 2-3 slides
-  rebuilt, 1-2 continuation slides. Source slide 10 (the impact pathway, 34 lines) needs two
-  slides at ten points a column when the model's own slide cannot take it back; source slide 15
-  is chart-text with the first chart and the second chart's values written out.
+  after it. Gambia through the app after the design pass (29 Sep 2026, five runs on the final
+  code path): 336 / 336 figures and every line each time (the independent check in agreement;
+  two runs kept one or two invented header words the trim now also removes, or cannot on a
+  standard `list`),
+  the model alone at 332-336 figures and 97-99% of the words; 0-3 lines put back, 6-8 slides
+  rebuilt from the structure, 6-7 continuation slides, 42-43 slides in all. Every restored slide
+  measures 18px or more with nothing clipped.
 - **Chapter names worded differently** (`reason: "renamed"` in `planLeftovers`): an agenda line at
   the place of a chapter the deck carries, on an agenda of the same length ("The Learning and
   Digital Access Challenge" on one Gambia agenda, "The Challenge" on the others), is the same
@@ -684,7 +711,8 @@ deck, a flat text in file order. Now:
   "Replicated exactly" when all of it is whole; one line on what the app restored ("9 lines were
   put back by the app, 3 slides were rebuilt from the source in a simpler design and 2
   continuation slides were added"), so the user knows those slides are simpler; the review adds
-  the model's own score before the restore and marks each restored slide; "Review changes" opens the source and the deck side
+  the model's own score before the restore, marks each restored slide and lists each line the
+  app put back ("Put back by the app"); "Review changes" opens the source and the deck side
   by side, slide by slide, with Go to slide (the slide's place when it landed, or its title if the
   deck moved since). A transcribed PDF adds "Source read from page images: check the figures",
   since the comparison is with the transcript, not the file. The suite's `use: "replicate"` case
@@ -695,8 +723,8 @@ deck, a flat text in file order. Now:
   are not "added" and not "missing".
 - **Known limits**: two charts on one source slide become one chart-text plus the second's figures
   in its points; which label belongs to which line is inferred from the top-to-bottom order. A
-  rebuilt chart has no series names unless the chart's data gives them ("Series 1" is the legend,
-  not measured). A slide the model got whole is kept even when autofit takes its text under 18px
+  rebuilt chart has no series names only when neither its data nor a legend on the slide gives
+  them ("Series 1" is then the legend, not measured). A slide the model got whole is kept even when autofit takes its text under 18px
   (its footnotes can reach 9px); applying the floor there would rebuild more slides in the simpler
   design, a call for Mario. The figures-panel rebuild cannot pair a figure with its label (the
   source's text does not say which), so the figures stand in a column beside the lines.

@@ -3,6 +3,7 @@ import { addPointAt, deleteModular, holdsPoints, isModular, pointAt, pointLists,
 import { withContentDensity } from "./replicate";
 import { DENSITY_LAYOUTS, PRIMARY_ARRAY, SERIES_LAYOUTS, isChartLayout, normalizeSlide, overLimits, type Block, type SlideContent } from "./schema";
 import { columns } from "./layouts/shared";
+import type { SourceBox } from "./pptx-source";
 
 /**
  * The replica's guarantee (Mario, 29 Sep 2026: "if I click Replicate, 100%
@@ -52,6 +53,8 @@ export interface Restored {
   rebuilt: boolean;
   /** Points, blocks or headers the model added that were removed. */
   trimmed: number;
+  /** The lines put back, as the source writes them. */
+  lines?: string[];
 }
 
 /** The source lines a comparison found word for word. */
@@ -191,21 +194,10 @@ function insertLine(s: S, units: SourceUnits, line: string): S | null {
     const r = addPointAt(s, next.list, next.index, text);
     if (r) return r.slide;
   }
-  // The nearest block with room: after its points when it comes before the neighbour, first when it comes after.
-  const lists = pointLists(s);
-  const near = prev ?? next;
-  const home = near ? ("block" in near ? near.block : near.list.kind === "items" ? near.list.block : lists.length) : lists.length;
-  const order = [...lists].sort((x, y) => {
-    const bx = x.kind === "items" ? x.block : lists.length;
-    const by = y.kind === "items" ? y.block : lists.length;
-    return Math.abs(bx - home) - Math.abs(by - home) || by - bx;
-  });
-  for (const list of order) {
-    const b = list.kind === "items" ? list.block : lists.length;
-    const r = addPointAt(s, list, b > home ? 0 : pointsIn(s, list).length, text);
-    if (r) return r.slide;
-  }
-  // A new block, where the layout's blocks carry points and there is room for one.
+  // Its neighbours are on the slide but their list is full: never at the end
+  // of an unrelated block (the slide is rebuilt instead).
+  if (prev || next) return null;
+  // No neighbour on the slide (a whole group is missing): a new block, where the layout's blocks carry points and there is room for one.
   const spec = PRIMARY_ARRAY[s.layoutId];
   if (holdsPoints(s) && spec?.field === "blocks" && (s.blocks?.length ?? 0) < spec.max) {
     const block: Block = { label: "", body: "", items: [text] };
@@ -226,11 +218,33 @@ function rawFigure(key: string, text: string): string {
 /** Numbers of a chart column as the chart takes them ("−5.38" is -5.38, "76%" is 76). */
 const num = (v: string) => Number(v.replace(/[−–]/g, "-").replace(/[,%\s]/g, ""));
 
-/** A chart the renderers can draw: 2 to 12 columns, one to three values each, every column complete. */
-function drawable(c: SourceChart): boolean {
-  if (c.columns.length < 2 || c.columns.length > 12) return false;
-  const k = c.columns[0].values.length;
-  return k >= 1 && k <= 3 && c.columns.every((col) => col.values.length === k && col.values.every((v) => Number.isFinite(num(v))));
+/**
+ * What of a chart the renderers can draw: its complete columns (as many
+ * values as the fullest column, one to three, all numbers), two to twelve of
+ * them. A column the source labels only in part (Gambia 15's second chart
+ * has two of three labels over 2031) is not drawn with an invented value:
+ * it stays as text (`remainder`).
+ */
+function plotted(source: SourceChart): SourceChart | null {
+  const k = Math.max(0, ...source.columns.map((col) => col.values.length));
+  // Labels that are all zero are drawn once where the lines meet at zero: the column is zero for every series.
+  const c = { ...source, columns: source.columns.map((col) => (col.values.length && col.values.length < k && col.values.every((v) => num(v) === 0) ? { ...col, values: Array(k).fill("0") } : col)) };
+  if (k < 1 || k > 3) return null;
+  const full = (col: SourceChart["columns"][number]) => col.values.length === k && col.values.every((v) => Number.isFinite(num(v)));
+  const columns = c.columns.filter(full);
+  // One run of complete columns covering most of the axis: a chart that
+  // starts at its fourth year would misread the source, so it stays text.
+  const first = c.columns.findIndex(full);
+  const contiguous = first >= 0 && c.columns.slice(first, first + columns.length).every(full);
+  return contiguous && columns.length >= Math.max(2, Math.ceil(c.columns.length * 0.6)) && columns.length <= 12 ? { ...c, columns } : null;
+}
+const drawable = (c: SourceChart) => !!plotted(c);
+/** The columns of a drawn chart that stay text, or null. */
+function remainder(c: SourceChart): SourceChart | null {
+  const p = plotted(c);
+  const drawn = new Set(p?.columns.map((col) => col.label));
+  const rest = p ? c.columns.filter((col) => !drawn.has(col.label) && col.values.length) : [];
+  return rest.length ? { ...c, columns: rest } : null;
 }
 
 /** A chart's columns as the source writes them: "27: -0.85, -5.48, -6.00; 28: …". */
@@ -288,26 +302,32 @@ function figurePoint(r: SlideFidelity): string {
  * wrong figure put back, or null when its layout cannot take them (not a
  * modular slide, or no room left in its lists and blocks).
  */
-export function putBack(slide: S, units: SourceUnits, n = 0): { slide: S; count: number } | null {
+export function putBack(slide: S, units: SourceUnits, n = 0): { slide: S; count: number; lines: string[] } | null {
   let s: S = structuredClone(slide);
   if (!isModular(s) && DENSITY_LAYOUTS.has(s.layoutId)) s.density = "high";
   if (!isModular(s)) return null;
   const title = units.entries.find((e) => e.kind === "title")?.text;
   let count = 0;
+  // What the app wrote, for the review ("Put back by the app").
+  const log: string[] = [];
+  const did = (line: string) => {
+    count++;
+    log.push(line);
+  };
   if (title && tokens(s.title ?? "").join(" ") !== tokens(title).join(" ")) {
     s.title = title;
-    count++;
+    did(title);
   }
   for (let pass = 0; pass < 6; pass++) {
     const r = compareSlide(n, "", units, s);
-    if (isWhole(r)) return { slide: withContentDensity(s), count };
+    if (isWhole(r)) return { slide: withContentDensity(s), count, lines: log };
     const lines = [...r.lines.changed, ...r.lines.touched];
     if (lines.length || r.lines.missing.length) {
       const pending: string[] = [];
       for (const p of lines) {
         if (p.source === title) {
           s.title = title;
-          count++;
+          did(title);
           continue;
         }
         // In place, only when that makes the line whole and breaks no other
@@ -317,25 +337,25 @@ export function putBack(slide: S, units: SourceUnits, n = 0): { slide: S; count:
         const after = replaceSpan(trial, p.deck, p.source) ? identical(compareSlide(n, "", units, trial), units) : null;
         if (after && after.has(p.source) && [...before].every((l) => after.has(l))) {
           s = trial;
-          count++;
+          did(p.source);
         } else pending.push(p.source);
       }
       for (const line of [...r.lines.missing, ...pending]) {
         if (line === title) {
           s.title = title;
-          count++;
+          did(title);
           continue;
         }
         const next = insertLine(s, units, line);
         if (!next) return null;
         s = next;
-        count++;
+        did(line);
       }
       continue;
     }
     // Lines whole, figures wrong: the chart's bars first, then the rest as a point.
     if (fixBars(s, units) && isWhole(compareSlide(n, "", units, s))) {
-      count++;
+      did("The chart's values, as the source labels them");
       continue;
     }
     const again = compareSlide(n, "", units, s);
@@ -354,7 +374,7 @@ export function putBack(slide: S, units: SourceUnits, n = 0): { slide: S; count:
     if (!placed && holdsPoints(s) && spec?.field === "blocks" && (s.blocks?.length ?? 0) < spec.max) placed = { ...s, blocks: [...(s.blocks ?? []), { label: "", body: "", items: [point] }] };
     if (!placed) return null;
     s = placed;
-    count++;
+    did(point);
   }
   return null;
 }
@@ -363,6 +383,16 @@ export function putBack(slide: S, units: SourceUnits, n = 0): { slide: S; count:
 
 /** A text with a content word the source never writes. */
 const invented = (text: string, units: SourceUnits) => tokens(text).some((t) => !units.vocabulary.has(t) && !STOP.has(t));
+
+/** The slide without one line of its footnotes (the field goes when it was the only one). */
+function dropNote(s: S, k: number): S {
+  const lines = (s.notes ?? "").split("\n");
+  lines.splice(k, 1);
+  const notes = lines.join("\n").trim();
+  const { notes: _n, ...rest } = s;
+  void _n;
+  return notes ? { ...rest, notes } : (rest as S);
+}
 
 /**
  * Remove what the model added and no source line needs: a whole point, a
@@ -380,6 +410,8 @@ export function trimAdded(slide: S, units: SourceUnits, opts: { redundant?: bool
   const candidates = (x: S): { path: string; text: string; point: boolean }[] => {
     const out: { path: string; text: string; point: boolean }[] = [];
     for (const f of ["subtitle", "support", "takeaway"] as const) if (x[f]?.trim()) out.push({ path: f, text: x[f]!, point: false });
+    // A footnote line of its own ("27 September 2026", the speaker notes' date).
+    (x.notes ?? "").split("\n").forEach((line, k) => line.trim() && out.push({ path: `notes#${k}`, text: line, point: false }));
     (x.blocks ?? []).forEach((b, i) => {
       if (b.label?.trim()) out.push({ path: `blocks.${i}.label`, text: b.label, point: false });
       const all = [b.label, b.body, ...(b.items ?? []), ...(b.stats ?? []).flatMap((st) => [st.value, st.label])].join(" ");
@@ -398,7 +430,14 @@ export function trimAdded(slide: S, units: SourceUnits, opts: { redundant?: bool
     let changed = false;
     for (const c of candidates(s)) {
       if (!invented(c.text, units) && !(opts.redundant && c.point)) continue;
-      const next = deleteModular(s, c.path);
+      const note = /^notes#(\d+)$/.exec(c.path);
+      const row = /^blocks\.(\d+)\.label$/.exec(c.path);
+      // A figures-panel row label the source never writes ("Context") is emptied; the row stays.
+      const next = note
+        ? dropNote(s, +note[1])
+        : row && s.layoutId === "figures-panel"
+          ? { ...s, blocks: s.blocks!.map((b, i) => (i === +row[1] ? { ...b, label: "" } : b)) }
+          : deleteModular(s, c.path);
       if (!next || !holds(compareSlide(0, "", units, next))) continue;
       s = next;
       removed++;
@@ -479,18 +518,26 @@ function bulletColumnsOf(title: string, list: SourceEntry[], notes?: string): S 
 }
 
 /** chart-text: the source's chart, the lines as the explanation (a header on top as its heading); null past ten points. */
-function chartTextOf(title: string, list: SourceEntry[], chart: SourceChart, notes?: string): S | null {
-  const labelled = header(list[0], list[1]);
+function chartTextOf(title: string, list: SourceEntry[], source: SourceChart, notes?: string, heading?: string): S | null {
+  const chart = plotted(source);
+  if (!chart) return null;
+  const labelled = heading === undefined && header(list[0], list[1]);
   const rest = labelled ? list.slice(1) : list;
-  if (rest.length > 10 || (!rest.length && !labelled)) return null;
+  if (rest.length > 10 || (!rest.length && !labelled && !heading)) return null;
   const k = chart.columns[0].values.length;
-  const series = chart.series?.slice(0, k) ?? [];
-  while (series.length < k) series.push(`Series ${series.length + 1}`);
+  const names = chart.series?.slice(0, k) ?? [];
+  while (names.length < k) names.push(`Series ${names.length + 1}`);
+  // A legend too long for its two rows over the plot: each series goes by
+  // the words that set it apart ("health facilities"), and its full name
+  // is its numbered note under the chart, the way the source numbers them.
+  const long = names.reduce((n, x) => n + x.length * 11.5 + 62, 0) > 2 * 820;
+  const series = long ? shortNames(names) : names;
   return {
     layoutId: "chart-text",
     title,
-    subtitle: labelled ? list[0].text : "",
+    subtitle: heading ?? (labelled ? list[0].text : ""),
     bullets: rest.map((e) => (e.sub ? `- ${e.text}` : e.text)),
+    ...(long ? { blocks: names.map((body) => ({ label: "", body })) } : {}),
     series,
     bars: chart.columns.map((c) => {
       const values = c.values.map(num);
@@ -498,6 +545,25 @@ function chartTextOf(title: string, list: SourceEntry[], chart: SourceChart, not
     }),
     ...(notes ? { notes } : {}),
   };
+}
+
+/** Series names without the words every one of them shares: "Cummulative costs schools (capex & opex) (USDm)" is "schools". */
+function shortNames(names: string[]): string[] {
+  const shared = names
+    .map((n) => new Set(tokens(n)))
+    .reduce((a, b) => new Set([...a].filter((x) => b.has(x))));
+  return names.map((n) => {
+    const kept = n
+      .split(/\s+/)
+      .filter((w) => {
+        const t = tokens(w);
+        return t.length && t.some((x) => !shared.has(x));
+      })
+      .join(" ")
+      .replace(/[()]/g, "")
+      .trim();
+    return kept || n;
+  });
 }
 
 /** figures-panel for a slide that is mostly figures: rows of up to five figures beside the lines, in order. */
@@ -541,8 +607,11 @@ export function rebuild(units: SourceUnits, title: string, fits: Fits, opts: { c
   const noteEntries = body.filter((e) => e.kind === "note");
   const noteWords = noteEntries.reduce((n, e) => n + words(e.text), 0);
   const notes = noteEntries.length && noteWords <= NOTE_WORDS ? noteEntries.map((e) => e.text).join("\n") : undefined;
-  const text = body.filter((e) => e.kind !== "note" || !notes);
   const charts = units.charts.filter(drawable);
+  // A legend name of a chart that is drawn is its series' name, not a line.
+  const named = (e: SourceEntry, drawn: number) =>
+    e.kind === "legend" && e.chart !== undefined && charts.slice(0, drawn).includes(units.charts[e.chart]) && !!units.charts[e.chart].series?.includes(e.text);
+  const text = body.filter((e) => e.kind !== "note" || !notes);
   const other = units.charts.filter((c) => !drawable(c));
   const lineKeys = new Set(text.flatMap((e) => figuresIn(e.text)));
   const floating = units.floating.filter((f) => figuresIn(f).some((k) => !lineKeys.has(k)));
@@ -553,8 +622,8 @@ export function rebuild(units: SourceUnits, title: string, fits: Fits, opts: { c
   // The lines with what is written out: the charts not drawn (all but the
   // first `drawn`), and the figures written apart when they are not a panel.
   const entriesFor = (drawn: number): SourceEntry[] => [
-    ...text,
-    ...[...charts.slice(drawn), ...other].map((c): SourceEntry => ({ text: chartText(c), sub: false, kind: "figure" })),
+    ...text.filter((e) => !named(e, drawn)),
+    ...[...charts.slice(drawn), ...other, ...charts.slice(0, drawn).map(remainder).filter((c): c is SourceChart => !!c)].map((c): SourceEntry => ({ text: chartText(c), sub: false, kind: "figure" })),
     ...(!figureHeavy && floating.length ? [{ text: floating.join(", "), sub: false, kind: "figure" as const }] : []),
   ];
   const slideOf = (i: number, list: SourceEntry[], last: boolean, drawn: number, figs: string[] = []): S | null => {
@@ -649,6 +718,380 @@ export function rebuild(units: SourceUnits, title: string, fits: Fits, opts: { c
   return out;
 }
 
+// ─── Rebuilding from the source's structure ─────────────────────────────────
+
+type Line = SourceEntry;
+type Box = { x: number; y: number; w: number; h: number; lines: Line[] };
+
+/** A line as a point: "- " on a sub-point. */
+const point = (l: Line) => (l.sub ? `- ${l.text}` : l.text);
+const headLike = (l: Line | undefined) => !!l && !l.sub && words(l.text) <= 8 && !/[.;!]$/.test(l.text.trim()) && !figuresIn(l.text).length;
+
+/**
+ * A group of boxes as the points of one block, the source's grouping kept: a
+ * box that opens on a header gives the block its label (the first box) or
+ * a point with the box's other lines as its sub-points ("header" + "-
+ * value"); any other box gives its lines at their own level.
+ */
+function blockOf(boxes: Box[]): Block {
+  let label = "";
+  const items: string[] = [];
+  boxes.forEach((b, k) => {
+    const headed = b.lines.length > 1 && headLike(b.lines[0]);
+    if (headed && k === 0) {
+      label = b.lines[0].text;
+      // Points that are all one level under the header are the block's points.
+      const under = b.lines.slice(1);
+      items.push(...(under.every((l) => l.sub) ? under.map((l) => l.text) : under.map(point)));
+    } else if (headed) {
+      items.push(b.lines[0].text, ...b.lines.slice(1).map((l) => `- ${l.text}`));
+    } else items.push(...b.lines.map(point));
+  });
+  return { label, body: "", items };
+}
+
+/** Boxes in source columns: a box joins the column its left edge falls in; each column top to bottom. */
+function columnsOf(boxes: Box[]): Box[][] {
+  const cols: { x0: number; x1: number; boxes: Box[] }[] = [];
+  for (const b of [...boxes].sort((p, q) => p.x - q.x || p.y - q.y)) {
+    const col = cols.find((c) => b.x < c.x1 - 0.01 && b.x + b.w > c.x0 + 0.01);
+    if (col) {
+      col.boxes.push(b);
+      col.x1 = Math.max(col.x1, b.x + b.w);
+    } else cols.push({ x0: b.x, x1: b.x + b.w, boxes: [b] });
+  }
+  return cols.map((c) => c.boxes.sort((p, q) => p.y - q.y || p.x - q.x));
+}
+
+/**
+ * A grid of the source (the impact pathway on Gambia 10): a row of headers
+ * over a row of values in the same columns, a label to the left of the pair
+ * (the pathway), a caption between them. One band per pair, at most three,
+ * two to five cells each; the matrix layout draws it as it is.
+ */
+function gridOf(boxes: Box[]): { bands: { label: Box | null; cells: { head: Box; value: Box | null }[] }[]; captions: Box[]; used: Set<Box> } | null {
+  const rows: Box[][] = [];
+  for (const b of [...boxes].sort((p, q) => p.y - q.y || p.x - q.x)) {
+    const row = rows.find((r) => Math.abs(r[0].y - b.y) < 0.012 && Math.abs(r[0].h - b.h) < 0.5 * Math.max(r[0].h, b.h) && Math.abs(r[0].w - b.w) < 0.4 * Math.max(r[0].w, b.w));
+    if (row) row.push(b);
+    else rows.push([b]);
+  }
+  // Three to five cells a row: two headed boxes side by side are two columns, not a grid.
+  const multi = rows.filter((r) => r.length >= 3 && r.length <= 5).map((r) => r.sort((p, q) => p.x - q.x));
+  const used = new Set<Box>();
+  const bands: { label: Box | null; cells: { head: Box; value: Box | null }[]; top: number; bottom: number }[] = [];
+  for (const head of multi) {
+    if (head.some((b) => used.has(b))) continue;
+    if (!head.every((b) => b.lines.length <= 2 && b.lines.every((l) => headLike(l)))) continue;
+    const value = multi.find((r) => r !== head && !r.some((b) => used.has(b)) && r.every((b) => b.lines.length <= 3) && r[0].y > head[0].y && r[0].y - head[0].y < 0.35 && r.filter((v) => head.some((h) => Math.abs(h.x - v.x) < 0.02)).length >= Math.max(2, Math.ceil(head.length * 0.6)));
+    if (!value) continue;
+    const cells = head.map((h) => ({ head: h, value: value.find((v) => Math.abs(h.x - v.x) < 0.02) ?? null }));
+    for (const b of [...head, ...value]) used.add(b);
+    bands.push({ label: null, cells, top: head[0].y, bottom: Math.max(...value.map((v) => v.y + v.h)) });
+  }
+  if (!bands.length || bands.length > 3) return null;
+  const captions: Box[] = [];
+  for (const band of bands) {
+    const left = Math.min(...band.cells.map((c) => c.head.x));
+    const right = Math.max(...band.cells.map((c) => c.head.x + c.head.w));
+    band.label =
+      boxes.find((b) => !used.has(b) && b.x + b.w <= left + 0.01 && b.y < band.bottom && b.y + b.h > band.top && b.lines.length <= 2) ?? null;
+    if (band.label) used.add(band.label);
+    for (const b of boxes) {
+      if (used.has(b) || b.y <= band.top || b.y >= band.bottom || b.x + b.w < left || b.x > right || b.w < (right - left) * 0.4) continue;
+      captions.push(b);
+      used.add(b);
+    }
+  }
+  return { bands, captions, used };
+}
+
+/** A one-line header box right over another box, left edges aligned: one box, the header first ("Sustainable business models" over its points). */
+function mergeHeads(boxes: Box[]): Box[] {
+  const out = [...boxes].sort((p, q) => p.y - q.y || p.x - q.x);
+  for (let i = 0; i < out.length; i++) {
+    const h = out[i];
+    if (h.lines.length !== 1 || !headLike(h.lines[0]) || h.w >= 0.6) continue;
+    const j = out.findIndex((b, k) => k !== i && b.w < 0.6 && Math.abs(b.x - h.x) < 0.03 && b.y >= h.y + h.h - 0.01 && b.y - (h.y + h.h) < 0.05);
+    if (j < 0) continue;
+    const b = out[j];
+    out[i] = { x: Math.min(h.x, b.x), y: h.y, w: Math.max(h.x + h.w, b.x + b.w) - Math.min(h.x, b.x), h: b.y + b.h - h.y, lines: [h.lines[0], ...b.lines] };
+    out.splice(j, 1);
+    if (j < i) i--;
+  }
+  return out;
+}
+
+/** Sections top to bottom: a full-width box opens one (its lead), the narrower boxes under it, down to the next. */
+function sectionsOf(boxes: Box[]): { lead: Box | null; boxes: Box[] }[] {
+  const sorted = [...boxes].sort((p, q) => p.y - q.y || p.x - q.x);
+  const out: { lead: Box | null; boxes: Box[] }[] = [];
+  for (const b of sorted) {
+    if (b.w >= 0.6) out.push({ lead: b, boxes: [] });
+    else {
+      if (!out.length) out.push({ lead: null, boxes: [] });
+      out[out.length - 1].boxes.push(b);
+    }
+  }
+  return out;
+}
+
+/**
+ * The slide rebuilt from where the source puts its text (`SourceSlide.boxes`,
+ * a PowerPoint source only), so the rebuild reads like the source and not
+ * like a list: a grid is a matrix (headers over their values, a band per
+ * pathway), charts are drawn one a slide with the notes, heading and legend
+ * that sit with each, and the rest are columns as the source sets them, a
+ * header with the points under it. Null when the source has no structure
+ * this reads; the caller then rebuilds from the lines, and keeps this only
+ * when it holds every line (restoreSlide checks).
+ */
+export function rebuildFromBoxes(units: SourceUnits, title: string, source: SourceBox[], fits: Fits, cont = "(cont.)"): S[] | null {
+  const holds = (x: S | null): x is S => !!x && !overLimits(x) && fits(x) === "ok";
+  const clean = (x: S) => normalizeSlide(x) ?? x;
+  const measured = new Set(units.entries.filter((e) => e.kind !== "title").map((e) => e.text));
+  const titleLine = units.entries.find((e) => e.kind === "title")?.text ?? title;
+  let boxes: Box[] = source
+    .filter((b) => b.kind === "text")
+    .map((b) => ({ ...b, lines: b.lines.map((l): Line => ({ text: l.replace(/^- /, ""), sub: /^- /.test(l), kind: "text" })).filter((l) => measured.has(l.text) || l.text === titleLine) }))
+    .filter((b) => b.lines.length);
+  const chartBoxes = source.filter((b) => b.kind === "chart");
+  if (!boxes.length && !chartBoxes.length) return null;
+  const out: S[] = [];
+  let slideTitle = title;
+
+  // What no box carries: footnotes, figures written apart, charts not drawn, table cells.
+  const tail: Line[] = [];
+  const noteLines = units.entries.filter((e) => e.kind === "note");
+  const notes = noteLines.length && noteLines.reduce((n, e) => n + words(e.text), 0) <= NOTE_WORDS ? noteLines.map((e) => e.text).join("\n") : undefined;
+  if (!notes) tail.push(...noteLines.map((e) => ({ ...e, sub: false })));
+
+  // 1. A grid, as a matrix.
+  const grid = gridOf(boxes);
+  if (grid) {
+    const labels = grid.bands.map((b) => b.label?.lines.map((l) => l.text).join(" ") ?? "");
+    // The heading read as the first pathway: the line over everything is the slide's title then.
+    const top = Math.min(...grid.bands.map((b) => (b.label ?? b.cells[0].head).y));
+    const kicker = boxes.find((b) => !grid.used.has(b) && b.y + b.h <= top && b.lines.length === 1 && headLike(b.lines[0]));
+    if (labels.includes(titleLine) && kicker) {
+      slideTitle = kicker.lines[0].text;
+      grid.used.add(kicker);
+    }
+    const captions = [...new Set(grid.captions.flatMap((c) => c.lines.map((l) => l.text)))];
+    const band = captions.length && words(captions.join(" ")) <= 35 ? captions.join(" · ") : "";
+    if (!band) boxes.push(...grid.captions);
+    out.push(
+      clean({
+        layoutId: "matrix",
+        title: slideTitle,
+        blocks: grid.bands.map((b, i) => ({
+          label: labels[i],
+          body: "",
+          stats: b.cells.map((c) => ({ label: c.head.lines.map((l) => l.text).join(" "), value: c.value?.lines.map((l) => l.text).join(" ") ?? "" })),
+        })),
+        ...(band ? { support: band } : {}),
+      }),
+    );
+    boxes = boxes.filter((b) => !grid.used.has(b));
+  }
+  // The title's own box is the title, not a point.
+  boxes = boxes.map((b) => ({ ...b, lines: b.lines.filter((l) => l.text !== titleLine || slideTitle !== titleLine) })).filter((b) => b.lines.length);
+
+  // 2. Charts, one a slide, each with what sits in its column.
+  const overflow: Block[] = [];
+  const unplotted: Box[] = [];
+  const unplottedText: string[] = [];
+  if (chartBoxes.length) {
+    if (chartBoxes.length !== units.charts.length) return null;
+    const centre = (b: { x: number; w: number }) => b.x + b.w / 2;
+    const region = (b: Box) => chartBoxes.reduce((best, c, i) => (Math.abs(centre(c) - centre(b)) < Math.abs(centre(chartBoxes[best]) - centre(b)) ? i : best), 0);
+    const side = boxes.filter((b) => b.w < 0.6);
+    boxes = boxes.filter((b) => b.w >= 0.6);
+    chartBoxes.forEach((c, i) => {
+      const chart = units.charts[i];
+      const mine = side.filter((b) => region(b) === i).sort((p, q) => p.y - q.y || p.x - q.x);
+      // Its heading: the lines over the chart in its column ("(20 km fiber scenario)").
+      const over = mine.filter((b) => b.y + b.h <= c.y + 0.02 && b.lines.length === 1);
+      const heading = over.map((b) => b.lines[0].text).join(" · ");
+      const rest = mine.filter((b) => !over.includes(b));
+      const lines: Line[] = rest.flatMap((b) => {
+        const k = blockOf([{ ...b, lines: b.lines }]);
+        return [...(k.label ? [{ text: k.label, sub: false, kind: "text" as const }] : []), ...(k.items ?? []).map((t) => ({ text: t.replace(/^- /, ""), sub: /^- /.test(t), kind: "text" as const }))];
+      });
+      const legend = units.entries.filter((e) => e.kind === "legend" && e.chart === i);
+      const named = !!plotted(chart) && legend.every((e) => chart.series?.includes(e.text));
+      if (!named) lines.push(...legend.map((e) => ({ ...e, kind: "text" as const })));
+      const extra = plotted(chart) ? remainder(chart) : chart;
+      if (extra) lines.push({ text: chartText(extra), sub: false, kind: "figure" });
+      const t = out.length === 0 ? slideTitle : `${slideTitle} ${cont}`;
+      // A chart that cannot be drawn: its column joins the rest as text, its values written out.
+      if (!plotted(chart)) {
+        unplotted.push(...mine);
+        unplottedText.push(...legend.map((e) => e.text), chartText(chart));
+        return;
+      }
+      // As many of its lines as hold beside the chart; the rest follow on a continuation.
+      let m = lines.length;
+      const at = (k: number) => {
+        const x = chartTextOf(t, lines.slice(0, k), chart, undefined, heading);
+        return x && clean(x);
+      };
+      while (m > 0 && !holds(at(m))) m--;
+      const first = at(m) ?? at(0);
+      if (!first) return;
+      out.push(first);
+      // What the last chart's slide cannot hold joins the columns below; an earlier chart's follows it at once.
+      if (m < lines.length) {
+        const more: Block = { label: "", body: "", items: lines.slice(m).map(point) };
+        if (i === chartBoxes.length - 1) overflow.push(more);
+        else out.push(...columnsSlides(`${slideTitle} ${cont}`, [more], holds, clean, `${slideTitle} ${cont}`));
+      }
+    });
+    boxes.push(...unplotted);
+  }
+
+  // 3. Everything else as the source sets it: a full-width line opens a
+  // section (Gambia 38: a lead over two panels, then another lead over three
+  // boxes), each section its columns, a header box joined to the box under it.
+  const sections = sectionsOf(mergeHeads(boxes));
+  const sectionBlocks = sections.map((sec) => {
+    const cols = columnsOf(sec.boxes);
+    // A column of several headed boxes (Scope, then "Why schools…?") is several blocks when three columns take them.
+    const groups = cols.flatMap((col) => {
+      const g: Box[][] = [];
+      for (const b of col) {
+        if (!g.length || (b.lines.length > 1 && headLike(b.lines[0]))) g.push([b]);
+        else g[g.length - 1].push(b);
+      }
+      return g;
+    });
+    const blocks = (groups.length <= 3 ? groups : cols).map(blockOf);
+    const lead = sec.lead?.lines ?? [];
+    // The band takes a lead of up to 60 words (it shrinks to 18px at most, `holds` checks).
+    if (!blocks.length) return { blocks, band: lead.length === 1 && words(lead[0].text) <= 60 ? lead[0].text : "" };
+    const band = lead.length === 1 && words(lead[0].text) <= 60 ? lead[0].text : "";
+    if (lead.length && !band) blocks.unshift(blockOf([sec.lead!]));
+    // More than three source columns: neighbours merge, the fewer points first.
+    while (blocks.length > 3) {
+      let k = 0;
+      for (let i = 0; i < blocks.length - 1; i++) if ((blocks[i].items?.length ?? 0) + (blocks[i + 1].items?.length ?? 0) < (blocks[k].items?.length ?? 0) + (blocks[k + 1].items?.length ?? 0)) k = i;
+      const [a, b] = [blocks[k], blocks[k + 1]];
+      blocks.splice(k, 2, { label: a.label, body: "", items: [...(a.items ?? []), ...(b.label ? [b.label] : []), ...(b.items ?? [])] });
+    }
+    return { blocks, band };
+  });
+  // A lead with nothing under it (a closing line at the foot of the slide) belongs to the section above: its band, or a point.
+  for (let i = sectionBlocks.length - 1; i > 0; i--) {
+    const sec = sectionBlocks[i];
+    if (sec.blocks.length) continue;
+    const text = sections[i].lead?.lines.map((l) => l.text) ?? [];
+    const prev = sectionBlocks[i - 1];
+    if (sec.band && !prev.band) prev.band = sec.band;
+    else prev.blocks.push({ label: "", body: "", items: sec.band ? [sec.band] : text });
+    sectionBlocks.splice(i, 1);
+  }
+  if (overflow.length) sectionBlocks.unshift({ blocks: overflow, band: "" });
+  const allBlocks = sectionBlocks.flatMap((x) => x.blocks);
+  // What is on a slide already, as runs of words: a line inside a joined cell counts.
+  const written = [...out, ...allBlocks.map((b): S => ({ layoutId: "bullet-columns", blocks: [b] })), ...sectionBlocks.map((x): S => ({ layoutId: "bullet-columns", support: x.band }))].flatMap((x) => [
+    x.title,
+    x.subtitle,
+    x.support,
+    ...(x.bullets ?? []),
+    ...(x.series ?? []),
+    ...(x.blocks ?? []).flatMap((b) => [b.label, b.body, ...(b.items ?? []), ...(b.stats ?? []).flatMap((st) => [st.label, st.value])]),
+  ]).map((t) => tokens(t ?? ""));
+  const placed = { has: (line: string) => written.some((w) => indexOfSeq(w, tokens(line)) >= 0) };
+  // Lines no box holds (a table's cells, a line the reader kept apart), then the tail, at the end.
+  const loose = units.entries.filter((e) => e.kind !== "title" && e.kind !== "note" && e.kind !== "legend" && e.kind !== "figure" && !placed.has(e.text));
+  const figuresLeft = units.entries.filter((e) => e.kind === "figure" && !placed.has(e.text));
+  const floatingLeft = units.floating.filter((f) => !placed.has(f));
+  const end: string[] = [...loose, ...figuresLeft, ...tail].map(point);
+  if (floatingLeft.length) end.push(floatingLeft.join(", "));
+  for (const c of units.charts) if (!chartBoxes.length && c.columns.length) end.push(chartText(c));
+  end.push(...unplottedText.filter((x) => !placed.has(x)));
+  // After a chart with nothing else to follow, what is left joins its explanation when it holds there.
+  const last = out[out.length - 1];
+  if (end.length && !allBlocks.length && last?.layoutId === "chart-text") {
+    const joined = clean({ ...last, bullets: [...(last.bullets ?? []), ...end] });
+    if ((joined.bullets?.length ?? 0) <= 10 && holds(joined)) {
+      out[out.length - 1] = joined;
+      end.length = 0;
+    }
+  }
+  if (end.length) {
+    if (!sectionBlocks.length) sectionBlocks.push({ blocks: [], band: "" });
+    sectionBlocks[sectionBlocks.length - 1].blocks.push({ label: "", body: "", items: end });
+  }
+  for (const sec of sectionBlocks) {
+    if (!sec.blocks.some((b) => b.items?.length || b.label)) continue;
+    const t = out.length ? `${slideTitle} ${cont}` : slideTitle;
+    out.push(...columnsSlides(t, sec.blocks, holds, clean, `${slideTitle} ${cont}`, sec.band));
+  }
+  if (!out.length) return null;
+  // Footnotes that fit the footer row go on the last slide, or as its points when the row cannot take them.
+  if (notes) {
+    const final = out[out.length - 1];
+    const withNotes = { ...final, notes };
+    if (holds(withNotes)) out[out.length - 1] = withNotes;
+    else out.push(...columnsSlides(`${slideTitle} ${cont}`, [{ label: "", body: "", items: noteLines.map((e) => e.text) }], holds, clean, `${slideTitle} ${cont}`));
+  }
+  return out;
+}
+
+/**
+ * Blocks over as few bullet-columns slides as hold them at 18px, in order:
+ * up to three a slide, a block past ten points or past its column's height
+ * split in two (its label on the first half).
+ */
+function columnsSlides(title: string, input: Block[], holds: (x: S | null) => boolean, clean: (x: S) => S, contTitle: string, band = ""): S[] {
+  const blocks: Block[] = [];
+  for (const b of input) {
+    const items = b.items ?? [];
+    if (!items.length && !b.label) continue;
+    for (let i = 0; i < Math.max(items.length, 1); i += 10) blocks.push({ label: i ? "" : b.label, body: "", items: items.slice(i, i + 10) });
+  }
+  // A block alone on its slide is two columns (a full-width line of 24px text is hard to read), split in order.
+  const pair = (bs: Block[]): Block[] => {
+    const items = bs[0]?.items ?? [];
+    if (bs.length !== 1 || items.length < 2) return bs;
+    let cut = 1;
+    const total = items.reduce((n, x) => n + x.length, 0);
+    for (let acc = items[0].length; cut < items.length - 1 && acc + items[cut].length <= total / 2; cut++) acc += items[cut].length;
+    while (cut > 1 && /^-\s/.test(items[cut])) cut--;
+    return [
+      { label: bs[0].label, body: "", items: items.slice(0, cut) },
+      { label: "", body: "", items: items.slice(cut) },
+    ];
+  };
+  const build = (t: string, bs: Block[], withBand: boolean): S =>
+    clean({ layoutId: "bullet-columns", title: t, blocks: pair(bs).map((b) => (b.items?.length ? b : { label: "", body: "", items: [b.label] })), ...(withBand && band ? { support: band } : {}) });
+  const out: S[] = [];
+  let rest = blocks;
+  let guard = 0;
+  // A band that leaves no room even for one block is the first point instead.
+  if (band && rest.length && !holds(build(title, rest.slice(0, 1), true))) {
+    rest = [{ ...rest[0], items: [band, ...(rest[0].items ?? [])] }, ...rest.slice(1)];
+    band = "";
+  }
+  while (rest.length && guard++ < 40) {
+    const t = out.length ? contTitle : title;
+    const withBand = !out.length;
+    let k = Math.min(3, rest.length);
+    while (k > 1 && !holds(build(t, rest.slice(0, k), withBand))) k--;
+    if (k === 1 && !holds(build(t, rest.slice(0, 1), withBand)) && (rest[0].items?.length ?? 0) > 1) {
+      // One block too tall for a column: its points split over two columns.
+      const items = rest[0].items!;
+      const half = Math.ceil(items.length / 2);
+      rest = [{ label: rest[0].label, body: "", items: items.slice(0, half) }, { label: "", body: "", items: items.slice(half) }, ...rest.slice(1)];
+      continue;
+    }
+    out.push(build(t, rest.slice(0, k), withBand));
+    rest = rest.slice(k);
+  }
+  return out;
+}
+
 /**
  * How a continuation slide is titled: the source's own convention when one
  * of its titles has one ("(continued)", "(cont'd)", "(2/2)" is not a
@@ -670,7 +1113,7 @@ export function continuationLabel(titles: string[]): string {
  * 2 and 3). `slide` null (the model failed twice) is rebuilt from the
  * source. The report is the final comparison, against every slide returned.
  */
-export function restoreSlide(n: number, sourceTitle: string, units: SourceUnits, slide: S | null, fits: Fits, opts: { cont?: string } = {}): Restored {
+export function restoreSlide(n: number, sourceTitle: string, units: SourceUnits, slide: S | null, fits: Fits, opts: { cont?: string; boxes?: SourceBox[] } = {}): Restored {
   const title = units.entries.find((e) => e.kind === "title")?.text ?? sourceTitle;
   const done = (slides: S[], putBackCount: number, rebuilt: boolean, trimmed: number): Restored => ({
     slides,
@@ -689,8 +1132,17 @@ export function restoreSlide(n: number, sourceTitle: string, units: SourceUnits,
       const back = putBack(slide, units, n);
       if (back) {
         const t = trimAdded(back.slide, units, { redundant: true });
-        if (!overLimits(t.slide) && fits(t.slide) === "ok") return done([t.slide], back.count, false, t.removed);
+        if (!overLimits(t.slide) && fits(t.slide) === "ok") return { ...done([t.slide], back.count, false, t.removed), lines: back.lines };
       }
+    }
+  }
+  // The source's own structure first; the lines in order when that does not hold every one of them.
+  if (opts.boxes?.length) {
+    try {
+      const shaped = rebuildFromBoxes(units, title, opts.boxes, fits, opts.cont);
+      if (shaped && isWhole(compareSlide(n, sourceTitle, units, shaped.length === 1 ? shaped[0] : shaped))) return done(shaped, 0, true, 0);
+    } catch {
+      // A structure this does not read: the lines below.
     }
   }
   const parts = rebuild(units, title, fits, opts);

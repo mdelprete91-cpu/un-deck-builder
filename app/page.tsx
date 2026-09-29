@@ -879,7 +879,7 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
         const done =
           st.kind === "cover"
             ? restoreCover(st.source.n, st.source.title, units[i]!, slide ?? { layoutId: "cover", title: st.source.title, subtitle: "" }, fits)
-            : restoreSlide(st.source.n, st.source.title, units[i]!, slide, fits, { cont });
+            : restoreSlide(st.source.n, st.source.title, units[i]!, slide, fits, { cont, boxes: st.source.boxes });
         restored[i] = done;
         reports[i] = done.report;
         results[i] = done.slides.map((x) => normalizeSlide(x, { brandId: state.brandId }) ?? x);
@@ -923,7 +923,7 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
       const landed = results[i];
       const how = restored[i];
       if (r && landed?.length)
-        slides.push({ ...r, at, layoutId: landed[0].layoutId, deckTitle: landed[0].title ?? "", putBack: how?.putBack ?? 0, rebuilt: !!how?.rebuilt, parts: landed.length });
+        slides.push({ ...r, at, layoutId: landed[0].layoutId, deckTitle: landed[0].title ?? "", putBack: how?.putBack ?? 0, putBackLines: how?.lines, rebuilt: !!how?.rebuilt, parts: landed.length });
       at += landed?.length ?? 0;
     });
     const valid = <T,>(list: (T | null)[]) => list.filter((r): r is T => !!r);

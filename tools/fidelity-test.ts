@@ -9,7 +9,8 @@
 import assert from "node:assert/strict";
 import { compareSlide, figuresIn, isExact, isFlawed, planLeftovers, runningLines, sourceUnits, tokens, totals } from "../lib/slides/fidelity";
 import { planReplica } from "../lib/slides/replicate";
-import { continuationLabel, estimateFits, isWhole, putBack, rebuild, restoreCover, restoreSlide, trimAdded } from "../lib/slides/restore";
+import { continuationLabel, estimateFits, isWhole, putBack, rebuild, rebuildFromBoxes, restoreCover, restoreSlide, trimAdded } from "../lib/slides/restore";
+import type { SourceBox } from "../lib/slides/pptx-source";
 import type { SourceSlide } from "../lib/slides/pptx-source";
 import type { SlideContent } from "../lib/slides/schema";
 
@@ -290,6 +291,9 @@ test("added text: an invented point and header go, a point that carries a source
   assert.equal(t.slide.blocks![0].label, "");
   assert.equal(t.slide.title, "Scope");
   assert.equal(compareSlide(1, "t", units(text), t.slide).addedWords, 0);
+  // A footnote line the source never writes (the speaker notes' date) goes; a real one stays.
+  const noted = trimAdded({ ...slide, notes: "1. Source: MoH 2025\n27 September 2026" }, units(`${text}\nFootnotes: 1. Source: MoH 2025`));
+  assert.equal(noted.slide.notes, "1. Source: MoH 2025");
 });
 
 test("cover: the source's other lines go in the subtitle; past what it holds, a content slide after the cover", () => {
@@ -347,6 +351,107 @@ test("rebuild: a slide that is mostly figures written apart from the text is fig
   assert.equal(parts[0].layoutId, "figures-panel");
   assert.deepEqual(parts[0].blocks!.flatMap((b) => b.stats!.map((x) => x.value)), ["248,928", "245,405", "3,523", "159,115", "1,257", "2,266", "118,035"]);
   whole(text, parts);
+});
+
+const box = (x: number, y: number, w: number, h: number, lines: string[]): SourceBox => ({ x, y, w, h, kind: "text", lines });
+
+test("rebuild from the structure: a grid of headers over values is a matrix, pathway labels as rows, the caption as the band", () => {
+  const text = [
+    "Title: Impact pathways",
+    "(School) connectivity",
+    "Learning gains",
+    "Labor force",
+    "Household welfare",
+    "Quantified potential in context",
+    "+428k learning years",
+    "5,170 more workers",
+    "560 households out of poverty",
+    "Scope",
+    "- 1,975 schools mapped and unconnected",
+  ].join("\n");
+  const boxes = [
+    box(0.02, 0.1, 0.12, 0.3, ["(School) connectivity"]),
+    box(0.2, 0.1, 0.1, 0.1, ["Learning gains"]),
+    box(0.32, 0.1, 0.1, 0.1, ["Labor force"]),
+    box(0.44, 0.1, 0.1, 0.1, ["Household welfare"]),
+    box(0.2, 0.22, 0.34, 0.03, ["Quantified potential in context"]),
+    box(0.2, 0.28, 0.1, 0.1, ["+428k learning years"]),
+    box(0.32, 0.28, 0.1, 0.1, ["5,170 more workers"]),
+    box(0.44, 0.28, 0.1, 0.1, ["560 households out of poverty"]),
+    box(0.75, 0.1, 0.2, 0.2, ["Scope", "- 1,975 schools mapped and unconnected"]),
+  ];
+  const parts = rebuildFromBoxes(units(text), "Impact pathways", boxes, estimateFits)!;
+  assert.equal(parts[0].layoutId, "matrix");
+  assert.equal(parts[0].blocks![0].label, "(School) connectivity");
+  assert.deepEqual(parts[0].blocks![0].stats![1], { label: "Labor force", value: "5,170 more workers" });
+  assert.equal(parts[0].support, "Quantified potential in context");
+  // What is not in the grid follows as columns, the header with its points.
+  assert.equal(parts[1].title, "Impact pathways (cont.)");
+  assert.equal(parts[1].blocks![0].label, "Scope");
+  whole(text, parts);
+});
+
+const SCENARIOS = [
+  "Title: Costs",
+  "Costs (2 km scenario)",
+  "Schools reach USD 33 million by 2031",
+  "Costs (20 km scenario)",
+  "Schools reach USD 42 million by 2031",
+  "Chart (line) data:",
+  "- series: 0, -10.48, -24.22",
+  "- series: 0, -0.44, -0.91",
+  "Chart legend: Cumulative costs schools (USDm) | Cumulative costs health facilities (USDm)",
+  "Chart (line) data:",
+  "- series: 0, -10.48, -24.22",
+  "- series: 0, -0.44, -0.91",
+  "Chart legend: Cumulative costs schools (USDm) | Cumulative costs health facilities (USDm)",
+  "Chart labels written on the slide, by column, top to bottom (the figures the reader sees; they win over the chart data, which may be stale): 2026: 0, 0 | 27: -0.85, -5.48 | 28: -2.05, -13.61 | 2026: 0, 0 | 27: -1.37, -8.91 | 28: -3.11, -20.64",
+].join("\n");
+const SCENARIO_BOXES: SourceBox[] = [
+  box(0.02, 0.12, 0.45, 0.05, ["Costs (2 km scenario)"]),
+  { x: 0.02, y: 0.2, w: 0.45, h: 0.3, kind: "chart", lines: [] },
+  box(0.02, 0.6, 0.45, 0.06, ["Schools reach USD 33 million by 2031"]),
+  box(0.52, 0.12, 0.45, 0.05, ["Costs (20 km scenario)"]),
+  { x: 0.52, y: 0.2, w: 0.45, h: 0.3, kind: "chart", lines: [] },
+  box(0.52, 0.6, 0.45, 0.06, ["Schools reach USD 42 million by 2031"]),
+];
+
+test("chart legends are the series' names, matched to the labels by the data's ranking; never Series 1", () => {
+  const u = units(SCENARIOS);
+  // The labels list the higher line first: health (-0.85) over schools (-5.48).
+  assert.deepEqual(u.charts[0].series, ["Cumulative costs health facilities (USDm)", "Cumulative costs schools (USDm)"]);
+  const parts = rebuild(u, "Costs", estimateFits);
+  assert.ok(parts.every((p) => !(p.series ?? []).some((n) => /^Series \d/.test(n))));
+  assert.deepEqual(parts[0].series, ["Cumulative costs health facilities (USDm)", "Cumulative costs schools (USDm)"]);
+  whole(SCENARIOS, parts);
+});
+
+test("two charts: each on its own slide with its own notes and its scenario as the heading", () => {
+  const parts = rebuildFromBoxes(units(SCENARIOS), "Costs", SCENARIO_BOXES, estimateFits)!;
+  assert.deepEqual(parts.map((p) => p.layoutId), ["chart-text", "chart-text"]);
+  assert.equal(parts[0].subtitle, "Costs (2 km scenario)");
+  assert.deepEqual(parts[0].bullets, ["Schools reach USD 33 million by 2031"]);
+  assert.equal(parts[1].title, "Costs (cont.)");
+  assert.equal(parts[1].subtitle, "Costs (20 km scenario)");
+  assert.deepEqual(parts[1].bullets, ["Schools reach USD 42 million by 2031"]);
+  assert.deepEqual(parts[1].bars!.map((b) => b.values), [[0, 0], [-1.37, -8.91], [-3.11, -20.64]]);
+  whole(SCENARIOS, parts);
+});
+
+test("put back never lands at the end of an unrelated block: a full neighbour list means a rebuild", () => {
+  const items = Array.from({ length: 10 }, (_, i) => `Point number ${i} about schools`);
+  const text = `Title: Full\nFirst group\n${items.join("\n")}\nA line that belongs after point 9\nSecond group\nOther point about clinics`;
+  const slide: SlideContent = {
+    layoutId: "bullet-columns",
+    title: "Full",
+    blocks: [
+      { label: "First group", body: "", items },
+      { label: "Second group", body: "", items: ["Other point about clinics"] },
+    ],
+  };
+  assert.equal(putBack(slide, units(text)), null);
+  const r = restoreSlide(1, "Full", units(text), slide, estimateFits);
+  assert.ok(r.rebuilt && isWhole(r.report));
 });
 
 test("continuation label: the source's own convention, else (cont.)", () => {
