@@ -26,6 +26,7 @@ import { extractDocx, extractPptx, extractXlsx, type Attachment } from "../lib/s
 import { readPptx } from "../lib/slides/pptx-source";
 import { readPdfSlides } from "../lib/slides/pdf-source";
 import { denseBeforeNormalize, densityHint, planReplica, withContentDensity } from "../lib/slides/replicate";
+import { continuationLabel, estimateFits, restoreCover, restoreSlide } from "../lib/slides/restore";
 import { compareSlide, fidelityScore, isFlawed, planLeftovers, repairNote, runningLines, sourceUnits, totals, type Leftover, type SlideFidelity, type Totals } from "../lib/slides/fidelity";
 import { fillPhotos } from "../lib/slides/library";
 
@@ -230,13 +231,20 @@ async function replicatePrompt(p: Prompt, brief: string, path: string, t0: numbe
   const ab = buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength);
   const { slides: source } = /\.pdf$/i.test(path) ? await readPdfSlides(ab) : await readPptx(ab);
   const { steps } = planReplica(source);
-  const results: (SlideContent | null)[] = steps.map((st) => (st.kind === "fixed" ? normalizeSlide(st.content, { brandId: BRAND_ID }) : null));
+  const results: (SlideContent[] | null)[] = steps.map((st) => {
+    const fixed = st.kind === "fixed" ? normalizeSlide(st.content, { brandId: BRAND_ID }) : null;
+    return fixed ? [fixed] : null;
+  });
+  const models: (SlideFidelity | null)[] = steps.map(() => null);
+  let putBack = 0;
+  let rebuilt = 0;
+  let continued = 0;
+  const cont = continuationLabel(source.map((x) => x.title));
   const ignore = runningLines(source);
   const reports: (SlideFidelity | null)[] = steps.map(() => null);
   const firsts: (SlideFidelity | null)[] = steps.map(() => null);
   let repairs = 0;
   let repaired = 0;
-  const failedN: number[] = [];
   const findings: string[] = [];
   const warnings: string[] = [];
   let cost = 0;
@@ -278,13 +286,11 @@ async function replicatePrompt(p: Prompt, brief: string, path: string, t0: numbe
       }
       if (!slide && overflowing) slide = accept(st.kind, st.source.title, overflowing);
       if (!slide) {
-        findings.push(`source slide ${st.source.n} not rebuilt`);
-        failedN.push(st.source.n);
-        continue;
+        findings.push(`source slide ${st.source.n}: the model failed twice, rebuilt from the source`);
       }
       let report = compareSlide(st.source.n, st.source.title, units, slide);
       firsts[i] = report;
-      if (st.kind === "content" && isFlawed(report)) {
+      if (slide && st.kind === "content" && isFlawed(report)) {
         repairs++;
         const { image: _im, ...previous } = slide;
         void _im;
@@ -296,26 +302,35 @@ async function replicatePrompt(p: Prompt, brief: string, path: string, t0: numbe
           repaired++;
         }
       }
-      reports[i] = report;
-      results[i] = slide;
+      models[i] = report;
+      // The app's restore, as runReplicate does it (the estimate stands in for the browser's measure).
+      const done =
+        st.kind === "cover"
+          ? restoreCover(st.source.n, st.source.title, units, slide ?? { layoutId: "cover", title: st.source.title, subtitle: "" }, estimateFits)
+          : restoreSlide(st.source.n, st.source.title, units, slide, estimateFits, { cont });
+      putBack += done.putBack;
+      rebuilt += done.rebuilt ? 1 : 0;
+      continued += done.slides.length - 1;
+      reports[i] = done.report;
+      results[i] = done.slides.map((x) => normalizeSlide(x, { brandId: BRAND_ID }) ?? x);
     }
   };
   await Promise.all(Array.from({ length: 6 }, worker));
-  let slides = results.filter((s): s is SlideContent => !!s);
+  let slides = results.flatMap((s) => s ?? []);
   const closing = normalizeSlide(closingFor(BRAND_LABEL), { brandId: BRAND_ID });
   if (closing) slides.push(closing);
   slides = fillPhotos(slides);
-  if (slides.length !== steps.length + 1) findings.push(`count ${slides.length}, plan ${steps.length + 1}`);
+  if (slides.length !== steps.length + 1 + continued) findings.push(`count ${slides.length}, plan ${steps.length + 1} and ${continued} continuation slides`);
   // The fidelity report, as the sidebar shows it: first pass, then after the repair.
   const leftovers: Leftover[] = [
-    ...steps.flatMap((st) => (st.kind !== "fixed" && failedN.includes(st.source.n) ? [{ n: st.source.n, title: st.source.title, lines: [], reason: "failed" as const }] : [])),
     ...planLeftovers(source, steps, ignore),
   ];
   const line = (t: Totals) =>
     `figures exact ${t.figures.ok}/${t.figures.total}, words kept ${t.words.kept}/${t.words.total} (${((t.words.kept / Math.max(1, t.words.total)) * 100).toFixed(1)}%), ${t.reworded} reworded, ${t.missing} missing, ${t.added} added, ${t.notRebuilt} not rebuilt`;
   const kept = reports.filter((r): r is SlideFidelity => !!r);
   warnings.push(`fidelity first pass: ${line(totals(firsts.filter((r): r is SlideFidelity => !!r), leftovers))}`);
-  warnings.push(`fidelity after repair (${repaired} of ${repairs} rewrites kept): ${line(totals(kept, leftovers))}`);
+  warnings.push(`fidelity after repair (${repaired} of ${repairs} rewrites kept): ${line(totals(models.filter((r): r is SlideFidelity => !!r), leftovers))}`);
+  warnings.push(`fidelity after the app's restore (${putBack} lines put back, ${rebuilt} slides rebuilt, ${continued} continuation slides): ${line(totals(kept, leftovers))}`);
   const wrong = kept.flatMap((r) => r.figures.wrong.map((w) => `${r.n}:${w.figure}`));
   if (wrong.length) warnings.push(`figures changed: ${wrong.slice(0, 16).join(", ")}${wrong.length > 16 ? "…" : ""}`);
   // The old deck-wide measure, kept one release for comparison: every source figure somewhere in the deck's JSON.

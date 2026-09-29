@@ -1,6 +1,7 @@
 import type { SourceSlide } from "./pptx-source";
 import { DENSITY_LAYOUTS, type SlideContent } from "./schema";
 import { MAX_SLIDES } from "./brief";
+import { runningLines, sourceUnits } from "./fidelity";
 
 /**
  * The plan for replicating a deck (Mario, 28 Sep 2026): one step per slide
@@ -44,9 +45,26 @@ export function planReplica(slides: SourceSlide[]): { steps: ReplicateStep[]; co
     const next = slides.slice(i + 1).find((x) => x.kind !== "agenda");
     return !next || next.kind === "divider" || next.kind === "closing";
   };
+  // Text beyond the title (a running header aside): a divider's strapline,
+  // the closing slide's contact lines. Every word of it goes in the deck
+  // (Mario, 29 Sep 2026: "100% of the text must be present").
+  const ignore = runningLines(slides);
+  const hasBody = (s: SourceSlide) => sourceUnits(s, ignore).lines.length > 1;
+  let closing: SourceSlide | undefined;
   for (const [idx, s] of slides.entries()) {
     if (s.kind === "divider" && opensNothing(idx) && s.words > words(s.title)) {
       steps.push({ kind: "content", source: s });
+      continue;
+    }
+    // A divider with a strapline: the divider, then its text as a content slide.
+    if (s.kind === "divider" && hasBody(s)) {
+      divider(s.title);
+      steps.push({ kind: "content", source: s });
+      continue;
+    }
+    // A closing slide with more than its "Thank you" (a contact line): a content slide before the deck's own closing slide.
+    if (s.kind === "closing" && hasBody(s)) {
+      closing ??= s;
       continue;
     }
     // A first page that carries content (a report opening on its figures,
@@ -67,12 +85,15 @@ export function planReplica(slides: SourceSlide[]): { steps: ReplicateStep[]; co
     else if (s.kind === "content") steps.push({ kind: "content", source: s });
     // closing: the closing slide is added at the end (ENSURE_CLOSING)
   }
+  if (closing) steps.push({ kind: "content", source: closing });
   // The deck's own ceiling: content first, the structure gives way (a
-  // divider left with no content after it goes too).
+  // divider left with no content after it goes too). Content never does: a
+  // source with more content slides than the ceiling replicates past it
+  // (nothing technical caps a deck at 40; the deck file takes 200).
   while (steps.length + 1 > MAX_SLIDES) {
     const i = steps.map((st) => st.kind).lastIndexOf("fixed");
-    if (i < 0) steps.pop();
-    else steps.splice(i, 1);
+    if (i < 0) break;
+    steps.splice(i, 1);
   }
   const cleaned = steps.filter(
     (st, i) => !(st.kind === "fixed" && st.content.layoutId === "section-divider" && (i === steps.length - 1 || (steps[i + 1].kind === "fixed" && steps[i + 1].kind === "fixed" && (steps[i + 1] as { content: SlideContent }).content.layoutId === "section-divider"))),

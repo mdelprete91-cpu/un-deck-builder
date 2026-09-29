@@ -4,7 +4,7 @@ import { ChartColumn, ChevronDown, ChevronUp, Play, Copy, History, Image as Imag
 import { useEffect, useLayoutEffect, useReducer, useRef, useState, type CSSProperties } from "react";
 import { BRANDS } from "@/lib/slides/brand";
 import { DEFAULT_DECK_NAME, deckReducer, initialDeckState, readPath } from "@/lib/slides/state";
-import { isChartLayout, isPage, normalizeSlide, overLimits, PRIMARY_ARRAY, type LayoutId, type Slide, type SlideContent } from "@/lib/slides/schema";
+import { ensureId, isChartLayout, isPage, normalizeSlide, overLimits, PRIMARY_ARRAY, type LayoutId, type Slide, type SlideContent } from "@/lib/slides/schema";
 import { renderSlide } from "@/lib/slides/layouts";
 import { A4_PX } from "@/lib/slides/pages/a4";
 import { PAGE_BLOCK_LIMITS, type PageBlock } from "@/lib/slides/pages/schema";
@@ -47,7 +47,8 @@ import PrintRoot from "@/components/PrintRoot";
 import HelpModal from "@/components/HelpModal";
 import { NO_NOTES } from "@/lib/slides/layouts/dense";
 import { addOptions, addPart, deleteModular, insertPoint, isModular, nests, pointAt, removePoint, type AddOption } from "@/lib/slides/modular";
-import { roomFor } from "@/lib/slides/fit-check";
+import { readable, roomFor } from "@/lib/slides/fit-check";
+import { continuationLabel, restoreCover, restoreSlide, type Restored } from "@/lib/slides/restore";
 import type { FocusRequest, PointOps } from "@/components/SlideFrame";
 import { createPortal } from "react-dom";
 import DeckName from "@/components/DeckName";
@@ -761,30 +762,40 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
         (st.kind === "content" ? densityHint(st.source) : "")
       );
     });
-    const results: (SlideContent | null | undefined)[] = steps.map((st) =>
-      st.kind === "fixed" ? normalizeSlide(st.content, { brandId: state.brandId }) : undefined,
-    );
+    // Each step lands as one slide, or as a slide and its continuations
+    // when the app had to split what the source slide carries (restore.ts).
+    const results: (SlideContent[] | null | undefined)[] = steps.map((st) => {
+      if (st.kind !== "fixed") return undefined;
+      const fixed = normalizeSlide(st.content, { brandId: state.brandId });
+      return fixed ? [fixed] : null;
+    });
     // The fidelity check (lib/slides/fidelity.ts): each source slide against
     // the slide made from it, a running header left out.
     const ignore = runningLines(sources);
     const units = steps.map((st) => (st.kind === "fixed" ? null : sourceUnits(st.source, ignore)));
     const reports: (SlideFidelity | null)[] = steps.map(() => null);
     const firsts: (SlideFidelity | null)[] = steps.map(() => null);
+    const models: (SlideFidelity | null)[] = steps.map(() => null);
+    const restored: (Restored | null)[] = steps.map(() => null);
     let repairs = 0;
     let repaired = 0;
-    const failed: number[] = [];
+    // The app's guarantee after the model (lib/slides/restore.ts): every
+    // line and figure of the source on the slide, text at 18px or more,
+    // measured here with the real autofit.
+    const fits = (s: SlideContent) => readable(ensureId(s), theme);
+    const cont = continuationLabel(sources.map((x) => x.title));
     const usage = { inputTokens: 0, outputTokens: 0 };
     let next = 0;
     let firstLanding = true;
     const flush = () => {
       while (next < steps.length && results[next] !== undefined) {
-        const content = results[next++];
-        if (!content) continue;
+        const landed = results[next++];
+        if (!landed) continue;
         if (firstLanding) {
           firstLanding = false;
           flightRef.current = genPillRef.current?.getBoundingClientRect() ?? null;
         }
-        dispatch({ type: "APPEND_SLIDE", content });
+        for (const content of landed) dispatch({ type: "APPEND_SLIDE", content });
       }
     };
     /** One call for step i: the slide as the model wrote it, before normalizeSlide. */
@@ -840,16 +851,11 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
         }
       }
       if (!slide && overflowing) slide = accept(st, overflowing);
-      if (!slide) {
-        failed.push(st.source.n);
-        results[i] = null;
-        return;
-      }
       // The check, and one repair call when the slide changed the source:
       // the precise list of what changed, the better of the two is kept.
       let report = compareSlide(st.source.n, st.source.title, units[i]!, slide);
       firsts[i] = report;
-      if (st.kind === "content" && isFlawed(report)) {
+      if (slide && st.kind === "content" && isFlawed(report)) {
         repairs++;
         try {
           const { image: _im, ...previous } = slide;
@@ -865,8 +871,23 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
           if ((err as Error).name === "AbortError") throw err;
         }
       }
-      reports[i] = report;
-      results[i] = slide;
+      models[i] = report;
+      // What the model still changed, the app restores without another call:
+      // put back, rebuilt from the source, continued (restore.ts). A slide
+      // the model could not write at all is rebuilt from the source.
+      try {
+        const done =
+          st.kind === "cover"
+            ? restoreCover(st.source.n, st.source.title, units[i]!, slide ?? { layoutId: "cover", title: st.source.title, subtitle: "" }, fits)
+            : restoreSlide(st.source.n, st.source.title, units[i]!, slide, fits, { cont });
+        restored[i] = done;
+        reports[i] = done.report;
+        results[i] = done.slides.map((x) => normalizeSlide(x, { brandId: state.brandId }) ?? x);
+      } catch (err) {
+        console.error(err);
+        reports[i] = report;
+        results[i] = slide ? [slide] : null;
+      }
     };
     try {
       flush();
@@ -892,25 +913,36 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
     // is one line in it, with its text. Only a replica with nothing rebuilt
     // is still an error.
     const leftovers: Leftover[] = [
-      ...steps.flatMap((st, i) => (st.kind !== "fixed" && failed.includes(st.source.n) ? [{ n: st.source.n, title: st.source.title, lines: units[i]?.lines ?? [], reason: "failed" as const }] : [])),
+      ...steps.flatMap((st, i) => (st.kind !== "fixed" && !results[i]?.length ? [{ n: st.source.n, title: st.source.title, lines: units[i]?.lines ?? [], reason: "failed" as const }] : [])),
       ...planLeftovers(sources, steps, ignore),
     ].sort((x, y) => x.n - y.n);
     let at = 0;
     const slides: DeckFidelity["slides"] = [];
     steps.forEach((_, i) => {
       const r = reports[i];
-      const content = results[i];
-      if (r && content) slides.push({ ...r, at, layoutId: content.layoutId, deckTitle: content.title ?? "" });
-      if (content) at++;
+      const landed = results[i];
+      const how = restored[i];
+      if (r && landed?.length)
+        slides.push({ ...r, at, layoutId: landed[0].layoutId, deckTitle: landed[0].title ?? "", putBack: how?.putBack ?? 0, rebuilt: !!how?.rebuilt, parts: landed.length });
+      at += landed?.length ?? 0;
     });
-    const firstPass = totals(firsts.filter((r): r is SlideFidelity => !!r), leftovers);
-    setFidelity({ slides, leftovers, transcribed: transcribedRef.current.has(file.id), firstPass, repairs, repaired });
-    if (failed.length && !slides.some((s) => s.layoutId !== "cover")) {
-      dispatch({
-        type: "GENERATION_ERROR",
-        error: `Source slide${failed.length === 1 ? "" : "s"} ${failed.sort((x, y) => x - y).join(", ")} could not be rebuilt. Add ${failed.length === 1 ? "it" : "them"} with Add slide or try again.`,
-      });
-    }
+    const valid = <T,>(list: (T | null)[]) => list.filter((r): r is T => !!r);
+    const done = valid(restored);
+    setFidelity({
+      slides,
+      leftovers,
+      transcribed: transcribedRef.current.has(file.id),
+      firstPass: totals(valid(firsts), leftovers),
+      modelPass: totals(valid(models), leftovers),
+      repairs,
+      repaired,
+      restored: {
+        putBack: done.reduce((n, r) => n + r.putBack, 0),
+        rebuilt: done.filter((r) => r.rebuilt).length,
+        continued: done.reduce((n, r) => n + r.slides.length - 1, 0),
+        trimmed: done.reduce((n, r) => n + r.trimmed, 0),
+      },
+    });
     onDeckArrived();
   };
 

@@ -74,9 +74,9 @@ const statMax = (s: S) => (s.layoutId === "cascade" ? 4 : 5);
 /** A chart with its explanation card (subtitle + bullets) beside the plot. */
 const explained = (s: S) => s.layoutId === "chart-text" || (isChartLayout(s.layoutId) && s.density === "high");
 
-type List = { kind: "items"; block: number } | { kind: "bullets" } | { kind: "notes" };
+export type List = { kind: "items"; block: number } | { kind: "bullets" } | { kind: "notes" };
 
-function pointsIn(s: S, list: List): string[] {
+export function pointsIn(s: S, list: List): string[] {
   if (list.kind === "bullets") return [...(s.bullets ?? [])];
   if (list.kind === "notes") return (s.blocks ?? []).map((b) => b.body);
   const b = s.blocks?.[list.block];
@@ -104,7 +104,23 @@ function writePoints(s: S, list: List, arr: string[]): void {
 
 const pathOf = (list: List, k: number) =>
   list.kind === "items" ? `blocks.${list.block}.items.${k}` : list.kind === "bullets" ? `bullets.${k}` : `blocks.${k}.body`;
-const maxOf = (s: S, list: List) => (list.kind === "items" ? itemMax(s) : list.kind === "notes" ? MAX_NOTES : MAX_POINTS);
+export const maxOf = (s: S, list: List) => (list.kind === "items" ? itemMax(s) : list.kind === "notes" ? MAX_NOTES : MAX_POINTS);
+
+/**
+ * The lists of points a slide has, in reading order: every block's points
+ * where the layout's blocks hold points, then the explanation or conclusion.
+ * What the replica's put-back (lib/slides/restore.ts) may add a line to.
+ */
+export function pointLists(s: S): List[] {
+  if (!isModular(s)) return [];
+  const out: List[] = [];
+  if (POINT_BLOCKS.has(s.layoutId)) (s.blocks ?? []).forEach((_, i) => out.push({ kind: "items", block: i }));
+  if (explained(s) || (s.layoutId === "scenarios" && s.bullets?.some((b) => b.trim()))) out.push({ kind: "bullets" });
+  return out;
+}
+
+/** Whether the layout's blocks hold points (a new block may carry a line). */
+export const holdsPoints = (s: S) => isModular(s) && POINT_BLOCKS.has(s.layoutId);
 
 /** The list a text path is a point of, and its place in it; null for anything else. */
 export function pointAt(s: S, path: string): { list: List; index: number } | null {
@@ -126,7 +142,8 @@ export function nests(s: S, path: string): boolean {
   return !(STAGES.has(s.layoutId) && path.endsWith(".body"));
 }
 
-function addPointAt<T extends S>(s: T, list: List, at: number, text: string, before?: string): { slide: T; path: string } | null {
+/** A point at place `at` of a list, within the list's limit; null when the list is full or missing. */
+export function addPointAt<T extends S>(s: T, list: List, at: number, text: string, before?: string): { slide: T; path: string } | null {
   const clone = structuredClone(s);
   if (list.kind === "notes") {
     const blocks = clone.blocks ?? [];

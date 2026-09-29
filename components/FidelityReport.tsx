@@ -30,11 +30,20 @@ export default function FidelityReport({
   const t = totals(report.slides, report.leftovers);
   const exact = isExact(t);
   const wrong = t.figures.total - t.figures.ok;
+  const restored = restoredLine(report);
+  const renamed = report.leftovers.filter((l) => l.reason === "renamed").reduce((n, l) => n + l.lines.length, 0);
   return (
     <div className="mt-2.5 border-t border-hairline pt-2.5">
       <p className="text-[13px] text-ink-faint">Source fidelity</p>
       {exact ? (
-        <p className="mt-1 text-xs leading-relaxed text-ink">Replicated exactly: every figure and line of the source is in the deck.</p>
+        <>
+          <p className="mt-1 text-xs leading-relaxed text-ink">Replicated exactly: every figure and line of the source is in the deck.</p>
+          {(restored || renamed > 0) && (
+            <Button variant="secondary" className="mt-2.5 w-full" onClick={() => setOpen(true)}>
+              Review
+            </Button>
+          )}
+        </>
       ) : (
         <>
           <dl className="mt-1 flex flex-col gap-0.5 text-xs leading-relaxed">
@@ -72,6 +81,12 @@ export default function FidelityReport({
           </Button>
         </>
       )}
+      {restored && <p className="mt-2 text-xs leading-relaxed text-ink-muted">{restored}</p>}
+      {renamed > 0 && (
+        <p className="mt-2 text-xs leading-relaxed text-ink-muted">
+          {renamed} chapter name{renamed === 1 ? " is" : "s are"} worded differently on another agenda of the source; the deck names each chapter once.
+        </p>
+      )}
       {report.transcribed && <p className="mt-2 text-xs leading-relaxed text-ink-muted">Source read from page images: check the figures.</p>}
       {open && (
         <FidelityReview
@@ -87,6 +102,21 @@ export default function FidelityReport({
       )}
     </div>
   );
+}
+
+/**
+ * What the app restored after the model, in one sentence (restore.ts): the
+ * user knows those slides are the app's, and simpler in design.
+ */
+function restoredLine(report: DeckFidelity): string {
+  const r = report.restored;
+  if (!r || (!r.putBack && !r.rebuilt && !r.continued)) return "";
+  const parts: string[] = [];
+  if (r.putBack) parts.push(`${r.putBack} line${r.putBack === 1 ? " was" : "s were"} put back by the app`);
+  if (r.rebuilt) parts.push(`${r.rebuilt} slide${r.rebuilt === 1 ? " was" : "s were"} rebuilt from the source in a simpler design`);
+  if (r.continued) parts.push(`${r.continued} continuation slide${r.continued === 1 ? " was" : "s were"} added`);
+  const text = parts.join(", ").replace(/, ([^,]*)$/, " and $1");
+  return `${text[0].toUpperCase()}${text.slice(1)}.`;
 }
 
 function Row({ label, children }: { label: string; children: ReactNode }) {
@@ -166,7 +196,7 @@ function FidelityReview({
         ],
       };
     })
-    .filter((x) => x.diffs.length);
+    .filter((x) => x.diffs.length || x.s.putBack || x.s.rebuilt);
   const first = report.firstPass;
 
   return (
@@ -197,6 +227,13 @@ function FidelityReview({
             <Stat label="Lines changed" value={`${t.reworded + t.missing}`} />
             <Stat label="Text added" value={`${t.added}`} />
           </div>
+          {restoredLine(report) && (
+            <p className="mt-3 text-[13px] leading-relaxed text-ink-faint">
+              {restoredLine(report)}
+              {report.modelPass &&
+                ` Before that, the model's slides had ${report.modelPass.figures.ok} / ${report.modelPass.figures.total} figures and ${pct(report.modelPass.words.kept, report.modelPass.words.total)}% of the words.`}
+            </p>
+          )}
           {report.repairs > 0 && first && (
             <p className="mt-3 text-[13px] leading-relaxed text-ink-faint">
               {report.repairs} slide{report.repairs === 1 ? " was" : "s were"} written a second time to match the source, {report.repaired} came back
@@ -216,6 +253,11 @@ function FidelityReview({
                     <p className="text-[13px] text-ink-faint">
                       Source slide {s.n} · {s.figures.total ? `${s.figures.ok} / ${s.figures.total} figures · ` : ""}
                       {pct(s.words.kept, s.words.total)}% of the words
+                      {s.rebuilt
+                        ? ` · rebuilt from the source${(s.parts ?? 1) > 1 ? ` over ${s.parts} slides` : ""}`
+                        : s.putBack
+                          ? ` · ${s.putBack} line${s.putBack === 1 ? "" : "s"} put back by the app`
+                          : ""}
                     </p>
                   </div>
                   {index >= 0 && (
@@ -228,25 +270,48 @@ function FidelityReview({
                   <span>Source</span>
                   <span>Deck</span>
                 </div>
-                <ul>
-                  {diffs.map((d, k) => (
-                    <DiffRow key={k} d={d} />
-                  ))}
-                </ul>
+                {diffs.length > 0 ? (
+                  <ul>
+                    {diffs.map((d, k) => (
+                      <DiffRow key={k} d={d} />
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="py-3 text-sm leading-relaxed text-ink-muted">Every line and figure of the source is on the slide, word for word.</p>
+                )}
               </section>
             );
           })}
 
-          {report.leftovers.length > 0 && (
+          {report.leftovers.some((l) => l.reason !== "renamed") && (
             <section className="mt-7">
               <div className="border-b border-hairline-light pb-2">
                 <p className="text-sm font-medium text-ink">Not replicated</p>
                 <p className="text-[13px] text-ink-faint">Source text that has no slide in the deck.</p>
               </div>
               <ul>
-                {report.leftovers.map((l) => (
-                  <LeftoverRow key={`${l.n}-${l.reason}`} l={l} />
-                ))}
+                {report.leftovers
+                  .filter((l) => l.reason !== "renamed")
+                  .map((l) => (
+                    <LeftoverRow key={`${l.n}-${l.reason}`} l={l} />
+                  ))}
+              </ul>
+            </section>
+          )}
+          {report.leftovers.some((l) => l.reason === "renamed") && (
+            <section className="mt-7">
+              <div className="border-b border-hairline-light pb-2">
+                <p className="text-sm font-medium text-ink">Chapter names</p>
+                <p className="text-[13px] text-ink-faint">
+                  Worded differently on another agenda of the source. The deck names each chapter once, as the agenda that opens it does.
+                </p>
+              </div>
+              <ul>
+                {report.leftovers
+                  .filter((l) => l.reason === "renamed")
+                  .map((l) => (
+                    <LeftoverRow key={`${l.n}-${l.reason}`} l={l} />
+                  ))}
               </ul>
             </section>
           )}
@@ -305,10 +370,12 @@ function LeftoverRow({ l }: { l: Leftover }) {
       ? "Could not be rebuilt. Add it with Add slide or generate again."
       : l.reason === "ceiling"
         ? "Past the 40-slide limit."
-        : "Not carried by the agenda, the dividers or the closing slide.";
+        : l.reason === "renamed"
+          ? "The same chapter, worded this way on this agenda."
+          : "Not carried by the agenda, the dividers or the closing slide.";
   return (
     <li className="border-b border-hairline-light py-3 last:border-b-0">
-      <p className={`mb-1 text-xs font-medium ${l.reason === "structure" ? "text-ink-muted" : "text-status-red"}`}>
+      <p className={`mb-1 text-xs font-medium ${l.reason === "structure" || l.reason === "renamed" ? "text-ink-muted" : "text-status-red"}`}>
         Source slide {l.n}
         {l.title ? ` · ${l.title}` : ""}
       </p>

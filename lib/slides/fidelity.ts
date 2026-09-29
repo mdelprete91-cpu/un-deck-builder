@@ -33,11 +33,37 @@ export interface Figure {
   chart?: boolean;
 }
 
+/**
+ * A source line with where it came from, in reading order: what the app
+ * needs to put a line back where it belongs, or to rebuild the slide from
+ * the source (lib/slides/restore.ts). `figure` is a line with no letter in
+ * it ("(99%)"), measured only for its figures and so not in `lines`.
+ */
+export interface SourceEntry {
+  text: string;
+  /** Written as a sub-point ("- " in the source). */
+  sub: boolean;
+  kind: "title" | "text" | "cell" | "note" | "figure";
+}
+
+/** A chart the source slide draws: its columns (axis label, values top to bottom), from the labels written on the slide or, without them, the chart's data. */
+export interface SourceChart {
+  labelled: boolean;
+  /** The series' names, when the chart's data gives them. */
+  series?: string[];
+  columns: { label: string; values: string[] }[];
+}
+
 export interface SourceUnits {
   lines: string[];
   figures: Figure[];
   /** Every word the source slide writes, normalised: what "added" is measured against. */
   vocabulary: Set<string>;
+  /** Every line of `lines` (same order, same filter) with its kind and level, plus the lines of figures only. */
+  entries: SourceEntry[];
+  charts: SourceChart[];
+  /** Figures written on the slide as a flat list (a PDF's chart labels), as written. */
+  floating: string[];
 }
 
 export interface LinePair {
@@ -63,7 +89,12 @@ export interface Leftover {
   n: number;
   title: string;
   lines: string[];
-  reason: "failed" | "ceiling" | "structure";
+  /**
+   * "structure": text the plan leaves out; "renamed": a chapter named in
+   * other words on another agenda of the source (the deck names each chapter
+   * once, as the agenda that opens it does), said but not counted missing.
+   */
+  reason: "failed" | "ceiling" | "structure" | "renamed";
 }
 
 // ─── Normalisation ─────────────────────────────────────────────────────────
@@ -176,36 +207,53 @@ export function runningLines(slides: SourceSlide[]): Set<string> {
  */
 export function sourceUnits(source: Pick<SourceSlide, "text">, ignore: Set<string> = new Set()): SourceUnits {
   const lines: string[] = [];
+  const entries: SourceEntry[] = [];
   const figures: Figure[] = [];
   const chart: number[] = [];
+  const dataCharts: SourceChart[] = [];
+  const labelCharts: SourceChart[] = [];
+  const floating: string[] = [];
   let labelled = false;
   let mode: "text" | "table" | "chart" = "text";
-  const addLine = (text: string) => {
+  const addLine = (text: string, kind: SourceEntry["kind"] = "text", sub = false) => {
     const line = text.trim();
     if (!line) return;
     for (const key of figuresIn(line)) figures.push({ key, line });
     // A line of figures only ("76%") is measured as figures, not as words.
-    if (!/\p{L}/u.test(line)) return;
+    if (!/\p{L}/u.test(line)) {
+      if (figuresIn(line).length) entries.push({ text: line, sub, kind: "figure" });
+      return;
+    }
     if (ignore.has(tokens(line).join(" "))) return;
     lines.push(line);
+    entries.push({ text: line, sub, kind });
   };
   for (const raw of source.text.split("\n")) {
     if (mode === "chart" && /^- series\b/.test(raw)) {
       const values = raw.slice(raw.indexOf(":") + 1).split(",");
+      const current = dataCharts[dataCharts.length - 1];
+      const name = /^- series "([^"]*)"/.exec(raw)?.[1];
+      (current.series ??= []).push(name ?? "");
+      let k = 0;
       for (const v of values) {
         const n = Number(v.split("=").pop());
-        if (v.trim() && Number.isFinite(n)) chart.push(n);
+        if (!v.trim() || !Number.isFinite(n)) continue;
+        chart.push(n);
+        const label = v.includes("=") ? v.slice(0, v.lastIndexOf("=")).trim() : String(k + 1);
+        (current.columns[k] ??= { label, values: [] }).values.push(String(n));
+        k++;
       }
       continue;
     }
     if (mode === "table" && /^\|.*\|$/.test(raw.trim())) {
-      for (const cell of raw.trim().slice(1, -1).split("|")) addLine(cell);
+      for (const cell of raw.trim().slice(1, -1).split("|")) addLine(cell, "cell");
       continue;
     }
     mode = "text";
     if (/^Speaker notes:/.test(raw)) continue;
     if (/^Chart \([^)]*\) data:/.test(raw)) {
       mode = "chart";
+      dataCharts.push({ labelled: false, columns: [] });
       continue;
     }
     if (/^Table:\s*$/.test(raw)) {
@@ -217,18 +265,29 @@ export function sourceUnits(source: Pick<SourceSlide, "text">, ignore: Set<strin
       const at = raw.indexOf("): ");
       const body = at >= 0 ? raw.slice(at + 3) : raw.slice(raw.indexOf(":") + 1);
       // "2026: 0, 0 | 27: 0 | 28: 3.10, 0.44": the axis label before each colon is not a figure.
+      // An axis label seen again opens the next chart (two charts side by side).
       for (const col of body.split(" | ")) {
-        const values = col.includes(": ") ? col.slice(col.indexOf(": ") + 2) : col;
+        const at = col.indexOf(": ");
+        const values = at >= 0 ? col.slice(at + 2) : col;
         for (const key of figuresIn(values)) figures.push({ key, line: `Chart label: ${col.trim()}`, chart: true });
+        if (at < 0) {
+          floating.push(...values.split(/,\s+/).map((v) => v.trim()).filter((v) => figuresIn(v).length));
+          continue;
+        }
+        const label = col.slice(0, at).trim();
+        let current = labelCharts[labelCharts.length - 1];
+        if (!current || current.columns.some((c) => c.label === label)) labelCharts.push((current = { labelled: true, columns: [] }));
+        current.columns.push({ label, values: values.split(/,\s+/).map((v) => v.trim()).filter((v) => v && v !== "-") });
       }
       continue;
     }
     if (/^Footnotes:/.test(raw)) {
       const notes = raw.replace(/^Footnotes:\s*/, "");
-      for (const note of notes.split(/;\s+(?=\d{1,2}[.)]?\s)|\s+(?=\d{1,2}[.)]\s)/)) addLine(note);
+      for (const note of notes.split(/;\s+(?=\d{1,2}[.)]?\s)|\s+(?=\d{1,2}[.)]\s)/)) addLine(note, "note");
       continue;
     }
-    addLine(raw.replace(/^Title:\s*/, "").replace(/^- /, ""));
+    if (/^Title:/.test(raw)) addLine(raw.replace(/^Title:\s*/, ""), "title");
+    else addLine(raw.replace(/^- /, ""), "text", /^- /.test(raw));
   }
   if (!labelled) {
     for (const v of new Set(chart)) figures.push({ key: String(v), line: "Chart data", chart: true });
@@ -237,7 +296,7 @@ export function sourceUnits(source: Pick<SourceSlide, "text">, ignore: Set<strin
   const unique = new Map<string, Figure>();
   for (const f of figures) if (!unique.has(f.key)) unique.set(f.key, f);
   const vocabulary = new Set(tokens(source.text.split("\n").filter((l) => !/^Speaker notes:/.test(l)).join(" ")));
-  return { lines, figures: [...unique.values()], vocabulary };
+  return { lines, figures: [...unique.values()], vocabulary, entries, charts: labelled ? labelCharts : dataCharts.filter((c) => c.columns.length), floating };
 }
 
 // ─── Alignment ─────────────────────────────────────────────────────────────
@@ -300,7 +359,7 @@ export function align(line: string[], deck: string[]): { matched: number; start:
 
 // ─── The comparison ────────────────────────────────────────────────────────
 
-const STOP = new Set(
+export const STOP = new Set(
   "a an and are as at be by for from in into is it its of on or that the this to was were with will de del la las el los en y o para por con que un una il lo gli le di da e per con che du des et pour avec".split(" "),
 );
 
@@ -308,9 +367,27 @@ export const IDENTICAL = 1;
 export const TOUCHED = 0.85;
 export const CHANGED = 0.5;
 
-/** One source slide against the slide replicated from it. */
-export function compareSlide(n: number, title: string, units: SourceUnits, slide: SlideContent | null): SlideFidelity {
-  const strings = slide ? slideStrings(slide) : [];
+/**
+ * What a source slide became: one slide, or a slide and its continuations
+ * (lib/slides/restore.ts), whose repeated title is not measured ("… (cont.)"
+ * would read as added words).
+ */
+export function slidesOf(slide: SlideContent | SlideContent[] | null): { strings: string[]; bars: SlideContent["bars"] & {} } {
+  const all = slide ? (Array.isArray(slide) ? slide : [slide]) : [];
+  const strings: string[] = [];
+  const bars: NonNullable<SlideContent["bars"]> = [];
+  all.forEach((s, i) => {
+    // "Series 2", the name normalizeSeries gives a series the source did not name, is the chart's legend, not text.
+    const own = slideStrings({ ...s, series: s.series?.filter((x) => !/^Series \d+$/.test(x)) });
+    strings.push(...(i > 0 && s.title && own[0] === s.title ? own.slice(1) : own));
+    bars.push(...(s.bars ?? []));
+  });
+  return { strings, bars };
+}
+
+/** One source slide against the slide replicated from it (or the slide and its continuations). */
+export function compareSlide(n: number, title: string, units: SourceUnits, slide: SlideContent | SlideContent[] | null): SlideFidelity {
+  const { strings, bars: deckBars } = slidesOf(slide);
   const deckRaw: string[] = [];
   const deckTok: string[] = [];
   const rawOf: number[] = [];
@@ -329,7 +406,7 @@ export function compareSlide(n: number, title: string, units: SourceUnits, slide
 
   // Figures.
   const deckFigures = new Set(strings.flatMap(figuresIn));
-  const bars = (slide?.bars ?? []).flatMap((b) => b.values ?? [b.value]);
+  const bars = deckBars.flatMap((b) => b.values ?? [b.value]);
   const wrong: SlideFidelity["figures"]["wrong"] = [];
   let figOk = 0;
   for (const f of units.figures) {
@@ -372,7 +449,7 @@ export function compareSlide(n: number, title: string, units: SourceUnits, slide
   // Added: runs of words on the slide the source never writes (a stopword
   // the source has may sit inside a run, never at its end). Bar values are
   // the figures' business: 3.1 on a bar is the source's 3.10.
-  const barValues = new Set((slide?.bars ?? []).flatMap((b) => (b.values ?? [b.value]).map(String)));
+  const barValues = new Set(deckBars.flatMap((b) => (b.values ?? [b.value]).map(String)));
   for (const s of strings.filter((x) => !barValues.has(x))) {
     let run: { w: string; fresh: number }[] = [];
     const close = () => {
@@ -425,8 +502,13 @@ export function repairNote(r: SlideFidelity): string {
 // ─── The deck ──────────────────────────────────────────────────────────────
 
 export interface DeckFidelity {
-  /** Per replicated slide: `at` is its place in the deck when it landed, `deckTitle` finds it again after a move. */
-  slides: (SlideFidelity & { at: number; layoutId: string; deckTitle: string })[];
+  /**
+   * Per replicated slide, measured after the app's restore: `at` is its place
+   * in the deck when it landed, `deckTitle` finds it again after a move;
+   * `putBack` lines the app wrote back, `rebuilt` built from the source,
+   * `parts` the slides it became (more than one when continued).
+   */
+  slides: (SlideFidelity & { at: number; layoutId: string; deckTitle: string; putBack?: number; rebuilt?: boolean; parts?: number })[];
   /** Source slides or lines that did not become a slide: a failed call, the 40-slide ceiling, an agenda or divider line. */
   leftovers: Leftover[];
   /** A PDF with no text layer: the source was the model's transcription. */
@@ -435,6 +517,10 @@ export interface DeckFidelity {
   firstPass?: Totals;
   repairs: number;
   repaired: number;
+  /** The totals after the model's repair, before the app restored anything. */
+  modelPass?: Totals;
+  /** What the app restored (lib/slides/restore.ts): lines put back, slides rebuilt from the source, continuation slides added, added points removed. */
+  restored?: { putBack: number; rebuilt: number; continued: number; trimmed: number };
 }
 
 export interface Totals {
@@ -458,6 +544,7 @@ export function totals(slides: SlideFidelity[], leftovers: Leftover[] = []): Tot
     t.added += s.added.length;
   }
   for (const l of leftovers) {
+    if (l.reason === "renamed") continue;
     if (l.reason === "structure") t.missing += l.lines.length;
     else t.notRebuilt++;
   }
@@ -482,8 +569,15 @@ export function planLeftovers(slides: SourceSlide[], steps: ReplicateStep[], ign
   const fixedKeys = new Set(fixed.map((t) => tokens(t).join(" ")));
   const out: Leftover[] = [];
   const seen = new Set<string>();
+  const agendas = slides.filter((s) => s.kind === "agenda" && s.chapters?.length);
+  // An agenda line at the place of a chapter the deck carries, on an agenda
+  // of the same length: the same chapter, named in other words.
+  const renamed = (s: SourceSlide, line: string) => {
+    const j = s.chapters?.findIndex((c) => tokens(c).join(" ") === tokens(line).join(" ")) ?? -1;
+    return j >= 0 && agendas.some((a) => a.chapters!.length === s.chapters!.length && fixedKeys.has(tokens(a.chapters![j]).join(" ")));
+  };
   for (const s of slides) {
-    if ((s.kind === "content" || s.kind === "cover" || s.kind === "divider") && placed.has(s.n)) continue;
+    if (placed.has(s.n) && s.kind !== "agenda") continue;
     if (s.kind === "content" || s.kind === "cover") {
       out.push({ n: s.n, title: s.title, lines: sourceUnits(s, ignore).lines, reason: "ceiling" });
       continue;
@@ -498,7 +592,10 @@ export function planLeftovers(slides: SourceSlide[], steps: ReplicateStep[], ign
       seen.add(key);
       return true;
     });
-    if (lines.length) out.push({ n: s.n, title: s.title, lines, reason: "structure" });
+    const other = s.kind === "agenda" ? lines.filter((l) => renamed(s, l)) : [];
+    const left = lines.filter((l) => !other.includes(l));
+    if (left.length) out.push({ n: s.n, title: s.title, lines: left, reason: "structure" });
+    if (other.length) out.push({ n: s.n, title: s.title, lines: other, reason: "renamed" });
   }
   return out;
 }

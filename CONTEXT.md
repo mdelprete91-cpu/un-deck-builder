@@ -580,16 +580,23 @@ deck, a flat text in file order. Now:
   and every content slide in order, one agenda from the source's, a divider for each chapter the
   source's agendas mark as current and for each source divider, a chapter never opened twice (the
   appendix repeats the agenda), the source's mid-deck "Thank you" moved to the end. The source
-  decides the chapters whatever the Chapters toggle says (Mario's call). Ceiling `MAX_SLIDES`.
+  decides the chapters whatever the Chapters toggle says (Mario's call). Nothing with text is left
+  out of the plan (29 Sep 2026): a divider with a strapline is the divider and then a content slide
+  with its text; a closing slide with more than its "Thank you" (a contact line) is a content slide
+  before the deck's own closing slide. Ceiling `MAX_SLIDES`, which only removes fixed slides
+  (dividers, the agenda): content never goes, so a source with more content slides than the
+  ceiling replicates past it, and continuation slides (below) may take a replica past 40. Nothing
+  technical caps a deck at 40: the deck file takes 200, the exports and thumbnails have no limit.
+  The one real cap is the transcription of a text-less PDF (`MAX_TRANSCRIBED_PAGES`, 38 pages).
 - **One call per slide** (`runReplicate` in `app/page.tsx`, mode `replicate` in the route):
   only that slide's text, its place ("slide 12 of 36, in the chapter …"), `REPLICATE_NOTE` in
   `prompt.ts` (title as written, every point and figure, dense layouts, notes, the source's
   language, never a structural layout), 3,000 tokens, six calls at a time, landing in order as
   the prefix completes. The count and the order are the plan's by construction. No rhythm pass, no
   merge, no finish pass: the slides are the source's one to one; `FILL_PHOTOS` and
-  `ENSURE_CLOSING` only. A slide that fails twice is no longer a red error: it is a "Not
-  replicated" line in the fidelity report (below), with its text. Only a replica where nothing
-  was rebuilt is still an error. The Gambia deck: 36 slides, about 35 s with the repair pass,
+  `ENSURE_CLOSING` only. A slide the model fails twice is rebuilt from the source by the app
+  (below): a rate limit hit mid-replica (two replicas back to back reach 200K tokens a minute)
+  costs design, never text. The Gambia deck: 36 slides, about 35 s with the repair pass,
   about $0.04.
 - **Replicate does not change the content** (Mario, 28 Sep 2026). In replicate mode only, and
   nowhere else: the route skips `cleanVoice` (it turned the source's own "synergies" into "shared
@@ -598,14 +605,16 @@ deck, a flat text in file order. Now:
   explanation is made dense before `normalizeSlide` (`denseBeforeNormalize`), which would delete
   its `bullets` on a standard chart; an answer with more items than its layout draws (`overLimits`
   in `schema.ts`: `ARRAY_LIMITS`, ten points or five figures a dense block) is asked again once with
-  the count, and the second answer is kept as it is, its cut showing in the report; a first slide
+  the count, and what the second answer still cuts the app restores (below); a first slide
   past 40 words (a report opening on its figures, the Mexico DQR) is the cover with its title and a
   content slide with everything (`planReplica`). `normalizeSlide` itself is unchanged.
 - **The fidelity check** (`lib/slides/fidelity.ts`, pure functions, `npx tsx tools/fidelity-test.ts`):
   each source slide against the slide made from it, `steps[i]` against `results[i]`, never the
   whole deck (a deck-wide substring test finds "2026" somewhere and calls every 2026 kept).
   `sourceUnits` reads `SourceSlide.text`: lines (title, points, sub-points, footnotes, table cells
-  with a letter), figures (two digits or more, or a percentage; the chart labels written on the
+  with a letter; `entries` are the same lines with their kind and level, for the restore), the
+  charts (`charts`: the labelled columns, an axis label seen again opening the second chart, or the
+  series data), figures (two digits or more, or a percentage; the chart labels written on the
   slide; the series values only when the slide has no labels, since the labels win), speaker notes
   left out, and a running header (`runningLines`: a short line on three slides or more) not
   measured. `compareSlide` normalises case, punctuation, the typographic minus, thousands
@@ -613,19 +622,69 @@ deck, a flat text in file order. Now:
   on a chart, as a bar of the same value (3.10 is the bar 3.1; "240K" is not 240,000); each line is
   aligned word by word against the slide's text (a fitting LCS: the slide's ends free, a gap inside
   costs) and is identical, touched (85% or more), changed (50%) or missing; "added" is a run of
-  words the source never writes (bar values aside). `planLeftovers` lists what the plan itself
-  drops: slides past the ceiling, agenda lines no chapter carries (a chapter renamed on a later
-  agenda), a divider's strapline, the closing slide's extra lines.
+  words the source never writes (bar values aside). `compareSlide` also takes a slide and its
+  continuations (the repeated title not measured). `planLeftovers` lists what the plan itself
+  does not carry: agenda lines no chapter carries (a chapter renamed on another agenda is
+  "renamed", below) and, should the plan ever drop them again, slides past the ceiling, a
+  divider's strapline, the closing slide's extra lines.
 - **The repair pass**: a content slide with a wrong figure, a changed or missing line or added
   text gets one more call with `repairNote` (the lines to write exactly, the figures, the text to
   remove, quoted) and its first answer; the one with the higher `fidelityScore` stays. Same six
   workers. Gambia through the app: first pass 313 of 336 figures and 93% of the words, after the
   repair 328 of 336 and 97% (17 slides asked again, 14 closer); the Mexico DQR PDF 88% to 91% of
   the words, all 59 figures; the text-less Mexico DQR_EN 99%, all 59 figures of the transcript.
+- **The app's guarantee** (`lib/slides/restore.ts`, Mario 29 Sep 2026: "if I click Replicate, 100%
+  of the text must be present"; the product owner had seen 20 lines missing on Gambia after the
+  repair pass). After the repair call, `runReplicate` compares the slide again and restores what
+  the model still changed, deterministically, without another call. Three layers, in order:
+  1. **Put back** (`putBack`): every missing, changed or reworded line goes in verbatim. A changed
+     line replaces, in place, the stretch `compareSlide` matched it to, only when that makes it
+     whole and breaks no other line ("School Connectivity" also sits inside a longer line). A
+     missing line goes after the point that precedes it in the source (first under the header
+     that precedes it), else before the point that follows it, else in the nearest block with
+     room, else in a new block; "- " stays; a footnote goes to `notes`; the title is the source's.
+     A wrong chart value is set on its bar (`fixBars`, when the slide's chart has the source's
+     columns); a figure with no bar to hold it is written as one point the way the source writes
+     it ("27: -1.37, -8.91, -9.76; 28: …"). The Element menu's own functions in `modular.ts`
+     (`addPointAt`, `pointLists`) insert, so the ten-point limit holds and the slide stays
+     editable; a layout with a high-density variant goes dense.
+  2. **Rebuild** (`rebuild`): when the put-back slide does not hold it all (no room, over its
+     limits, or `readable` in `fit-check.ts` finds a text under 18px or clipped), the slide is
+     built from the source alone: `bullet-columns` with the lines in source order, one to three
+     columns, a column opening on a header when it starts with one (a short line with no full stop
+     and no figure), sub-points kept, footnotes to `notes` up to 36 words (as points past that);
+     `chart-text` when the source draws a chart the renderer can draw (2-12 columns, 1-3 values
+     each, every column complete), its explanation the lines; `figures-panel` when the slide is
+     mostly figures written apart from the text. A second chart is drawn on the continuation, or
+     written out as a point.
+  3. **Continue**: when even that does not hold at 18px, the source is split in order (a cut
+     before a header when one is near, never before a sub-point) over two slides or more, titled
+     "<title> (cont.)" or the source's own convention (`continuationLabel`); they land right after.
+  A slide the model got whole is kept as it is unless its text clips (out of sight is not on the
+  slide). Words the model invented are removed only as whole points, blocks, headers, bands or
+  headings that no source line needs (`trimAdded`: a removal is kept only when every line and
+  figure stays); after a put-back, a point that only repeats what is now there goes too; never
+  the title. `readable` renders the slide offscreen with the real autofit; `estimateFits` stands in
+  for it in node (the tests, `qa-suite.ts`). The cover (`restoreCover`) takes the source's other
+  lines in its subtitle ("Investment Case · September 2026"), and past 18 words a content slide
+  after it. Gambia through the app, clean runs: 336 / 336 figures and every line after the app,
+  the model alone at 315-329 figures and 98-99% of the words; 0-9 lines put back, 2-3 slides
+  rebuilt, 1-2 continuation slides. Source slide 10 (the impact pathway, 34 lines) needs two
+  slides at ten points a column when the model's own slide cannot take it back; source slide 15
+  is chart-text with the first chart and the second chart's values written out.
+- **Chapter names worded differently** (`reason: "renamed"` in `planLeftovers`): an agenda line at
+  the place of a chapter the deck carries, on an agenda of the same length ("The Learning and
+  Digital Access Challenge" on one Gambia agenda, "The Challenge" on the others), is the same
+  chapter. The deck names each chapter once, as the agenda that opens it does (`syncAgenda` keeps
+  the agenda and the dividers one to one), so the other wording is listed in the review, not
+  counted missing.
 - **The report** (`components/FidelityReport.tsx` inside `GenerationReadout`, `fidelity` session
   state in `page.tsx` like `chaptersSkipped`, cleared by the next generation and by opening a deck,
   never saved): figures exact, text kept, lines reworded / missing / added, slides not rebuilt;
-  "Replicated exactly" when all of it is whole; "Review changes" opens the source and the deck side
+  "Replicated exactly" when all of it is whole; one line on what the app restored ("9 lines were
+  put back by the app, 3 slides were rebuilt from the source in a simpler design and 2
+  continuation slides were added"), so the user knows those slides are simpler; the review adds
+  the model's own score before the restore and marks each restored slide; "Review changes" opens the source and the deck side
   by side, slide by slide, with Go to slide (the slide's place when it landed, or its title if the
   deck moved since). A transcribed PDF adds "Source read from page images: check the figures",
   since the comparison is with the transcript, not the file. The suite's `use: "replicate"` case
@@ -635,7 +694,12 @@ deck, a flat text in file order. Now:
   repeats the title, a paragraph written twice, a short header whose words sit in another line)
   are not "added" and not "missing".
 - **Known limits**: two charts on one source slide become one chart-text plus the second's figures
-  in its points; which label belongs to which line is inferred from the top-to-bottom order.
+  in its points; which label belongs to which line is inferred from the top-to-bottom order. A
+  rebuilt chart has no series names unless the chart's data gives them ("Series 1" is the legend,
+  not measured). A slide the model got whole is kept even when autofit takes its text under 18px
+  (its footnotes can reach 9px); applying the floor there would rebuild more slides in the simpler
+  design, a call for Mario. The figures-panel rebuild cannot pair a figure with its label (the
+  source's text does not say which), so the figures stand in a column beside the lines.
 
 ## High density
 
@@ -1114,7 +1178,7 @@ npm run dev
 ```
 
 There is no unit test suite, apart from `npx tsx tools/fidelity-test.ts` (the replica's fidelity
-check, no model, no server). Two scripted checks call the real model: `tools/qa-generate.py`
+check and the app's restore: put back, rebuild, continue; no model, no server). Two scripted checks call the real model: `tools/qa-generate.py`
 scores one deck against its source material, and **`tools/qa-suite.ts` runs twenty briefs of
 different nature** (and, with `QA_FILE=<json>`, any other set: `.omc/qa-usecases.json` holds
 twenty-one use cases with Word, PowerPoint, PDF, CSV, notes and workbooks from `.omc/qa-files/`,
