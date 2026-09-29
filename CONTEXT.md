@@ -709,13 +709,13 @@ deck, a flat text in file order. Now:
   state in `page.tsx` like `chaptersSkipped`, cleared by the next generation and by opening a deck,
   never saved): the card shows one percentage, the weaker of figures exact and words kept (100
   only when nothing changed, nothing is missing and every slide was rebuilt; rounded down, so a
-  partial never reads 100), and a "Review" button. Everything else is in the review: figures
-  exact, text kept, lines reworded / missing / added, slides not rebuilt, what the app restored
-  ("9 lines were put back by the app, 3 slides were rebuilt from the source in a simpler design
-  and 2 continuation slides were added"), the model's own score before the restore, each restored
-  slide marked and each line the app put back ("Put back by the app"), the source and the deck
-  side by side, slide by slide, with Go to slide (the slide's place when it landed, or its title if the
-  deck moved since). A transcribed PDF says in the review that the figures need checking,
+  partial never reads 100), and a "Review" button. The review is short: a bullet summary (content slides of the source
+  and the slides they became, slides split over more slides, slides the app rebuilt in a simpler
+  layout, figures exact and words kept, slides not in the deck), then one row per source slide
+  that changed: where it went ("Slides 9–10"), its layout label (`LAYOUTS[id].label`), what
+  happened, a "Lines" toggle with the source and deck lines side by side, and Go to slide (the
+  slide's place when it landed, or its title if the deck moved since). "Show all N slides" adds
+  the word-for-word ones. A transcribed PDF says in the review that the figures need checking,
   since the comparison is with the transcript, not the file. The suite's `use: "replicate"` case
   runs the same pass headless and prints the report before and after the repair; the old deck-wide
   figure count is printed beside it for one release.

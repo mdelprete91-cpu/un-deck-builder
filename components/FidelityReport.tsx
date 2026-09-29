@@ -1,10 +1,11 @@
 "use client";
 
 import { useEffect, useState, type ReactNode } from "react";
-import { ArrowRight, X } from "lucide-react";
+import { ArrowRight, ChevronDown, ChevronUp, X } from "lucide-react";
 import Button from "@/components/Button";
 import { isExact, tokens, totals, type DeckFidelity, type Leftover, type Totals } from "@/lib/slides/fidelity";
-import type { Slide } from "@/lib/slides/schema";
+import type { LayoutId, Slide } from "@/lib/slides/schema";
+import { LAYOUTS } from "@/lib/slides/layouts";
 
 /**
  * The fidelity report of a replica (lib/slides/fidelity.ts), inside the
@@ -54,21 +55,6 @@ export default function FidelityReport({
 }
 
 /**
- * What the app restored after the model, in one sentence (restore.ts): the
- * user knows those slides are the app's, and simpler in design.
- */
-function restoredLine(report: DeckFidelity): string {
-  const r = report.restored;
-  if (!r || (!r.putBack && !r.rebuilt && !r.continued)) return "";
-  const parts: string[] = [];
-  if (r.putBack) parts.push(`${r.putBack} line${r.putBack === 1 ? " was" : "s were"} put back by the app`);
-  if (r.rebuilt) parts.push(`${r.rebuilt} slide${r.rebuilt === 1 ? " was" : "s were"} rebuilt from the source in a simpler design`);
-  if (r.continued) parts.push(`${r.continued} continuation slide${r.continued === 1 ? " was" : "s were"} added`);
-  const text = parts.join(", ").replace(/, ([^,]*)$/, " and $1");
-  return `${text[0].toUpperCase()}${text.slice(1)}.`;
-}
-
-/**
  * One number for the card: the weaker of figures exact and words kept, so a
  * changed figure is never hidden behind a lot of kept text. 100 only when
  * nothing changed, nothing is missing and every slide was rebuilt.
@@ -90,8 +76,7 @@ type Diff =
   | { kind: "figure"; figure: string; source: string; deck: string }
   | { kind: "reworded" | "changed"; source: string; deck: string; figures: string[] }
   | { kind: "missing"; source: string; figures: string[] }
-  | { kind: "added"; deck: string }
-  | { kind: "restored"; source: string };
+  | { kind: "added"; deck: string };
 
 /** A normalised figure as people write it: "1274" is "1,274". */
 const shown = (key: string) => (/^-?\d{4,}$/.test(key) ? Number(key).toLocaleString("en-US") : key);
@@ -102,9 +87,28 @@ const TAG: Record<Diff["kind"], string> = {
   changed: "Changed",
   missing: "Missing",
   added: "Added",
-  restored: "Put back by the app",
 };
 
+type Entry = DeckFidelity["slides"][number];
+
+/** "Slide 7", "Slides 7–8", "Slides 7, 9". */
+function slideRange(at: number[]): string {
+  if (!at.length) return "Not in the deck";
+  const sorted = [...at].sort((x, y) => x - y).map((i) => i + 1);
+  const run = sorted.every((v, i) => !i || v === sorted[i - 1] + 1);
+  if (sorted.length === 1) return `Slide ${sorted[0]}`;
+  return run ? `Slides ${sorted[0]}–${sorted[sorted.length - 1]}` : `Slides ${sorted.join(", ")}`;
+}
+
+const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
+
+/**
+ * The review: a short summary of what the replica did to the source (how
+ * many slides it became, what was split, what the app rebuilt, how much text
+ * and how many figures are whole), then one row per source slide: where it
+ * went, in which layout, what changed. The lines behind a change open on
+ * demand, source and deck side by side.
+ */
 function FidelityReview({
   report,
   totals: t,
@@ -118,6 +122,8 @@ function FidelityReview({
   onClose: () => void;
   onGoTo: (index: number) => void;
 }) {
+  const [openRow, setOpenRow] = useState<number | null>(null);
+  const [all, setAll] = useState(false);
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
@@ -128,158 +134,178 @@ function FidelityReview({
 
   // The slide where it is now: its place when it landed, or found by its
   // title if the deck was reordered since.
-  const locate = (s: DeckFidelity["slides"][number]) =>
+  const locate = (s: Entry) =>
     slides[s.at]?.title === s.deckTitle && slides[s.at]?.layoutId === s.layoutId
       ? s.at
       : slides.findIndex((x) => x.layoutId === s.layoutId && x.title === s.deckTitle);
 
-  const changed = report.slides
-    .map((s) => {
-      // A changed figure sits on its line's row; only a figure with no row of its own (a chart label) gets one.
-      const on = (line: string) => s.figures.wrong.filter((w) => w.source === line).map((w) => shown(w.figure));
-      const rows = new Set([...s.lines.changed, ...s.lines.touched].map((p) => p.source).concat(s.lines.missing));
-      return {
-        s,
-        diffs: [
-          ...[...new Set(s.figures.wrong.filter((w) => !rows.has(w.source)).map((w) => w.source))].map((line): Diff => ({ kind: "figure", source: line, deck: "", figure: on(line).join(", ") })),
-          ...s.lines.changed.map((p): Diff => ({ kind: "changed", source: p.source, deck: p.deck, figures: on(p.source) })),
-          ...s.lines.touched.map((p): Diff => ({ kind: "reworded", source: p.source, deck: p.deck, figures: on(p.source) })),
-          ...s.lines.missing.map((source): Diff => ({ kind: "missing", source, figures: on(source) })),
-          ...s.added.map((deck): Diff => ({ kind: "added", deck })),
-          ...(s.putBackLines ?? []).map((source): Diff => ({ kind: "restored", source })),
-        ],
-      };
-    })
-    .filter((x) => x.diffs.length || x.s.putBack || x.s.rebuilt);
-  const first = report.firstPass;
+  const diffsOf = (s: Entry): Diff[] => {
+    // A changed figure sits on its line's row; only a figure with no row of its own (a chart label) gets one.
+    const on = (line: string) => s.figures.wrong.filter((w) => w.source === line).map((w) => shown(w.figure));
+    const rows = new Set([...s.lines.changed, ...s.lines.touched].map((p) => p.source).concat(s.lines.missing));
+    return [
+      ...[...new Set(s.figures.wrong.filter((w) => !rows.has(w.source)).map((w) => w.source))].map((line): Diff => ({ kind: "figure", source: line, deck: "", figure: on(line).join(", ") })),
+      ...s.lines.changed.map((p): Diff => ({ kind: "changed", source: p.source, deck: p.deck, figures: on(p.source) })),
+      ...s.lines.touched.map((p): Diff => ({ kind: "reworded", source: p.source, deck: p.deck, figures: on(p.source) })),
+      ...s.lines.missing.map((source): Diff => ({ kind: "missing", source, figures: on(source) })),
+      ...s.added.map((deck): Diff => ({ kind: "added", deck })),
+    ];
+  };
+
+  // One row per source slide, in source order.
+  const byN = new Map<number, Entry[]>();
+  for (const s of report.slides) byN.set(s.n, [...(byN.get(s.n) ?? []), s]);
+  const lost = new Map<number, Leftover>();
+  for (const l of report.leftovers) if (l.reason === "failed" || l.reason === "ceiling") lost.set(l.n, l);
+  const ns = [...new Set([...byN.keys(), ...lost.keys()])].sort((x, y) => x - y);
+
+  const rows = ns.map((n) => {
+    const entries = byN.get(n) ?? [];
+    const at: number[] = [];
+    for (const e of entries) {
+      const i = locate(e);
+      if (i >= 0) for (let k = 0; k < (e.parts ?? 1); k++) at.push(i + k);
+    }
+    const layouts = [...new Set(at.map((i) => slides[i]?.layoutId).filter(Boolean))].map((id) => LAYOUTS[id as LayoutId]?.label ?? id);
+    const diffs = entries.flatMap(diffsOf);
+    const wrong = entries.reduce((k, e) => k + e.figures.wrong.length, 0);
+    const reworded = entries.reduce((k, e) => k + e.lines.touched.length + e.lines.changed.length, 0);
+    const missing = entries.reduce((k, e) => k + e.lines.missing.length, 0);
+    const added = entries.reduce((k, e) => k + e.added.length, 0);
+    const putBack = entries.reduce((k, e) => k + (e.putBack ?? 0), 0);
+    const notes: string[] = [];
+    const left = lost.get(n);
+    if (left) notes.push(left.reason === "ceiling" ? "past the 40-slide limit" : "could not be rebuilt");
+    if (at.length > 1) notes.push(`text split over ${at.length} slides`);
+    if (entries.some((e) => e.rebuilt)) notes.push("rebuilt by the app in a simpler layout");
+    else if (putBack) notes.push(`${plural(putBack, "line")} put back by the app`);
+    if (wrong) notes.push(`${plural(wrong, "figure")} changed`);
+    if (reworded) notes.push(`${plural(reworded, "line")} reworded`);
+    if (missing) notes.push(`${missing} missing`);
+    if (added) notes.push(`${added} added`);
+    return {
+      n,
+      title: entries[0]?.title || left?.title || "",
+      at,
+      layouts,
+      notes,
+      diffs,
+      lostLines: left?.lines ?? [],
+      red: !!left || wrong > 0,
+    };
+  });
+
+  const noted = rows.filter((r) => r.notes.length > 0);
+  const sourceCount = ns.length;
+  const split = rows.filter((r) => r.at.length > 1).length;
+  const rebuilt = report.slides.filter((s) => s.rebuilt).length;
+  const notIn = rows.filter((r) => !r.at.length).length;
+  const fromContent = rows.reduce((k, r) => k + r.at.length, 0);
+  const summary: string[] = [
+    `${plural(sourceCount, "content slide")} of the source became ${plural(fromContent, "slide")}. Cover, agenda and chapter dividers follow the source's structure.`,
+  ];
+  if (split) summary.push(`${plural(split, "source slide")} had more text than one layout holds, so the text continues on the next slide.`);
+  if (rebuilt) summary.push(`${plural(rebuilt, "slide")} ${rebuilt === 1 ? "was" : "were"} rebuilt by the app from the source, in a simpler layout, because the model's version lost text.`);
+  summary.push(
+    isExact(t)
+      ? `Every figure${t.figures.total ? ` (${t.figures.total})` : ""} and every line of the source is in the deck, word for word.`
+      : `${t.figures.ok} / ${t.figures.total} figures exact, ${pct(t.words.kept, t.words.total)}% of the words kept${t.reworded || t.missing ? `: ${[t.reworded && plural(t.reworded, "line") + " reworded", t.missing && `${t.missing} missing`].filter(Boolean).join(", ")}` : ""}.`,
+  );
+  if (notIn) summary.push(`${plural(notIn, "source slide")} ${notIn === 1 ? "is" : "are"} not in the deck.`);
+  if (report.transcribed) summary.push("The source was read from page images: check the figures against the file.");
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-scrim p-8" onClick={onClose}>
       <div
         role="dialog"
         aria-labelledby="fidelity-title"
-        className="pop-in flex max-h-[88vh] w-full max-w-4xl flex-col overflow-hidden rounded-3xl bg-surface shadow-float"
+        className="pop-in flex max-h-[88vh] w-full max-w-3xl flex-col overflow-hidden rounded-3xl bg-surface shadow-float"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-start justify-between gap-3 border-b border-hairline-light px-7 py-5">
-          <div className="min-w-0">
-            <h2 id="fidelity-title" className="text-xl font-medium text-ink">
-              Changes from the source
-            </h2>
-            <p className="mt-1 text-[13px] leading-relaxed text-ink-muted">
-              Each slide against its source slide. Case, punctuation and number formatting do not count.
-              {report.transcribed && " The source is the model's reading of the page images, so check the figures against the file."}
-            </p>
-          </div>
+        <div className="flex items-center justify-between gap-3 border-b border-hairline-light px-7 py-5">
+          <h2 id="fidelity-title" className="text-xl font-medium text-ink">
+            Replica of the source · <span className="tabular-nums">{fidelityScore(t)}%</span>
+          </h2>
           <Button variant="ghost" iconOnly icon={X} onClick={onClose} title="Close (Esc)" aria-label="Close" className="-mr-2" autoFocus />
         </div>
 
         <div className="min-h-0 flex-1 overflow-y-auto px-7 py-6">
-          <div className="grid grid-cols-4 gap-3">
-            <Stat label="Figures exact" value={t.figures.total ? `${t.figures.ok} / ${t.figures.total}` : "None"} />
-            <Stat label="Text kept" value={`${pct(t.words.kept, t.words.total)}%`} />
-            <Stat label="Lines changed" value={`${t.reworded + t.missing}`} />
-            <Stat label="Text added" value={`${t.added}`} />
+          <ul className="flex list-disc flex-col gap-1.5 pl-5 text-sm leading-relaxed text-ink marker:text-ink-faint">
+            {summary.map((line) => (
+              <li key={line}>{line}</li>
+            ))}
+          </ul>
+
+          <div className="mt-7 flex items-baseline justify-between gap-3 border-b border-hairline-light pb-2">
+            <p className="text-sm font-medium text-ink">{all ? "Slide by slide" : noted.length ? "What changed, slide by slide" : "Nothing changed on any slide"}</p>
+            {noted.length < rows.length && (
+              <button type="button" className="text-[13px] text-ink-muted hover:text-ink" onClick={() => setAll(!all)}>
+                {all ? "Only the changes" : `Show all ${rows.length} slides`}
+              </button>
+            )}
           </div>
-          {restoredLine(report) && (
-            <p className="mt-3 text-[13px] leading-relaxed text-ink-faint">
-              {restoredLine(report)}
-              {report.modelPass &&
-                ` Before that, the model's slides had ${report.modelPass.figures.ok} / ${report.modelPass.figures.total} figures and ${pct(report.modelPass.words.kept, report.modelPass.words.total)}% of the words.`}
-            </p>
-          )}
-          {report.repairs > 0 && first && (
-            <p className="mt-3 text-[13px] leading-relaxed text-ink-faint">
-              {report.repairs} slide{report.repairs === 1 ? " was" : "s were"} written a second time to match the source, {report.repaired} came back
-              closer. First pass: {first.figures.ok} / {first.figures.total} figures, {pct(first.words.kept, first.words.total)}% of the words.
-            </p>
-          )}
-
-          {changed.map(({ s, diffs }) => {
-            const index = locate(s);
-            return (
-              <section key={`${s.n}-${s.at}`} className="mt-7">
-                <div className="flex items-center justify-between gap-4 border-b border-hairline-light pb-2">
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-medium text-ink">
-                      {index >= 0 ? `Slide ${index + 1}` : "Slide removed"} · {s.deckTitle || s.title}
-                    </p>
-                    <p className="text-[13px] text-ink-faint">
-                      Source slide {s.n} · {s.figures.total ? `${s.figures.ok} / ${s.figures.total} figures · ` : ""}
-                      {pct(s.words.kept, s.words.total)}% of the words
-                      {s.rebuilt
-                        ? ` · rebuilt from the source${(s.parts ?? 1) > 1 ? ` over ${s.parts} slides` : ""}`
-                        : s.putBack
-                          ? ` · ${s.putBack} line${s.putBack === 1 ? "" : "s"} put back by the app`
-                          : ""}
-                    </p>
+          <ul>
+            {(all ? rows : noted).map((r) => {
+              const expandable = r.diffs.length > 0 || r.lostLines.length > 0;
+              const open = openRow === r.n;
+              return (
+                <li key={r.n} className="border-b border-hairline-light last:border-b-0">
+                  <div className="flex items-center gap-4 py-2.5">
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm text-ink">
+                        <span className="tabular-nums text-ink-faint">{r.n}.</span> {r.title || "Untitled"}
+                      </p>
+                      <p className="text-[13px] leading-relaxed text-ink-muted">
+                        <span className={r.at.length ? "" : "text-status-red"}>{slideRange(r.at)}</span>
+                        {r.layouts.length > 0 && ` · ${r.layouts.join(", ")}`}
+                        {r.notes.length > 0 ? (
+                          <span className={r.red ? "text-status-red" : ""}> · {r.notes.join(", ")}</span>
+                        ) : (
+                          <span className="text-ink-faint"> · word for word</span>
+                        )}
+                      </p>
+                    </div>
+                    {expandable && (
+                      <Button variant="ghost" icon={open ? ChevronUp : ChevronDown} onClick={() => setOpenRow(open ? null : r.n)} aria-expanded={open}>
+                        Lines
+                      </Button>
+                    )}
+                    {r.at.length > 0 && (
+                      <Button variant="ghost" iconOnly icon={ArrowRight} onClick={() => onGoTo(Math.min(...r.at))} title="Go to slide" aria-label={`Go to ${slideRange(r.at)}`} />
+                    )}
                   </div>
-                  {index >= 0 && (
-                    <Button variant="ghost" iconRight={ArrowRight} onClick={() => onGoTo(index)}>
-                      Go to slide
-                    </Button>
+                  {open && (
+                    <div className="pb-3">
+                      {r.diffs.length > 0 && (
+                        <>
+                          <div className="grid grid-cols-2 gap-x-6 text-[13px] text-ink-faint">
+                            <span>Source</span>
+                            <span>Deck</span>
+                          </div>
+                          <ul>
+                            {r.diffs.map((d, k) => (
+                              <DiffRow key={k} d={d} />
+                            ))}
+                          </ul>
+                        </>
+                      )}
+                      {r.lostLines.length > 0 && (
+                        <ul className="flex flex-col gap-1 text-sm leading-relaxed text-ink">
+                          {r.lostLines.map((line, k) => (
+                            <li key={k} className="break-words">
+                              {line}
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </div>
                   )}
-                </div>
-                <div className="mt-1 grid grid-cols-2 gap-x-6 pt-2 text-[13px] text-ink-faint">
-                  <span>Source</span>
-                  <span>Deck</span>
-                </div>
-                {diffs.length > 0 ? (
-                  <ul>
-                    {diffs.map((d, k) => (
-                      <DiffRow key={k} d={d} />
-                    ))}
-                  </ul>
-                ) : (
-                  <p className="py-3 text-sm leading-relaxed text-ink-muted">Every line and figure of the source is on the slide, word for word.</p>
-                )}
-              </section>
-            );
-          })}
-
-          {report.leftovers.some((l) => l.reason !== "renamed") && (
-            <section className="mt-7">
-              <div className="border-b border-hairline-light pb-2">
-                <p className="text-sm font-medium text-ink">Not replicated</p>
-                <p className="text-[13px] text-ink-faint">Source text that has no slide in the deck.</p>
-              </div>
-              <ul>
-                {report.leftovers
-                  .filter((l) => l.reason !== "renamed")
-                  .map((l) => (
-                    <LeftoverRow key={`${l.n}-${l.reason}`} l={l} />
-                  ))}
-              </ul>
-            </section>
-          )}
-          {report.leftovers.some((l) => l.reason === "renamed") && (
-            <section className="mt-7">
-              <div className="border-b border-hairline-light pb-2">
-                <p className="text-sm font-medium text-ink">Chapter names</p>
-                <p className="text-[13px] text-ink-faint">
-                  Worded differently on another agenda of the source. The deck names each chapter once, as the agenda that opens it does.
-                </p>
-              </div>
-              <ul>
-                {report.leftovers
-                  .filter((l) => l.reason === "renamed")
-                  .map((l) => (
-                    <LeftoverRow key={`${l.n}-${l.reason}`} l={l} />
-                  ))}
-              </ul>
-            </section>
-          )}
+                </li>
+              );
+            })}
+          </ul>
         </div>
       </div>
-    </div>
-  );
-}
-
-function Stat({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-xl bg-canvas-2 px-3 py-2.5">
-      <p className="text-[13px] text-ink-muted">{label}</p>
-      <p className="mt-0.5 text-base font-medium tabular-nums text-ink">{value}</p>
     </div>
   );
 }
@@ -308,42 +334,12 @@ function DiffRow({ d }: { d: Diff }) {
       </p>
       <div className="grid grid-cols-2 gap-x-6 text-sm leading-relaxed">
         <p className="min-w-0 break-words text-ink">
-          {d.kind === "added" ? <Faint>Not in the source</Faint> : <Marked text={source} against={d.kind === "missing" || d.kind === "restored" || !deck ? null : deck} />}
+          {d.kind === "added" ? <Faint>Not in the source</Faint> : <Marked text={source} against={d.kind === "missing" || !deck ? null : deck} />}
         </p>
         <p className="min-w-0 break-words text-ink">
-          {d.kind === "restored" ? <Faint>On the slide, word for word</Faint> : d.kind === "missing" || !deck ? <Faint>Not on the slide</Faint> : <Marked text={deck} against={d.kind === "added" ? null : source} />}
+          {d.kind === "missing" || !deck ? <Faint>Not on the slide</Faint> : <Marked text={deck} against={d.kind === "added" ? null : source} />}
         </p>
       </div>
-    </li>
-  );
-}
-
-function LeftoverRow({ l }: { l: Leftover }) {
-  const why =
-    l.reason === "failed"
-      ? "Could not be rebuilt. Add it with Add slide or generate again."
-      : l.reason === "ceiling"
-        ? "Past the 40-slide limit."
-        : l.reason === "renamed"
-          ? "The same chapter, worded this way on this agenda."
-          : "Not carried by the agenda, the dividers or the closing slide.";
-  return (
-    <li className="border-b border-hairline-light py-3 last:border-b-0">
-      <p className={`mb-1 text-xs font-medium ${l.reason === "structure" || l.reason === "renamed" ? "text-ink-muted" : "text-status-red"}`}>
-        Source slide {l.n}
-        {l.title ? ` · ${l.title}` : ""}
-      </p>
-      <p className="text-[13px] text-ink-faint">{why}</p>
-      {l.lines.length > 0 && (
-        <ul className="mt-1.5 flex flex-col gap-1 text-sm leading-relaxed text-ink">
-          {l.lines.slice(0, 12).map((line, k) => (
-            <li key={k} className="break-words">
-              {line}
-            </li>
-          ))}
-          {l.lines.length > 12 && <li className="text-[13px] text-ink-faint">and {l.lines.length - 12} more lines</li>}
-        </ul>
-      )}
     </li>
   );
 }
