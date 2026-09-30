@@ -60,7 +60,7 @@ function PickerModal({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between border-b border-hairline-light px-7 py-5">
-          <h2 className="text-xl font-medium text-ink">{title}</h2>
+          <h2 className="text-xl font-medium text-ink" data-hj-suppress>{title}</h2>
           <Button
             variant="ghost"
             iconOnly

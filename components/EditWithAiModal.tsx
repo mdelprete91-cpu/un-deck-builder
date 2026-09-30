@@ -67,6 +67,7 @@ export default function EditWithAiModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-scrim p-8" onClick={onClose}>
       <div
+        data-hj-suppress
         role="dialog"
         aria-labelledby="edit-ai-title"
         className="pop-in flex max-h-[88vh] w-full max-w-4xl flex-col overflow-hidden rounded-3xl bg-surface shadow-float"

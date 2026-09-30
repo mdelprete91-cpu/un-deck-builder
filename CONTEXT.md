@@ -116,6 +116,13 @@ and usually `data-fit="<vertical budget in px>"`; every deletable element carrie
 skips them produces a slide the user cannot edit, with no error anywhere. Use the `ed()` and
 `item()` helpers in `layouts/shared.ts`.
 
+**`data-hj-suppress` on deck content.** Hotjar (site 6786608, `app/layout.tsx`, production
+only) records sessions, and people build real decks here. Every surface that shows the user's
+content carries `data-hj-suppress`, so recordings keep clicks and layout but not the words:
+`SlideFrame` (every slide, thumbnail and preview), `PrintRoot`, the deck name, attachment names,
+sheet titles, the resume row, the Edit with AI box, the chart data panel and the fidelity review.
+A new surface that shows deck text needs it too.
+
 **Fit budgets and word limits are one system.** The `data-fit` value in a renderer and the
 `<=N words` limit in `catalog.ts` were tuned together so that text at the catalog limit still
 renders at full size. Change one and you have to re-check the other, or slides start shrinking

@@ -664,8 +664,10 @@ export default function SlideFrame({
   const scale = fit > 0 ? (frameClassName ? fit : fit + 2 / size.w) : 0;
 
   return (
+    // data-hj-suppress: Hotjar records the page, not the deck's words.
     <div
       ref={containerRef}
+      data-hj-suppress
       className={`relative ${frameClassName ? "" : "overflow-hidden "}${className ?? ""}`}
     >
       <div

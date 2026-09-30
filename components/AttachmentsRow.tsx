@@ -32,7 +32,7 @@ export default function AttachmentsRow({
           className="group inline-flex h-7 max-w-full items-center gap-1.5 rounded-full bg-giga-tint pl-2 pr-1 text-xs font-medium text-giga"
         >
           <FileGlyph attachment={a} />
-          <span className="max-w-[150px] truncate">{a.name}</span>
+          <span className="max-w-[150px] truncate" data-hj-suppress>{a.name}</span>
           <span className="text-[10px] font-normal text-ink-muted">
             {a.kind === "text" && a.textOnly ? "text only" : formatBytes(a.bytes)}
           </span>

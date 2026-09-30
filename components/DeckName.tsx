@@ -58,7 +58,7 @@ export default function DeckName({ name, onRename }: { name: string; onRename: (
       aria-label={`Deck name: ${name}. Rename`}
       className="group flex h-9 min-w-0 max-w-[340px] items-center gap-2 rounded-lg px-2.5 text-base font-medium text-ink transition-colors hover:bg-mist focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-giga/30"
     >
-      <span className="truncate">{name}</span>
+      <span className="truncate" data-hj-suppress>{name}</span>
       <Pencil size={14} className="shrink-0 text-ink-faint transition-colors group-hover:text-ink" aria-hidden />
     </button>
   );

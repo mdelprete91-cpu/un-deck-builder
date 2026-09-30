@@ -100,7 +100,7 @@ export default function SheetWizard({
         <div className="flex items-center justify-between gap-3 px-6 pt-5">
           <h2 id="sheet-wizard-title" className="flex min-w-0 items-center gap-2 text-xl font-medium text-ink">
             <Glyph size={18} className="shrink-0 text-giga" aria-hidden />
-            <span className="truncate">{s.title}</span>
+            <span className="truncate" data-hj-suppress>{s.title}</span>
           </h2>
           <Button variant="ghost" iconOnly icon={X} onClick={onClose} title="Close (Esc)" aria-label="Close" className="-mr-2" />
         </div>

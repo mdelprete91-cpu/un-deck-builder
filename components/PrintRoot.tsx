@@ -26,7 +26,7 @@ export default function PrintRoot({ slides, theme }: { slides: Slide[]; theme: B
   }, [slides, theme]);
 
   return (
-    <div id="print-root" ref={rootRef}>
+    <div id="print-root" ref={rootRef} data-hj-suppress>
       {slides.map((slide, i) => (
         <div
           key={slide.id}

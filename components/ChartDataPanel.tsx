@@ -115,6 +115,7 @@ export default function ChartDataPanel({ slide, theme, onChange, onClose }: Char
 
   return (
     <div
+      data-hj-suppress
       className={`absolute right-8 top-16 z-20 flex max-h-[calc(100%-6rem)] flex-col rounded-2xl border border-hairline bg-surface p-4 shadow-stripe-lg ${multi ? "w-[30rem]" : "w-80"}`}
     >
       <div className="mb-3 flex items-center justify-between">

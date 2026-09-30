@@ -1748,7 +1748,7 @@ function EmptyState({
               <History size={16} className="shrink-0 text-ink-faint" aria-hidden />
               {/* The icon says "last session"; the row says which deck. */}
               <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-medium text-ink">
+                <p className="truncate text-sm font-medium text-ink" data-hj-suppress>
                   {title ? `“${title}”` : "Untitled deck"}
                   <span className="font-normal text-ink-muted">
                     {" "}

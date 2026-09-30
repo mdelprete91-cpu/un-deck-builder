@@ -219,6 +219,7 @@ function FidelityReview({
       <div
         role="dialog"
         aria-labelledby="fidelity-title"
+        data-hj-suppress
         className="pop-in flex max-h-[88vh] w-full max-w-3xl flex-col overflow-hidden rounded-3xl bg-surface shadow-float"
         onClick={(e) => e.stopPropagation()}
       >
