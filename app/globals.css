@@ -142,6 +142,11 @@
 }
 .gen-pill > * { position: relative; }
 
+/* The empty stage's skeleton row (components/SkeletonDrift.tsx) fades out
+   at both sides, so the side slides melt into the stage. */
+.skeleton-window {
+  mask-image: linear-gradient(to right, transparent 4%, #000 20%, #000 80%, transparent 96%);
+}
 /* The headline and line under it settle in after the column, 80ms apart. */
 @keyframes emptyIn {
   from { opacity: 0; transform: translateY(8px); }

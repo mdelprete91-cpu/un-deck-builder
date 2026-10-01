@@ -4,23 +4,23 @@ import { useEffect, useState, type ReactNode } from "react";
 
 /**
  * The empty stage's one picture (Mario, 1 Oct 2026): slide skeletons in a
- * Cover Flow row, as in old iTunes. The slide in the middle is larger and
- * faces you; the ones beside it are smaller, turned a little towards the
- * middle and fading out. Every few seconds the row steps one place to the
- * right. Grey shapes only, no words: it says "slides come here" without
- * competing with the headline. A row, not a column, so the headline stays
- * near the middle of the stage. Still under reduced motion.
+ * Cover Flow row, as in old iTunes, three in view. The slide in the middle is
+ * larger and faces you; the two beside it are smaller, turned a little towards
+ * the middle and veiled, and the row fades out at both sides. Every few
+ * seconds the row steps one place to the right. Grey shapes only, no words:
+ * it says "slides come here" without competing with the headline. Still
+ * under reduced motion.
  */
 const CARDS = [Cover, Bullets, Chart, Columns, Cover, Bullets, Chart];
-const STEP_MS = 2600;
+const STEP_MS = 4200;
+const EASE = "1200ms cubic-bezier(0.65, 0, 0.35, 1)";
 /**
- * The row is an arc, a smile: the cards sit on a circle whose centre is above
- * the stage, so the middle one is lowest and the others rise and tilt with the
- * curve. RADIUS and ANGLE put card centres about 150px apart, less than a
- * card's width, so they overlap.
+ * Pixels between card centres. More than the middle card's half width plus a
+ * side card's (112 + 88), so no two cards touch even mid-step, when one
+ * grows and the other shrinks: the card coming to the middle never slides
+ * over the one leaving it.
  */
-const RADIUS = 950;
-const ANGLE = 9;
+const SPACING = 236;
 
 export default function SkeletonDrift() {
   const [step, setStep] = useState(0);
@@ -33,42 +33,38 @@ export default function SkeletonDrift() {
   const n = CARDS.length;
   const half = Math.floor(n / 2);
   return (
-    <div aria-hidden className="relative h-[190px] w-[640px] max-w-full [perspective:900px]">
+    // The fade sits on a wrapper, the perspective on the row inside it: on one
+    // element together Chrome draws the masked 3D cards in vertical stripes.
+    <div aria-hidden className="skeleton-window h-[150px] w-[720px] max-w-full">
+    <div className="relative h-full w-full [perspective:900px]">
       {CARDS.map((Card, i) => {
         // Place in the row, -half..half; growing step moves every card right.
         const pos = ((((i + step) % n) + n) % n) - half;
         const prev = ((((i + step - 1) % n) + n) % n) - half;
         const d = Math.abs(pos);
-        const scale = d === 0 ? 1.12 : d === 1 ? 0.88 : 0.76;
+        const scale = d === 0 ? 1.12 : 0.88;
         const turn = pos === 0 ? 0 : pos < 0 ? 18 : -18;
-        const a = pos * ANGLE;
-        const rad = (a * Math.PI) / 180;
-        const x = RADIUS * Math.sin(rad);
-        const y = -RADIUS * (1 - Math.cos(rad));
         return (
           <div
             key={i}
-            className="absolute left-1/2 top-[62%]"
+            className="absolute left-1/2 top-1/2"
             style={{
-              transform: `translate(-50%, -50%) translate(${x}px, ${y}px) rotate(${-a}deg) rotateY(${turn}deg) scale(${scale})`,
-              // Only the cards past the ends vanish; the others stay opaque and
-              // fade under a veil in the stage colour, so overlaps never show through.
-              opacity: d > 2 ? 0 : 1,
-              zIndex: 10 - d,
+              transform: `translate(-50%, -50%) translateX(${pos * SPACING}px) rotateY(${turn}deg) scale(${scale})`,
+              // Three in view: the rest fade out past the ends.
+              opacity: d > 1 ? 0 : 1,
               // The card that wraps from the right end to the left one jumps unseen.
-              transition: prev === half && pos === -half ? "none" : "transform 700ms cubic-bezier(0.65, 0, 0.35, 1), opacity 700ms cubic-bezier(0.65, 0, 0.35, 1)",
+              transition: prev === half && pos === -half ? "none" : `transform ${EASE}, opacity ${EASE}`,
             }}
           >
             <div className="relative">
               <Card />
-              <div
-                className="absolute inset-0 rounded-xl bg-surface"
-                style={{ opacity: d === 0 ? 0 : d === 1 ? 0.35 : 0.7, transition: "opacity 700ms cubic-bezier(0.65, 0, 0.35, 1)" }}
-              />
+              {/* The side cards sit under a veil in the stage colour: dimmer, never see-through. */}
+              <div className="absolute inset-0 rounded-xl bg-surface" style={{ opacity: d === 0 ? 0 : 0.45, transition: `opacity ${EASE}` }} />
             </div>
           </div>
         );
       })}
+    </div>
     </div>
   );
 }
