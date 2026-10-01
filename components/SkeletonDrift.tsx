@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useState, type CSSProperties, type ReactNode } from "react";
 
 /**
  * The empty stage's one picture (Mario, 1 Oct 2026): slide skeletons in a
  * Cover Flow row, as in old iTunes, three in view. The slide in the middle is
- * larger, faces you and shimmers like a loading skeleton; the two beside it are smaller, turned a little towards
+ * larger, faces you and builds its shapes in as it arrives (the card coming
+ * from the left is empty, the one leaving to the right keeps them); the two beside it are smaller, turned a little towards
  * the middle and veiled, and the row fades out at both sides. Every few
  * seconds the row steps one place to the right. Grey shapes only, no words:
  * it says "slides come here" without competing with the headline. Still
@@ -56,8 +57,10 @@ export default function SkeletonDrift() {
               transition: prev === half && pos === -half ? "none" : `transform ${EASE}, opacity ${EASE}`,
             }}
           >
-            {/* Only the middle card shimmers, like a slide being written; the others stay still. */}
-            <div className={`relative ${d === 0 ? "skeleton-live" : ""}`}>
+            {/* A slide is written as it reaches the middle: the cards coming from the
+                left are empty, the middle one builds its shapes in, the ones leaving
+                to the right keep them. */}
+            <div className={`relative ${pos < 0 ? "sk-empty" : pos === 0 ? "sk-build" : ""}`}>
               <Card />
               {/* The side cards sit under a veil in the stage colour: dimmer, never see-through. */}
               <div className="absolute inset-0 rounded-xl bg-surface" style={{ opacity: d === 0 ? 0 : 0.45, transition: `opacity ${EASE}` }} />
@@ -74,15 +77,18 @@ function Frame({ children }: { children: ReactNode }) {
   return <div className="aspect-video w-[200px] shrink-0 rounded-xl border border-hairline-light bg-canvas-2 p-3.5 shadow-float">{children}</div>;
 }
 
-const Bar = ({ className = "" }: { className?: string }) => <div className={`sk rounded-full ${className}`} />;
+/** The build order of a shape inside its card, for the stagger. */
+const at = (i: number) => ({ "--i": i }) as CSSProperties;
+
+const Bar = ({ className = "", i }: { className?: string; i: number }) => <div className={`sk rounded-full ${className}`} style={at(i)} />;
 
 function Cover() {
   return (
     <Frame>
       <div className="flex h-full flex-col justify-end gap-2">
-        <Bar className="h-3 w-3/4" />
-        <Bar className="h-3 w-1/2" />
-        <Bar className="mt-1 h-2 w-1/3" />
+        <Bar i={0} className="h-3 w-3/4" />
+        <Bar i={1} className="h-3 w-1/2" />
+        <Bar i={2} className="mt-1 h-2 w-1/3" />
       </div>
     </Frame>
   );
@@ -91,12 +97,12 @@ function Cover() {
 function Bullets() {
   return (
     <Frame>
-      <Bar className="h-2.5 w-1/2" />
+      <Bar i={0} className="h-2.5 w-1/2" />
       <div className="mt-4 flex flex-col gap-2.5">
-        {["w-4/5", "w-2/3", "w-3/4"].map((w) => (
+        {["w-4/5", "w-2/3", "w-3/4"].map((w, k) => (
           <div key={w} className="flex items-center gap-2">
-            <div className="sk size-1.5 shrink-0 rounded-full" />
-            <Bar className={`h-2 ${w}`} />
+            <div className="sk sk-dot size-1.5 shrink-0 rounded-full" style={at(k + 1)} />
+            <Bar i={k + 1} className={`h-2 ${w}`} />
           </div>
         ))}
       </div>
@@ -108,10 +114,10 @@ function Chart() {
   return (
     <Frame>
       <div className="flex h-full flex-col">
-        <Bar className="h-2.5 w-2/5" />
+        <Bar i={0} className="h-2.5 w-2/5" />
         <div className="mt-3 flex flex-1 items-end gap-2.5">
-          {["h-[35%]", "h-[60%]", "h-[45%]", "h-[85%]", "h-[70%]"].map((h) => (
-            <div key={h} className={`sk flex-1 rounded-t-md ${h}`} />
+          {["h-[35%]", "h-[60%]", "h-[45%]", "h-[85%]", "h-[70%]"].map((h, k) => (
+            <div key={h} className={`sk sk-col flex-1 rounded-t-md ${h}`} style={at(k + 1)} />
           ))}
         </div>
       </div>
@@ -122,13 +128,13 @@ function Chart() {
 function Columns() {
   return (
     <Frame>
-      <Bar className="h-2.5 w-1/3" />
+      <Bar i={0} className="h-2.5 w-1/3" />
       <div className="mt-4 grid grid-cols-3 gap-2.5">
-        {[0, 1, 2].map((i) => (
-          <div key={i} className="flex flex-col gap-1.5">
-            <Bar className="h-2 w-3/4" />
-            <Bar className="h-1.5 w-full" />
-            <Bar className="h-1.5 w-5/6" />
+        {[0, 1, 2].map((k) => (
+          <div key={k} className="flex flex-col gap-1.5">
+            <Bar i={k + 1} className="h-2 w-3/4" />
+            <Bar i={k + 2} className="h-1.5 w-full" />
+            <Bar i={k + 3} className="h-1.5 w-5/6" />
           </div>
         ))}
       </div>

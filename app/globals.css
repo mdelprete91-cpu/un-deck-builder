@@ -147,13 +147,14 @@
 .skeleton-window {
   mask-image: linear-gradient(to right, transparent 4%, #000 20%, #000 80%, transparent 96%);
 }
-/* Skeleton shapes in Mist; on the middle card (.skeleton-live) a fainter band
-   sweeps across them every 1.6s, the usual loading shimmer. */
+/* Skeleton shapes in Mist. A card coming from the left is empty; the middle
+   one builds its shapes in as it lands (.sk-build, staggered by --i): lines
+   grow from the left, chart columns from the baseline, dots pop. */
 .sk { background: var(--color-mist); }
-@keyframes skShimmer {
-  from { background-position: 100% 0; }
-  to { background-position: -100% 0; }
-}
+.sk-empty .sk { opacity: 0; }
+@keyframes skGrowX { from { opacity: 0; transform: scaleX(0); } to { opacity: 1; transform: none; } }
+@keyframes skGrowY { from { opacity: 0; transform: scaleY(0); } to { opacity: 1; transform: none; } }
+@keyframes skPop { from { opacity: 0; transform: scale(0); } to { opacity: 1; transform: none; } }
 /* The headline and line under it settle in after the column, 80ms apart. */
 @keyframes emptyIn {
   from { opacity: 0; transform: translateY(8px); }
@@ -162,11 +163,13 @@
 
 @media (prefers-reduced-motion: no-preference) {
   .gen-pill::before { animation: genGlow 8s linear infinite, genBreathe 3s ease-in-out infinite; }
-  .skeleton-live .sk {
-    background: linear-gradient(90deg, var(--color-mist) 30%, color-mix(in srgb, var(--color-mist) 25%, transparent) 50%, var(--color-mist) 70%);
-    background-size: 200% 100%;
-    animation: skShimmer 1.6s linear infinite;
+  .sk-build .sk {
+    transform-origin: left center;
+    animation: skGrowX 600ms cubic-bezier(0.16, 1, 0.3, 1) both;
+    animation-delay: calc(500ms + var(--i, 0) * 90ms);
   }
+  .sk-build .sk-col { transform-origin: center bottom; animation-name: skGrowY; }
+  .sk-build .sk-dot { transform-origin: center; animation-name: skPop; }
   .empty-in { animation: emptyIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) both; animation-delay: calc(var(--i, 0) * 80ms); }
   .float-in { animation: floatIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) both; }
   .pop-in { animation: popIn 0.18s cubic-bezier(0.16, 1, 0.3, 1) both; }
