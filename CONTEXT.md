@@ -374,7 +374,8 @@ or a drop on the box. They exist to give the model the facts; they are **not** d
   next to the whole brief). `onGenerate` in `app/page.tsx` builds a queue of subjects still to ask
   (readable attachments without `asked`, plus `"brief"` when there is no file and the brief is under
   `SHORT_BRIEF_WORDS`, plus `"length"` last when `countFromBrief` finds no count, the piece is not a
-  two-pager and no attached deck is set to Replicate), starts their analyses and opens
+  two-pager, no attached deck is set to Replicate and the brief is not a series (`seriesFromBrief`,
+  "one slide per objective": its list sets the length, and a picked count would read as items)), starts their analyses and opens
   `components/SheetWizard.tsx` on the first. `"length"` (Mario, 1 Oct 2026: most briefs name no
   length) is a fixed question, `lengthAnalysis` in `sheet-questions.ts`: 5, 8, 10, 12 or 15 slides,
   or "Let the builder decide"; `lengthOf` turns the answer into the `count` `runGenerate` sends when

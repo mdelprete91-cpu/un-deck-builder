@@ -575,8 +575,12 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
     const words = brief.trim().split(/\s+/).filter(Boolean).length;
     const briefAlone = attachments.length === 0 && !twoPager && words > 0 && words < SHORT_BRIEF_WORDS;
     if (briefAlone && !(briefQ?.brief === brief && briefQ.asked)) queue.push("brief");
-    // No length in the brief: ask for one, last (a replica keeps its source's length).
-    const askLength = !twoPager && countFromBrief(brief) === undefined && !replicaChosen() && !(lengthQ?.brief === brief && lengthQ.asked);
+    // No length in the brief: ask for one, last. Not for a replica (it keeps
+    // its source's length), nor for "one slide per objective": the brief's
+    // list sets the length, and a picked 12 over 6 objectives read as 12
+    // items and still came back as 8 slides (1 Oct 2026).
+    const askLength =
+      !twoPager && countFromBrief(brief) === undefined && !seriesFromBrief(brief) && !replicaChosen() && !(lengthQ?.brief === brief && lengthQ.asked);
     // A file already read and found clear has nothing to ask.
     const toAsk = queue.filter((id) => {
       if (id === "brief") return !(briefQ?.brief === brief && briefQ.analysis?.questions.length === 0);
