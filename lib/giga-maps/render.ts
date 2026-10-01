@@ -53,6 +53,16 @@ export async function getGigaMapCountry(code: string): Promise<GigaMapCountry> {
 /*  Map creation                                                       */
 /* ------------------------------------------------------------------ */
 
+/**
+ * Where a render stands, for the panel's waiting state: the basemap style,
+ * then the facility tiles (done of total requested so far; the total grows
+ * as the map asks for more), then the image export.
+ */
+export type GigaMapProgress =
+  | { stage: 'basemap' }
+  | { stage: 'facilities'; done: number; total: number }
+  | { stage: 'image' }
+
 export type GigaMapOptions = {
   container: HTMLElement
   country: GigaMapCountry
@@ -60,6 +70,7 @@ export type GigaMapOptions = {
   layer: DataLayer
   pixelRatio?: number
   interactive?: boolean
+  onProgress?: (p: GigaMapProgress) => void
 }
 
 function tileUrl(layer: DataLayer, countryId: number) {
@@ -229,7 +240,8 @@ export function waitForIdle(map: MapLibreMap, timeoutMs = IDLE_TIMEOUT_MS): Prom
 }
 
 export function createGigaMap(opts: GigaMapOptions): Promise<MapLibreMap> {
-  const { container, country, theme, layer, pixelRatio = 1, interactive = false } = opts
+  const { container, country, theme, layer, pixelRatio = 1, interactive = false, onProgress } = opts
+  onProgress?.({ stage: 'basemap' })
 
   return new Promise((resolve, reject) => {
     let map: MapLibreMap
@@ -272,6 +284,36 @@ export function createGigaMap(opts: GigaMapOptions): Promise<MapLibreMap> {
 
     map.once('load', () => {
       cleanBasemap(map, theme)
+      if (onProgress) {
+        // Count the facility tiles as the map asks for them and as they land,
+        // each once by its key ('data' fires more than once per tile, and a
+        // tile that fails or comes back empty still counts as done).
+        const asked = new Set<string>()
+        const landed = new Set<string>()
+        const report = () => onProgress({ stage: 'facilities', done: landed.size, total: asked.size })
+        const dotsTile = (e: unknown) => {
+          const ev = e as { sourceId?: string; tile?: { tileID?: { key?: string } } }
+          return ev.sourceId === DOTS_SOURCE ? (ev.tile?.tileID?.key ?? null) : null
+        }
+        map.on('dataloading', (e) => {
+          const key = dotsTile(e)
+          if (key && !asked.has(key)) {
+            asked.add(key)
+            report()
+          }
+        })
+        const land = (e: unknown) => {
+          const key = dotsTile(e)
+          if (key && !landed.has(key)) {
+            landed.add(key)
+            asked.add(key)
+            report()
+          }
+        }
+        map.on('data', land)
+        map.on('error', land)
+        report()
+      }
       setGigaDataLayer(map, layer, country.id)
       resolve(map)
     })
@@ -340,6 +382,7 @@ export async function renderGigaMapBlob(opts: {
   height?: number
   scale?: 1 | 2
   format?: ExportFormat
+  onProgress?: (p: GigaMapProgress) => void
 }): Promise<Blob> {
   const width = opts.width ?? STAGE_WIDTH
   const height = opts.height ?? STAGE_HEIGHT
@@ -356,7 +399,10 @@ export async function renderGigaMapBlob(opts: {
       theme: opts.theme,
       layer: opts.layer,
       pixelRatio: scale,
+      onProgress: opts.onProgress,
     })
+    await waitForIdle(map)
+    opts.onProgress?.({ stage: 'image' })
     return await exportGigaMapPng(map, scale, opts.format)
   } finally {
     map?.remove()
@@ -376,6 +422,7 @@ export async function renderGigaMapDataUrl(opts: {
   layer: DataLayer
   width: number
   height: number
+  onProgress?: (p: GigaMapProgress) => void
 }): Promise<string> {
   const blob = await renderGigaMapBlob({ ...opts, scale: 1, format: { type: 'image/jpeg', quality: 0.85 } })
   return new Promise((resolve, reject) => {

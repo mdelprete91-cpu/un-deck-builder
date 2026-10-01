@@ -4,7 +4,7 @@ import { ChevronDown } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { DataLayer, GigaMapCountry, MapTheme } from "@/lib/giga-maps/config";
 import { CONNECTIVITY_LEGEND } from "@/lib/giga-maps/config";
-import { fetchGigaMapCountries, renderGigaMapDataUrl } from "@/lib/giga-maps/render";
+import { fetchGigaMapCountries, renderGigaMapDataUrl, type GigaMapProgress } from "@/lib/giga-maps/render";
 import type { MapSlot } from "@/lib/giga-maps/slot";
 import Button from "@/components/Button";
 import Select from "@/components/Select";
@@ -47,6 +47,11 @@ export default function LiveMapPanel({
   const [preview, setPreview] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [progress, setProgress] = useState<GigaMapProgress | null>(null);
+  // A render still going after a few seconds says why (big countries).
+  const [slow, setSlow] = useState(false);
+  // Seconds since the render started, ticking while it runs (drives the bar's creep).
+  const [elapsed, setElapsed] = useState(0);
   const renderToken = useRef(0);
   const pickerRef = useRef<HTMLDivElement>(null);
 
@@ -71,15 +76,29 @@ export default function LiveMapPanel({
   useEffect(() => {
     if (!country) return;
     const token = ++renderToken.current;
+    let slowTimer = 0;
     const timer = window.setTimeout(() => {
       setBusy(true);
       setError(null);
+      setProgress({ stage: "basemap" });
+      setSlow(false);
+      setElapsed(0);
+      const started = Date.now();
+      slowTimer = window.setInterval(() => {
+        if (renderToken.current !== token) return;
+        const secs = (Date.now() - started) / 1000;
+        setElapsed(secs);
+        if (secs >= 6) setSlow(true);
+      }, 500);
       renderGigaMapDataUrl({
         countryCode: country.code,
         layer,
         theme,
         width: slot.width,
         height: slot.height,
+        onProgress: (p) => {
+          if (renderToken.current === token) setProgress(p);
+        },
       })
         .then((dataUrl) => {
           if (renderToken.current !== token) return;
@@ -91,10 +110,18 @@ export default function LiveMapPanel({
           setError(err instanceof Error ? err.message : "The map could not be rendered");
         })
         .finally(() => {
-          if (renderToken.current === token) setBusy(false);
+          window.clearInterval(slowTimer);
+          if (renderToken.current === token) {
+            setBusy(false);
+            setProgress(null);
+            setSlow(false);
+          }
         });
     }, 250);
-    return () => window.clearTimeout(timer);
+    return () => {
+      window.clearTimeout(timer);
+      window.clearInterval(slowTimer);
+    };
   }, [country, layer, theme, slot.width, slot.height]);
 
   // Close the country list on an outside click.
@@ -140,9 +167,39 @@ export default function LiveMapPanel({
         ? "Loading countries…"
         : nothingToPlot
           ? "Nothing to plot for this choice yet"
-          : busy || !preview
-            ? `Rendering ${country.name}…`
-            : `${fmt(country.schoolsTotal)} schools${country.healthTotal ? ` · ${fmt(country.healthTotal)} health centers` : ""}`;
+          : `${fmt(country.schoolsTotal)} schools${country.healthTotal ? ` · ${fmt(country.healthTotal)} health centers` : ""}`;
+
+  // What the render is doing, in words, while the preview waits: the stage,
+  // with the number of facilities, and a bar for the facility tiles.
+  const plotted = !country
+    ? 0
+    : layer === "school"
+      ? country.schoolsTotal
+      : layer === "health"
+        ? country.healthTotal
+        : country.schoolsTotal + country.healthTotal;
+  const noun = layer === "school" ? "schools" : layer === "health" ? "health centers" : "facilities";
+  const stageText = !progress
+    ? `Preparing the map of ${country?.name ?? "the country"}`
+    : progress.stage === "basemap"
+      ? `Loading the map of ${country?.name ?? "the country"}`
+      : progress.stage === "facilities"
+        ? plotted
+          ? `Placing ${fmt(plotted)} ${noun} on the map`
+          : `Placing the ${noun} on the map`
+        : "Preparing the image";
+  // Basemap 0–15%, facilities 15–90% by tiles landed, image 90–100%. The
+  // facility tiles come from a slow backend on a first visit, so while they
+  // wait the bar also creeps on with time (never past 88%) and never looks stuck.
+  const tiles = progress?.stage === "facilities" && progress.total ? progress.done / progress.total : 0;
+  const creep = 1 - Math.exp(-elapsed / 12);
+  const percent = !progress
+    ? 0
+    : progress.stage === "basemap"
+      ? 8
+      : progress.stage === "facilities"
+        ? 15 + Math.round(Math.max(tiles, Math.min(creep, 0.97)) * 73)
+        : 95;
 
   return (
     <div className="flex flex-col">
@@ -246,7 +303,17 @@ export default function LiveMapPanel({
                 style={{ aspectRatio: `${slot.width} / ${slot.height}` }}
               />
             ) : (
-              <div className="max-h-full w-3/4 rounded-xl bg-mist motion-safe:animate-pulse" style={{ aspectRatio: `${slot.width} / ${slot.height}` }} aria-hidden />
+              <div className="relative flex max-h-full w-3/4 items-center justify-center rounded-xl bg-mist" style={{ aspectRatio: `${slot.width} / ${slot.height}` }}>
+                {busy && (
+                  <div className="flex w-3/4 max-w-xs flex-col items-center gap-2.5 text-center" aria-live="polite">
+                    <p className="text-sm font-medium text-ink">{stageText}…</p>
+                    <div className="h-1 w-full overflow-hidden rounded-full bg-mist" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={percent}>
+                      <div className="h-full rounded-full bg-giga transition-[width] duration-500 ease-out" style={{ width: `${percent}%` }} />
+                    </div>
+                    <p className="min-h-4 text-xs text-ink-muted">{slow ? "Large countries take a few seconds more." : ""}</p>
+                  </div>
+                )}
+              </div>
             )}
             {preview && !busy && (
               <div className="absolute bottom-3 left-3 flex gap-1.5">
@@ -263,7 +330,7 @@ export default function LiveMapPanel({
             )}
             {preview && busy && (
               <span className="absolute right-3 top-3 rounded-full bg-surface px-2.5 py-1 text-xs font-medium text-ink shadow-stripe">
-                Updating…
+                {stageText}…
               </span>
             )}
           </div>

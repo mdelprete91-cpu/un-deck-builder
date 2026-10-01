@@ -1160,6 +1160,12 @@ dark or light basemap; no place names, no roads, only national borders) and inse
 - **Tiles go through `app/api/giga-maps/tiles`** because the Giga backend sends no CORS headers; the
   route sends no `Accept` header on purpose (the backend answers 406 otherwise). `countries` proxies
   the v2 country list with school and health center counts.
+- **The wait says what is happening.** `renderGigaMapDataUrl` takes `onProgress` (basemap, then
+  facility tiles counted once each by key, done of asked, then the image); the preview frame shows
+  "Loading the map of Brazil…", "Placing 162,741 schools on the map…", "Preparing the image…" over
+  a Giga Blue bar (facility tiles move it, and it also creeps with time, never past 88%, since the
+  Giga backend can take 30s on a first visit), and after 6s "Large countries take a few seconds
+  more." The line under the settings keeps the facility counts.
 - **The dark basemap wears maps.giga.global's colours.** OpenFreeMap's dark style is near black
   with grey water and faint borders; `cleanBasemap` repaints it with `GIGAMAPS_DARK` (config.ts:
   land #1c1c1c, water #1a2a3c, borders #7d7d7d, read from the site's Mapbox style), so a map in a
