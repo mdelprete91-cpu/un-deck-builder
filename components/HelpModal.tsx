@@ -23,7 +23,7 @@ import editChapters from "@/public/help/edit.chapters.json";
  */
 const VIDEOS = [
   { id: "create", title: "Create a deck", chapters: createChapters, duration: 97 },
-  { id: "edit", title: "Edit your slides", chapters: editChapters, duration: 71 },
+  { id: "edit", title: "Edit your slides", chapters: editChapters, duration: 75 },
 ] as const;
 type VideoId = (typeof VIDEOS)[number]["id"];
 
