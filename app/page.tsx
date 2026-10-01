@@ -22,6 +22,7 @@ import { parseDeckFile } from "@/lib/slides/deck-file";
 import { computeLogoTone, FULL_BLEED_TONE, RIGHT_PANEL_TONE, type ToneGeometry } from "@/lib/slides/logo-tone";
 import { ICON_LIBRARY, ICON_NAMES } from "@/lib/slides/icons";
 import Button, { ICON_SIZE } from "@/components/Button";
+import SkeletonDrift from "@/components/SkeletonDrift";
 import Sidebar from "@/components/Sidebar";
 import SlideFrame, { readImageFile } from "@/components/SlideFrame";
 import ChartDataPanel from "@/components/ChartDataPanel";
@@ -1739,9 +1740,14 @@ function EmptyState({
     <div className="flex flex-1 flex-col items-center justify-center gap-4">
       {
         <>
-          <h1 className="text-3xl font-medium tracking-tight text-ink">What deck are we making?</h1>
-          <p className="max-w-md text-center text-base leading-relaxed text-ink-muted">
-            Describe it on the left. Slides land here, ready to edit.
+          <div className="empty-in mb-4">
+            <SkeletonDrift />
+          </div>
+          <h1 className="empty-in text-3xl font-medium tracking-tight text-ink" style={{ "--i": 1 } as React.CSSProperties}>
+            Start with a brief
+          </h1>
+          <p className="empty-in max-w-lg text-balance text-center text-base leading-relaxed text-ink-muted" style={{ "--i": 2 } as React.CSSProperties}>
+            Describe the deck on the left, or attach a document to work from. Slides appear here, ready to edit.
           </p>
           {/* The editor no longer restores the last deck on its own, so the
               deck is offered here instead of appearing under the user. */}
