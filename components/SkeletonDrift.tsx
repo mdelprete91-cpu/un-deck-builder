@@ -23,12 +23,57 @@ const EASE = "1200ms cubic-bezier(0.65, 0, 0.35, 1)";
  */
 const SPACING = 212;
 
+/**
+ * The row runs on the clock, not on a counter: its place is the time since a
+ * start kept in the tab's session, so switching tabs or reloading picks it up
+ * where it was instead of starting over (Mario, 1 Oct 2026).
+ */
+const EPOCH_KEY = "giga-deck:skeleton-epoch";
+
+function sessionEpoch(): { epoch: number; resumed: boolean } {
+  try {
+    const saved = Number(sessionStorage.getItem(EPOCH_KEY));
+    if (saved > 0) return { epoch: saved, resumed: true };
+    const now = Date.now();
+    sessionStorage.setItem(EPOCH_KEY, String(now));
+    return { epoch: now, resumed: false };
+  } catch {
+    return { epoch: Date.now(), resumed: false };
+  }
+}
+
 export default function SkeletonDrift() {
-  const [step, setStep] = useState(0);
+  // null until the clock is read on the client, so the server render and the
+  // first client render agree; the row is hidden for that one frame.
+  const [step, setStep] = useState<number | null>(null);
+  // A jump (a reload, or a tab that was in the background) lands in place:
+  // no slide across, no build-in, the middle card already written.
+  const [instant, setInstant] = useState(true);
   useEffect(() => {
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-    const id = window.setInterval(() => setStep((s) => s + 1), STEP_MS);
-    return () => window.clearInterval(id);
+    const { epoch, resumed } = sessionEpoch();
+    const still = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const now = () => Math.floor((Date.now() - epoch) / STEP_MS);
+    let last = now();
+    // First placement on the next frame, as any later tick would be.
+    const first = requestAnimationFrame(() => {
+      setStep(still ? 0 : last);
+      setInstant(resumed);
+    });
+    if (still) return () => cancelAnimationFrame(first);
+    const tick = () => {
+      const s = now();
+      if (s === last) return;
+      setInstant(s - last > 1);
+      setStep(s);
+      last = s;
+    };
+    const id = window.setInterval(tick, 250);
+    document.addEventListener("visibilitychange", tick);
+    return () => {
+      cancelAnimationFrame(first);
+      window.clearInterval(id);
+      document.removeEventListener("visibilitychange", tick);
+    };
   }, []);
 
   const n = CARDS.length;
@@ -36,12 +81,13 @@ export default function SkeletonDrift() {
   return (
     // The fade sits on a wrapper, the perspective on the row inside it: on one
     // element together Chrome draws the masked 3D cards in vertical stripes.
-    <div aria-hidden className="skeleton-window h-[150px] w-[720px] max-w-full">
+    <div aria-hidden className="skeleton-window h-[150px] w-[720px] max-w-full" style={{ visibility: step === null ? "hidden" : undefined }}>
     <div className="relative h-full w-full [perspective:900px]">
       {CARDS.map((Card, i) => {
         // Place in the row, -half..half; growing step moves every card right.
-        const pos = ((((i + step) % n) + n) % n) - half;
-        const prev = ((((i + step - 1) % n) + n) % n) - half;
+        const at = step ?? 0;
+        const pos = ((((i + at) % n) + n) % n) - half;
+        const prev = ((((i + at - 1) % n) + n) % n) - half;
         const d = Math.abs(pos);
         const scale = d === 0 ? 1.12 : 0.88;
         const turn = pos === 0 ? 0 : pos < 0 ? 18 : -18;
@@ -54,16 +100,16 @@ export default function SkeletonDrift() {
               // Three in view: the rest fade out past the ends.
               opacity: d > 1 ? 0 : 1,
               // The card that wraps from the right end to the left one jumps unseen.
-              transition: prev === half && pos === -half ? "none" : `transform ${EASE}, opacity ${EASE}`,
+              transition: instant || (prev === half && pos === -half) ? "none" : `transform ${EASE}, opacity ${EASE}`,
             }}
           >
             {/* A slide is written as it reaches the middle: the cards coming from the
                 left are empty, the middle one builds its shapes in, the ones leaving
                 to the right keep them. */}
-            <div className={`relative ${pos < 0 ? "sk-empty" : pos === 0 ? "sk-build" : ""}`}>
+            <div className={`relative ${pos < 0 ? "sk-empty" : pos === 0 && !instant ? "sk-build" : ""}`}>
               <Card />
               {/* The side cards sit under a veil in the stage colour: dimmer, never see-through. */}
-              <div className="absolute inset-0 rounded-xl bg-surface" style={{ opacity: d === 0 ? 0 : 0.45, transition: `opacity ${EASE}` }} />
+              <div className="absolute inset-0 rounded-xl bg-surface" style={{ opacity: d === 0 ? 0 : 0.45, transition: instant ? "none" : `opacity ${EASE}` }} />
             </div>
           </div>
         );
