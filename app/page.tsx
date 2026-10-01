@@ -1456,15 +1456,14 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
             </div>
           </div>
         ) : state.slides.length === 0 ? (
-          <EmptyState
-            onOpenDeckFile={openDeckFilePicker}
-            onWriteBrief={() =>
-              document.querySelector<HTMLTextAreaElement>('[data-tour="prompt"] textarea')?.focus()
-            }
+          <>
+            <EmptyToolbar onOpenDeckFile={openDeckFilePicker} />
+            <EmptyState
             previous={previous}
             onRestorePrevious={onRestorePrevious}
             onDismissPrevious={onDismissPrevious}
           />
+          </>
         ) : (
           <>
             <Toolbar
@@ -1698,16 +1697,34 @@ function IconPickerModal({
   );
 }
 
+/**
+ * The editor's top bar before there is a deck: same chrome as the Toolbar,
+ * with only Upload HTML. The stage stays a message, not a set of buttons, so
+ * people write the brief in the prompt box instead of looking for a start
+ * button (Mario, 1 Oct 2026, from Hotjar recordings).
+ */
+function EmptyToolbar({ onOpenDeckFile }: { onOpenDeckFile: () => void }) {
+  return (
+    <div className="flex items-center gap-3 border-b border-hairline bg-surface px-4 py-2.5">
+      <div className="ml-auto flex shrink-0 items-center gap-2">
+        <Button
+          variant="secondary"
+          icon={Upload}
+          onClick={onOpenDeckFile}
+          title="Open an HTML deck downloaded from here. Dropping the file anywhere on this page works too."
+        >
+          Upload HTML
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 function EmptyState({
-  onOpenDeckFile,
-  onWriteBrief,
   previous,
   onRestorePrevious,
   onDismissPrevious,
 }: {
-  onOpenDeckFile: () => void;
-  /** Puts the caret in the prompt box: the primary action lives in the sidebar. */
-  onWriteBrief: () => void;
   previous: Partial<DeckState> | null;
   onRestorePrevious: () => void;
   onDismissPrevious: () => void;
@@ -1722,25 +1739,10 @@ function EmptyState({
     <div className="flex flex-1 flex-col items-center justify-center gap-4">
       {
         <>
-          <h1 className="text-2xl font-medium text-ink">What deck are we making?</h1>
-          <p className="max-w-sm text-center text-sm leading-relaxed text-ink-muted">
+          <h1 className="text-3xl font-medium tracking-tight text-ink">What deck are we making?</h1>
+          <p className="max-w-md text-center text-base leading-relaxed text-ink-muted">
             Describe it on the left. Slides land here, ready to edit.
           </p>
-          <div className="mt-2 flex items-center gap-2">
-            <Button variant="primary" onClick={onWriteBrief}>
-              Create new
-            </Button>
-            <Button
-              variant="secondary"
-              icon={Upload}
-              onClick={onOpenDeckFile}
-              title="Dropping the file anywhere on this page works too."
-            >
-              Open HTML deck
-            </Button>
-          </div>
-          {/* The one file that comes back is the HTML deck downloaded from here. */}
-          <p className="text-xs text-ink-faint">Only HTML decks downloaded from here can be reopened.</p>
           {/* The editor no longer restores the last deck on its own, so the
               deck is offered here instead of appearing under the user. */}
           {count > 0 && (
