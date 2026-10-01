@@ -142,16 +142,16 @@
 }
 .gen-pill > * { position: relative; }
 
-/* The empty stage's skeleton column (components/SkeletonDrift.tsx): faded
-   top and bottom so it has no edges, drifting down at a constant pace (one
-   card every ~8s, linear because it is a conveyor, not a gesture). The
-   list is drawn twice and moves by half its height, so the loop is seamless. */
+/* The empty stage's skeleton row (components/SkeletonDrift.tsx): faded at
+   both sides so it has no edges, drifting left to right at a constant pace
+   (one card every ~8s, linear because it is a conveyor, not a gesture). The
+   list is drawn twice and moves by half its width, so the loop is seamless. */
 .skeleton-window {
-  mask-image: linear-gradient(to bottom, transparent, #000 30%, #000 70%, transparent);
+  mask-image: linear-gradient(to right, transparent, #000 25%, #000 75%, transparent);
 }
 @keyframes skeletonDrift {
-  from { transform: translateY(-50%); }
-  to { transform: translateY(0); }
+  from { transform: translateX(-50%); }
+  to { transform: translateX(0); }
 }
 /* The headline and line under it settle in after the column, 80ms apart. */
 @keyframes emptyIn {

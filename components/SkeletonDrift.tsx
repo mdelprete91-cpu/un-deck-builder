@@ -1,14 +1,15 @@
 /**
- * The empty stage's one picture (Mario, 1 Oct 2026): a column of slide
- * skeletons drifting down, as if the deck were already being laid out,
- * faded at the top and bottom so it has no edges. Grey shapes only, no
+ * The empty stage's one picture (Mario, 1 Oct 2026): a row of slide
+ * skeletons drifting left to right, as if the deck were already being laid
+ * out, faded at both sides so it has no edges. A row, not a column, so the
+ * headline stays near the middle of the stage. Grey shapes only, no
  * words: it says "slides come here" without competing with the headline.
  * The list is drawn twice so the loop has no seam; it stands still under
  * reduced motion (globals.css, .skeleton-drift).
  */
 export default function SkeletonDrift() {
-  const column = (
-    <div className="flex flex-col gap-4 pb-4">
+  const row = (
+    <div className="flex shrink-0 gap-4 pr-4">
       <Cover />
       <Bullets />
       <Chart />
@@ -16,17 +17,17 @@ export default function SkeletonDrift() {
     </div>
   );
   return (
-    <div aria-hidden className="skeleton-window relative h-[248px] w-[300px] overflow-hidden">
-      <div className="skeleton-drift">
-        {column}
-        {column}
+    <div aria-hidden className="skeleton-window relative w-[640px] max-w-full overflow-hidden">
+      <div className="skeleton-drift flex w-max">
+        {row}
+        {row}
       </div>
     </div>
   );
 }
 
 function Card({ children }: { children: React.ReactNode }) {
-  return <div className="aspect-video w-full rounded-xl border border-hairline-light bg-canvas-2 p-4">{children}</div>;
+  return <div className="aspect-video w-[200px] shrink-0 rounded-xl border border-hairline-light bg-canvas-2 p-3.5">{children}</div>;
 }
 
 const Bar = ({ className = "" }: { className?: string }) => <div className={`rounded-full bg-mist ${className}`} />;

@@ -1740,7 +1740,7 @@ function EmptyState({
     <div className="flex flex-1 flex-col items-center justify-center gap-4">
       {
         <>
-          <div className="empty-in mb-4">
+          <div className="empty-in mb-6">
             <SkeletonDrift />
           </div>
           <h1 className="empty-in text-3xl font-medium tracking-tight text-ink" style={{ "--i": 1 } as React.CSSProperties}>
