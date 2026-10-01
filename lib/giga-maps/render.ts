@@ -6,6 +6,7 @@ import {
   BASEMAP_STYLE,
   DATA_LAYERS,
   DOT_COLORS,
+  GIGAMAPS_DARK,
   MAP_ATTRIBUTION,
   STAGE_HEIGHT,
   STAGE_WIDTH,
@@ -126,8 +127,10 @@ const HIDDEN_SOURCE_LAYERS = new Set(['transportation', 'transportation_name', '
 /**
  * The export is a clean shape map: no place names, no roads, and only
  * national borders (admin_level 2). Water, land use and coastlines stay.
+ * The dark theme is repainted in maps.giga.global's colours (GIGAMAPS_DARK),
+ * so a map in a deck looks like the one on the site.
  */
-function cleanBasemap(map: MapLibreMap) {
+function cleanBasemap(map: MapLibreMap, theme: MapTheme) {
   const style = map.getStyle() as StyleSpecification | undefined
   for (const l of style?.layers ?? []) {
     if (l.id.startsWith('giga-')) continue
@@ -136,7 +139,14 @@ function cleanBasemap(map: MapLibreMap) {
       sourceLayer === 'boundary' && !/country|boundary_2$|disputed/.test(l.id)
     if (l.type === 'symbol' || (sourceLayer && HIDDEN_SOURCE_LAYERS.has(sourceLayer)) || isInternalBoundary) {
       map.setLayoutProperty(l.id, 'visibility', 'none')
+      continue
     }
+    if (theme !== 'dark') continue
+    if (l.type === 'background') map.setPaintProperty(l.id, 'background-color', GIGAMAPS_DARK.land)
+    else if (l.type === 'fill' && sourceLayer === 'water') map.setPaintProperty(l.id, 'fill-color', GIGAMAPS_DARK.water)
+    else if (l.type === 'fill' && (sourceLayer === 'landcover' || sourceLayer === 'landuse')) map.setPaintProperty(l.id, 'fill-color', GIGAMAPS_DARK.land)
+    else if (l.type === 'line' && sourceLayer === 'waterway') map.setPaintProperty(l.id, 'line-color', GIGAMAPS_DARK.waterway)
+    else if (l.type === 'line' && sourceLayer === 'boundary') map.setPaintProperty(l.id, 'line-color', GIGAMAPS_DARK.border)
   }
 }
 
@@ -261,7 +271,7 @@ export function createGigaMap(opts: GigaMapOptions): Promise<MapLibreMap> {
     }
 
     map.once('load', () => {
-      cleanBasemap(map)
+      cleanBasemap(map, theme)
       setGigaDataLayer(map, layer, country.id)
       resolve(map)
     })

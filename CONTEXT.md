@@ -1160,6 +1160,10 @@ dark or light basemap; no place names, no roads, only national borders) and inse
 - **Tiles go through `app/api/giga-maps/tiles`** because the Giga backend sends no CORS headers; the
   route sends no `Accept` header on purpose (the backend answers 406 otherwise). `countries` proxies
   the v2 country list with school and health center counts.
+- **The dark basemap wears maps.giga.global's colours.** OpenFreeMap's dark style is near black
+  with grey water and faint borders; `cleanBasemap` repaints it with `GIGAMAPS_DARK` (config.ts:
+  land #1c1c1c, water #1a2a3c, borders #7d7d7d, read from the site's Mapbox style), so a map in a
+  deck matches the site. The dot colours already match (`DOT_COLORS`).
 - **maplibre-gl stays on 5.x.** 6.x resolves its worker through `import.meta.url`, which never
   loads under Next, and the map silently stays empty.
 - **The preview renders on its own** whenever country, facilities or style change (250 ms debounce,

@@ -20,6 +20,19 @@ export const BASEMAP_STYLE: Record<MapTheme, string> = {
   light: 'https://tiles.openfreemap.org/styles/positron',
 }
 
+/**
+ * The dark basemap painted as on maps.giga.global (its Mapbox style,
+ * gigamapbox/cmrvo760i00gj01qzdhki9s2w, read 1 Oct 2026): OpenFreeMap's dark
+ * style is near black with grey water and faint borders, so render.ts
+ * repaints it with these. Land and land cover share one tone, as there.
+ */
+export const GIGAMAPS_DARK = {
+  land: '#1c1c1c',
+  water: '#1a2a3c',
+  waterway: '#242424',
+  border: '#7d7d7d',
+} as const
+
 /** Legend colors as used on maps.giga.global. */
 export const DOT_COLORS = {
   connected: '#00d661',
