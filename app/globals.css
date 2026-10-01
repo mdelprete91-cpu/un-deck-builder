@@ -142,17 +142,6 @@
 }
 .gen-pill > * { position: relative; }
 
-/* The empty stage's skeleton row (components/SkeletonDrift.tsx): faded at
-   both sides so it has no edges, drifting left to right at a constant pace
-   (one card every ~8s, linear because it is a conveyor, not a gesture). The
-   list is drawn twice and moves by half its width, so the loop is seamless. */
-.skeleton-window {
-  mask-image: linear-gradient(to right, transparent, #000 25%, #000 75%, transparent);
-}
-@keyframes skeletonDrift {
-  from { transform: translateX(-50%); }
-  to { transform: translateX(0); }
-}
 /* The headline and line under it settle in after the column, 80ms apart. */
 @keyframes emptyIn {
   from { opacity: 0; transform: translateY(8px); }
@@ -161,7 +150,6 @@
 
 @media (prefers-reduced-motion: no-preference) {
   .gen-pill::before { animation: genGlow 8s linear infinite, genBreathe 3s ease-in-out infinite; }
-  .skeleton-drift { animation: skeletonDrift 32s linear infinite; will-change: transform; }
   .empty-in { animation: emptyIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) both; animation-delay: calc(var(--i, 0) * 80ms); }
   .float-in { animation: floatIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) both; }
   .pop-in { animation: popIn 0.18s cubic-bezier(0.16, 1, 0.3, 1) both; }
