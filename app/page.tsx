@@ -1737,16 +1737,17 @@ function EmptyState({
   const named = previous?.name && previous.name !== DEFAULT_DECK_NAME ? previous.name : undefined;
   const title = named ?? (first?.layoutId === "cover" ? first.subtitle : first?.title)?.trim();
   return (
-    <div className="flex flex-1 flex-col items-center justify-center gap-4">
+    // pb lifts the block above the true middle, where it reads as centred.
+    <div className="flex flex-1 flex-col items-center justify-center gap-4 pb-[10vh]">
       {
         <>
           <div className="empty-in mb-6">
             <SkeletonDrift />
           </div>
-          <h1 className="empty-in text-3xl font-medium tracking-tight text-ink" style={{ "--i": 1 } as React.CSSProperties}>
+          <h1 className="empty-in text-2xl font-medium tracking-tight text-ink" style={{ "--i": 1 } as React.CSSProperties}>
             What are we presenting today?
           </h1>
-          <p className="empty-in max-w-lg text-balance text-center text-base leading-relaxed text-ink-muted" style={{ "--i": 2 } as React.CSSProperties}>
+          <p className="empty-in -mt-2 max-w-lg text-balance text-center text-base leading-relaxed text-ink-muted" style={{ "--i": 2 } as React.CSSProperties}>
             Tell us on the left, or attach a document. Your slides land here, ready to edit.
           </p>
           {/* The editor no longer restores the last deck on its own, so the
