@@ -1102,7 +1102,10 @@ not a system to sync with.
   editable text box with the computed font, size, weight, colour, alignment, line height and
   letter spacing; an `<img>` (with its overflow-hidden frame, so crop and zoom survive), an inline
   SVG icon, and anything CSS draws that PowerPoint has no shape for (a gradient, a `filter`, a
-  scale transform) is rasterised **on its own** and placed as a picture of exactly its size.
+  scale transform) is rasterised **on its own** and placed as a picture of exactly its size. An
+  SVG is cut to the part with ink on it (`drawnRect`: the union of its shapes, padded for the
+  stroke), not its box: line charts draw on a slide-sized SVG in slide coordinates, and the
+  picture covered the whole page, so the slide looked like one image in PowerPoint (1 Oct 2026).
   Change a renderer and the export follows; that is the point of the design, so do not add a
   layout-specific branch to the walker. Rasterising a single element goes through
   `rasterize.ts` with a `crop`: the stage is cloned, every node outside that subtree is hidden

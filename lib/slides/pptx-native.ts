@@ -55,7 +55,8 @@ async function walk(ctx: Ctx, el: HTMLElement, opacity: number): Promise<void> {
     return;
   }
   if (el instanceof SVGElement) {
-    await addRaster(ctx, el as unknown as HTMLElement, rect, alpha);
+    const drawn = drawnRect(ctx, el);
+    if (drawn) await addRaster(ctx, el as unknown as HTMLElement, drawn, alpha);
     return;
   }
   if (needsRaster(cs)) {
@@ -72,6 +73,39 @@ async function walk(ctx: Ctx, el: HTMLElement, opacity: number): Promise<void> {
   for (const child of Array.from(el.children)) {
     if (child instanceof HTMLElement || child instanceof SVGElement) await walk(ctx, child as HTMLElement, alpha);
   }
+}
+
+/**
+ * The part of an SVG that has ink on it. A chart's lines are drawn on an SVG
+ * the size of the whole slide (density.ts, dense.ts: the paths use slide
+ * coordinates), and its box made a full-page picture in PowerPoint that read
+ * as if the slide were an image (Mario, 1 Oct 2026). The picture is cut to
+ * the union of the shapes inside instead, padded for the stroke (bounding
+ * boxes leave it out) and kept on the slide. Null when nothing is drawn.
+ */
+function drawnRect(ctx: Ctx, svg: SVGElement): Rect | null {
+  const shapes = svg.querySelectorAll("path, line, polyline, polygon, rect, circle, ellipse, text, image, use");
+  if (shapes.length === 0) return relRect(ctx, svg);
+  let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity, stroke = 0;
+  for (const shape of Array.from(shapes)) {
+    const r = shape.getBoundingClientRect();
+    if (r.width === 0 && r.height === 0) continue;
+    x0 = Math.min(x0, r.left);
+    y0 = Math.min(y0, r.top);
+    x1 = Math.max(x1, r.right);
+    y1 = Math.max(y1, r.bottom);
+    const cs = getComputedStyle(shape);
+    if (cs.stroke !== "none") stroke = Math.max(stroke, parseFloat(cs.strokeWidth) || 0);
+  }
+  if (x0 === Infinity) return null;
+  // The stroke, its round caps, and a pixel of anti-aliasing.
+  const pad = stroke / 2 + 2;
+  const left = Math.max(0, x0 - pad - ctx.origin.left);
+  const top = Math.max(0, y0 - pad - ctx.origin.top);
+  const right = Math.min(SLIDE_W, x1 + pad - ctx.origin.left);
+  const bottom = Math.min(SLIDE_H, y1 + pad - ctx.origin.top);
+  if (right - left < 0.5 || bottom - top < 0.5) return null;
+  return { x: left, y: top, w: right - left, h: bottom - top };
 }
 
 /** The overflow-hidden box that crops a framed photo, when the <img> has one. */
