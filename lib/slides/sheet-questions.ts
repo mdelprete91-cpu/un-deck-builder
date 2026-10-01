@@ -199,3 +199,39 @@ export function answeredCount(analysis: SheetAnalysis, answers: SheetAnswers): n
     return Array.isArray(a) ? a.length > 0 : !!(a ?? "").trim();
   }).length;
 }
+
+/**
+ * The deck's length, asked in the questions dialog when the brief names none
+ * (Mario, 1 Oct 2026: most briefs give no number, and the deck came out at
+ * whatever length the model chose). The last step before Generate; skipped
+ * for a two-pager and a replica, which keep their own length. Skip or "Let
+ * the builder decide" leave the length to the model, as before.
+ */
+export const LENGTH_QUESTION_ID = "deck-length";
+export const LENGTH_DECIDE = "Let the builder decide";
+const LENGTHS: [number, string][] = [
+  [5, "A short update or a single topic"],
+  [8, "Most briefings and presentations"],
+  [10, "A fuller story with data"],
+  [12, "A detailed review or a proposal"],
+  [15, "A long report or a workshop"],
+];
+export const lengthAnalysis: SheetAnalysis = {
+  summary: "Your brief doesn't say how long the deck should be.",
+  questions: [
+    {
+      id: LENGTH_QUESTION_ID,
+      question: "How many slides should the deck have?",
+      why: "The cover and the closing slide count. You can add or remove slides afterwards.",
+      kind: "single",
+      options: [...LENGTHS.map(([n]) => `${n} slides`), LENGTH_DECIDE],
+      details: [...LENGTHS.map(([, d]) => d), "It sizes the deck to what the brief and the material need"],
+    },
+  ],
+};
+/** The count picked in the length question, or undefined for "decide" and no answer. */
+export function lengthOf(answers: SheetAnswers | undefined): number | undefined {
+  const a = answers?.[LENGTH_QUESTION_ID];
+  const n = typeof a === "string" ? parseInt(a, 10) : NaN;
+  return Number.isFinite(n) ? n : undefined;
+}

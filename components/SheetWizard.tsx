@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeft, ArrowRight, Check, FileSpreadsheet, FileText, MessageSquareText, RotateCcw, X } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, FileSpreadsheet, FileText, GalleryHorizontal, MessageSquareText, RotateCcw, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import Button from "@/components/Button";
 import { answeredCount, type MaterialKind, type SheetAnalysis, type SheetAnswers, type SheetQuestion } from "@/lib/slides/sheet-questions";
@@ -8,7 +8,8 @@ import { answeredCount, type MaterialKind, type SheetAnalysis, type SheetAnswers
 /** What the dialog is asking about: a file, or the brief itself. */
 export interface WizardSubject {
   title: string;
-  kind: MaterialKind;
+  /** "length": the deck's length, asked when the brief names none. */
+  kind: MaterialKind | "length";
   analysis?: SheetAnalysis;
   answers: SheetAnswers;
   /** The analysis failed; the dialog says so and offers a retry. */
@@ -18,7 +19,7 @@ export interface WizardSubject {
 const INPUT =
   "block w-full rounded-lg border border-hairline bg-surface px-3 py-2 text-sm text-ink outline-none transition-shadow duration-150 placeholder:text-ink-faint focus:border-giga focus:ring-[3px] focus:ring-giga/15";
 
-const GLYPH: Record<MaterialKind, typeof FileText> = { spreadsheet: FileSpreadsheet, document: FileText, brief: MessageSquareText };
+const GLYPH: Record<MaterialKind | "length", typeof FileText> = { spreadsheet: FileSpreadsheet, document: FileText, brief: MessageSquareText, length: GalleryHorizontal };
 
 /**
  * The questions the material raises, one at a time, asked when Generate is

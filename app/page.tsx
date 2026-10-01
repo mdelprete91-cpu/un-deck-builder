@@ -29,7 +29,7 @@ import ChartDataPanel from "@/components/ChartDataPanel";
 import ImagePickerModal from "@/components/ImagePickerModal";
 import EditWithAiModal from "@/components/EditWithAiModal";
 import SheetWizard from "@/components/SheetWizard";
-import { compileInsights, normalizeAnalysis, SHORT_BRIEF_WORDS, USE_QUESTION_ID, fileUseOf, fileUseQuestion, preselectFileUse, type SheetAnalysis, type SheetAnswers } from "@/lib/slides/sheet-questions";
+import { compileInsights, normalizeAnalysis, SHORT_BRIEF_WORDS, USE_QUESTION_ID, fileUseOf, fileUseQuestion, lengthAnalysis, lengthOf, preselectFileUse, type SheetAnalysis, type SheetAnswers } from "@/lib/slides/sheet-questions";
 import { denseBeforeNormalize, densityHint, planReplica, withContentDensity, type ReplicateStep } from "@/lib/slides/replicate";
 import { compareSlide, fidelityScore, isFlawed, planLeftovers, repairNote, runningLines, sourceUnits, totals, type DeckFidelity, type Leftover, type SlideFidelity } from "@/lib/slides/fidelity";
 import { readPdfSlides } from "@/lib/slides/pdf-source";
@@ -455,6 +455,10 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
     wizardRef.current = wizard;
   }, [wizard]);
   const [briefQ, setBriefQ] = useState<{ brief: string; analysis?: SheetAnalysis; answers: SheetAnswers; error?: string; asked?: boolean } | null>(null);
+  /** The deck's length, asked last when the brief names none; keyed to the brief's text like briefQ. */
+  const [lengthQ, setLengthQ] = useState<{ brief: string; answers: SheetAnswers; asked?: boolean } | null>(null);
+  /** A replica keeps the source's length, so the length question has nothing to ask. */
+  const replicaChosen = () => attachments.some((x) => isDeckSource(x) && fileUseOf(x.answers) === "replicate");
   /** `app/api/analyze` reads one file next to the brief; the result sits on the attachment. */
   const analyzeAttachment = async (a: Attachment, brief: string) => {
     if (!canQuestion(a)) return;
@@ -521,20 +525,23 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
   };
   /** Every answer is kept as it is given and compiled into `insights`, the field the prompt reads. */
   const onWizardAnswers = (id: string, answers: SheetAnswers) => {
-    if (id === "brief") setBriefQ((q) => (q ? { ...q, answers } : q));
+    if (id === "length") setLengthQ((q) => (q ? { ...q, answers } : q));
+    else if (id === "brief") setBriefQ((q) => (q ? { ...q, answers } : q));
     else
       setAttachments((list) =>
         list.map((x) => (x.id === id && canQuestion(x) && x.analysis ? { ...x, answers, insights: compileInsights(x.analysis, answers) } : x)),
       );
   };
   const markAsked = (id: string) => {
-    if (id === "brief") setBriefQ((q) => (q ? { ...q, asked: true } : q));
+    if (id === "length") setLengthQ((q) => (q ? { ...q, asked: true } : q));
+    else if (id === "brief") setBriefQ((q) => (q ? { ...q, asked: true } : q));
     else setAttachments((list) => list.map((x) => (x.id === id && canQuestion(x) ? { ...x, asked: true } : x)));
   };
   /** The current subject is done (answered, skipped or clear): the next one, or the deck. */
   const advanceFrom = (w: { queue: string[]; intent: "generate" | "edit" }) => {
     markAsked(w.queue[0]);
-    const rest = w.queue.slice(1);
+    // The length is moot once the file is to be replicated, answered just before.
+    const rest = w.queue.slice(1).filter((id) => id !== "length" || !replicaChosen());
     if (rest.length) setWizard({ ...w, queue: rest });
     else {
       setWizard(null);
@@ -552,6 +559,7 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
     const id = wizard?.queue[0];
     if (!id) return null;
     if (id === "brief") return { id, title: "Your brief", kind: "brief", analysis: briefQ?.analysis, answers: briefQ?.answers ?? {}, error: briefQ?.error };
+    if (id === "length") return { id, title: "Deck length", kind: "length", analysis: lengthAnalysis, answers: lengthQ?.answers ?? {} };
     const a = attachments.find((x) => x.id === id);
     if (!a || !canQuestion(a)) return null;
     return { id, title: a.name, kind: a.kind === "text" && a.spreadsheet ? "spreadsheet" : "document", analysis: a.analysis, answers: a.answers ?? {}, error: a.analysisError };
@@ -567,6 +575,8 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
     const words = brief.trim().split(/\s+/).filter(Boolean).length;
     const briefAlone = attachments.length === 0 && !twoPager && words > 0 && words < SHORT_BRIEF_WORDS;
     if (briefAlone && !(briefQ?.brief === brief && briefQ.asked)) queue.push("brief");
+    // No length in the brief: ask for one, last (a replica keeps its source's length).
+    const askLength = !twoPager && countFromBrief(brief) === undefined && !replicaChosen() && !(lengthQ?.brief === brief && lengthQ.asked);
     // A file already read and found clear has nothing to ask.
     const toAsk = queue.filter((id) => {
       if (id === "brief") return !(briefQ?.brief === brief && briefQ.analysis?.questions.length === 0);
@@ -574,10 +584,15 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
       if (a && undecidedDeck(a)) return true;
       return !(a && canQuestion(a) && a.analysis && a.analysis.questions.length === 0);
     });
+    if (askLength) {
+      toAsk.push("length");
+      if (lengthQ?.brief !== brief) setLengthQ({ brief, answers: {} });
+    }
     if (toAsk.length === 0) return void runGenerate();
     queue.length = 0;
     queue.push(...toAsk);
     for (const id of queue) {
+      if (id === "length") continue;
       if (id === "brief") {
         if (briefQ?.brief !== brief) void analyzeBrief(brief);
       } else {
@@ -613,7 +628,7 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
     }
     // A two-pager is a fixed-length piece, so the count is the user's; a
     // slide deck takes the number the brief names, if any.
-    const count = twoPager ? state.count : countFromBrief(brief);
+    const count = twoPager ? state.count : (countFromBrief(brief) ?? (lengthQ?.brief === brief ? lengthOf(lengthQ.answers) : undefined));
     // "Six slides" and chapters on cannot both hold: the agenda and the
     // dividers would leave one or two slides for the story. The count wins,
     // the deck goes out without chapters, and the sidebar says why.
@@ -1380,7 +1395,7 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
           <SheetWizard
             key={wizardSubject.id}
             subject={wizardSubject}
-            finalLabel={wizard.intent === "generate" && wizard.queue.length === 1 ? "Generate" : wizard.queue.length > 1 ? "Next file" : "Done"}
+            finalLabel={wizard.intent === "generate" && wizard.queue.length === 1 ? "Generate" : wizard.queue.length > 1 ? (wizard.queue[1] === "length" ? "Next" : "Next file") : "Done"}
             onAnswers={(answers) => onWizardAnswers(wizardSubject.id, answers)}
             onRetry={() => {
               if (wizardSubject.id === "brief") void analyzeBrief(state.brief);

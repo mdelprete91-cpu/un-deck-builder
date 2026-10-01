@@ -373,7 +373,14 @@ or a drop on the box. They exist to give the model the facts; they are **not** d
   not when the file lands** (Mario, 25 Sep 2026, later the same day: the model must read each file
   next to the whole brief). `onGenerate` in `app/page.tsx` builds a queue of subjects still to ask
   (readable attachments without `asked`, plus `"brief"` when there is no file and the brief is under
-  `SHORT_BRIEF_WORDS`), starts their analyses and opens `components/SheetWizard.tsx` on the first;
+  `SHORT_BRIEF_WORDS`, plus `"length"` last when `countFromBrief` finds no count, the piece is not a
+  two-pager and no attached deck is set to Replicate), starts their analyses and opens
+  `components/SheetWizard.tsx` on the first. `"length"` (Mario, 1 Oct 2026: most briefs name no
+  length) is a fixed question, `lengthAnalysis` in `sheet-questions.ts`: 5, 8, 10, 12 or 15 slides,
+  or "Let the builder decide"; `lengthOf` turns the answer into the `count` `runGenerate` sends when
+  the brief names none (Skip and "decide" send none, as before). Its answers are keyed to the
+  brief's text (`lengthQ`), so a changed brief is asked again, and it drops out of the queue if the
+  file question just before it was answered Replicate;
   `advanceWizard` marks the subject `asked`, moves to the next, and after the last runs
   `runGenerate` (the old generate handler). A subject that comes back with no questions is passed
   over by an effect; X or Esc stops with nothing generated, answers kept, and the next press goes
