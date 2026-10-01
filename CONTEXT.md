@@ -220,7 +220,7 @@ off. Durations are
 constants in `VIDEOS`: update them after a re-record. The videos are the real editor, driven by `tools/help-video/`:
 
 - `script.json` is the narration, one scene per chapter; `voice.ts` turns it into ElevenLabs
-  clips (voice Bella, `ELEVENLABS_API_KEY` in `.env.local`, unchanged text is skipped) with
+  clips (voice Jessica on Eleven v4, chosen 1 Oct 2026 for a less robotic read: the script is written the way people talk, stability 0.3, similarity 0.6, a `[warm, friendly]` tag cut from the timings; `ELEVENLABS_API_KEY` in `.env.local`; a clip is skipped when text, voice, model and settings are unchanged) with
   character timings.
 - `record.ts` runs the editor on `localhost:3777` in Playwright at 1920x1080, one function per
   scene, each scene held for its clip. A fake cursor and a CSS camera on `<body>` (`stage.ts`)

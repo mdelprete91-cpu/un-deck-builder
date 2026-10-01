@@ -7,12 +7,12 @@
  {
   "id": "brief",
   "title": "Write the brief",
-  "start": 9.1
+  "start": 8.6
  },
  {
   "id": "attach",
   "title": "Attach material",
-  "start": 18.3
+  "start": 16.9
  },
  {
   "id": "chapters",
@@ -22,26 +22,26 @@
  {
   "id": "questions",
   "title": "Answer a few questions",
-  "start": 36.1
+  "start": 35.8
  },
  {
   "id": "generate",
   "title": "Generate",
-  "start": 47.7
+  "start": 47.3
  },
  {
   "id": "add",
   "title": "Generate more slides",
-  "start": 58
+  "start": 56.2
  },
  {
   "id": "present",
   "title": "Present",
-  "start": 73.2
+  "start": 71.1
  },
  {
   "id": "download",
   "title": "Download",
-  "start": 83.9
+  "start": 83.6
  }
 ]

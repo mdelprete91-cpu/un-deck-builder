@@ -5,55 +5,55 @@
       {
         "id": "intro",
         "chapter": "Start",
-        "text": "This is the deck builder. You describe the deck you need, and it builds it from the approved template, so the result is always on brand.",
+        "text": "This is the deck builder. You tell it what deck you need... and it builds it for you, from the approved template. So it's always on brand.",
         "action": "Empty editor, zoom on the prompt box."
       },
       {
         "id": "brief",
         "chapter": "Write the brief",
-        "text": "Start with the brief. Say what the deck is for, who it is for, and how many slides you want. The more concrete the brief, the better the deck.",
+        "text": "Start with the brief. Say what the deck's for, who it's for, and how many slides you want. The more concrete you are, the better the deck.",
         "action": "Type a brief: 'Eight slides for the donor steering committee on school connectivity in Kenya in 2025.'"
       },
       {
         "id": "attach",
         "chapter": "Attach material",
-        "text": "Then attach your material: a PDF, a Word or PowerPoint file, an Excel sheet, or a link in the brief. The deck is written from it, and the brief decides the angle.",
+        "text": "Then attach your material. A PDF, a Word or PowerPoint file, an Excel sheet... or just paste a link in the brief. The deck is written from it, and your brief decides the angle.",
         "action": "Click the plus, attach an Excel file and a PDF; the chips appear."
       },
       {
         "id": "chapters",
         "chapter": "Chapters",
-        "text": "Turn on Chapters if the deck needs an agenda and section dividers. Leave it off for a deck that runs straight through.",
+        "text": "If the deck needs an agenda and section dividers, turn on Chapters. If it runs straight through, just leave it off.",
         "action": "Zoom on the Chapters pill, toggle it."
       },
       {
         "id": "questions",
         "chapter": "Answer a few questions",
-        "text": "Press Generate. If the material leaves something open, like which sheet to use or what to headline, you get a few questions written for your files. Answer them, or skip.",
+        "text": "Now press Generate. If your material leaves something open, like which sheet to use or what to headline, you'll get a few questions written for your files. Answer them, or skip.",
         "action": "Click Generate; the questions dialog opens; pick two answers; press Generate."
       },
       {
         "id": "generate",
         "chapter": "Generate",
-        "text": "The slides arrive one by one. Charts use the numbers from your sheet, and photos come from the Giga library.",
+        "text": "And the slides arrive, one by one. Charts use the numbers from your sheet, and the photos come from the Giga library.",
         "action": "The pill travels down into the slide bar; slides land; zoom on a chart slide."
       },
       {
         "id": "add",
         "chapter": "Generate more slides",
-        "text": "Need more? Generate more slides lets you describe what is missing, and the new slides land where they belong. Or pick a layout yourself with Add slide.",
+        "text": "Need more? Generate more slides lets you describe what's missing, and the new slides land right where they belong. Or pick a layout yourself, with Add slide.",
         "action": "Open Generate more slides, type a short request, submit; then open the Add slide picker and insert a layout."
       },
       {
         "id": "present",
         "chapter": "Present",
-        "text": "Press play to present full screen, with the template's animations. Use the arrow keys, and Escape to leave.",
+        "text": "To present, press play. It goes full screen, with the template's animations. Use the arrow keys to move, and Escape to leave.",
         "action": "Click the play button; the cover animates; advance twice; Escape."
       },
       {
         "id": "download",
         "chapter": "Download",
-        "text": "Finally, download the deck as PDF, PowerPoint or HTML. Nothing is stored on a server, so keep the HTML file: upload it here again to continue editing.",
+        "text": "Finally, download the deck as a PDF, a PowerPoint, or HTML. Nothing is stored on a server, so keep that HTML file... you can upload it here again and keep editing.",
         "action": "Open the Download menu, zoom on the three options."
       }
     ]
@@ -64,19 +64,19 @@
       {
         "id": "text",
         "chapter": "Edit text",
-        "text": "Click any text on a slide to rewrite it. The text resizes itself to fit the layout.",
+        "text": "Want to change some text? Just click it and type. It resizes itself to fit the layout.",
         "action": "Click a title, type a new one; zoom in."
       },
       {
         "id": "ai",
         "chapter": "Edit with AI",
-        "text": "Edit with AI rewrites a slide from a one-line instruction, and shows the same content in other layouts, so you can switch with a click. It never changes your photos.",
+        "text": "Edit with AI rewrites a slide from a one-line instruction. It also shows you the same content in other layouts, so you can switch with a click. And it never touches your photos.",
         "action": "Open Edit with AI; type an instruction; hover the layout previews; pick one."
       },
       {
         "id": "images",
         "chapter": "Images",
-        "text": "Click a photo to replace it. Choose from the Giga library, upload your own, or render a live map of any country. Drag the photo to reframe it.",
+        "text": "To replace a photo, click it. Pick one from the Giga library, upload your own, or render a live map of any country. Then drag it to reframe.",
         "action": "Click a photo; the picker opens on Library; pick a photo; drag it to reframe."
       },
       {
@@ -88,7 +88,7 @@
       {
         "id": "charts",
         "chapter": "Charts and stats",
-        "text": "Click a chart to open its data. Edit the values, rename the series, or add a row, and the chart updates as you type.",
+        "text": "Click a chart to open its data. Change the values, rename a series, or add a row... and the chart updates as you type.",
         "action": "Click a grouped chart; the Data panel opens; change a value; the bars move."
       },
       {
@@ -100,13 +100,13 @@
       {
         "id": "elements",
         "chapter": "Add and remove",
-        "text": "Add an element to a slide, or hover one and delete it. Undo brings anything back.",
+        "text": "You can add an element to a slide, or hover one and delete it. And if you change your mind, Undo brings it back.",
         "action": "Click Element; hover a card; click the cross; press Undo."
       },
       {
         "id": "order",
         "chapter": "Reorder",
-        "text": "Drag the thumbnails to reorder the deck. When it is ready, press play to present, or download it.",
+        "text": "Drag the thumbnails to reorder the deck. When it's ready, press play to present... or download it.",
         "action": "Drag a thumbnail; end on the play button."
       }
     ]

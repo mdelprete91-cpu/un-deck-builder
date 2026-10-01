@@ -7,36 +7,36 @@
  {
   "id": "ai",
   "title": "Edit with AI",
-  "start": 9.3
+  "start": 7.5
  },
  {
   "id": "images",
   "title": "Images",
-  "start": 27.2
+  "start": 21.9
  },
  {
   "id": "icons",
   "title": "Icons",
-  "start": 37.9
+  "start": 32.1
  },
  {
   "id": "charts",
   "title": "Charts and stats",
-  "start": 45.2
+  "start": 39
  },
  {
   "id": "progress",
   "title": "Progress and timelines",
-  "start": 52.8
+  "start": 47.3
  },
  {
   "id": "elements",
   "title": "Add and remove",
-  "start": 59.4
+  "start": 54
  },
  {
   "id": "order",
   "title": "Reorder",
-  "start": 66.7
+  "start": 61.5
  }
 ]
