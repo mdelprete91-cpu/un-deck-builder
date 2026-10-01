@@ -1744,10 +1744,10 @@ function EmptyState({
             <SkeletonDrift />
           </div>
           <h1 className="empty-in text-3xl font-medium tracking-tight text-ink" style={{ "--i": 1 } as React.CSSProperties}>
-            Start with a brief
+            What are we presenting today?
           </h1>
           <p className="empty-in max-w-lg text-balance text-center text-base leading-relaxed text-ink-muted" style={{ "--i": 2 } as React.CSSProperties}>
-            Describe the deck on the left, or attach a document to work from. Slides appear here, ready to edit.
+            Tell us on the left, or attach a document. Your slides land here, ready to edit.
           </p>
           {/* The editor no longer restores the last deck on its own, so the
               deck is offered here instead of appearing under the user. */}
