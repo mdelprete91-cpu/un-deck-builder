@@ -1738,7 +1738,7 @@ function EmptyState({
   const title = named ?? (first?.layoutId === "cover" ? first.subtitle : first?.title)?.trim();
   return (
     // pb lifts the block above the true middle, where it reads as centred.
-    <div className="flex flex-1 flex-col items-center justify-center gap-4 pb-[10vh]">
+    <div className="relative flex flex-1 flex-col items-center justify-center gap-4 pb-[10vh]">
       {
         <>
           <div className="empty-in mb-6">
@@ -1751,9 +1751,14 @@ function EmptyState({
             Tell us on the left, or attach a document. Your slides land here, ready to edit.
           </p>
           {/* The editor no longer restores the last deck on its own, so the
-              deck is offered here instead of appearing under the user. */}
+              deck is offered here instead of appearing under the user: a toast
+              rising from the bottom of the stage, 60px up, so the headline
+              block stays where it is (Mario, 1 Oct 2026). */}
           {count > 0 && (
-            <div className="pop-in mt-4 flex w-full max-w-md items-center gap-3 rounded-full border border-hairline-light bg-surface py-2 pl-5 pr-2 shadow-float">
+            <div
+              className="float-in absolute bottom-[60px] left-1/2 flex w-[calc(100%-32px)] max-w-md -translate-x-1/2 items-center gap-3 rounded-full border border-hairline-light bg-surface py-2 pl-5 pr-2 shadow-float"
+              style={{ animationDelay: "500ms" }}
+            >
               <History size={16} className="shrink-0 text-ink-faint" aria-hidden />
               {/* The icon says "last session"; the row says which deck. */}
               <div className="min-w-0 flex-1">
