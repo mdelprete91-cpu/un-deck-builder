@@ -13,8 +13,14 @@ import { useEffect, useState, type ReactNode } from "react";
  */
 const CARDS = [Cover, Bullets, Chart, Columns, Cover, Bullets, Chart];
 const STEP_MS = 2600;
-/** Pixels between card centres; less than a card's width, so they overlap. */
-const SPACING = 150;
+/**
+ * The row is an arc, a smile: the cards sit on a circle whose centre is above
+ * the stage, so the middle one is lowest and the others rise and tilt with the
+ * curve. RADIUS and ANGLE put card centres about 150px apart, less than a
+ * card's width, so they overlap.
+ */
+const RADIUS = 950;
+const ANGLE = 9;
 
 export default function SkeletonDrift() {
   const [step, setStep] = useState(0);
@@ -27,20 +33,24 @@ export default function SkeletonDrift() {
   const n = CARDS.length;
   const half = Math.floor(n / 2);
   return (
-    <div aria-hidden className="relative h-[150px] w-[640px] max-w-full [perspective:900px]">
+    <div aria-hidden className="relative h-[190px] w-[640px] max-w-full [perspective:900px]">
       {CARDS.map((Card, i) => {
         // Place in the row, -half..half; growing step moves every card right.
         const pos = ((((i + step) % n) + n) % n) - half;
         const prev = ((((i + step - 1) % n) + n) % n) - half;
         const d = Math.abs(pos);
         const scale = d === 0 ? 1.12 : d === 1 ? 0.88 : 0.76;
-        const turn = pos === 0 ? 0 : pos < 0 ? 24 : -24;
+        const turn = pos === 0 ? 0 : pos < 0 ? 18 : -18;
+        const a = pos * ANGLE;
+        const rad = (a * Math.PI) / 180;
+        const x = RADIUS * Math.sin(rad);
+        const y = -RADIUS * (1 - Math.cos(rad));
         return (
           <div
             key={i}
-            className="absolute left-1/2 top-1/2"
+            className="absolute left-1/2 top-[62%]"
             style={{
-              transform: `translate(-50%, -50%) translateX(${pos * SPACING}px) rotateY(${turn}deg) scale(${scale})`,
+              transform: `translate(-50%, -50%) translate(${x}px, ${y}px) rotate(${-a}deg) rotateY(${turn}deg) scale(${scale})`,
               // Only the cards past the ends vanish; the others stay opaque and
               // fade under a veil in the stage colour, so overlaps never show through.
               opacity: d > 2 ? 0 : 1,
