@@ -1747,7 +1747,7 @@ function EmptyState({
           <h1 className="empty-in text-2xl font-medium tracking-tight text-ink" style={{ "--i": 1 } as React.CSSProperties}>
             What are we presenting today?
           </h1>
-          <p className="empty-in -mt-2 max-w-lg text-balance text-center text-base leading-relaxed text-ink-muted" style={{ "--i": 2 } as React.CSSProperties}>
+          <p className="empty-in -mt-3 max-w-md text-balance text-center text-sm leading-relaxed text-ink-muted" style={{ "--i": 2 } as React.CSSProperties}>
             Tell us on the left, or attach a document. Your slides land here, ready to edit.
           </p>
           {/* The editor no longer restores the last deck on its own, so the
