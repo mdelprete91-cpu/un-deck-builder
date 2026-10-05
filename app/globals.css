@@ -369,6 +369,12 @@ body {
   padding: 0;
   box-sizing: border-box;
 }
+/* An empty field the renderer hides (a closing slide's channel with no
+   value) comes back where it can be typed into: the editor's stage. */
+.slide-root [data-empty-field]:has([contenteditable]) {
+  display: block !important;
+  opacity: 0.6;
+}
 .slide-root [data-edit] {
   outline: none;
   cursor: text;

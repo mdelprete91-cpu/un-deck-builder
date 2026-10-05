@@ -390,7 +390,10 @@ or a drop on the box. They exist to give the model the facts; they are **not** d
   `SHORT_BRIEF_WORDS`, plus `"length"` last when `countFromBrief` finds no count, the piece is not a
   two-pager, no attached deck is set to Replicate and the brief is not a series (`seriesFromBrief`,
   "one slide per objective": its list sets the length, and a picked count would read as items)), starts their analyses and opens
-  `components/SheetWizard.tsx` on the first. `"length"` (Mario, 1 Oct 2026: most briefs name no
+  `components/SheetWizard.tsx` on the first. `"nofile"` comes first when no file is attached and the brief talks about one
+  (`mentionsMissingFile`, Mario, 5 Oct 2026: a brief citing "the attached file" with nothing attached
+  came back as a deck about the missing source); "Attach the file" stops and opens the file picker
+  (the primary button reads "Choose file"), "Generate without it" goes on. `"length"` (Mario, 1 Oct 2026: most briefs name no
   length) is a fixed question, `lengthAnalysis` in `sheet-questions.ts`: 5, 8, 10, 12 or 15 slides,
   or "Let the builder decide"; `lengthOf` turns the answer into the `count` `runGenerate` sends when
   the brief names none (Skip and "decide" send none, as before). Its answers are keyed to the

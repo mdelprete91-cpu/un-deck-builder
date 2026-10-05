@@ -30,7 +30,7 @@ import ChartDataPanel from "@/components/ChartDataPanel";
 import ImagePickerModal from "@/components/ImagePickerModal";
 import EditWithAiModal from "@/components/EditWithAiModal";
 import SheetWizard from "@/components/SheetWizard";
-import { compileInsights, normalizeAnalysis, SHORT_BRIEF_WORDS, USE_QUESTION_ID, fileUseOf, fileUseQuestion, lengthAnalysisFor, lengthOf, preselectFileUse, type SheetAnalysis, type SheetAnswers } from "@/lib/slides/sheet-questions";
+import { compileInsights, normalizeAnalysis, SHORT_BRIEF_WORDS, USE_QUESTION_ID, fileUseOf, fileUseQuestion, lengthAnalysisFor, lengthOf, mentionsMissingFile, missingFileAnalysis, MISSING_FILE_QUESTION_ID, ATTACH_IT, preselectFileUse, type SheetAnalysis, type SheetAnswers } from "@/lib/slides/sheet-questions";
 import { denseBeforeNormalize, densityHint, planReplica, withContentDensity, type ReplicateStep } from "@/lib/slides/replicate";
 import { compareSlide, fidelityScore, isFlawed, planLeftovers, repairNote, runningLines, sourceUnits, totals, type DeckFidelity, type Leftover, type SlideFidelity } from "@/lib/slides/fidelity";
 import { readPdfSlides } from "@/lib/slides/pdf-source";
@@ -456,6 +456,8 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
     wizardRef.current = wizard;
   }, [wizard]);
   const [briefQ, setBriefQ] = useState<{ brief: string; analysis?: SheetAnalysis; answers: SheetAnswers; error?: string; asked?: boolean } | null>(null);
+  /** A brief that mentions a file with none attached: asked first, keyed to the brief's text. */
+  const [noFileQ, setNoFileQ] = useState<{ brief: string; answers: SheetAnswers; asked?: boolean } | null>(null);
   /** The deck's length, asked last when the brief names none; keyed to the brief's text like briefQ. */
   const [lengthQ, setLengthQ] = useState<{ brief: string; answers: SheetAnswers; asked?: boolean } | null>(null);
   /** A replica keeps the source's length, so the length question has nothing to ask. */
@@ -526,7 +528,8 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
   };
   /** Every answer is kept as it is given and compiled into `insights`, the field the prompt reads. */
   const onWizardAnswers = (id: string, answers: SheetAnswers) => {
-    if (id === "length") setLengthQ((q) => (q ? { ...q, answers } : q));
+    if (id === "nofile") setNoFileQ((q) => (q ? { ...q, answers } : q));
+    else if (id === "length") setLengthQ((q) => (q ? { ...q, answers } : q));
     else if (id === "brief") setBriefQ((q) => (q ? { ...q, answers } : q));
     else
       setAttachments((list) =>
@@ -534,12 +537,20 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
       );
   };
   const markAsked = (id: string) => {
-    if (id === "length") setLengthQ((q) => (q ? { ...q, asked: true } : q));
+    if (id === "nofile") setNoFileQ((q) => (q ? { ...q, asked: true } : q));
+    else if (id === "length") setLengthQ((q) => (q ? { ...q, asked: true } : q));
     else if (id === "brief") setBriefQ((q) => (q ? { ...q, asked: true } : q));
     else setAttachments((list) => list.map((x) => (x.id === id && canQuestion(x) ? { ...x, asked: true } : x)));
   };
   /** The current subject is done (answered, skipped or clear): the next one, or the deck. */
   const advanceFrom = (w: { queue: string[]; intent: "generate" | "edit" }) => {
+    // "Attach the file": stop here and open the picker; the next Generate goes on from the file.
+    if (w.queue[0] === "nofile" && noFileQ?.answers[MISSING_FILE_QUESTION_ID] === ATTACH_IT) {
+      setWizard(null);
+      setNoFileQ(null);
+      document.querySelector<HTMLInputElement>('[data-tour="prompt"] input[type="file"]')?.click();
+      return;
+    }
     markAsked(w.queue[0]);
     // The length is moot once the file is to be replicated, answered just before.
     const rest = w.queue.slice(1).filter((id) => id !== "length" || !replicaChosen());
@@ -560,6 +571,7 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
     const id = wizard?.queue[0];
     if (!id) return null;
     if (id === "brief") return { id, title: "Your brief", kind: "brief", analysis: briefQ?.analysis, answers: briefQ?.answers ?? {}, error: briefQ?.error };
+    if (id === "nofile") return { id, title: "No file attached", kind: "missing", analysis: missingFileAnalysis, answers: noFileQ?.answers ?? {} };
     if (id === "length") return { id, title: "Deck length", kind: "length", analysis: lengthAnalysisFor(state.chapters), answers: lengthQ?.answers ?? {} };
     const a = attachments.find((x) => x.id === id);
     if (!a || !canQuestion(a)) return null;
@@ -593,11 +605,16 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
       toAsk.push("length");
       if (lengthQ?.brief !== brief) setLengthQ({ brief, answers: {} });
     }
+    // The brief talks about a file and none is attached: ask that first.
+    if (attachments.length === 0 && mentionsMissingFile(brief) && !(noFileQ?.brief === brief && noFileQ.asked)) {
+      toAsk.unshift("nofile");
+      if (noFileQ?.brief !== brief) setNoFileQ({ brief, answers: {} });
+    }
     if (toAsk.length === 0) return void runGenerate();
     queue.length = 0;
     queue.push(...toAsk);
     for (const id of queue) {
-      if (id === "length") continue;
+      if (id === "length" || id === "nofile") continue;
       if (id === "brief") {
         if (briefQ?.brief !== brief) void analyzeBrief(brief);
       } else {
@@ -1423,7 +1440,15 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
           <SheetWizard
             key={wizardSubject.id}
             subject={wizardSubject}
-            finalLabel={wizard.intent === "generate" && wizard.queue.length === 1 ? "Generate" : wizard.queue.length > 1 ? (wizard.queue[1] === "length" ? "Next" : "Next file") : "Done"}
+            finalLabel={
+              wizardSubject.id === "nofile" && noFileQ?.answers[MISSING_FILE_QUESTION_ID] === ATTACH_IT
+                ? "Choose file"
+                : wizard.intent === "generate" && wizard.queue.length === 1
+                  ? "Generate"
+                  : wizard.queue.length > 1
+                    ? ["length", "brief", "nofile"].includes(wizard.queue[1]) ? "Next" : "Next file"
+                    : "Done"
+            }
             onAnswers={(answers) => onWizardAnswers(wizardSubject.id, answers)}
             onRetry={() => {
               if (wizardSubject.id === "brief") void analyzeBrief(state.brief);

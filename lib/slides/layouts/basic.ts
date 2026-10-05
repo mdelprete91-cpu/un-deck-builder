@@ -249,8 +249,11 @@ export function thankYou(s: Slide, t: BrandTheme): string {
   // back to the default for rendering. normalizeSlide seeds the array itself.
   const channels = (s.channels ?? channelsFor(t.id))
     .map(
+      // A channel with no value (UNICEF's seeded "Email") is hidden on the
+      // slide, in the exports and in presenting; the editor shows it so it
+      // can be filled (globals.css, [data-empty-field]). Mario, 5 Oct 2026.
       (ch, i) =>
-        `<div class="ars" style="flex:1;${BODY30}color:#FFFFFF;${dly(26 + i * 4)}">` +
+        `<div class="ars" ${ch.value.trim() ? "" : "data-empty-field "}style="flex:1;${BODY30}color:#FFFFFF;${ch.value.trim() ? "" : "display:none;"}${dly(26 + i * 4)}">` +
         `<div ${ed(`channels.${i}.label`)}>${esc(ch.label)}</div>` +
         `<div ${ed(`channels.${i}.value`)}>${esc(ch.value)}</div>` +
         `</div>`,

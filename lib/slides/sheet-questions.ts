@@ -250,3 +250,31 @@ export function lengthAnalysisFor(chapters: boolean): SheetAnalysis {
     questions: [{ ...q, details: q.details?.map((d, i) => (parseInt(q.options[i], 10) < MIN_SLIDES_WITH_CHAPTERS ? `${d}. Too short for chapters: they'll be left out` : d)) }],
   };
 }
+
+/**
+ * A brief that talks about a file nobody attached (Mario, 5 Oct 2026): the
+ * model then wrote a whole deck about the missing source ("No source file
+ * provided", "Results cannot be quantified"). Before generating, the
+ * questions dialog asks first: attach it, or generate without it. English,
+ * Italian, Spanish and French wordings; a link in the brief is a source too.
+ */
+const MENTIONS_FILE =
+  /\b(attached|attachment|enclosed|source (file|document|deck)|(the|this|my|our) (file|pdf|pptx|powerpoint|spreadsheet|excel|workbook|report attached)|uploaded|allegat[oaie]|in allegato|(il|questo|nel) (file|pdf|documento allegato)|file sorgente|adjunt[oa]s?|el archivo|ci-joint|pi[eè]ce jointe|le fichier)\b/i;
+export function mentionsMissingFile(brief: string): boolean {
+  return MENTIONS_FILE.test(brief) && !/https?:\/\//i.test(brief);
+}
+export const MISSING_FILE_QUESTION_ID = "missing-file";
+export const ATTACH_IT = "Attach the file";
+export const missingFileAnalysis: SheetAnalysis = {
+  summary: "Your brief mentions a file, but nothing is attached.",
+  questions: [
+    {
+      id: MISSING_FILE_QUESTION_ID,
+      question: "Do you want to attach it first?",
+      why: "Without it, the deck can only use what the brief says.",
+      kind: "single",
+      options: [ATTACH_IT, "Generate without it"],
+      details: ["Opens the file picker; press Generate again once it's in", "The deck is written from the brief alone"],
+    },
+  ],
+};
