@@ -18,6 +18,8 @@ const PX_PER_IN = 144;
 const PT_PER_PX = 0.5;
 const SLIDE_W = 1920;
 const SLIDE_H = 1080;
+/** Pixels per slide pixel in a rasterised element. */
+const RASTER_SCALE = 2;
 
 const INLINE_TAGS = new Set(["SPAN", "B", "STRONG", "I", "EM", "BR", "SUP", "SUB", "U", "SMALL"]);
 
@@ -243,10 +245,14 @@ function addText(ctx: Ctx, el: HTMLElement, cs: CSSStyleDeclaration, rect: Rect,
  */
 function leafText(el: HTMLElement, cs: CSSStyleDeclaration): string {
   const flexy = /flex|grid/.test(cs.display);
+  // The flex gap is the only space between the parts ("01 |" and the agenda
+  // entry, 5 Oct 2026: "01 |Source material"): it becomes a space in the text.
+  const gap = flexy && parseFloat(cs.columnGap) > 0 ? " " : "";
   const raw = flexy
     ? Array.from(el.childNodes)
         .map((n) => (n.nodeType === Node.TEXT_NODE ? n.textContent ?? "" : (n as HTMLElement).innerText ?? ""))
-        .join("")
+        .filter((t) => t !== "")
+        .reduce((out, t) => (out && gap && !/\s$/.test(out) && !/^\s/.test(t) ? `${out}${gap}${t}` : out + t), "")
     : el.innerText;
   return raw.replace(/\u00a0/g, " ").replace(/\s+$/g, "");
 }
@@ -271,7 +277,12 @@ async function addRaster(ctx: Ctx, el: HTMLElement, rect: Rect, alpha: number): 
   clone.style.background = "transparent";
   const root = clone.firstElementChild as HTMLElement | null;
   if (root) root.style.background = "transparent";
-  const png = await rasterizeSlide(clone, SLIDE_W, SLIDE_H, rect);
+  // Twice the slide's pixels: a logo, an icon or a chart line drawn at 1:1
+  // came out soft and greyish on a Retina screen and in previews (5 Oct 2026).
+  // Photos and full-bleed backgrounds stay 1:1: already photographic, and at
+  // twice the pixels they would only make the file four times heavier.
+  const small = rect.w * rect.h < (SLIDE_W * SLIDE_H) / 4;
+  const png = await rasterizeSlide(clone, SLIDE_W, SLIDE_H, rect, small ? RASTER_SCALE : 1);
   ctx.slide.addImage({
     data: png,
     x: rect.x / PX_PER_IN,

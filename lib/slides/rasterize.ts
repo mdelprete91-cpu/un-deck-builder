@@ -32,6 +32,8 @@ export async function rasterizeSlide(
   height = 1080,
   /** Return only this region of the slide, as a picture of its own size. */
   crop?: { x: number; y: number; w: number; h: number },
+  /** Pixels per slide pixel. The SVG is drawn at that size, so it stays sharp, not upscaled. */
+  scale = 1,
 ): Promise<string> {
   const clone = stage.cloneNode(true) as HTMLElement;
   // Event-handler attributes are not XML and have no job in a picture.
@@ -50,14 +52,16 @@ export async function rasterizeSlide(
   // foreignObject that came from a blob, and toDataURL then throws.
   const img = await loadImage(`data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`);
   const canvas = document.createElement("canvas");
-  const cw = crop ? Math.max(1, Math.round(crop.w)) : width;
-  const ch = crop ? Math.max(1, Math.round(crop.h)) : height;
+  const cw = Math.max(1, Math.round((crop ? crop.w : width) * scale));
+  const ch = Math.max(1, Math.round((crop ? crop.h : height) * scale));
   canvas.width = cw;
   canvas.height = ch;
   const ctx = canvas.getContext("2d");
   if (!ctx) throw new Error("no 2d canvas context");
-  if (crop) ctx.drawImage(img, crop.x, crop.y, crop.w, crop.h, 0, 0, cw, ch);
-  else ctx.drawImage(img, 0, 0, width, height);
+  // The whole slide drawn at the target scale, shifted so the crop lands at
+  // the origin: the browser renders the SVG at that size, crisp.
+  if (crop) ctx.drawImage(img, -crop.x * scale, -crop.y * scale, width * scale, height * scale);
+  else ctx.drawImage(img, 0, 0, width * scale, height * scale);
   return canvas.toDataURL("image/png");
 }
 
