@@ -4,9 +4,9 @@ import "./globals.css";
 import ThemeProvider from "@/components/ThemeProvider";
 
 export const metadata: Metadata = {
-  title: "Giga Deck Builder",
+  title: "UNICEF Deck Builder",
   description:
-    "Generate branded Giga / UNICEF / Digital Impact Division slide decks from a prompt",
+    "Generate branded UNICEF / Digital Impact Division slide decks from a prompt",
 };
 
 export default function RootLayout({

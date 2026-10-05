@@ -39,7 +39,7 @@ export default function MobileGate() {
       <Monitor size={28} className="text-ink-faint" aria-hidden />
       <div className="flex flex-col gap-2">
         <h1 id="mobile-gate-title" className="text-xl font-medium text-ink">
-          Giga Deck Builder works on desktop
+          UNICEF Deck Builder works on desktop
         </h1>
         <p className="max-w-xs text-sm leading-relaxed text-ink-muted">
           The editor needs a large screen for the slides and their controls. Open this link on your

@@ -49,7 +49,7 @@ export async function exportPageDoc(
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="generator" content="Giga Deck Builder">
+<meta name="generator" content="UNICEF Deck Builder">
 <title>${title.replace(/</g, "&lt;")}</title>
 <style>${fontCss}${PAGE_CSS}</style>
 </head>
