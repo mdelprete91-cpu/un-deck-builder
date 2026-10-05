@@ -81,7 +81,9 @@ export default function SkeletonDrift() {
   return (
     // The fade sits on a wrapper, the perspective on the row inside it: on one
     // element together Chrome draws the masked 3D cards in vertical stripes.
-    <div aria-hidden className="skeleton-window h-[150px] w-[720px] max-w-full" style={{ visibility: step === null ? "hidden" : undefined }}>
+    // 48px above and below for the cards' shadow, which the mask would cut at
+    // the box's edge; the negative margins keep the 150px the layout counts on.
+    <div aria-hidden className="skeleton-window -my-12 h-[246px] w-[720px] max-w-full" style={{ visibility: step === null ? "hidden" : undefined }}>
     <div className="relative h-full w-full [perspective:900px]">
       {CARDS.map((Card, i) => {
         // Place in the row, -half..half; growing step moves every card right.
