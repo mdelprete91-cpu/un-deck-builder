@@ -150,7 +150,17 @@
 /* Skeleton shapes in Mist. A card coming from the left is empty; the middle
    one builds its shapes in as it lands (.sk-build, staggered by --i): lines
    grow from the left, chart columns from the baseline, dots pop. */
-.sk { background: var(--color-mist); }
+/* Light blue, not grey (Mario, 5 Oct 2026): the cards and their shapes are
+   the surface mixed with UNICEF cyan, so the same mix reads as a pale blue on
+   the light stage and a deep blue on the dark one. */
+.skeleton-window {
+  --sk-hue: #1cabe2;
+}
+.sk-card {
+  background: color-mix(in srgb, var(--sk-hue) 9%, var(--color-surface));
+  border-color: color-mix(in srgb, var(--sk-hue) 22%, transparent);
+}
+.sk { background: color-mix(in srgb, var(--sk-hue) 26%, transparent); }
 .sk-empty .sk { opacity: 0; }
 @keyframes skGrowX { from { opacity: 0; transform: scaleX(0); } to { opacity: 1; transform: none; } }
 @keyframes skGrowY { from { opacity: 0; transform: scaleY(0); } to { opacity: 1; transform: none; } }

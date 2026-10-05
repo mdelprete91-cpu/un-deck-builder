@@ -122,7 +122,7 @@ export default function SkeletonDrift() {
 }
 
 function Frame({ children }: { children: ReactNode }) {
-  return <div className="aspect-video w-[200px] shrink-0 rounded-xl border border-hairline-light bg-canvas-2 p-3.5 shadow-float">{children}</div>;
+  return <div className="sk-card aspect-video w-[200px] shrink-0 rounded-xl border p-3.5 shadow-float">{children}</div>;
 }
 
 /** The build order of a shape inside its card, for the stagger. */
