@@ -180,13 +180,27 @@ discards any `agenda` or `section-divider` the model emits anyway. Keep both —
 leaks a stray divider often enough to matter. It never edits the deck already on screen, and
 `regenerate` is deliberately exempt so regenerating an existing agenda slide still works.
 
+On, it demands them (Mario, 5 Oct 2026). The prompt used to only *allow* chapters ("agenda only for
+decks of 6+ slides", "or leave the chapters out"), and on a QA set of 18 Chapters-on briefs
+(`tools/qa-chapters.json`: no count, 8, 10, 12, one slide per objective, an attached document,
+three runs each) 15 came back without an agenda or with fewer than two dividers; eight to twelve
+slides never had them. Now `HAS_CHAPTERS` goes into the user message for generate (not add, which
+must never add an agenda): an agenda after the cover and a divider per chapter, 2 to 4 chapters,
+exactly two under twelve slides, counted inside the named length. 18 of 18 after. Behind it,
+`lib/slides/chapters.ts` is the safety net `runGenerate` runs once the deck is complete:
+`ENSURE_AGENDA` adds the agenda for dividers that came without one, and a deck with no dividers
+goes to `app/api/chapters` (titles in, 2 to 4 chapters out, by title), then `APPLY_CHAPTERS`
+inserts the dividers and the agenda; that can take the deck past a named count, which is the
+lesser evil. `tools/qa-suite.ts` runs the same net and says when it was needed
+(`QA_FILE=tools/qa-chapters.json npx tsx tools/qa-suite.ts`).
+
 **A named count under eight overrides the toggle.** Cover, agenda, two dividers, two content
 slides and the closing slide are eight already, so "Six slides" with chapters on cannot hold
 (`MIN_SLIDES_WITH_CHAPTERS` in `page.tsx`). `onGenerate` then sends `chapters: false` and drops
 strays for that generation only, the setting itself is untouched, and the sidebar says "Chapters
 left out" in place of the usual regenerate-to-apply line (`chaptersSkipped`, session state in
-`page.tsx`). For a larger count the model is told that when the count leaves no room for both,
-the chapters go, never the content. Before this (22 Sep 2026) a six-slide OKR brief came back as
+`page.tsx`). The length question says so on its options under eight when Chapters is on
+(`lengthAnalysisFor`). Before this (22 Sep 2026) a six-slide OKR brief came back as
 sixteen slides, seven of them agenda and dividers.
 
 **Bump `VERSION` in `storage.ts`** whenever the persisted shape changes, otherwise returning users
@@ -467,7 +481,7 @@ guard, all pure functions, none touching the user's words:
   out (a numbers deck of eight stats ended on a stat). A topped-up slide whose title the deck
   already has is dropped as a repeat. The route budgets 800 tokens a slide, up to 36k for a forty-slide deck, and runs for up to 300 s (`maxDuration`; thirty slides from the Gambia pptx took 26 s) (a fifteen-slide deck
   with chapters from a long report was truncated at 650), and a named count under twelve with
-  chapters on asks for at most two chapters.
+  chapters on asks for exactly two chapters.
 - **Icons are the model's, from a curated list** (Mario, 26 Sep 2026, after a globe on "Award"):
   `lib/slides/icon-set.ts` holds about 150 Lucide names grouped by what the decks talk about,
   listed once in the system prompt (about 500 tokens); `icons` is in the output schema (one per

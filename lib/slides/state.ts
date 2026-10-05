@@ -2,6 +2,7 @@ import type { ImagePos, Slide, SlideContent } from "./schema";
 import { ensureId, isPage, normalizeSeries, normalizeSlide, PRIMARY_ARRAY } from "./schema";
 import { closingFor, finishDeck, mergeContinuations, unifyLayouts } from "./rhythm";
 import { BRANDS } from "./brand";
+import { applyChapterPlan, ensureAgenda, type ChapterPlan } from "./chapters";
 import { fillPhotos } from "./library";
 import { MAX_BLOCKS_PER_PAGE, PAGE_BLOCK_LIMITS, type PageBlockType } from "./pages/schema";
 import { defaultBlock, newPageItem } from "./pages/presets";
@@ -116,6 +117,10 @@ export type DeckAction =
   | { type: "TOGGLE_CELL"; index: number; row: number; col: number }
   /** Generation done: a deck that ends without its closing slide gets the default one. */
   | { type: "ENSURE_CLOSING" }
+  /** Chapters on: an agenda for dividers the model left without one (lib/slides/chapters.ts). */
+  | { type: "ENSURE_AGENDA" }
+  /** Chapters on and no dividers: the grouping from app/api/chapters, dividers and agenda inserted. */
+  | { type: "APPLY_CHAPTERS"; plan: ChapterPlan }
   /** Generation done under "same layout": every blocks-family slide takes the one layout that holds them all. */
   | { type: "UNIFY_LAYOUTS" }
   /** Generation done: consecutive slides with one title fold into one. */
@@ -264,6 +269,15 @@ function reduce(state: DeckState, action: DeckAction): DeckState {
       // No history push: generation is undone as a whole via GENERATION_START's snapshot.
       const slides = [...state.slides, ensureId(action.content)];
       return { ...state, slides, activeIndex: slides.length - 1 };
+    }
+    case "ENSURE_AGENDA":
+    case "APPLY_CHAPTERS": {
+      const make = (c: SlideContent) => {
+        const n = normalizeSlide(c, { brandId: state.brandId });
+        return n ? ensureId(n) : null;
+      };
+      const slides = action.type === "APPLY_CHAPTERS" ? applyChapterPlan(state.slides, action.plan, make) : ensureAgenda(state.slides, make);
+      return slides === state.slides ? state : { ...state, slides };
     }
     case "ENSURE_CLOSING": {
       // The model left the closing slide out (a numbers deck of eight stats,

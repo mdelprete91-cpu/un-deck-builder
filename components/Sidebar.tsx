@@ -71,7 +71,8 @@ export default function Sidebar({
     (s) => s.layoutId === "agenda" || s.layoutId === "section-divider",
   );
   const chaptersLeftOut = hasSlides && state.chapters && chaptersSkipped !== null;
-  const chaptersPending = hasSlides && !chaptersLeftOut && deckHasChapters !== state.chapters;
+  // Not while generating: the chapters safety net lands right after the slides.
+  const chaptersPending = hasSlides && !generating && !chaptersLeftOut && deckHasChapters !== state.chapters;
 
   return (
     <aside className="flex h-full w-[340px] shrink-0 flex-col gap-6 overflow-y-auto border-r border-hairline-light bg-canvas p-6 *:shrink-0">

@@ -29,6 +29,7 @@ import { denseBeforeNormalize, densityHint, planReplica, withContentDensity } fr
 import { continuationLabel, estimateFits, restoreCover, restoreSlide } from "../lib/slides/restore";
 import { compareSlide, fidelityScore, isFlawed, planLeftovers, repairNote, runningLines, sourceUnits, totals, type Leftover, type SlideFidelity, type Totals } from "../lib/slides/fidelity";
 import { fillPhotos } from "../lib/slides/library";
+import { applyChapterPlan, chapterCandidates, ensureAgenda, needsChapterPlan, type ChapterPlan } from "../lib/slides/chapters";
 
 const URL = process.env.QA_URL ?? "http://localhost:3777";
 const BRAND_ID = "did";
@@ -426,6 +427,21 @@ async function runPrompt(p: Prompt): Promise<Result> {
     if (closing) slides.push(closing);
     warnings.push("closing slide added: the model left it out");
   }
+  // The chapters safety net, as runGenerate runs it (lib/slides/chapters.ts).
+  if (chapters) {
+    const make = (c: SlideContent) => normalizeSlide(c, { brandId: BRAND_ID });
+    const hadAgenda = slides.some((s) => s.layoutId === "agenda");
+    if (needsChapterPlan(slides)) {
+      const res = await fetch(`${URL}/api/chapters`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ titles: chapterCandidates(slides), brief }) });
+      const plan = res.ok ? ((await res.json()) as { chapters?: ChapterPlan }).chapters ?? [] : [];
+      const before = slides.length;
+      slides = applyChapterPlan(slides, plan, make);
+      warnings.push(`safety net: model gave no chapters, grouping added ${slides.length - before} slides`);
+    } else {
+      slides = ensureAgenda(slides, make);
+      if (!hadAgenda && slides.some((s) => s.layoutId === "agenda")) warnings.push("safety net: agenda added for the model's dividers");
+    }
+  }
   const agenda = slides.find((s) => s.layoutId === "agenda");
   if (agenda) agenda.bullets = slides.filter((s) => s.layoutId === "section-divider").map((s) => s.title ?? "");
   const seconds = (Date.now() - t0) / 1000;
@@ -448,6 +464,12 @@ async function runPrompt(p: Prompt): Promise<Result> {
   if (e.max !== undefined && slides.length > e.max) findings.push(`too long: ${slides.length} > ${e.max}`);
   const hasChapters = layouts.some((l) => CHAPTER_LAYOUTS.has(l));
   if (chapters && !hasChapters) findings.push("chapters on, none in deck");
+  // Chapters on means an agenda and at least two dividers, not a stray one of either.
+  else if (chapters) {
+    const dividerCount = layouts.filter((l) => l === "section-divider").length;
+    if (!layouts.includes("agenda")) findings.push("chapters on, no agenda");
+    if (dividerCount < 2) findings.push(`chapters on, ${dividerCount} divider${dividerCount === 1 ? "" : "s"}`);
+  }
   if (!chapters && hasChapters) findings.push("chapters off, dividers leaked");
   if (chapters) {
     const agenda = slides.find((s) => s.layoutId === "agenda");

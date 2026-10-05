@@ -1,3 +1,4 @@
+import { MIN_SLIDES_WITH_CHAPTERS } from "./brief";
 /**
  * The questions a spreadsheet raises before it becomes a deck. The model
  * reads the workbook (one table per sheet, as the composer extracts it)
@@ -216,7 +217,7 @@ const LENGTHS: [number, string][] = [
   [12, "A detailed review or a proposal"],
   [15, "A long report or a workshop"],
 ];
-export const lengthAnalysis: SheetAnalysis = {
+const lengthAnalysis: SheetAnalysis = {
   summary: "Your brief doesn't say how long the deck should be.",
   questions: [
     {
@@ -234,4 +235,18 @@ export function lengthOf(answers: SheetAnswers | undefined): number | undefined 
   const a = answers?.[LENGTH_QUESTION_ID];
   const n = typeof a === "string" ? parseInt(a, 10) : NaN;
   return Number.isFinite(n) ? n : undefined;
+}
+
+/**
+ * The length question as the user sees it: with Chapters on, a length under
+ * MIN_SLIDES_WITH_CHAPTERS (brief.ts) says it leaves the chapters out, since
+ * runGenerate drops them there (no room for an agenda and dividers).
+ */
+export function lengthAnalysisFor(chapters: boolean): SheetAnalysis {
+  if (!chapters) return lengthAnalysis;
+  const q = lengthAnalysis.questions[0];
+  return {
+    ...lengthAnalysis,
+    questions: [{ ...q, details: q.details?.map((d, i) => (parseInt(q.options[i], 10) < MIN_SLIDES_WITH_CHAPTERS ? `${d}. Too short for chapters: they'll be left out` : d)) }],
+  };
 }

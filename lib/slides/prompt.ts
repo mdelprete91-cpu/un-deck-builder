@@ -29,7 +29,7 @@ ICONS for "icon-cards" (one per block, in block order, each the one that says wh
 
 RULES:
 - Output slides in presentation order. ALWAYS start with "cover" and ALWAYS end with "thank-you" (the user deletes them if unneeded).
-- Use "agenda" right after the cover only for decks of 6+ slides. Agenda bullets MUST mirror the deck's "section-divider" slides one-to-one: same order, same wording (<=5 words each). Every chapter opens with its own section-divider carrying that exact title.
+- Chapters ("agenda" and "section-divider") are set per deck in the user message: when it says the deck has chapters, "agenda" goes right after the cover. Agenda bullets MUST mirror the deck's "section-divider" slides one-to-one: same order, same wording (<=5 words each). Every chapter opens with its own section-divider carrying that exact title.
 - THE BRIEF COMES FIRST. When it prescribes a structure (one slide per item, what each slide is titled, what goes on it, the order), follow it to the letter: every item gets its own slide, in the brief's order; the slide's title is the item's own name, copied as written and shortened only when it exceeds the limit. Each slide of such a series takes a layout that holds all of that item's sub-points, and the series ALTERNATES between those layouts, by point count: 5-6 points → "list" (and "list" is NOT allowed under 5 points); 3-4 points → four-cards, icon-cards, steps or callout, never the same as the slide before; 1-2 points → example-image-left, example-image-right, callout or two-column layouts, never "list" and never the same as the slide before. Repeat one layout across the series ONLY when the brief asks for it ("same layout", "stesso layout").
 - Never drop, merge or renumber a sub-point the brief lists under an item (a KR, a step, a point): one block per sub-point, its label the brief's own (KR1, KR2, ...), its body the sub-point shortened to the limit. If no layout holds them all, use the one that holds the most; shorten bodies, never the list.
 - Pick the layout that best fits each beat of the story. Never use the same layout for 3 slides in a row. Alternate light and dark surfaces so the deck has rhythm.
@@ -132,6 +132,15 @@ const NO_CHAPTERS =
   '\n- This deck has NO chapters: never use the "agenda" or "section-divider" layouts. Carry the structure with the content slides themselves and let each one stand on its own.';
 
 /**
+ * Chapter opt-in, the twin of NO_CHAPTERS (Mario, 5 Oct 2026). Without it the
+ * prompt only allowed chapters ("only for decks of 6+ slides", "or leave the
+ * chapters out"), and 15 decks in 18 with Chapters on came back without them.
+ * lib/slides/chapters.ts is the safety net when the model still skips them.
+ */
+const HAS_CHAPTERS =
+  '\n- This deck HAS chapters, the user turned them on: the slide right after the cover MUST be an "agenda", and each chapter MUST open with its own "section-divider" whose title is the matching agenda bullet. Use 2 to 4 chapters that follow the story, never leave them out.';
+
+/**
  * How the attached files relate to the brief. Goes at the end of the text so
  * the instructions about layouts and counts stay where they always were.
  */
@@ -200,13 +209,13 @@ export function buildUserMessage(body: GenerateBody): string {
           : `name "${body.brandLabel} team" and leave role, location and email empty`
       }.`
     : "";
-  const noChapters = body.chapters === false ? NO_CHAPTERS : "";
+  const noChapters = body.chapters === false ? NO_CHAPTERS : body.chapters === true ? HAS_CHAPTERS : "";
   const language = body.language ? ` The brief is in ${body.language}: write every slide in ${body.language}.` : "";
   const notes = body.briefNotes?.trim() ? `\n\nThe user answered questions about this brief; these answers rank with the brief: ${body.briefNotes.trim()}` : "";
   switch (body.mode) {
     case "add": {
       const n = body.count ?? 3;
-      return `Existing deck (JSON): ${JSON.stringify(body.existingSlides ?? [])}\n\nDeck brief: ${body.brief}${brand}${language}${notes}\n\nRequest: ${body.instruction?.trim() || "continue and deepen the story"}\n\nAdd exactly ${n} new slide${n === 1 ? "" : "s"} fulfilling the request.\n- Return ONLY the new slides in "slides": never repeat, rewrite or include existing slides, and never add another cover, agenda or thank-you.\n- Give every new slide "after": the 1-based index of the existing slide it belongs after (0 = before the first slide), where it fits the story and the order of the material, inside the chapter it belongs to, never after a thank-you. New slides that go together share the number, in reading order. Set "insertAfter" to the first new slide's "after".\n- If the deck has an "agenda" slide, return its updated bullets (reflecting the deck after insertion, <=5 words each) in "agenda"; otherwise return an empty array.${noChapters}`;
+      return `Existing deck (JSON): ${JSON.stringify(body.existingSlides ?? [])}\n\nDeck brief: ${body.brief}${brand}${language}${notes}\n\nRequest: ${body.instruction?.trim() || "continue and deepen the story"}\n\nAdd exactly ${n} new slide${n === 1 ? "" : "s"} fulfilling the request.\n- Return ONLY the new slides in "slides": never repeat, rewrite or include existing slides, and never add another cover, agenda or thank-you.\n- Give every new slide "after": the 1-based index of the existing slide it belongs after (0 = before the first slide), where it fits the story and the order of the material, inside the chapter it belongs to, never after a thank-you. New slides that go together share the number, in reading order. Set "insertAfter" to the first new slide's "after".\n- If the deck has an "agenda" slide, return its updated bullets (reflecting the deck after insertion, <=5 words each) in "agenda"; otherwise return an empty array.${body.chapters === false ? NO_CHAPTERS : ""}`;
     }
     case "replicate": {
       // A second attempt says what the first one changed, quoted, with that answer to fix.
@@ -224,15 +233,15 @@ export function buildUserMessage(body: GenerateBody): string {
       // ceiling: a conditional ("unless the items need more") was obeyed
       // one time in two by Haiku, so the client decides and the rule is flat.
       const chaptersCount =
-        body.chapters === false
+        body.chapters !== true
           ? ""
           : typeof body.count === "number" && body.count < 12
-            ? " (agenda and section dividers count too: with this length use at most two chapters, so the content keeps most of the slides, or leave the chapters out)"
-            : " (agenda and section dividers count too; if they would leave no room for the content, leave the chapters out, never the content)";
+            ? " (the agenda and the section dividers count too: with this length use exactly two chapters, so the content keeps most of the slides)"
+            : " (the agenda and the section dividers count too)";
       const length = body.perItem
         ? typeof body.count === "number"
-          ? `The brief asks for one slide per item and names ${body.count}: that is the number of items, not the size of the deck. Make exactly one slide for each item the brief lists, then add the cover and the closing slide on top${body.chapters === false ? "" : ", and the agenda and dividers if the deck has chapters"}.`
-          : `The brief asks for one slide per item: make exactly one slide for each item it lists, plus the cover and the closing slide${body.chapters === false ? "" : ", and the agenda and dividers if the deck has chapters"}.`
+          ? `The brief asks for one slide per item and names ${body.count}: that is the number of items, not the size of the deck. Make exactly one slide for each item the brief lists, then add the cover and the closing slide on top${body.chapters === true ? ", and the agenda and a divider before each chapter" : ""}.`
+          : `The brief asks for one slide per item: make exactly one slide for each item it lists, plus the cover and the closing slide${body.chapters === true ? ", and the agenda and a divider before each chapter" : ""}.`
         : typeof body.count === "number"
           ? `Produce exactly ${body.count} slides, no more and no fewer, counting the cover and the closing slide${chaptersCount}.`
           : `Choose the number of slides yourself (typically 8-14; when the brief asks to carry long material in full, as many as it takes, up to ${MAX_SLIDES}). A "page" in the brief means a slide.`;

@@ -23,13 +23,14 @@ import { computeLogoTone, FULL_BLEED_TONE, RIGHT_PANEL_TONE, type ToneGeometry }
 import { ICON_LIBRARY, ICON_NAMES } from "@/lib/slides/icons";
 import Button, { ICON_SIZE } from "@/components/Button";
 import SkeletonDrift from "@/components/SkeletonDrift";
+import { chapterCandidates, needsChapterPlan, type ChapterPlan } from "@/lib/slides/chapters";
 import Sidebar from "@/components/Sidebar";
 import SlideFrame, { readImageFile } from "@/components/SlideFrame";
 import ChartDataPanel from "@/components/ChartDataPanel";
 import ImagePickerModal from "@/components/ImagePickerModal";
 import EditWithAiModal from "@/components/EditWithAiModal";
 import SheetWizard from "@/components/SheetWizard";
-import { compileInsights, normalizeAnalysis, SHORT_BRIEF_WORDS, USE_QUESTION_ID, fileUseOf, fileUseQuestion, lengthAnalysis, lengthOf, preselectFileUse, type SheetAnalysis, type SheetAnswers } from "@/lib/slides/sheet-questions";
+import { compileInsights, normalizeAnalysis, SHORT_BRIEF_WORDS, USE_QUESTION_ID, fileUseOf, fileUseQuestion, lengthAnalysisFor, lengthOf, preselectFileUse, type SheetAnalysis, type SheetAnswers } from "@/lib/slides/sheet-questions";
 import { denseBeforeNormalize, densityHint, planReplica, withContentDensity, type ReplicateStep } from "@/lib/slides/replicate";
 import { compareSlide, fidelityScore, isFlawed, planLeftovers, repairNote, runningLines, sourceUnits, totals, type DeckFidelity, type Leftover, type SlideFidelity } from "@/lib/slides/fidelity";
 import { readPdfSlides } from "@/lib/slides/pdf-source";
@@ -559,7 +560,7 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
     const id = wizard?.queue[0];
     if (!id) return null;
     if (id === "brief") return { id, title: "Your brief", kind: "brief", analysis: briefQ?.analysis, answers: briefQ?.answers ?? {}, error: briefQ?.error };
-    if (id === "length") return { id, title: "Deck length", kind: "length", analysis: lengthAnalysis, answers: lengthQ?.answers ?? {} };
+    if (id === "length") return { id, title: "Deck length", kind: "length", analysis: lengthAnalysisFor(state.chapters), answers: lengthQ?.answers ?? {} };
     const a = attachments.find((x) => x.id === id);
     if (!a || !canQuestion(a)) return null;
     return { id, title: a.name, kind: a.kind === "text" && a.spreadsheet ? "spreadsheet" : "document", analysis: a.analysis, answers: a.answers ?? {}, error: a.analysisError };
@@ -627,6 +628,8 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
     // A PDF with no text layer is transcribed first (transcribeThenReplicate).
     const replica = !twoPager && !fallback ? attachments.find((x) => isDeckSource(x) && fileUseOf(x.answers) === "replicate") : undefined;
     if (replica && canQuestion(replica)) {
+      // A replica's chapters are the source's: an old "left out" note would not apply.
+      setChaptersSkipped(null);
       if (replica.kind === "pdf" && !replica.sourceSlides?.length) return transcribeThenReplicate(replica);
       return runReplicate(replica);
     }
@@ -704,6 +707,25 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
       dispatch({ type: "MERGE_CONTINUATIONS" });
       if (rhythm.uniform) dispatch({ type: "UNIFY_LAYOUTS" });
       dispatch({ type: "ENSURE_CLOSING" });
+    }
+    // Chapters on and the model still left them out (lib/slides/chapters.ts):
+    // an agenda for dividers that came without one, and for a deck with no
+    // dividers at all, one small call groups the slides into chapters.
+    if (received > 0 && chapters && !twoPager) {
+      dispatch({ type: "ENSURE_AGENDA" });
+      if (needsChapterPlan(kept)) {
+        try {
+          const res = await fetch("/api/chapters", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ titles: chapterCandidates(kept), brief }),
+          });
+          const plan = res.ok ? ((await res.json()) as { chapters?: ChapterPlan }).chapters : undefined;
+          if (plan?.length) dispatch({ type: "APPLY_CHAPTERS", plan });
+        } catch {
+          // The deck stands without chapters; the toggle is still on, so the next generate tries again.
+        }
+      }
     }
     if (received > 0 && TIERS_REQUEST.test(brief)) dispatch({ type: "INSERT_TIERS" });
     if (received > 0) onDeckArrived();

@@ -1,0 +1,185 @@
+[
+ {
+  "id": "ch-nocount-a",
+  "brief": "A deck about bringing internet to rural schools in Zambia: the context, what Giga and the government are doing, results so far, the funding gap, and next steps.",
+  "lang": "en",
+  "chapters": true,
+  "expect": {
+   "chapters": true
+  }
+ },
+ {
+  "id": "ch-nocount-b",
+  "brief": "A deck about bringing internet to rural schools in Zambia: the context, what Giga and the government are doing, results so far, the funding gap, and next steps.",
+  "lang": "en",
+  "chapters": true,
+  "expect": {
+   "chapters": true
+  }
+ },
+ {
+  "id": "ch-nocount-c",
+  "brief": "A deck about bringing internet to rural schools in Zambia: the context, what Giga and the government are doing, results so far, the funding gap, and next steps.",
+  "lang": "en",
+  "chapters": true,
+  "expect": {
+   "chapters": true
+  }
+ },
+ {
+  "id": "ch-8-a",
+  "brief": "8 slides about bringing internet to rural schools in Zambia: the context, what Giga and the government are doing, results so far, the funding gap, and next steps.",
+  "lang": "en",
+  "chapters": true,
+  "expect": {
+   "chapters": true,
+   "count": 8
+  }
+ },
+ {
+  "id": "ch-8-b",
+  "brief": "8 slides about bringing internet to rural schools in Zambia: the context, what Giga and the government are doing, results so far, the funding gap, and next steps.",
+  "lang": "en",
+  "chapters": true,
+  "expect": {
+   "chapters": true,
+   "count": 8
+  }
+ },
+ {
+  "id": "ch-8-c",
+  "brief": "8 slides about bringing internet to rural schools in Zambia: the context, what Giga and the government are doing, results so far, the funding gap, and next steps.",
+  "lang": "en",
+  "chapters": true,
+  "expect": {
+   "chapters": true,
+   "count": 8
+  }
+ },
+ {
+  "id": "ch-10-a",
+  "brief": "10 slides about bringing internet to rural schools in Zambia: the context, what Giga and the government are doing, results so far, the funding gap, and next steps.",
+  "lang": "en",
+  "chapters": true,
+  "expect": {
+   "chapters": true,
+   "count": 10
+  }
+ },
+ {
+  "id": "ch-10-b",
+  "brief": "10 slides about bringing internet to rural schools in Zambia: the context, what Giga and the government are doing, results so far, the funding gap, and next steps.",
+  "lang": "en",
+  "chapters": true,
+  "expect": {
+   "chapters": true,
+   "count": 10
+  }
+ },
+ {
+  "id": "ch-10-c",
+  "brief": "10 slides about bringing internet to rural schools in Zambia: the context, what Giga and the government are doing, results so far, the funding gap, and next steps.",
+  "lang": "en",
+  "chapters": true,
+  "expect": {
+   "chapters": true,
+   "count": 10
+  }
+ },
+ {
+  "id": "ch-12-a",
+  "brief": "12 slides about bringing internet to rural schools in Zambia: the context, what Giga and the government are doing, results so far, the funding gap, and next steps.",
+  "lang": "en",
+  "chapters": true,
+  "expect": {
+   "chapters": true,
+   "count": 12
+  }
+ },
+ {
+  "id": "ch-12-b",
+  "brief": "12 slides about bringing internet to rural schools in Zambia: the context, what Giga and the government are doing, results so far, the funding gap, and next steps.",
+  "lang": "en",
+  "chapters": true,
+  "expect": {
+   "chapters": true,
+   "count": 12
+  }
+ },
+ {
+  "id": "ch-12-c",
+  "brief": "12 slides about bringing internet to rural schools in Zambia: the context, what Giga and the government are doing, results so far, the funding gap, and next steps.",
+  "lang": "en",
+  "chapters": true,
+  "expect": {
+   "chapters": true,
+   "count": 12
+  }
+ },
+ {
+  "id": "ch-okr-a",
+  "brief": "Create a deck. Title: Connectivity Map OKRs. One slide for each objective, the title is the objective and a text box with the KRs.\nObjective 1: Clarify who the map serves. KR1: Document users. KR2: Find a long-term owner.\nObjective 2: Deploy the multi-sector map. KR1: Health data in 3 countries. KR2: Telemetry pilot.\nObjective 3: Public advocacy tools. KR1: Interactive map test. KR2: Visibility metrics.\nObjective 4: Government advocacy map. KR1: Ministry requirements. KR2: Rebrand.\nObjective 5: Stabilize the platform. KR1: Monitoring baseline. KR2: Usability upgrades.",
+  "lang": "en",
+  "chapters": true,
+  "expect": {
+   "chapters": true,
+   "min": 7
+  }
+ },
+ {
+  "id": "ch-okr-b",
+  "brief": "Create a deck. Title: Connectivity Map OKRs. One slide for each objective, the title is the objective and a text box with the KRs.\nObjective 1: Clarify who the map serves. KR1: Document users. KR2: Find a long-term owner.\nObjective 2: Deploy the multi-sector map. KR1: Health data in 3 countries. KR2: Telemetry pilot.\nObjective 3: Public advocacy tools. KR1: Interactive map test. KR2: Visibility metrics.\nObjective 4: Government advocacy map. KR1: Ministry requirements. KR2: Rebrand.\nObjective 5: Stabilize the platform. KR1: Monitoring baseline. KR2: Usability upgrades.",
+  "lang": "en",
+  "chapters": true,
+  "expect": {
+   "chapters": true,
+   "min": 7
+  }
+ },
+ {
+  "id": "ch-okr-c",
+  "brief": "Create a deck. Title: Connectivity Map OKRs. One slide for each objective, the title is the objective and a text box with the KRs.\nObjective 1: Clarify who the map serves. KR1: Document users. KR2: Find a long-term owner.\nObjective 2: Deploy the multi-sector map. KR1: Health data in 3 countries. KR2: Telemetry pilot.\nObjective 3: Public advocacy tools. KR1: Interactive map test. KR2: Visibility metrics.\nObjective 4: Government advocacy map. KR1: Ministry requirements. KR2: Rebrand.\nObjective 5: Stabilize the platform. KR1: Monitoring baseline. KR2: Usability upgrades.",
+  "lang": "en",
+  "chapters": true,
+  "expect": {
+   "chapters": true,
+   "min": 7
+  }
+ },
+ {
+  "id": "ch-doc-a",
+  "brief": "A deck for the donor steering committee from the attached programme summary.",
+  "lang": "en",
+  "chapters": true,
+  "expect": {
+   "chapters": true
+  },
+  "files": [
+   ".omc/help-video/kenya-programme-summary.docx"
+  ]
+ },
+ {
+  "id": "ch-doc-b",
+  "brief": "A deck for the donor steering committee from the attached programme summary.",
+  "lang": "en",
+  "chapters": true,
+  "expect": {
+   "chapters": true
+  },
+  "files": [
+   ".omc/help-video/kenya-programme-summary.docx"
+  ]
+ },
+ {
+  "id": "ch-doc-c",
+  "brief": "A deck for the donor steering committee from the attached programme summary.",
+  "lang": "en",
+  "chapters": true,
+  "expect": {
+   "chapters": true
+  },
+  "files": [
+   ".omc/help-video/kenya-programme-summary.docx"
+  ]
+ }
+]
