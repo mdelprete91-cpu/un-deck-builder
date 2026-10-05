@@ -993,7 +993,7 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
    * base64 data URLs (a single photo once blew a request past 350K tokens),
    * and tier grids are meaningless to it.
    */
-  const lightSlide = ({ id: _id, image: _im, imagePos: _ip, logoTone: _lt, logos: _lg, grid: _gr, map: _mp, ...content }: (typeof state.slides)[number]) =>
+  const lightSlide = ({ id: _id, image: _im, imagePos: _ip, logoTone: _lt, logos: _lg, grid: _gr, map: _mp, chartSource: _cs, ...content }: (typeof state.slides)[number]) =>
     content;
 
   /**
@@ -1057,6 +1057,8 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
               logos: active.logos,
               grid: active.grid,
               map: active.map,
+              // A chart linked to a sheet stays linked: Update brings the sheet's numbers back.
+              chartSource: active.chartSource,
               // Icons the user picked stay; otherwise the rewrite brings icons for its own words.
               ...(active.iconsPinned ? { icons: active.icons, iconsPinned: true } : {}),
               // A dense slide stays dense through a rewrite.
@@ -1099,7 +1101,7 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
       type: "REPLACE_SLIDE",
       index: state.activeIndex,
       content: recolor(
-        { ...content, image: active.image, imagePos: active.imagePos, logos: active.logos, grid: active.grid, icons: active.icons, map: active.map },
+        { ...content, image: active.image, imagePos: active.imagePos, logos: active.logos, grid: active.grid, icons: active.icons, map: active.map, chartSource: isChartLayout(content.layoutId) ? active.chartSource : undefined },
         active.bars,
       ),
     });
@@ -1525,9 +1527,22 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
             />
             {dataPanelOpen && active && isChart && (
               <ChartDataPanel
+                // A new slide starts the panel afresh: no import or error carried over.
+                key={active.id}
                 slide={active}
                 theme={theme}
                 onChange={(bars, series) => dispatch({ type: "SET_BARS", index: state.activeIndex, bars, series })}
+                // Imported numbers keep the colours picked by position (recolor's rule).
+                onImport={(result, source) =>
+                  dispatch({
+                    type: "SET_BARS",
+                    index: state.activeIndex,
+                    bars: result.bars.map((b, i) => ({ ...b, color: active.bars?.[i]?.color })),
+                    series: result.series,
+                    source,
+                  })
+                }
+                onUnlink={() => dispatch({ type: "SET_BARS", index: state.activeIndex, bars: active.bars ?? [], series: active.series, source: null })}
                 onClose={() => setDataPanelOpen(false)}
               />
             )}

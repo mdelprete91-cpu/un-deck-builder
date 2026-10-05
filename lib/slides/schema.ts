@@ -3,6 +3,7 @@ import { toChartColor } from "./chart-colors";
 import { cleanModelIcons } from "./icon-set";
 import { libraryPhoto, PHOTO_LAYOUTS } from "./library";
 import { normalizePage, pageBlockSchema, type PageBlock } from "./pages/schema";
+import type { ChartSource } from "./chart-import";
 
 /** Layouts the AI is allowed to pick. */
 export const AI_LAYOUT_IDS = [
@@ -163,6 +164,12 @@ export interface SlideContent {
   bars?: Bar[];
   /** Series names (legend) for the multi-series charts, see SERIES_LAYOUTS. */
   series?: string[];
+  /**
+   * Where a chart's data was imported from (lib/slides/chart-import.ts): the
+   * file or Google Sheet, the sheet and the columns, so the Data panel can
+   * update it. Metadata only, never the file; never sent to the model.
+   */
+  chartSource?: ChartSource;
   /** The progress slide's stage in progress, 1-based; absent is a plain sequence. */
   current?: number;
   contacts?: Contact[];
@@ -314,6 +321,22 @@ export const slideContentSchema = z.object({
   blocks: z.array(blockSchema).optional(),
   stats: z.array(statSchema).optional(),
   bars: z.array(barSchema).optional(),
+  // An invalid link is dropped, never the slide.
+  chartSource: z
+    .object({
+      kind: z.enum(["file", "gsheet"]),
+      name: z.string().max(200),
+      url: z.string().max(500).regex(/^https:\/\/docs\.google\.com\/spreadsheets\//).optional(),
+      mapping: z.object({
+        sheet: z.string().max(200),
+        headerRow: z.number().int().min(-1).max(5000),
+        labelCol: z.number().int().min(0).max(200),
+        valueCols: z.array(z.number().int().min(0).max(200)).max(10),
+      }),
+      importedAt: z.number(),
+    })
+    .optional()
+    .catch(undefined),
   series: z
     .array(z.string())
     .optional()

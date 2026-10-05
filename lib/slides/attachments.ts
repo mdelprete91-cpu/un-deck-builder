@@ -288,6 +288,24 @@ export async function extractPptx(buf: ArrayBuffer): Promise<string> {
  * headed by its name, blank rows dropped, cut at MAX_SHEET_ROWS with a note.
  */
 export async function extractXlsx(buf: ArrayBuffer): Promise<string> {
+  const { zip, sheets, shared, styles, date1904 } = await openWorkbook(buf);
+
+  const parts: string[] = [];
+  for (const s of sheets) {
+    const file = zip.file(s.path);
+    if (!file) continue;
+    const { rows, total } = sheetRows(await file.async("string"), shared, styles, date1904);
+    if (rows.length === 0) continue;
+    const cols = rows.reduce((n, r) => Math.max(n, r.length), 0);
+    const cut = total > rows.length ? `, first ${rows.length} of ${total} rows` : `, ${rows.length} rows`;
+    parts.push(`Sheet "${s.name}" (${cols} columns${cut}):\n${rows.map((r) => r.join(" | ")).join("\n")}`);
+  }
+  if (parts.length === 0) throw new AttachmentError("This Excel file has no cells with content.");
+  return parts.join("\n\n");
+}
+
+/** The parts of a workbook every reader needs: its visible sheets, shared strings, styles and date system. */
+async function openWorkbook(buf: ArrayBuffer) {
   const zip = await JSZip.loadAsync(buf);
   const workbook = zip.file("xl/workbook.xml");
   if (!workbook) throw new AttachmentError("This Excel file has no readable workbook part.");
@@ -313,19 +331,84 @@ export async function extractXlsx(buf: ArrayBuffer): Promise<string> {
 
   const shared = readSharedStrings((await zip.file("xl/sharedStrings.xml")?.async("string")) ?? "");
   const styles = readCellStyles((await zip.file("xl/styles.xml")?.async("string")) ?? "");
+  return { zip, sheets, shared, styles, date1904 };
+}
 
-  const parts: string[] = [];
+/** A cell for the chart import: what the sheet shows, and its number when it is one (a percentage as shown, 49 for 49%). */
+export interface GridCell {
+  text: string;
+  num?: number;
+  percent?: boolean;
+}
+export interface WorkbookGrid {
+  sheets: { name: string; rows: GridCell[][] }[];
+}
+/** The chart import reads more of a sheet than the model does, still bounded. */
+const MAX_GRID_ROWS = 1000;
+const MAX_GRID_COLS = 52;
+
+/**
+ * Every visible sheet as a grid of cells by their place in the sheet: row 3
+ * is rows[2] even when rows 1 and 2 are empty, so a mapping saved as "column
+ * B from row 2" lands on the same cells when the file is read again. Used by
+ * the chart import (lib/slides/chart-import.ts); extractXlsx stays the
+ * model's text reading.
+ */
+export async function readWorkbook(buf: ArrayBuffer): Promise<WorkbookGrid> {
+  const { zip, sheets, shared, styles, date1904 } = await openWorkbook(buf);
+  const out: WorkbookGrid["sheets"] = [];
   for (const s of sheets) {
     const file = zip.file(s.path);
     if (!file) continue;
-    const { rows, total } = sheetRows(await file.async("string"), shared, styles, date1904);
-    if (rows.length === 0) continue;
-    const cols = rows.reduce((n, r) => Math.max(n, r.length), 0);
-    const cut = total > rows.length ? `, first ${rows.length} of ${total} rows` : `, ${rows.length} rows`;
-    parts.push(`Sheet "${s.name}" (${cols} columns${cut}):\n${rows.map((r) => r.join(" | ")).join("\n")}`);
+    out.push({ name: s.name, rows: sheetGrid(await file.async("string"), shared, styles, date1904) });
   }
-  if (parts.length === 0) throw new AttachmentError("This Excel file has no cells with content.");
-  return parts.join("\n\n");
+  if (!out.some((s) => s.rows.some((r) => r.some((c) => c.text)))) throw new AttachmentError("This Excel file has no cells with content.");
+  return { sheets: out };
+}
+
+function sheetGrid(xml: string, shared: string[], styles: CellStyle[], date1904: boolean): GridCell[][] {
+  const rows: GridCell[][] = [];
+  let next = 0;
+  for (const r of xml.matchAll(/<row\b([^>]*)>([\s\S]*?)<\/row>/g)) {
+    const at = Number(/\br="(\d+)"/.exec(r[1])?.[1] ?? next + 1) - 1;
+    next = at + 1;
+    if (at >= MAX_GRID_ROWS) break;
+    const cells: GridCell[] = [];
+    for (const c of r[2].matchAll(/<c\b([^>]*?)(?:\/>|>([\s\S]*?)<\/c>)/g)) {
+      const attrs = c[1];
+      const ref = /\br="([A-Z]+)\d*"/.exec(attrs)?.[1];
+      const col = ref ? colIndex(ref) : cells.length;
+      if (col >= MAX_GRID_COLS) continue;
+      const type = /\bt="(\w+)"/.exec(attrs)?.[1] ?? "n";
+      const body = c[2] ?? "";
+      let cell: GridCell | null = null;
+      if (type === "inlineStr") {
+        let text = "";
+        for (const t of body.matchAll(/<t(?:\s[^>]*)?>([\s\S]*?)<\/t>/g)) text += decodeEntities(t[1]);
+        cell = { text };
+      } else {
+        const v = /<v>([\s\S]*?)<\/v>/.exec(body)?.[1];
+        if (!v) continue;
+        if (type === "s") cell = { text: shared[Number(v)] ?? "" };
+        else if (type === "b") cell = { text: v === "1" ? "TRUE" : "FALSE" };
+        else if (type === "str" || type === "e" || type === "d") cell = { text: decodeEntities(v) };
+        else {
+          const style = styles[Number(/\bs="(\d+)"/.exec(attrs)?.[1] ?? -1)] ?? null;
+          const n = Number(v);
+          const text = formatNumber(v, style, date1904);
+          // A date or a time is a label, not a value to plot.
+          cell = style === "date" || style === "time" || !Number.isFinite(n) ? { text } : style === "percent" ? { text, num: n * 100, percent: true } : { text, num: n };
+        }
+      }
+      cell.text = cell.text.replace(/\s+/g, " ").trim().slice(0, MAX_CELL_CHARS);
+      if (!cell.text) continue;
+      while (cells.length < col) cells.push({ text: "" });
+      cells[col] = cell;
+    }
+    while (rows.length < at) rows.push([]);
+    rows[at] = cells;
+  }
+  return rows;
 }
 
 function readSharedStrings(xml: string): string[] {

@@ -1,6 +1,6 @@
 "use client";
 
-import { Plus, X } from "lucide-react";
+import { FileSpreadsheet, Plus, RefreshCw, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import Button from "@/components/Button";
 import ColorPicker from "@/components/ColorPicker";
@@ -9,6 +9,8 @@ import { PRIMARY_ARRAY, SERIES_LAYOUTS, type Slide } from "@/lib/slides/schema";
 import { numeric } from "@/lib/slides/layouts/stats";
 import { chartShades } from "@/lib/slides/layouts/shared";
 import { seriesColors } from "@/lib/slides/layouts/charts";
+import ChartImport, { readSheetLink, readSourceFile, reapply, type LoadedSource } from "@/components/ChartImport";
+import type { ChartImport as ChartImportResult, ChartMapping, ChartSource } from "@/lib/slides/chart-import";
 
 interface Row {
   label: string;
@@ -21,6 +23,9 @@ interface ChartDataPanelProps {
   slide: Slide;
   theme: BrandTheme;
   onChange: (bars: { label: string; value: number; values?: number[]; color?: string }[], series?: string[]) => void;
+  /** Data read from a sheet, with the link to keep on the slide. */
+  onImport: (result: ChartImportResult, source: ChartSource) => void;
+  onUnlink: () => void;
   onClose: () => void;
 }
 
@@ -34,8 +39,14 @@ const INPUT =
  * row carries one value per series; the row limits come from the layout, so
  * the wide columns take thirty rows and the donut five.
  */
-export default function ChartDataPanel({ slide, theme, onChange, onClose }: ChartDataPanelProps) {
+export default function ChartDataPanel({ slide, theme, onChange, onImport, onUnlink, onClose }: ChartDataPanelProps) {
   const [rows, setRows] = useState<Row[]>([]);
+  // The import view, and what it opens on when Update found the sheet changed.
+  const [importing, setImporting] = useState<false | { loaded?: LoadedSource; mapping?: ChartMapping; error?: string }>(false);
+  const [updating, setUpdating] = useState(false);
+  const [updateError, setUpdateError] = useState<string | null>(null);
+  const updateFileRef = useRef<HTMLInputElement>(null);
+  const source = slide.chartSource;
   const [series, setSeries] = useState<string[]>([]);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const dirty = useRef(false);
@@ -58,11 +69,34 @@ export default function ChartDataPanel({ slide, theme, onChange, onClose }: Char
     dirty.current = false;
   }, [slide.id, slide.bars, slide.series, multi]);
 
+  /**
+   * Update: the same file or sheet read again, the saved mapping applied. A
+   * Google Sheet is fetched again; a file is chosen again (the browser cannot
+   * reopen it). When the sheet or the columns moved, the import opens on it.
+   */
+  const update = async (read: () => Promise<LoadedSource>) => {
+    if (!source) return;
+    setUpdating(true);
+    setUpdateError(null);
+    try {
+      const loaded = await read();
+      const result = reapply(loaded, source.mapping, slide.layoutId);
+      if (!result) setImporting({ loaded, error: `The sheet "${source.mapping.sheet}" isn't in it anymore: pick the data again.` });
+      else if (result.error) setImporting({ loaded, mapping: source.mapping, error: result.error });
+      else onImport(result, { ...source, name: loaded.name, importedAt: Date.now() });
+    } catch (err) {
+      setUpdateError(err instanceof Error ? err.message : "Could not update.");
+    } finally {
+      setUpdating(false);
+    }
+  };
+
   // Every chart draws negatives below its zero line (28 Sep 2026) except the
   // donut, whose segments are shares of a total.
   const toNumber = (v: string) => {
     if (slide.layoutId === "donut-chart") return numeric(v);
-    const n = parseFloat(String(v ?? "").replace(/[^0-9.\-]/g, ""));
+    // "1,234" is a thousand and more, not 1.234; "−3" is negative.
+    const n = parseFloat(String(v ?? "").replace(/[−–]/g, "-").replace(/,/g, "").replace(/[^0-9.\-]/g, ""));
     return Number.isFinite(n) ? n : 0;
   };
   const apply = (nextRows: Row[], nextSeries = series) => {
@@ -98,6 +132,8 @@ export default function ChartDataPanel({ slide, theme, onChange, onClose }: Char
         : [theme.accent];
   const perSeries = seriesColors(theme, Math.max(series.length, 1));
   const k = Math.max(series.length, 1);
+  // Three or four series leave the label no room at w-28 each.
+  const valueW = multi && k >= 3 ? "w-20" : multi ? "w-28" : "w-24";
 
   const addSeries = () => {
     const next = [...series, `Series ${series.length + 1}`];
@@ -116,17 +152,71 @@ export default function ChartDataPanel({ slide, theme, onChange, onClose }: Char
   return (
     <div
       data-hj-suppress
-      className={`absolute right-8 top-16 z-20 flex max-h-[calc(100%-6rem)] flex-col rounded-2xl border border-hairline bg-surface p-4 shadow-stripe-lg ${multi ? "w-[30rem]" : "w-80"}`}
+      className={`absolute right-8 top-16 z-20 flex max-h-[calc(100%-6rem)] flex-col rounded-2xl border border-hairline bg-surface p-4 shadow-stripe-lg ${multi || importing ? "w-[30rem]" : "w-80"}`}
     >
-      <div className="mb-3 flex items-center justify-between">
-        <span className="text-sm font-medium text-ink">Chart data</span>
-        <Button variant="ghost" iconOnly icon={X} onClick={onClose} title="Close" aria-label="Close" />
+      <div className="mb-3 flex items-center justify-between gap-2">
+        <span className="text-sm font-medium text-ink">{importing ? "Import data" : "Chart data"}</span>
+        <div className="flex items-center gap-1">
+          {!importing && (
+            <Button variant="ghost" icon={FileSpreadsheet} onClick={() => setImporting({})} title="Import from Excel, CSV or Google Sheets">
+              Import
+            </Button>
+          )}
+          <Button variant="ghost" iconOnly icon={X} onClick={onClose} title="Close" aria-label="Close" />
+        </div>
       </div>
+      {importing ? (
+        <ChartImport
+          key={slide.id}
+          layoutId={slide.layoutId}
+          initial={importing.loaded ? { loaded: importing.loaded, mapping: importing.mapping, error: importing.error } : undefined}
+          onImport={(result, src) => {
+            onImport(result, src);
+            setImporting(false);
+          }}
+          onCancel={() => setImporting(false)}
+        />
+      ) : (
+      <>
+      {/* A chart read from a sheet says which, and updates from it. */}
+      {source && (
+        <div className="mb-3 flex items-center gap-2 rounded-xl bg-canvas-2 py-1.5 pl-3 pr-1.5">
+          <FileSpreadsheet size={14} className="shrink-0 text-ink-faint" aria-hidden />
+          <p className="min-w-0 flex-1 truncate text-xs text-ink-muted" title={`${source.name} · ${source.mapping.sheet}`}>
+            <span className="text-ink">{source.name}</span> · {source.mapping.sheet} ·{" "}
+            {new Date(source.importedAt).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}
+          </p>
+          <input
+            ref={updateFileRef}
+            type="file"
+            accept=".xlsx,.xlsm,.csv"
+            className="hidden"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              e.target.value = "";
+              if (file) void update(() => readSourceFile(file));
+            }}
+          />
+          <Button
+            variant="ghost"
+            icon={RefreshCw}
+            disabled={updating}
+            onClick={() => (source.kind === "gsheet" && source.url ? void update(() => readSheetLink(source.url!)) : updateFileRef.current?.click())}
+            title={source.kind === "gsheet" ? "Read the Google Sheet again" : `Choose ${source.name} again to read its numbers`}
+          >
+            {updating ? "Updating…" : "Update"}
+          </Button>
+          <Button variant="ghost" onClick={onUnlink} title="Keep the numbers, forget the source">
+            Unlink
+          </Button>
+        </div>
+      )}
+      {updateError && <p className="-mt-1.5 mb-2 text-xs leading-relaxed text-status-red">{updateError}</p>}
       {multi && (
         <div className="mb-2 flex items-center gap-2">
           <span className="w-0 flex-1 text-xs text-ink-muted">Series</span>
           {series.map((name, j) => (
-            <div key={j} className="flex w-28 items-center gap-1">
+            <div key={j} className={`flex ${valueW} items-center gap-1`}>
               <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: perSeries[j] }} aria-hidden />
               <input
                 value={name}
@@ -180,7 +270,7 @@ export default function ChartDataPanel({ slide, theme, onChange, onClose }: Char
                 placeholder="Value"
                 inputMode="decimal"
                 aria-label={multi ? `${row.label || `Row ${i + 1}`}, ${series[j] || `series ${j + 1}`}` : undefined}
-                className={`${INPUT} text-right ${multi ? "w-28" : "w-24"}`}
+                className={`${INPUT} text-right ${valueW}`}
               />
             ))}
             <Button
@@ -211,6 +301,8 @@ export default function ChartDataPanel({ slide, theme, onChange, onClose }: Char
             ? `Values are shares of a total, so a negative counts as 0. The dot picks a colour; automatic follows the brand. ${rows.length} of ${limits.max} rows. Cmd+Z to undo.`
             : `Values are real numbers, negatives included; the chart scales to the largest. The dot picks a colour; automatic follows the brand. ${rows.length} of ${limits.max} rows. Cmd+Z to undo.`}
       </p>
+      </>
+      )}
     </div>
   );
 }

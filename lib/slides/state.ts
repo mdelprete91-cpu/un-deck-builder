@@ -3,6 +3,7 @@ import { ensureId, isPage, normalizeSeries, normalizeSlide, PRIMARY_ARRAY } from
 import { closingFor, finishDeck, mergeContinuations, unifyLayouts } from "./rhythm";
 import { BRANDS } from "./brand";
 import { applyChapterPlan, ensureAgenda, type ChapterPlan } from "./chapters";
+import type { ChartSource } from "./chart-import";
 import { fillPhotos } from "./library";
 import { MAX_BLOCKS_PER_PAGE, PAGE_BLOCK_LIMITS, type PageBlockType } from "./pages/schema";
 import { defaultBlock, newPageItem } from "./pages/presets";
@@ -125,7 +126,8 @@ export type DeckAction =
   | { type: "UNIFY_LAYOUTS" }
   /** Generation done: consecutive slides with one title fold into one. */
   | { type: "MERGE_CONTINUATIONS" }
-  | { type: "SET_BARS"; index: number; bars: { label: string; value: number; values?: number[]; color?: string }[]; series?: string[] }
+  /** `source`: the sheet the data came from (chart-import.ts), null to unlink, absent to leave as is. */
+  | { type: "SET_BARS"; index: number; bars: { label: string; value: number; values?: number[]; color?: string }[]; series?: string[]; source?: ChartSource | null }
   | { type: "SET_LOGO"; index: number; slug: string; dataUrl: string }
   | { type: "SET_IMAGE"; index: number; dataUrl: string; path?: string }
   | { type: "CLEAR_IMAGE"; index: number; path?: string }
@@ -443,6 +445,8 @@ function reduce(state: DeckState, action: DeckAction): DeckState {
       const slides = [...state.slides];
       const next = { ...structuredClone(slide), bars: action.bars };
       if (action.series) next.series = action.series;
+      if (action.source === null) delete next.chartSource;
+      else if (action.source) next.chartSource = action.source;
       // The contract (one figure per series on every bar) holds after every edit.
       normalizeSeries(next);
       slides[action.index] = next;

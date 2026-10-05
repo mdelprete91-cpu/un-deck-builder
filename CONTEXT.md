@@ -962,6 +962,27 @@ left margin, category labels under it. Things that follow:
 - **The Data panel is per layout**: row limits from `PRIMARY_ARRAY` (thirty rows scroll), series
   names in a header row with add/remove inside the layout's span. `SET_BARS` takes `series` and
   runs `normalizeSeries`.
+- **Import from a spreadsheet** (Mario, 5 Oct 2026). "Import" in the Data panel's header
+  (`components/ChartImport.tsx`) reads an .xlsx, a .csv or a public Google Sheet into one grid:
+  `readWorkbook` in `attachments.ts` (cells by their place in the sheet, raw numbers, a
+  percentage as shown; `extractXlsx`, the model's text reading, sits on the same `openWorkbook`
+  and gives the same text as before), `parseCsv` in `csv.ts` (";" and decimal commas from European
+  Excel, quotes, BOM), and `app/api/sheet-source` for a Google Sheet (docs.google.com links only,
+  the `export?format=xlsx` bytes, since Google sends no CORS; a private sheet answers with the
+  sign-in page and the route says how to share it). `lib/slides/chart-import.ts` guesses the
+  header row, the labels column and the numeric columns, and `tableToChart` makes `bars` and
+  `series` within `PRIMARY_ARRAY` and `SERIES_LAYOUTS`, saying what it cut (rows past the
+  layout's max, extra columns on a single series, blanks read as 0, donut negatives). No model
+  call: the numbers are the sheet's. The import shows the mapping (sheet, headers, labels,
+  values) and a preview of the first rows before anything reaches the slide.
+- **The link lives on the slide** as `chartSource` (kind, name, Google URL, sheet and columns,
+  date), in `slideContentSchema` with `.catch(undefined)` so a bad link is dropped, never the
+  slide; metadata only, never the file. `SET_BARS` takes `source` (null unlinks). It survives a
+  rewrite (`preserve`), the layout switcher while the new layout is a chart, the deck file and
+  localStorage, and stays out of the model (`lightSlide`). The panel shows "file · sheet · date"
+  with Update (a Google Sheet is fetched again; a file is chosen again, the browser cannot reopen
+  it) and Unlink (keeps the numbers). An edit by hand keeps the link; Update overwrites it, Cmd+Z
+  undoes. `npx tsx tools/chart-import-test.ts` checks the parsers and the mapping.
 - `.omc/charts-qa.ts` renders every chart at its minimum and maximum, both palettes, with the
   real autofit: run it after touching a renderer.
 
