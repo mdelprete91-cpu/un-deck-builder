@@ -288,15 +288,25 @@ export function remember(
 }
 
 /**
- * The translation the memory holds for a field in the language on screen:
- * what "Use the translation" puts back after an edit (components/EditChoice.tsx).
- * Undefined in the original language, or for a field that never was a
- * translation (a point written in Spanish).
+ * The texts changed by hand in the language on screen since it was last
+ * shown: on screen, different from what the memory holds and from the
+ * translation as it came. What the switch asks about before it leaves the
+ * language (components/EditChoice.tsx). Edits already kept are not asked
+ * again: the memory holds them.
  */
-export function translationOf(lang: DeckLang | undefined, slideId: string, path: string): string | undefined {
-  if (!lang || lang.current === lang.source) return undefined;
-  const f = lang.texts[lang.current]?.[slideId]?.[path];
-  return f?.machine ?? f?.text;
+export function newEdits(slides: Slide[], lang: DeckLang | undefined): { slide: string; path: string; text: string; translation: string }[] {
+  if (!lang || lang.current === lang.source) return [];
+  const mem = lang.texts[lang.current] ?? {};
+  const out: { slide: string; path: string; text: string; translation: string }[] = [];
+  for (const s of slides) {
+    for (const { path, text } of textFields(s)) {
+      const f = mem[s.id]?.[path];
+      if (!f) continue;
+      const translation = f.machine ?? f.text;
+      if (text !== f.text && text !== translation) out.push({ slide: s.id, path, text, translation });
+    }
+  }
+  return out;
 }
 
 // ─── Strings the renderers draw themselves ─────────────────────────────────

@@ -1043,12 +1043,14 @@ keeps every language's text field by field (`textFields`, paths in `setPath`'s f
   (`snapshot`), takes from memory every field the target already has whose original has not changed
   (edits included, nothing re-sent), and translates only the rest through `/api/translate`, in
   batches of 15, six at a time (a two-pager in about 5 s). Undo history is cleared by a switch.
-- A text changed by hand in a translated language shows a choice (`components/EditChoice.tsx`):
-  **Keep my version**, the default, so ignoring it never loses the edit; or **Use the translation**,
-  which puts back the translation as it came (`Field.machine`, `translationOf`) as an ordinary,
-  undoable edit. "Edited" means different from that translation, so a text put back is a
-  translation again. No glossary and no word rules for now (Mario, 6 Oct 2026: a per-language
-  rules system comes later, designed on its own).
+- Leaving a translated language with texts changed by hand in it since it was shown (`newEdits`)
+  opens a blocking dialog first (`components/EditChoice.tsx`; Mario, 6 Oct 2026: only when another
+  language is picked, never while editing): **Keep my changes** (default, and Esc cancels the
+  switch, so nothing is lost) or **Use the translation**, which puts back the translation as it
+  came (`Field.machine`) in those texts before the switch. "Edited" means different from that
+  translation, so a text put back is a translation again, and a kept edit is not asked about again.
+  No glossary and no word rules for now: a per-language rules system comes later, designed on its
+  own.
 - A slide whose shape changed (a point added or removed) is translated afresh from the screen,
   because paths are positions (`shapeOf`).
 - New generation and Edit with AI write in the language on screen (`outputLanguage`), and a new

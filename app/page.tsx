@@ -3,7 +3,7 @@
 import { ChartColumn, ChevronDown, ChevronUp, Play, Copy, History, Image as ImageIcon, LayoutTemplate, LoaderCircle, Plus, Redo2, Superscript, Trash2, Undo2, Upload } from "lucide-react";
 import { useEffect, useLayoutEffect, useMemo, useReducer, useRef, useState, type CSSProperties } from "react";
 import { BRANDS } from "@/lib/slides/brand";
-import { DEFAULT_DECK_NAME, deckReducer, initialDeckState, readPath } from "@/lib/slides/state";
+import { DEFAULT_DECK_NAME, deckReducer, initialDeckState, readPath, setPath } from "@/lib/slides/state";
 import { ensureId, isChartLayout, isPage, normalizeSlide, overLimits, PRIMARY_ARRAY, type LayoutId, type Slide, type SlideContent } from "@/lib/slides/schema";
 import { renderSlide } from "@/lib/slides/layouts";
 import { A4_PX, pageDateNow } from "@/lib/slides/pages/a4";
@@ -13,7 +13,7 @@ import { fillPagePhotos } from "@/lib/slides/library";
 import AddBlockMenu from "@/components/AddBlockMenu";
 import LanguageMenu from "@/components/LanguageMenu";
 import EditChoice from "@/components/EditChoice";
-import { apply, langFromName, LANG_LABELS, LANG_NAMES, plan, remember, snapshot, textFields, translationOf, UI_STRINGS, type DeckLang, type Job, type Lang } from "@/lib/slides/i18n";
+import { apply, langFromName, LANG_LABELS, LANG_NAMES, plan, newEdits, remember, snapshot, textFields, UI_STRINGS, type DeckLang, type Job, type Lang } from "@/lib/slides/i18n";
 import { undash } from "@/lib/slides/pages/schema";
 import { normalizePage, PAGE_BLOCK_LIMITS, type PageBlock } from "@/lib/slides/pages/schema";
 import { defaultContent, denseContent } from "@/lib/slides/defaults";
@@ -913,18 +913,27 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
    * already has in that language comes back as it was, his fixes included;
    * only new fields and fields whose original changed are translated.
    */
-  const switchLanguage = async (to: Lang) => {
+  const switchLanguage = async (to: Lang, opts: { slides?: Slide[]; asked?: boolean } = {}) => {
     if (translating || state.status === "generating" || fitting || !state.slides.length) return;
     const lang0 = deckLang();
     if (to === lang0.current) return;
+    // Texts changed by hand in the language being left: ask first, keep or go back.
+    if (!opts.asked) {
+      const edits = newEdits(state.slides, state.lang);
+      if (edits.length) {
+        setPendingSwitch({ to, edits });
+        return;
+      }
+    }
+    const from = opts.slides ?? state.slides;
     setTranslating(to);
     try {
-      const texts = snapshot(state.slides, lang0);
-      const { ready, jobs } = plan(state.slides, lang0, texts, to);
+      const texts = snapshot(from, lang0);
+      const { ready, jobs } = plan(from, lang0, texts, to);
       const translated = jobs.length ? await translateJobs(jobs, to) : new Map<string, string>();
       // A batch that came back short leaves those texts as they were, said rather than hidden.
       const missing = jobs.length - jobs.filter((j) => translated.has(`${j.slide}\u0000${j.path}`)).length;
-      const slides = apply(state.slides, ready, translated);
+      const slides = apply(from, ready, translated);
       const lang: DeckLang = { ...lang0, current: to, texts: remember(slides, texts, lang0, to, jobs, translated) };
       dispatch({ type: "SET_LANGUAGE", slides, lang });
       if (twoPager) await fitPages(slides, 0, { keepText: true });
@@ -1627,11 +1636,10 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
   /** Two-pager: the fit pass is measuring and resizing the pages (lib/slides/pages/fit.ts). */
   const [fitting, setFitting] = useState(false);
   /**
-   * The last text changed by hand in a translated language, and the
-   * translation it can go back to (components/EditChoice.tsx). Shown only on
-   * its own slide and in its own language, so moving on closes it.
+   * A switch waiting on the question about the texts changed by hand in the
+   * language being left (components/EditChoice.tsx).
    */
-  const [editChoice, setEditChoice] = useState<{ slideId: string; path: string; translation: string; lang: Lang } | null>(null);
+  const [pendingSwitch, setPendingSwitch] = useState<{ to: Lang; edits: ReturnType<typeof newEdits> } | null>(null);
   /** The deck is being translated into this language (switchLanguage). */
   const [translating, setTranslating] = useState<Lang | null>(null);
   /** Two-pager: where the block menu inserts, while it is open. */
@@ -1847,16 +1855,9 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
                   <SlideFrame
                     html={activeHtml}
                     editable
-                    onEdit={(path, value) => {
-                      dispatch({ type: "EDIT_FIELD", index: state.activeIndex, path, value });
-                      // A translated text changed by hand: keep it, or go back to the translation.
-                      const translation = translationOf(state.lang, active.id, path);
-                      setEditChoice(
-                        translation !== undefined && translation !== value && state.lang
-                          ? { slideId: active.id, path, translation, lang: state.lang.current }
-                          : null,
-                      );
-                    }}
+                    onEdit={(path, value) =>
+                      dispatch({ type: "EDIT_FIELD", index: state.activeIndex, path, value })
+                    }
                     onDeleteItem={(path) =>
                       dispatch({ type: "DELETE_ITEM", index: state.activeIndex, path })
                     }
@@ -1916,14 +1917,25 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
                     className="h-full w-full"
                     frameClassName="rounded-xl shadow-stripe-lg"
                   />
-                  {editChoice && editChoice.slideId === active.id && editChoice.lang === state.lang?.current && !translating && (
+                  {pendingSwitch && state.lang && (
                     <EditChoice
-                      language={LANG_LABELS[editChoice.lang]}
-                      onKeep={() => setEditChoice(null)}
+                      language={LANG_LABELS[state.lang.current]}
+                      target={LANG_LABELS[pendingSwitch.to]}
+                      edits={pendingSwitch.edits}
+                      onCancel={() => setPendingSwitch(null)}
+                      onKeep={() => {
+                        const { to } = pendingSwitch;
+                        setPendingSwitch(null);
+                        void switchLanguage(to, { asked: true });
+                      }}
                       onRevert={() => {
-                        const index = state.slides.findIndex((s) => s.id === editChoice.slideId);
-                        if (index >= 0) dispatch({ type: "EDIT_FIELD", index, path: editChoice.path, value: editChoice.translation });
-                        setEditChoice(null);
+                        const { to, edits } = pendingSwitch;
+                        setPendingSwitch(null);
+                        // The translation back in every changed text, then the switch.
+                        const back = state.slides.map((sl) =>
+                          edits.filter((e) => e.slide === sl.id).reduce((acc, e) => setPath(acc, e.path, e.translation), sl),
+                        );
+                        void switchLanguage(to, { asked: true, slides: back });
                       }}
                     />
                   )}
