@@ -721,6 +721,9 @@ export default function SlideFrame({
             top: 0,
             transform: `scale(${scale})`,
             transformOrigin: "top left",
+            // The editor chrome injected into a page is sized in screen
+            // pixels: it multiplies by this to undo the stage's zoom.
+            ["--inv" as string]: scale > 0 ? 1 / scale : 1,
           }}
         />
       </div>

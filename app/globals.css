@@ -271,7 +271,7 @@ button > svg.lucide:first-child:not(:only-child) {
   justify-content: center;
   padding: 0;
 }
-.page-root .block-chrome button svg { width: 12px; height: 12px; }
+.page-root .block-chrome button svg { width: calc(16px * var(--inv, 1)); height: calc(16px * var(--inv, 1)); }
 
 /* Self-hosted fonts. Inter is the chrome; Manrope and Open Sans are the
    slide template and must stay, the renderers reference them inline. */
@@ -517,22 +517,30 @@ body {
 /* Two-pager pages: the same editor chrome, sized for a 793px stage instead of
    a 1920px one. This is injected chrome, never part of the rendered markup. */
 .page-root .item-delete {
-  top: -10px;
-  right: -10px;
-  width: 22px;
-  height: 22px;
-  border-width: 2px;
-  font-size: 12px;
+  top: calc(-11px * var(--inv, 1));
+  right: calc(-11px * var(--inv, 1));
+  width: calc(24px * var(--inv, 1));
+  height: calc(24px * var(--inv, 1));
+  border-width: calc(2px * var(--inv, 1));
+  font-size: calc(12px * var(--inv, 1));
 }
 .page-root .item-add {
   bottom: 10px;
-  padding: 4px 12px;
-  font-size: 12px;
+  padding: calc(4px * var(--inv, 1)) calc(12px * var(--inv, 1));
+  font-size: calc(12px * var(--inv, 1));
   border-width: 2px;
 }
 .page-root .logo-upload {
   padding: 3px 8px;
   font-size: 10px;
+}
+
+/* On a page the photo button is sized in screen pixels, like the rest of the chrome. */
+.slide-root.page-root .image-upload {
+  bottom: calc(8px * var(--inv, 1));
+  padding: calc(5px * var(--inv, 1)) calc(12px * var(--inv, 1));
+  font-size: calc(13px * var(--inv, 1));
+  gap: calc(6px * var(--inv, 1));
 }
 
 /* Photo slots: one upload action per image, because a page has several. */
@@ -576,10 +584,10 @@ body {
   position: absolute;
   /* Inside the block: the content zone clips, so chrome above the first
      block would be cut off. */
-  top: 2px;
-  right: 2px;
+  top: calc(6px * var(--inv, 1));
+  right: calc(6px * var(--inv, 1));
   display: flex;
-  gap: 2px;
+  gap: calc(4px * var(--inv, 1));
   opacity: 0;
   transition: opacity 0.15s;
   z-index: 7;
@@ -588,10 +596,13 @@ body {
   opacity: 1;
 }
 .page-root .block-chrome button {
-  width: 20px;
-  height: 20px;
-  border-radius: 6px;
-  border: 1px solid #ffffff;
+  width: calc(30px * var(--inv, 1));
+  height: calc(30px * var(--inv, 1));
+  border-radius: calc(8px * var(--inv, 1));
+  border: calc(1px * var(--inv, 1)) solid #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   background: #161616;
   color: #ffffff;
   font-size: 11px;
@@ -618,10 +629,10 @@ body {
   position: absolute;
   left: 18pt;
   right: 18pt;
-  border-top: 1.5px dashed #d92d20;
-  padding-top: 4px;
+  border-top: calc(1.5px * var(--inv, 1)) dashed #d92d20;
+  padding-top: calc(4px * var(--inv, 1));
   font-family: 'Inter', system-ui, sans-serif;
-  font-size: 11px;
+  font-size: calc(12px * var(--inv, 1));
   line-height: 1.3;
   color: #d92d20;
   text-align: center;
