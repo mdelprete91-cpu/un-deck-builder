@@ -1032,6 +1032,20 @@ section, hero, photo). A pick is `REPLACE_SLIDE` with the same merge as a regene
   the slide in that layout. So the switcher's targets are reachable here whatever
   `SHOW_LAYOUT_SWITCH` says. The dialog states that photos and images are never edited by the AI.
 
+## Password gate
+
+One shared password, no accounts (Mario, 6 Oct 2026). `proxy.ts` (Next 16's middleware) lets a
+request through only with the `udb_session` cookie, whose value is a SHA-256 of the password
+(`lib/auth/session.ts`): a page without it goes to `/login`, an API call gets a 401. Files with an
+extension (fonts, logos, photos, videos) are not gated.
+
+- The password lives only in `SITE_PASSWORD`: `.env.local` here, the project's environment on
+  Vercel. Never in the code.
+- Changing it signs everyone out. With no `SITE_PASSWORD` the gate is off.
+- `/api/login` sets the cookie: httpOnly, SameSite Lax, 30 days, Secure in production. It waits
+  600 ms on a wrong password.
+- An exported HTML deck is a standalone file and is not gated.
+
 ## Voice
 
 How UNICEF speaks is a fixed block of rules, `UNICEF_VOICE` in `lib/slides/brand-voice.ts`,
