@@ -13,7 +13,7 @@ import { fillPagePhotos } from "@/lib/slides/library";
 import AddBlockMenu from "@/components/AddBlockMenu";
 import LanguageMenu from "@/components/LanguageMenu";
 import EditChoice from "@/components/EditChoice";
-import { apply, langFromName, LANG_LABELS, LANG_NAMES, plan, newEdits, remember, snapshot, textFields, UI_STRINGS, type DeckLang, type Job, type Lang } from "@/lib/slides/i18n";
+import { apply, detectLang, LANG_LABELS, LANG_NAMES, plan, newEdits, remember, snapshot, textFields, uiStrings, type DeckLang, type Job, type Lang } from "@/lib/slides/i18n";
 import { undash } from "@/lib/slides/pages/schema";
 import { normalizePage, PAGE_BLOCK_LIMITS, type PageBlock } from "@/lib/slides/pages/schema";
 import { defaultContent, denseContent } from "@/lib/slides/defaults";
@@ -103,7 +103,7 @@ export default function Studio() {
   const abortRef = useRef<AbortController | null>(null);
   // The brand, with the words its renderers draw themselves in the deck's language.
   const deckLangCode = state.lang?.current ?? "en";
-  const theme = useMemo(() => ({ ...BRANDS[state.brandId], ui: UI_STRINGS[deckLangCode] }), [state.brandId, deckLangCode]);
+  const theme = useMemo(() => ({ ...BRANDS[state.brandId], ui: uiStrings(deckLangCode) }), [state.brandId, deckLangCode]);
   const twoPager = state.format === "two-pager";
   const pageSize = twoPager ? A4_PX : { w: 1920, h: 1080 };
   const active = state.slides[state.activeIndex];
@@ -267,7 +267,7 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
     abortRef.current = controller;
     // A new deck is written in its brief's language, which becomes its original
     // (a replica's is its document's: read off the deck at the first switch).
-    const briefLang = opts.replace && !body.source && typeof body.brief === "string" ? langFromName(languageOf(body.brief)) : undefined;
+    const briefLang = opts.replace && !body.source && typeof body.brief === "string" ? detectLang(body.brief, languageOf(body.brief)) : undefined;
     dispatch({ type: "GENERATION_START", replace: opts.replace, source: briefLang });
     const rhythm = opts.rhythm ? makeRhythm(opts.rhythm) : null;
     // Before the first slide of a fresh deck lands, the "Generating…" pill's
@@ -874,7 +874,8 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
    */
   const deckLang = (): DeckLang => {
     if (state.lang) return state.lang;
-    const written = langFromName(languageOf(state.slides.flatMap((s) => textFields(s).map((f) => f.text)).join(" ")));
+    const all = state.slides.flatMap((s) => textFields(s).map((f) => f.text)).join(" ");
+    const written = detectLang(all, languageOf(all));
     return { source: written, current: written, texts: {} };
   };
 

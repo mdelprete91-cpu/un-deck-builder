@@ -12,30 +12,91 @@ import type { Slide, SlideContent } from "./schema";
  * into every translation into that language.
  */
 
-export const LANGS = ["en", "es", "fr", "pt"] as const;
-export type Lang = (typeof LANGS)[number] | "it" | "de";
+/**
+ * The 30 most spoken languages, plus Italian (Mario, 6 Oct 2026), each as
+ * [code, its own name, its English name]. Order: by number of speakers,
+ * Italian last. The model translates into all of them; the self-hosted
+ * Manrope and Open Sans cover Latin scripts only, so the others are drawn
+ * in the system's font, and right-to-left languages keep the template's
+ * left-to-right layout.
+ */
+const LANGUAGES = [
+  ["en", "English", "English"],
+  ["zh", "中文", "Chinese (Simplified)"],
+  ["hi", "हिन्दी", "Hindi"],
+  ["es", "Español", "Spanish"],
+  ["ar", "العربية", "Arabic"],
+  ["fr", "Français", "French"],
+  ["bn", "বাংলা", "Bengali"],
+  ["pt", "Português", "Portuguese"],
+  ["ru", "Русский", "Russian"],
+  ["id", "Bahasa Indonesia", "Indonesian"],
+  ["ur", "اردو", "Urdu"],
+  ["de", "Deutsch", "German"],
+  ["ja", "日本語", "Japanese"],
+  ["pcm", "Naijá", "Nigerian Pidgin"],
+  ["mr", "मराठी", "Marathi"],
+  ["vi", "Tiếng Việt", "Vietnamese"],
+  ["te", "తెలుగు", "Telugu"],
+  ["ha", "Hausa", "Hausa"],
+  ["tr", "Türkçe", "Turkish"],
+  ["pa", "ਪੰਜਾਬੀ", "Punjabi"],
+  ["sw", "Kiswahili", "Swahili"],
+  ["fil", "Filipino", "Filipino"],
+  ["ta", "தமிழ்", "Tamil"],
+  ["fa", "فارسی", "Persian"],
+  ["ko", "한국어", "Korean"],
+  ["th", "ไทย", "Thai"],
+  ["jv", "Basa Jawa", "Javanese"],
+  ["gu", "ગુજરાતી", "Gujarati"],
+  ["am", "አማርኛ", "Amharic"],
+  ["yo", "Yorùbá", "Yoruba"],
+  ["it", "Italiano", "Italian"],
+] as const;
 
-export const LANG_LABELS: Record<Lang, string> = {
-  en: "English",
-  es: "Español",
-  fr: "Français",
-  pt: "Português",
-  it: "Italiano",
-  de: "Deutsch",
-};
-
-/** For the prompts: the language by its English name. */
-export const LANG_NAMES: Record<Lang, string> = {
-  en: "English",
-  es: "Spanish",
-  fr: "French",
-  pt: "Portuguese",
-  it: "Italian",
-  de: "German",
-};
+export type Lang = (typeof LANGUAGES)[number][0];
+export const LANGS: Lang[] = LANGUAGES.map((l) => l[0]);
+/** The language by its own name, for the menu ("Español"). */
+export const LANG_LABELS = Object.fromEntries(LANGUAGES.map(([c, own]) => [c, own])) as Record<Lang, string>;
+/** The language by its English name, for the prompts and the menu's search. */
+export const LANG_NAMES = Object.fromEntries(LANGUAGES.map(([c, , en]) => [c, en])) as Record<Lang, string>;
+/** Written right to left. */
+export const RTL_LANGS = new Set<Lang>(["ar", "ur", "fa"]);
 
 export function isLang(x: unknown): x is Lang {
   return typeof x === "string" && x in LANG_LABELS;
+}
+
+/**
+ * A text's language: by its script first (Han, kana, Hangul, Arabic,
+ * Devanagari, Cyrillic…, which languageOf's stopwords cannot see), then by
+ * languageOf's answer for Latin text. Arabic script is read as Arabic and
+ * Devanagari as Hindi: Urdu, Persian and Marathi are told apart only by the
+ * user's choice in the menu.
+ */
+export function detectLang(text: string, latin: string | undefined): Lang {
+  const counts: [Lang, RegExp][] = [
+    ["ja", /[\u3040-\u30ff]/g],
+    ["ko", /[\uac00-\ud7af]/g],
+    ["zh", /[\u4e00-\u9fff]/g],
+    ["ar", /[\u0600-\u06ff]/g],
+    ["hi", /[\u0900-\u097f]/g],
+    ["bn", /[\u0980-\u09ff]/g],
+    ["pa", /[\u0a00-\u0a7f]/g],
+    ["gu", /[\u0a80-\u0aff]/g],
+    ["ta", /[\u0b80-\u0bff]/g],
+    ["te", /[\u0c00-\u0c7f]/g],
+    ["th", /[\u0e00-\u0e7f]/g],
+    ["am", /[\u1200-\u137f]/g],
+    ["ru", /[\u0400-\u04ff]/g],
+  ];
+  const letters = (text.match(/\p{L}/gu) ?? []).length || 1;
+  // Kana anywhere means Japanese, even when most characters are kanji.
+  for (const [lang, re] of counts) {
+    const n = (text.match(re) ?? []).length;
+    if (lang === "ja" ? n > 0 : n / letters > 0.3) return lang;
+  }
+  return langFromName(latin);
 }
 
 /** languageOf's answer (an English name, undefined for English) as a code. */
@@ -371,7 +432,7 @@ export interface UiStrings {
   thanks: string;
 }
 
-export const UI_STRINGS: Record<Lang, UiStrings> = {
+export const UI_STRINGS: Partial<Record<Lang, UiStrings>> = {
   en: { done: "Done", inProgress: "In progress", next: "Next", agenda: "Agenda", partners: "Our partners", thanks: "Thank you!" },
   es: { done: "Hecho", inProgress: "En curso", next: "Próximo", agenda: "Agenda", partners: "Nuestros socios", thanks: "¡Gracias!" },
   fr: { done: "Fait", inProgress: "En cours", next: "À venir", agenda: "Ordre du jour", partners: "Nos partenaires", thanks: "Merci !" },
@@ -379,6 +440,11 @@ export const UI_STRINGS: Record<Lang, UiStrings> = {
   it: { done: "Fatto", inProgress: "In corso", next: "Prossimo", agenda: "Agenda", partners: "I nostri partner", thanks: "Grazie!" },
   de: { done: "Erledigt", inProgress: "Läuft", next: "Als Nächstes", agenda: "Agenda", partners: "Unsere Partner", thanks: "Danke!" },
 };
+
+/** The renderers' own words in a language; English where there is no entry (the deck's text is translated all the same). */
+export function uiStrings(lang: Lang): UiStrings {
+  return UI_STRINGS[lang] ?? UI_STRINGS.en!;
+}
 
 // ─── Saving ────────────────────────────────────────────────────────────────
 

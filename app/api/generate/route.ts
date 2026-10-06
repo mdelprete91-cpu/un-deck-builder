@@ -14,6 +14,7 @@ import { sanitizeAttachments } from "@/lib/slides/attachments-server";
 import { fetchLinkedPages } from "@/lib/slides/links-server";
 import { languageOf, MAX_SLIDES } from "@/lib/slides/brief";
 import { cleanVoice } from "@/lib/slides/voice";
+import { LANG_NAMES } from "@/lib/slides/i18n";
 
 export const runtime = "nodejs";
 export const maxDuration = 300;
@@ -107,7 +108,7 @@ export async function POST(request: Request): Promise<Response> {
     // A replicated slide keeps the source's language, whatever the brief's.
     // The deck's language once it has been switched (lib/slides/i18n.ts), else the brief's.
     language:
-      typeof body.outputLanguage === "string" && /^(English|Spanish|French|Portuguese|Italian|German)$/.test(body.outputLanguage)
+      typeof body.outputLanguage === "string" && Object.values(LANG_NAMES).includes(body.outputLanguage)
         ? body.outputLanguage
         : body.mode === "replicate"
           ? undefined

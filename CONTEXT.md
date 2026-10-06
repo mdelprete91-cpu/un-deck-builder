@@ -1034,8 +1034,9 @@ section, hero, photo). A pick is `REPLACE_SLIDE` with the same merge as a regene
 
 ## Languages
 
-The whole deck switches language from the toolbar (English, Español, Français, Português; a deck
-written in Italian or German keeps its own as "original"), never one slide (Mario, 6 Oct 2026).
+The whole deck switches language from the toolbar, never one slide (Mario, 6 Oct 2026): the 30 most
+spoken languages plus Italian (`LANGUAGES` in `i18n.ts`), in a menu with a search field, the
+deck's original first.
 `lib/slides/i18n.ts` holds it: `state.slides` is always the language on screen, and `state.lang`
 keeps every language's text field by field (`textFields`, paths in `setPath`'s format).
 
@@ -1063,7 +1064,13 @@ keeps every language's text field by field (`textFields`, paths in `setPath`'s f
   translated "Digital Impact Division" every time. Case-sensitive: "digital inclusion" in a sentence
   is translated, "Digital Inclusion" the team is not. QA: `npx tsx tools/qa-names.ts` (162/162
   across es, fr, pt; 69/81 before the tokens). A new division or product goes on that list.
-- Latin scripts only: the self-hosted fonts are latin and latin-ext.
+- A deck's language is detected from its script first (`detectLang`: Han, kana, Hangul, Arabic,
+  Devanagari, Cyrillic…) and then by `languageOf` for Latin text.
+- Scripts other than Latin are drawn in the system's font (Manrope and Open Sans are self-hosted
+  latin and latin-ext only), and right-to-left languages (Arabic, Urdu, Persian) keep the
+  template's left-to-right layout: each text runs in its own direction (`unicode-bidi: plaintext`
+  on `[data-edit]`), so an Arabic line reads right to left from the right of its box. A full mirror
+  of the layouts is not done. Renderer words beyond the six in `UI_STRINGS` fall back to English.
 
 ## Two-pagers
 

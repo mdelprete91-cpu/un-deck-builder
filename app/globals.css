@@ -593,6 +593,13 @@ body {
   transition: outline-color 0.6s, background-color 0.6s;
 }
 
+/* A text runs in its own direction: an Arabic, Urdu or Persian line reads
+   right to left and starts at the right of its box, inside the template's
+   left-to-right layout (Mario, 6 Oct 2026: thirty-one languages). */
+.slide-root [data-edit] {
+  unicode-bidi: plaintext;
+}
+
 /* Two-pager: the line where a page that runs too long is cut, and how much
    has to go. Editor chrome only, never in the markup that prints. */
 .page-root .page-over {
