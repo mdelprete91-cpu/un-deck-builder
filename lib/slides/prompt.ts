@@ -263,6 +263,14 @@ export function buildUserMessage(body: GenerateBody): string {
   }
 }
 
+/**
+ * Replicating a document as a two-pager (Mario, 6 Oct 2026): the same promise
+ * as a slide replica, every text kept, in one call because the pages share
+ * one budget. The fit pass then only tightens the type, it never cuts.
+ */
+const REPLICATE_PAGES = (n: number) =>
+  `Rebuild the document below as a two-pager of exactly ${n} pages on the brand. Keep every line of its text and every figure exactly as written: its title becomes the banner, its headings become section labels, its paragraphs stay paragraphs, its lists stay bullets, a table stays rows. Never shorten, summarise, merge, reorder or reword, and never add a sentence the document does not have. A figure may also go on a stat card, but it stays in the text where the document writes it. On a stat card the figure is "label" and what it counts is "body", never one of them empty: when the document lists its figures and their captions apart (a row of figures, then a row of captions), pair them in order. Pick the archetype and the blocks whose shape matches the document. The page budget does not apply: use all the text the document has. The document's own running header, footer and page numbers are not content. Write in the document's language.`;
+
 function buildPageUserMessage(body: GenerateBody): string {
   const brand = body.brandLabel
     ? ` The piece carries the "${body.brandLabel}" lockup: that sets its logo, not its subject.`
@@ -280,6 +288,11 @@ function buildPageUserMessage(body: GenerateBody): string {
       return `Current page (JSON): ${JSON.stringify(body.targetSlide)}\n\nBrief: ${body.brief}${brand}${language}\n\nRewrite this single page.${body.instruction ? ` Instruction: ${body.instruction}` : " Improve the copy."} Keep the same kinds of blocks and the same amount of text unless the instruction asks otherwise, keep the budget of the page, and return exactly one page.`;
     default: {
       const n = body.count ?? 2;
+      if (body.source) {
+        // Second pass: what the first answer changed, quoted, so this one keeps it.
+        const repair = body.repair?.trim() ? `\n\n${body.repair.trim().slice(0, 6000).replace("for this slide", "for this two-pager")}` : "";
+        return `Brief: ${body.brief}${brand}${notes}\n\n${REPLICATE_PAGES(n)}\n\nDocument:\n<<<\n${body.source.slice(0, REPLICATE_SOURCE_CHARS)}\n>>>${repair}`;
+      }
       return `Brief: ${body.brief}${brand}${language}${notes}\n\nWrite the two-pager that tells this story in exactly ${n} page${n === 1 ? "" : "s"}.`;
     }
   }

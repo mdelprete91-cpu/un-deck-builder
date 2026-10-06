@@ -4,7 +4,7 @@ import { mountAura } from "@/lib/slides/aura-live";
 import { lucideSvg } from "@/lib/slides/icons";
 import { measureFlow } from "@/lib/slides/pages/fit";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { ArrowDown, ArrowUp, Plus, Trash2 } from "lucide-react";
+import { ArrowDown, ArrowUp, ListPlus, Plus, Sparkles, Trash2 } from "lucide-react";
 import Button from "@/components/Button";
 import { autofitAll, refitNode } from "@/lib/slides/autofit";
 import type { ImagePos } from "@/lib/slides/schema";
@@ -122,6 +122,11 @@ interface SlideFrameProps {
   onDeleteBlock?: ((index: number) => void) | null;
   /** Two-pager: open the block menu to insert a block at this index. */
   onAddBlock?: ((at: number) => void) | null;
+  /** Two-pager: the side bar's Edit with AI (the page has no bottom bar). */
+  onEditWithAi?: (() => void) | null;
+  /** Two-pager: whether a block can take one more item, and adding it. */
+  canAddBlockItem?: ((block: number) => boolean) | null;
+  onAddBlockItem?: ((block: number) => void) | null;
   /** Editor chrome is sized for the 1920 stage; a page needs the small set. */
   variant?: "slide" | "page";
   className?: string;
@@ -183,6 +188,9 @@ export default function SlideFrame({
   onMoveBlock,
   onDeleteBlock,
   onAddBlock,
+  onEditWithAi,
+  canAddBlockItem,
+  onAddBlockItem,
   size = { w: 1920, h: 1080 },
   variant = "slide",
   className,
@@ -193,13 +201,18 @@ export default function SlideFrame({
   const logoInputRef = useRef<HTMLInputElement>(null);
   const pendingLogoSlug = useRef<string | null>(null);
   const [box, setBox] = useState({ w: 0, h: 0 });
-  /** Two-pager: the block under the mouse, for the toolbar beside the page. */
-  const [blockBar, setBlockBar] = useState<{ index: number; count: number; top: number } | null>(null);
+  /**
+   * Two-pager: the side bar beside the page. It sits by the block under the
+   * mouse, and by the selected block otherwise, so Edit with AI is always in
+   * reach (Mario, 6 Oct 2026: the side bar is the page's only bar).
+   */
+  const [hoverBlock, setHoverBlock] = useState<number | null>(null);
+  const [blockTops, setBlockTops] = useState<number[]>([]);
   const barTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  // A short grace period, so the mouse can travel from the block to the toolbar.
-  const hideBlockBar = () => {
+  // A short grace period, so the mouse can travel from the block to the bar.
+  const leaveBlock = () => {
     if (barTimer.current) clearTimeout(barTimer.current);
-    barTimer.current = setTimeout(() => setBlockBar(null), 300);
+    barTimer.current = setTimeout(() => setHoverBlock(null), 300);
   };
   const onEditRef = useRef(onEdit);
   onEditRef.current = onEdit;
@@ -517,15 +530,13 @@ export default function SlideFrame({
           node.removeEventListener("click", onClick);
           node.classList.remove("block-on");
         });
-        // Hover shows the block's toolbar beside the page (rendered below,
-        // outside the stage, so the sheet never carries it).
+        // Hover moves the side bar to this block (rendered below, outside
+        // the stage, so the sheet never carries it).
         const onEnter = () => {
           if (barTimer.current) clearTimeout(barTimer.current);
-          const wrap = containerRef.current?.getBoundingClientRect();
-          const r = node.getBoundingClientRect();
-          if (wrap) setBlockBar({ index: i, count: blocks.length, top: r.top - wrap.top });
+          setHoverBlock(i);
         };
-        const onLeave = () => hideBlockBar();
+        const onLeave = () => leaveBlock();
         node.addEventListener("mouseenter", onEnter);
         node.addEventListener("mouseleave", onLeave);
         cleanups.push(() => {
@@ -533,6 +544,12 @@ export default function SlideFrame({
           node.removeEventListener("mouseleave", onLeave);
         });
       });
+      // Where each block starts, for the side bar, once this frame is laid out.
+      const frame = requestAnimationFrame(() => {
+        const wrap = containerRef.current?.getBoundingClientRect();
+        if (wrap) setBlockTops(blocks.map((n) => n.getBoundingClientRect().top - wrap.top));
+      });
+      cleanups.push(() => cancelAnimationFrame(frame));
     }
 
     // A page that runs past its sheet is clipped at the bottom of the content
@@ -732,55 +749,67 @@ export default function SlideFrame({
           }}
         />
       </div>
-      {editable && variant === "page" && blockBar && onMoveBlock && scale > 0 && (
-        <div
-          // Beside the sheet, level with the block: the slide bar's pill,
-          // stood upright (DESIGN.md "Block toolbar").
-          className="pop-in absolute z-20 flex flex-col gap-1.5 rounded-full border border-hairline-light bg-surface p-1.5 shadow-float"
-          style={{
-            left: (box.w + size.w * scale) / 2 + 12,
-            top: Math.max(0, Math.min(blockBar.top, box.h - 184)),
-          }}
-          onMouseEnter={() => barTimer.current && clearTimeout(barTimer.current)}
-          onMouseLeave={hideBlockBar}
-        >
-          <Button
-            iconOnly
-            icon={ArrowUp}
-            disabled={blockBar.index === 0}
-            onClick={() => onMoveBlock(blockBar.index, blockBar.index - 1)}
-            title="Move this block up"
-            aria-label="Move this block up"
-          />
-          <Button
-            iconOnly
-            icon={ArrowDown}
-            disabled={blockBar.index >= blockBar.count - 1}
-            onClick={() => onMoveBlock(blockBar.index, blockBar.index + 1)}
-            title="Move this block down"
-            aria-label="Move this block down"
-          />
-          <Button
-            iconOnly
-            icon={Plus}
-            onClick={() => onAddBlock?.(blockBar.index + 1)}
-            title="Add a block below"
-            aria-label="Add a block below"
-          />
-          <Button
-            variant="danger"
-            iconOnly
-            icon={Trash2}
-            disabled={blockBar.count <= 1}
-            onClick={() => {
-              onDeleteBlock?.(blockBar.index);
-              setBlockBar(null);
+      {editable && variant === "page" && onMoveBlock && scale > 0 && blockTops.length > 0 && (() => {
+        const count = blockTops.length;
+        const index = Math.min(hoverBlock ?? focusedBlock ?? 0, count - 1);
+        const canItem = canAddBlockItem?.(index) ?? false;
+        const height = 46 * (canItem ? 6 : 5) + 12;
+        return (
+          <div
+            // Beside the sheet, level with the block: the slide bar's pill
+            // stood upright (DESIGN.md "Block toolbar").
+            className="absolute z-20 flex flex-col gap-1.5 rounded-full border border-hairline-light bg-surface p-1.5 shadow-float transition-[top] duration-200 ease-out"
+            style={{
+              left: (box.w + size.w * scale) / 2 + 12,
+              top: Math.max(0, Math.min(blockTops[index] ?? 0, box.h - height)),
             }}
-            title="Remove this block"
-            aria-label="Remove this block"
-          />
-        </div>
-      )}
+            onMouseEnter={() => barTimer.current && clearTimeout(barTimer.current)}
+            onMouseLeave={leaveBlock}
+          >
+            {onEditWithAi && (
+              <Button variant="primary" iconOnly icon={Sparkles} onClick={onEditWithAi} title="Edit this page with AI" aria-label="Edit with AI" />
+            )}
+            <Button
+              iconOnly
+              icon={ArrowUp}
+              disabled={index === 0}
+              onClick={() => onMoveBlock(index, index - 1)}
+              title="Move this block up"
+              aria-label="Move this block up"
+            />
+            <Button
+              iconOnly
+              icon={ArrowDown}
+              disabled={index >= count - 1}
+              onClick={() => onMoveBlock(index, index + 1)}
+              title="Move this block down"
+              aria-label="Move this block down"
+            />
+            <Button iconOnly icon={Plus} onClick={() => onAddBlock?.(index + 1)} title="Add a block below" aria-label="Add a block below" />
+            {canItem && (
+              <Button
+                iconOnly
+                icon={ListPlus}
+                onClick={() => onAddBlockItem?.(index)}
+                title="Add an item to this block (a paragraph, a card, a row)"
+                aria-label="Add an item to this block"
+              />
+            )}
+            <Button
+              variant="danger"
+              iconOnly
+              icon={Trash2}
+              disabled={count <= 1}
+              onClick={() => {
+                onDeleteBlock?.(index);
+                setHoverBlock(null);
+              }}
+              title="Remove this block"
+              aria-label="Remove this block"
+            />
+          </div>
+        );
+      })()}
       {editable && (
         <>
           <input

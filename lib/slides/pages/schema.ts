@@ -234,6 +234,20 @@ export function normalizePage(stack: unknown): PageBlock[] | null {
     // Stat cards are figures. "1", "2", "3" in a row is a numbered list
     // pretending to be data (a brief with no numbers, 6 Oct 2026): dropped.
     if (block.type === "stats") {
+      // "54 Countries engaged" written whole in the caption: the figure is the label.
+      for (const it of block.items ?? []) {
+        // A caption that is only the figure: the figure is the label.
+        if (!/\d/.test(it.label) && /^[~<>≈]?[$€£]?\d[\d.,]*\s?(?:%|[kKMB]\+?|\+|x)?(?:\s?[-–]\s?\d[\d.,]*%?)?$/.test(it.body.trim())) {
+          it.label = it.body.trim();
+          it.body = "";
+          continue;
+        }
+        const m = /^\s*([~<>≈]?[$€£]?\d[\d.,]*\s?(?:%|[kKMB]\+?|\+|x)?(?:\s?[-–]\s?\d[\d.,]*%?)?)\s+(.+)$/.exec(it.body);
+        if (!/\d/.test(it.label) && m) {
+          it.label = m[1].trim();
+          it.body = m[2].trim();
+        }
+      }
       const labels = (block.items ?? []).map((i) => i.label.trim());
       const counting = labels.every((l, i) => l === String(i + 1) || l === String(i + 1).padStart(2, "0"));
       if (counting || !labels.some((l) => /\d/.test(l))) continue;

@@ -3,7 +3,7 @@
 import { FileSpreadsheet, FileText, LoaderCircle, MessageCircleQuestion } from "lucide-react";
 import Button from "@/components/Button";
 import { canQuestion, isDeckSource, type Attachment } from "@/lib/slides/attachments";
-import { answeredCount, fileUseOf } from "@/lib/slides/sheet-questions";
+import { answeredCount, fileUseOf, USE_QUESTION_ID } from "@/lib/slides/sheet-questions";
 import { planReplica } from "@/lib/slides/replicate";
 
 /**
@@ -18,10 +18,13 @@ export default function SheetInsights({
   attachments,
   disabled,
   onOpen,
+  twoPager = false,
 }: {
   attachments: Attachment[];
   disabled?: boolean;
   onOpen: (id: string) => void;
+  /** A two-pager replicates a file as one piece, any document included. */
+  twoPager?: boolean;
 }) {
   // Nothing shows before Generate asked: the questions belong to that press.
   const sheets = attachments.filter(canQuestion).filter((a) => a.asked && a.analysis && a.analysis.questions.length > 0);
@@ -45,11 +48,13 @@ export default function SheetInsights({
                 ? `${total} question${total === 1 ? "" : "s"} to answer`
                 : `${done} of ${total} answered`;
         // An attached deck says what Generate will do with it (Mario, 28 Sep 2026).
-        const use = isDeckSource(a) ? fileUseOf(a.answers) : null;
+        const use = (twoPager && a.answers?.[USE_QUESTION_ID] !== undefined) || isDeckSource(a) ? fileUseOf(a.answers) : null;
         // A PDF with no text layer is transcribed on Generate: its pages are what is known until then.
         const useLine =
           use === "replicate"
-            ? a.sourceSlides?.length
+            ? twoPager
+              ? "Replicate · two-pager"
+              : a.sourceSlides?.length
               ? `Replicate · ${planReplica(a.sourceSlides).steps.length + 1} slides`
               : `Replicate · ${a.pageCount || "all"} pages`
             : use === "reinterpret"

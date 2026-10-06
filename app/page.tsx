@@ -8,6 +8,7 @@ import { ensureId, isChartLayout, isPage, normalizeSlide, overLimits, PRIMARY_AR
 import { renderSlide } from "@/lib/slides/layouts";
 import { A4_PX, pageDateNow } from "@/lib/slides/pages/a4";
 import { fitPage, type Resizer } from "@/lib/slides/pages/fit";
+import { putBackLines } from "@/lib/slides/pages/restore";
 import { fillPagePhotos } from "@/lib/slides/library";
 import AddBlockMenu from "@/components/AddBlockMenu";
 import { normalizePage, PAGE_BLOCK_LIMITS, type PageBlock } from "@/lib/slides/pages/schema";
@@ -471,22 +472,31 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
   const [noFileQ, setNoFileQ] = useState<{ brief: string; answers: SheetAnswers; asked?: boolean } | null>(null);
   /** The deck's length, asked last when the brief names none; keyed to the brief's text like briefQ. */
   const [lengthQ, setLengthQ] = useState<{ brief: string; answers: SheetAnswers; asked?: boolean } | null>(null);
+  /**
+   * A file that can be replicated: a PowerPoint or a PDF, and for a
+   * two-pager any document (a Word draft too), since it is rebuilt as one
+   * piece rather than slide by slide. Spreadsheets never are.
+   */
+  const replicable = (a: Attachment): a is Extract<Attachment, { kind: "text" | "pdf" }> => {
+    if (a.kind === "text" && twoPager && !a.spreadsheet && a.text.trim()) return true;
+    return isDeckSource(a);
+  };
   /** A replica keeps the source's length, so the length question has nothing to ask. */
-  const replicaChosen = () => attachments.some((x) => isDeckSource(x) && fileUseOf(x.answers) === "replicate");
+  const replicaChosen = () => attachments.some((x) => replicable(x) && fileUseOf(x.answers) === "replicate");
   /** `app/api/analyze` reads one file next to the brief; the result sits on the attachment. */
   const analyzeAttachment = async (a: Attachment, brief: string) => {
     if (!canQuestion(a)) return;
     const spreadsheet = a.kind === "text" && !!a.spreadsheet;
     // A PowerPoint file or a PDF is always asked what to do with it, first (Mario, 28 Sep 2026).
     const withUse = (analysis: SheetAnalysis): SheetAnalysis =>
-      isDeckSource(a) ? { ...analysis, questions: [fileUseQuestion(replicaCountOf(a), unitOf(a)), ...analysis.questions] } : analysis;
+      replicable(a) ? { ...analysis, questions: [fileUseQuestion(replicaCountOf(a), unitOf(a), twoPager), ...analysis.questions] } : analysis;
     const update = (patch: { analysis?: SheetAnalysis; analysisError?: string }) =>
       setAttachments((list) => list.map((x) => (x.id === a.id && canQuestion(x) ? preselectFileUse({ ...x, ...patch }) : x)));
     // The use question does not wait on the model: it shows the moment the
     // wizard opens, and the model's own questions join it when they land. A
     // slow analysis (the Gambia pptx sat on "Reading the file…" past 90 s,
     // 28 Sep 2026) left only "Skip the questions", which skipped this one too.
-    update(isDeckSource(a) && !a.analysis ? { analysisError: undefined, analysis: withUse({ summary: "", questions: [] }) } : { analysisError: undefined });
+    update(replicable(a) && !a.analysis ? { analysisError: undefined, analysis: withUse({ summary: "", questions: [] }) } : { analysisError: undefined });
     try {
       // The analysis reads the first 12k characters: a long deck says how long it is, or the summary counts only what it saw.
       const text =
@@ -594,7 +604,7 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
     // An attached deck is asked what to do with it on every press until the
     // choice is made (Mario, 28 Sep 2026: a file whose questions were already
     // answered went straight to the deck and the choice never showed).
-    const undecidedDeck = (a: Attachment) => isDeckSource(a) && !a.answers?.[USE_QUESTION_ID];
+    const undecidedDeck = (a: Attachment) => replicable(a) && !a.answers?.[USE_QUESTION_ID];
     const queue = attachments.filter(canQuestion).filter((a) => !a.asked || undecidedDeck(a)).map((a) => a.id);
     const words = brief.trim().split(/\s+/).filter(Boolean).length;
     const briefAlone = attachments.length === 0 && !twoPager && words > 0 && words < SHORT_BRIEF_WORDS;
@@ -632,8 +642,8 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
         const a = attachments.find((x) => x.id === id)!;
         if (canQuestion(a) && !a.analysis) void analyzeAttachment(a, brief);
         // Read before the choice existed: the choice goes in front of its questions.
-        else if (isDeckSource(a) && a.analysis && !a.analysis.questions.some((q) => q.id === USE_QUESTION_ID)) {
-          const analysis = { ...a.analysis, questions: [fileUseQuestion(replicaCountOf(a), unitOf(a)), ...a.analysis.questions] };
+        else if (replicable(a) && a.analysis && !a.analysis.questions.some((q) => q.id === USE_QUESTION_ID)) {
+          const analysis = { ...a.analysis, questions: [fileUseQuestion(replicaCountOf(a), unitOf(a), twoPager), ...a.analysis.questions] };
           setAttachments((list) => list.map((x) => (x.id === a.id && canQuestion(x) ? preselectFileUse({ ...x, analysis }) : x)));
         }
       }
@@ -655,7 +665,7 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
    * first page in the deck. The first page of a new piece is dated here, once,
    * so the masthead does not change month with every reopening.
    */
-  const fitPages = async (pages: SlideContent[], from: number, opts: { dated?: boolean } = {}): Promise<void> => {
+  const fitPages = async (pages: SlideContent[], from: number, opts: { dated?: boolean; keepText?: boolean } = {}): Promise<void> => {
     setFitting(true);
     try {
       await fitEach(pages, from, opts);
@@ -663,7 +673,7 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
       setFitting(false);
     }
   };
-  const fitEach = async (pages: SlideContent[], from: number, opts: { dated?: boolean }): Promise<void> => {
+  const fitEach = async (pages: SlideContent[], from: number, opts: { dated?: boolean; keepText?: boolean }): Promise<void> => {
     const total = Math.max(state.slides.length, from + pages.length);
     const call = async (payload: object): Promise<Record<string, unknown> | null> => {
       const res = await fetch("/api/page-shorten", {
@@ -681,7 +691,8 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
       const index = from + i;
       const page = { ...filled[i], id: `fit-${index}` } as Slide;
       if (opts.dated && index === 0 && !page.pageDate) page.pageDate = pageDateNow();
-      const { slide } = await fitPage(page, theme, index, total, resize);
+      // A replica keeps every word: its pages may only be set tighter.
+      const { slide } = await fitPage(page, theme, index, total, opts.keepText ? { shorten: async () => null } : resize);
       const { id: _id, ...content } = slide;
       void _id;
       dispatch({ type: "REPLACE_SLIDE", index, content });
@@ -694,7 +705,7 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
     setFidelity(null);
     // "Replicate it" on an attached deck: slide by slide, see runReplicate.
     // A PDF with no text layer is transcribed first (transcribeThenReplicate).
-    const replica = !twoPager && !fallback ? attachments.find((x) => isDeckSource(x) && fileUseOf(x.answers) === "replicate") : undefined;
+    const replica = !fallback ? attachments.find((x) => replicable(x) && fileUseOf(x.answers) === "replicate") : undefined;
     if (replica && canQuestion(replica)) {
       // A replica's chapters are the source's: an old "left out" note would not apply.
       setChaptersSkipped(null);
@@ -846,7 +857,80 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
    * block. No rhythm pass and no merge: the slides are the source's, one to
    * one; only empty photo slots are filled and the closing slide added.
    */
+  /**
+   * Replicate on a two-pager (Mario, 6 Oct 2026: the source fidelity always
+   * shows after a replica, two-pagers included). The document is rebuilt in
+   * one call, every text kept (REPLICATE_PAGES in prompt.ts), as many pages
+   * as its words need, two at least; the fit pass may only tighten the type,
+   * never cut; and the piece is measured against the whole document with the
+   * same measures as a slide replica (lib/slides/fidelity.ts).
+   */
+  const runReplicatePages = async (file: Extract<Attachment, { kind: "text" | "pdf" }>) => {
+    const sources = file.sourceSlides ?? [];
+    // The reader's notes ("Figures written on the slide (…): 02, 54") are for
+    // slide charts: the piece gets the figures, not the note (a "54" a PDF
+    // reader filed as a chart label is the "Countries engaged" figure).
+    const text = (sources.length ? sources.map((s) => s.text).join("\n\n") : file.kind === "text" ? file.text : "")
+      .split("\n")
+      .map((l) => l.replace(/^\s*(Chart labels|Figures) written on the slide[^:]*:\s*/, ""))
+      .join("\n");
+    if (!text.trim()) return runGenerate(`Could not read the text of "${file.name}" to replicate it, so the two-pager uses it as a source.`);
+    const words = text.split(/\s+/).filter(Boolean).length;
+    // About 600 words fill an A4 page of this grid with a banner or a stat row.
+    const count = Math.max(2, Math.min(6, Math.ceil(words / 600)));
+    const brief = state.brief.trim() || `Replicate "${file.name}" as a two-pager.`;
+    const briefNotes = file.analysis ? compileInsights(file.analysis, file.answers ?? {}) : undefined;
+    const ignore = sources.length >= 3 ? runningLines(sources) : new Set<string>();
+    const title = sources[0]?.title || file.name;
+    const units = sourceUnits({ text }, ignore);
+    const pass = async (repair?: string) => {
+      const kept: SlideContent[] = [];
+      const received = await runGeneration(
+        { mode: "generate", brief, briefNotes, brandLabel: theme.label, format: "two-pager", count, source: text, attachments: [], repair },
+        { replace: true, collect: kept },
+      );
+      return received ? { kept, r: compareSlide(1, title, units, kept) } : null;
+    };
+    let best = await pass();
+    if (!best) return;
+    const firstPass = totals([best.r]);
+    // Below 95%, one second pass told exactly what the first one changed
+    // (repairNote), as a slide replica does; the closer of the two stays.
+    let repairs = 0;
+    let repaired = 0;
+    if (fidelityScore(best.r) < 95) {
+      repairs = 1;
+      const second = await pass(repairNote(best.r));
+      if (second && fidelityScore(second.r) > fidelityScore(best.r)) {
+        best = second;
+        repaired = 1;
+      } else {
+        // The first answer was closer: put it back.
+        dispatch({ type: "GENERATION_START", replace: true });
+        for (const c of best.kept) dispatch({ type: "APPEND_SLIDE", content: c });
+        dispatch({ type: "GENERATION_DONE" });
+      }
+    }
+    // What the model still left out, the app puts back (lib/slides/pages/restore.ts).
+    const modelPass = totals([best.r]);
+    const { pages: kept, putBack } = putBackLines(best.kept, units.lines, best.r.lines.missing);
+    const r = putBack ? compareSlide(1, title, units, kept) : best.r;
+    await fitPages(kept, 0, { dated: true, keepText: true });
+    setFidelity({
+      slides: [{ ...r, at: 0, layoutId: "a4-page", deckTitle: kept[0]?.stack?.[0]?.heading ?? title, parts: kept.length, putBack }],
+      leftovers: [],
+      firstPass,
+      modelPass,
+      repairs,
+      repaired,
+      restored: { putBack, rebuilt: 0, continued: 0, trimmed: 0 },
+      piece: { pages: kept.length, sourcePages: Math.max(1, sources.length) },
+    });
+    onDeckArrived();
+  };
+
   const runReplicate = async (file: Extract<Attachment, { kind: "text" | "pdf" }>) => {
+    if (twoPager) return runReplicatePages(file);
     const sources = file.sourceSlides ?? [];
     const { steps } = planReplica(sources);
     if (!steps.length) return;
@@ -1677,11 +1761,29 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
                     onFocusBlock={twoPager ? setFocusedBlock : null}
                     focusedBlock={twoPager ? focusedBlock : null}
                     onMoveBlock={
-                      twoPager
+                      twoPager && state.status !== "generating" && !fitting
                         ? (from, to) => dispatch({ type: "MOVE_BLOCK", index: state.activeIndex, from, to })
                         : null
                     }
                     onAddBlock={twoPager ? (at) => setAddBlockAt(at) : null}
+                    onEditWithAi={twoPager ? () => setAiModal(true) : null}
+                    canAddBlockItem={
+                      twoPager
+                        ? (b) => {
+                            const target = activePage?.stack?.[b];
+                            const limits = target ? PAGE_BLOCK_LIMITS[target.type] : null;
+                            return !!limits && (target?.items?.length ?? 0) < limits[1];
+                          }
+                        : null
+                    }
+                    onAddBlockItem={
+                      twoPager
+                        ? (b) => {
+                            setFocusedBlock(b);
+                            dispatch({ type: "ADD_ITEM", index: state.activeIndex, path: `stack.${b}` });
+                          }
+                        : null
+                    }
                     onDeleteBlock={
                       twoPager
                         ? (b) => dispatch({ type: "DELETE_BLOCK", index: state.activeIndex, block: b })
@@ -1730,6 +1832,9 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
                   {/* Keyed by slide so the bar resets with it, except while the
                       deck is written: then it stays mounted through every
                       landing slide and the aurora never restarts. */}
+                  {/* A two-pager's actions live in the side bar beside the page
+                      (SlideFrame): the bottom pill only says it is busy. */}
+                  {(!twoPager || state.status === "generating" || fitting) && (
                   <SlideActions
                     key={state.status === "generating" ? "generating" : active.id}
                     busy={state.status === "generating" || fitting}
@@ -1755,6 +1860,7 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
                     onDuplicate={() => dispatch({ type: "DUPLICATE", index: state.activeIndex })}
                     onDelete={() => dispatch({ type: "DELETE", index: state.activeIndex })}
                   />
+                  )}
                 </>
               )}
             </div>

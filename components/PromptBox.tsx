@@ -178,7 +178,7 @@ export default function PromptBox({
               disabled={generating}
               onRemove={onRemoveAttachment}
             />
-            <SheetInsights attachments={attachments} disabled={generating} onOpen={onOpenSheet} />
+            <SheetInsights attachments={attachments} disabled={generating} onOpen={onOpenSheet} twoPager={twoPager} />
           </div>
         )}
 

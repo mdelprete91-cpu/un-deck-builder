@@ -161,6 +161,15 @@ export function slideStrings(s: SlideContent): string[] {
   out.push(...(s.series ?? []));
   for (const b of s.bars ?? []) out.push(b.label, ...(b.values ?? [b.value]).map(String));
   out.push(s.notes, s.takeaway);
+  // A two-pager page: every block's text, in reading order.
+  for (const b of s.stack ?? []) {
+    out.push(b.rail, b.heading, b.sub, b.lead, b.body);
+    let group: string | undefined;
+    for (const it of b.items ?? []) {
+      if (it.group && it.group !== group) out.push((group = it.group));
+      out.push(it.label, it.body, it.extra);
+    }
+  }
   return out.filter((t): t is string => !!t?.trim());
 }
 
@@ -546,6 +555,11 @@ export interface DeckFidelity {
   leftovers: Leftover[];
   /** A PDF with no text layer: the source was the model's transcription. */
   transcribed?: boolean;
+  /**
+   * A two-pager replica: the whole document against the whole piece, one
+   * entry, measured across its pages (app/page.tsx runReplicatePages).
+   */
+  piece?: { pages: number; sourcePages: number };
   /** The totals before the repair pass; how many slides it asked again, how many came back closer. */
   firstPass?: Totals;
   repairs: number;

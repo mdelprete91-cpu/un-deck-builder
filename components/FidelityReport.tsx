@@ -91,13 +91,13 @@ const TAG: Record<Diff["kind"], string> = {
 
 type Entry = DeckFidelity["slides"][number];
 
-/** "Slide 7", "Slides 7–8", "Slides 7, 9". */
-function slideRange(at: number[]): string {
+/** "Slide 7", "Slides 7–8", "Slides 7, 9"; "Pages 1–2" on a two-pager. */
+function slideRange(at: number[], unit: "Slide" | "Page" = "Slide"): string {
   if (!at.length) return "Not in the deck";
   const sorted = [...at].sort((x, y) => x - y).map((i) => i + 1);
   const run = sorted.every((v, i) => !i || v === sorted[i - 1] + 1);
-  if (sorted.length === 1) return `Slide ${sorted[0]}`;
-  return run ? `Slides ${sorted[0]}–${sorted[sorted.length - 1]}` : `Slides ${sorted.join(", ")}`;
+  if (sorted.length === 1) return `${unit} ${sorted[0]}`;
+  return run ? `${unit}s ${sorted[0]}–${sorted[sorted.length - 1]}` : `${unit}s ${sorted.join(", ")}`;
 }
 
 const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
@@ -159,14 +159,18 @@ function FidelityReview({
   for (const l of report.leftovers) if (l.reason === "failed" || l.reason === "ceiling") lost.set(l.n, l);
   const ns = [...new Set([...byN.keys(), ...lost.keys()])].sort((x, y) => x - y);
 
+  const piece = report.piece;
   const rows = ns.map((n) => {
     const entries = byN.get(n) ?? [];
     const at: number[] = [];
-    for (const e of entries) {
-      const i = locate(e);
-      if (i >= 0) for (let k = 0; k < (e.parts ?? 1); k++) at.push(i + k);
-    }
-    const layouts = [...new Set(at.map((i) => slides[i]?.layoutId).filter(Boolean))].map((id) => LAYOUTS[id as LayoutId]?.label ?? id);
+    // A two-pager replica is one entry for the whole piece: all its pages.
+    if (piece) for (let k = 0; k < slides.length; k++) at.push(k);
+    else
+      for (const e of entries) {
+        const i = locate(e);
+        if (i >= 0) for (let k = 0; k < (e.parts ?? 1); k++) at.push(i + k);
+      }
+    const layouts = piece ? [] : [...new Set(at.map((i) => slides[i]?.layoutId).filter(Boolean))].map((id) => LAYOUTS[id as LayoutId]?.label ?? id);
     const diffs = entries.flatMap(diffsOf);
     const wrong = entries.reduce((k, e) => k + e.figures.wrong.length, 0);
     const reworded = entries.reduce((k, e) => k + e.lines.touched.length + e.lines.changed.length, 0);
@@ -176,7 +180,7 @@ function FidelityReview({
     const notes: string[] = [];
     const left = lost.get(n);
     if (left) notes.push(left.reason === "ceiling" ? "past the 40-slide limit" : "could not be rebuilt");
-    if (at.length > 1) notes.push(`text split over ${at.length} slides`);
+    if (at.length > 1 && !piece) notes.push(`text split over ${at.length} slides`);
     if (entries.some((e) => e.rebuilt)) notes.push("rebuilt by the app in a simpler layout");
     else if (putBack) notes.push(`${plural(putBack, "line")} put back by the app`);
     if (wrong) notes.push(`${plural(wrong, "figure")} changed`);
@@ -197,21 +201,23 @@ function FidelityReview({
 
   const noted = rows.filter((r) => r.notes.length > 0);
   const sourceCount = ns.length;
-  const split = rows.filter((r) => r.at.length > 1).length;
+  const split = piece ? 0 : rows.filter((r) => r.at.length > 1).length;
   const rebuilt = report.slides.filter((s) => s.rebuilt).length;
   const notIn = rows.filter((r) => !r.at.length).length;
   const fromContent = rows.reduce((k, r) => k + r.at.length, 0);
-  const summary: string[] = [
-    `${plural(sourceCount, "content slide")} of the source became ${plural(fromContent, "slide")}. Cover, agenda and chapter dividers follow the source's structure.`,
-  ];
+  const summary: string[] = piece
+    ? [`${plural(piece.sourcePages, "page")} of the source became a two-pager of ${plural(piece.pages, "A4 page")}, its text kept in the order it was written. The pages were set tighter where needed, never cut.`]
+    : [
+        `${plural(sourceCount, "content slide")} of the source became ${plural(fromContent, "slide")}. Cover, agenda and chapter dividers follow the source's structure.`,
+      ];
   if (split) summary.push(`${plural(split, "source slide")} had more text than one layout holds, so the text continues on the next slide.`);
   if (rebuilt) summary.push(`${plural(rebuilt, "slide")} ${rebuilt === 1 ? "was" : "were"} rebuilt by the app from the source, in a simpler layout, because the model's version lost text.`);
   summary.push(
     isExact(t)
-      ? `Every figure${t.figures.total ? ` (${t.figures.total})` : ""} and every line of the source is in the deck, word for word.`
+      ? `Every figure${t.figures.total ? ` (${t.figures.total})` : ""} and every line of the source is in the ${piece ? "two-pager" : "deck"}, word for word.`
       : `${t.figures.ok} / ${t.figures.total} figures exact, ${pct(t.words.kept, t.words.total)}% of the words kept${t.reworded || t.missing ? `: ${[t.reworded && plural(t.reworded, "line") + " reworded", t.missing && `${t.missing} missing`].filter(Boolean).join(", ")}` : ""}.`,
   );
-  if (notIn) summary.push(`${plural(notIn, "source slide")} ${notIn === 1 ? "is" : "are"} not in the deck.`);
+  if (notIn && !piece) summary.push(`${plural(notIn, "source slide")} ${notIn === 1 ? "is" : "are"} not in the deck.`);
   if (report.transcribed) summary.push("The source was read from page images: check the figures against the file.");
 
   return (
@@ -238,7 +244,9 @@ function FidelityReview({
           </ul>
 
           <div className="mt-7 flex items-baseline justify-between gap-3 border-b border-hairline-light pb-2">
-            <p className="text-sm font-medium text-ink">{all ? "Slide by slide" : noted.length ? "What changed, slide by slide" : "Nothing changed on any slide"}</p>
+            <p className="text-sm font-medium text-ink">
+              {piece ? (noted.length ? "What changed" : "Nothing changed") : all ? "Slide by slide" : noted.length ? "What changed, slide by slide" : "Nothing changed on any slide"}
+            </p>
             {noted.length < rows.length && (
               <button type="button" className="text-[13px] text-ink-muted hover:text-ink" onClick={() => setAll(!all)}>
                 {all ? "Only the changes" : `Show all ${rows.length} slides`}
@@ -257,7 +265,7 @@ function FidelityReview({
                         <span className="tabular-nums text-ink-faint">{r.n}.</span> {r.title || "Untitled"}
                       </p>
                       <p className="text-[13px] leading-relaxed text-ink-muted">
-                        <span className={r.at.length ? "" : "text-status-red"}>{slideRange(r.at)}</span>
+                        <span className={r.at.length ? "" : "text-status-red"}>{slideRange(r.at, piece ? "Page" : "Slide")}</span>
                         {r.layouts.length > 0 && ` · ${r.layouts.join(", ")}`}
                         {r.notes.length > 0 ? (
                           <span className={r.red ? "text-status-red" : ""}> · {r.notes.join(", ")}</span>
@@ -272,7 +280,7 @@ function FidelityReview({
                       </Button>
                     )}
                     {r.at.length > 0 && (
-                      <Button variant="ghost" iconOnly icon={ArrowRight} onClick={() => onGoTo(Math.min(...r.at))} title="Go to slide" aria-label={`Go to ${slideRange(r.at)}`} />
+                      <Button variant="ghost" iconOnly icon={ArrowRight} onClick={() => onGoTo(Math.min(...r.at))} title={piece ? "Go to the first page" : "Go to slide"} aria-label={`Go to ${slideRange(r.at, piece ? "Page" : "Slide")}`} />
                     )}
                   </div>
                   {open && (

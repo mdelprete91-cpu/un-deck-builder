@@ -148,15 +148,21 @@ const USE_OPTIONS: Record<FileUse, { label: string; detail: (n: number, unit?: s
 };
 /** The answer the question opens with, and what a skip or a close leaves. */
 export const DEFAULT_FILE_USE = USE_OPTIONS.reinterpret.label;
-export function fileUseQuestion(contentSlides: number, unit: "slides" | "pages" = "slides"): SheetQuestion {
+/** The same choice for a two-pager: the file becomes two A4 pages, not a slide per slide. */
+const PIECE_DETAILS: Record<FileUse, string> = {
+  reinterpret: "A two-pager in a new structure. Facts and figures kept.",
+  replicate: "Rebuilt as a two-pager on the brand, every text and figure kept.",
+  source: "Only what your brief asks for.",
+};
+export function fileUseQuestion(contentSlides: number, unit: "slides" | "pages" = "slides", twoPager = false): SheetQuestion {
   const keys = Object.keys(USE_OPTIONS) as FileUse[];
   return {
     id: USE_QUESTION_ID,
-    question: "What should the deck do with this file?",
+    question: twoPager ? "What should the two-pager do with this file?" : "What should the deck do with this file?",
     why: "",
     kind: "single",
     options: keys.map((k) => USE_OPTIONS[k].label),
-    details: keys.map((k) => USE_OPTIONS[k].detail(contentSlides, unit)),
+    details: keys.map((k) => (twoPager ? PIECE_DETAILS[k] : USE_OPTIONS[k].detail(contentSlides, unit))),
   };
 }
 /** The use chosen for a file; unanswered is the preselected "reinterpret", deselected is "source". */

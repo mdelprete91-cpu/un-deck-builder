@@ -1089,6 +1089,16 @@ hyphen) and drops a stats block whose "figures" are 1, 2, 3 or no figures at all
 page must end within a few pt of where build.py ended it. Run it after touching `a4.ts` or
 `blocks.ts`. Generation QA: `npx tsx tools/qa-twopager.ts` with the dev server on 3777.
 
+**Replicate** (Mario, 6 Oct 2026: the source fidelity always shows after a replica, two-pagers
+included). On a two-pager the file-use question is asked for any document, Word too.
+`runReplicatePages` sends the whole text in `source` (REPLICATE_PAGES in `prompt.ts`), as many
+pages as its words need (about 600 a page, two at least), with no voice pass. The piece is measured
+against the whole document with `compareSlide` (`slideStrings` reads page stacks); below 95% one
+second pass gets `repairNote` and the closer answer stays; then `putBackLines`
+(`pages/restore.ts`) puts every line still missing back after its neighbour, and the fit pass may
+only tighten the type, never shorten. The report carries `piece`, so the review speaks in pages.
+A PDF reader's "Figures written on the slide" note loses its preamble but keeps its figures.
+
 **Exports.** PDF prints on A4: `onExportPdf` sets the default `@page` to 595pt x 842pt for the
 length of the print, because Chrome does not apply the named `@page a4` inside the absolutely
 positioned print root (every page came out on the 16:9 sheet, cut in two). PowerPoint uses the
@@ -1096,7 +1106,7 @@ same DOM walker with its own sheet (`A4_SHEET` in `pptx-native.ts`: 96px per inc
 exact line spacing in points). The HTML file is a scrolling A4 document
 (`export-page-html.ts`) and is still the save file.
 
-**Editing.** Hover a block for its toolbar beside the page (↑ ↓ + and remove): + opens the block menu (`components/AddBlockMenu.tsx`) and
+**Editing.** A two-pager's only bar is the side bar beside the page (Edit with AI, ↑ ↓, + block, + item, remove; DESIGN.md "Block toolbar"): + opens the block menu (`components/AddBlockMenu.tsx`) and
 inserts a block with placeholder copy below. Photos are addressed by path (`data-image`), icons by
 path (`data-icon-pick`).
 
