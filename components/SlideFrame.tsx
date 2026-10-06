@@ -4,7 +4,7 @@ import { mountAura } from "@/lib/slides/aura-live";
 import { lucideSvg } from "@/lib/slides/icons";
 import { measureFlow } from "@/lib/slides/pages/fit";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { ArrowDown, ArrowUp, GripVertical, ListPlus, Plus, Sparkles, Trash2 } from "lucide-react";
+import { GripVertical, ListPlus, Plus, Sparkles, Trash2 } from "lucide-react";
 import Button from "@/components/Button";
 import { autofitAll, refitNode } from "@/lib/slides/autofit";
 import type { ImagePos } from "@/lib/slides/schema";
@@ -791,7 +791,7 @@ export default function SlideFrame({
         const count = blockRects.length;
         const index = Math.min(drag?.from ?? hoverBlock ?? focusedBlock ?? 0, count - 1);
         const canItem = canAddBlockItem?.(index) ?? false;
-        const height = 46 * (canItem ? 7 : 6) + 12;
+        const height = 46 * (canItem ? 5 : 4) + 12;
         const pageLeft = (box.w - size.w * scale) / 2;
         // Move a block: the side bar goes with it, and it stays the selected one.
         const move = (from: number, to: number) => {
@@ -825,7 +825,7 @@ export default function SlideFrame({
                 iconOnly
                 icon={GripVertical}
                 title="Drag to move this block"
-                aria-label="Drag to move this block (or use the arrows)"
+                aria-label="Drag to move this block"
                 className="cursor-grab touch-none active:cursor-grabbing"
                 onPointerDown={(e) => {
                   e.preventDefault();
@@ -849,22 +849,6 @@ export default function SlideFrame({
                   stageRef.current?.querySelectorAll(".block-dragging").forEach((n) => n.classList.remove("block-dragging"));
                   setDrag(null);
                 }}
-              />
-              <Button
-                iconOnly
-                icon={ArrowUp}
-                disabled={index === 0}
-                onClick={() => move(index, index - 1)}
-                title="Move this block up"
-                aria-label="Move this block up"
-              />
-              <Button
-                iconOnly
-                icon={ArrowDown}
-                disabled={index >= count - 1}
-                onClick={() => move(index, index + 1)}
-                title="Move this block down"
-                aria-label="Move this block down"
               />
               <Button iconOnly icon={Plus} onClick={() => onAddBlock?.(index + 1)} title="Add a block below" aria-label="Add a block below" />
               {canItem && (

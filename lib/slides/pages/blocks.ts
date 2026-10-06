@@ -125,7 +125,7 @@ const stats: BlockRender = (b, { path }) => {
       return (
         `<div ${item(`${path}.items.${i}`)} style="position:relative;box-sizing:border-box;min-height:${pt(82)};padding:${pt(dense ? 10 : 12.5)} ${pt(dense ? 10 : 12.5)} ${pt(11)};` +
         `border:1pt solid ${on ? PALETTE.orangeBorder : PALETTE.card};border-radius:${pt(6)};">` +
-        `<div ${edP(`${path}.items.${i}.label`)} style="${TYPE.stat}${dense ? "font-size:22pt;line-height:28pt;" : ""}color:${on ? PALETTE.orange : PALETTE.ink};white-space:nowrap;">${esc(it.label)}</div>` +
+        `<div ${edP(`${path}.items.${i}.label`)} style="${TYPE.stat}${dense ? "font-size:22pt;line-height:28pt;" : ""}color:${on ? PALETTE.orange : PALETTE.ink};overflow-wrap:anywhere;">${esc(it.label)}</div>` +
         `<div ${edP(`${path}.items.${i}.body`)} style="font-family:${FONT.open};font-size:9pt;line-height:12pt;${LS}color:${PALETTE.ink};margin-top:${pt(4)};">${esc(it.body)}</div>` +
         `</div>`
       );
@@ -133,7 +133,7 @@ const stats: BlockRender = (b, { path }) => {
     .join("");
   return railRow(
     "",
-    `<div style="display:grid;grid-template-columns:repeat(${cols},1fr);gap:${pt(GRID.cardGap)};">${cards}</div>`,
+    `<div style="display:grid;grid-template-columns:repeat(${cols},minmax(0,1fr));gap:${pt(GRID.cardGap)};">${cards}</div>`,
   );
 };
 
@@ -166,14 +166,14 @@ const pillars: BlockRender = (b, { path, d }) => {
       );
     })
     .join("");
-  return railRow("", `<div style="display:grid;grid-template-columns:repeat(${Math.max(2, (b.items ?? []).length)},1fr);column-gap:${pt(5)};">${cols}</div>`);
+  return railRow("", `<div style="display:grid;grid-template-columns:repeat(${Math.max(2, (b.items ?? []).length)},minmax(0,1fr));column-gap:${pt(5)};">${cols}</div>`);
 };
 
 /** Before / today, by group (investment.py `progress_table`). */
 const compare: BlockRender = (b, { path, d }) => {
   const cell = `font-family:${FONT.open};font-size:9pt;line-height:12.5pt;${LS}`;
   const row = (l: string, a: string, c: string, extra = "") =>
-    `<div style="display:grid;grid-template-columns:${pt(GRID.label)} 1fr 1fr;column-gap:${pt(GRID.gutter)};${extra}">${l}${a}${c}</div>`;
+    `<div style="display:grid;grid-template-columns:${pt(GRID.label)} minmax(0,1fr) minmax(0,1fr);column-gap:${pt(GRID.gutter)};${extra}">${l}${a}${c}</div>`;
   const items = b.items ?? [];
   let lastGroup: string | undefined;
   const rows = items
@@ -239,7 +239,7 @@ const photos: BlockRender = (b, { path, d }) => {
     .join("");
   return railRow(
     railLabel(b.rail, `${path}.rail`, d),
-    `<div style="display:grid;grid-template-columns:1fr 1fr;gap:${pt(8)};">${cards}</div>`,
+    `<div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:${pt(8)};">${cards}</div>`,
   );
 };
 
@@ -269,7 +269,7 @@ const panels: BlockRender = (b, { path, d }) => {
       );
     })
     .join("");
-  return full(`<div style="display:grid;grid-template-columns:1fr 1fr;gap:${pt(8)};">${cols}</div>`);
+  return full(`<div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:${pt(8)};">${cols}</div>`);
 };
 
 /** Who to write to, under a hairline, last on the last page. */
@@ -287,7 +287,7 @@ const contacts: BlockRender = (b, { path, d }) => {
     `<div style="margin:0 ${pt(M)} ${pt(14)};height:0;border-top:0.75pt solid ${PALETTE.ink};"></div>` +
     railRow(
       railLabel(b.rail, `${path}.rail`, d),
-      `<div style="display:grid;grid-template-columns:1fr 1fr;gap:${pt(10)} ${pt(12)};">${people}</div>`,
+      `<div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:${pt(10)} ${pt(12)};">${people}</div>`,
     )
   );
 };

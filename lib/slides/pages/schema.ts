@@ -170,6 +170,51 @@ export function undash(text: string): string {
     .replace(/,\s*,/g, ",");
 }
 
+/** Every country name the runtime knows, and the regions a two-pager names. */
+const PLACES: string[] = (() => {
+  const out = ["Africa", "Asia", "Europe", "America", "Latin", "Caribbean", "Pacific", "Sahel", "Sub-Saharan", "Central", "Southern", "Eastern", "Western", "Northern"];
+  try {
+    const names = new Intl.DisplayNames(["en"], { type: "region" });
+    const A = 65;
+    for (let i = 0; i < 26; i++)
+      for (let j = 0; j < 26; j++) {
+        const code = String.fromCharCode(A + i, A + j);
+        const name = names.of(code);
+        if (name && name !== code) out.push(name);
+      }
+  } catch {
+    // No region names in this runtime: acronyms and products still keep their case.
+  }
+  return out;
+})();
+
+/**
+ * Names that keep their capitals when an all-caps heading is set in sentence
+ * case: acronyms as acronyms, products and organisations as they are written.
+ * Not the ones that are also words ("WHO" / who, "US" / us, "DID", Italian
+ * "UN"): a heading reads better with an acronym in lower case than with a
+ * pronoun in capitals.
+ */
+const KEEP_CASE: { re: RegExp; as: string }[] = ["UNICEF", "ITU", "UNDP", "EU", "AI", "ICT", "ISPs", "ISP", "KPIs", "KPI", "SDGs", "SDG", "NGOs", "NGO", "GDP", "USA", "UK", "GSMA", "NOFBI", "UBC", "LTAs", "LTA", "Giga Maps", "Giga Meter", "Giga"]
+  .concat(PLACES)
+  // Longest first, so "South Africa" wins over "Africa".
+  .sort((x, y) => y.length - x.length)
+  .map((name) => ({ re: new RegExp(`(?<![\\p{L}])${name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?![\\p{L}])`, "giu"), as: name }));
+
+/**
+ * Headings in sentence case (Mario, 6 Oct 2026): a heading written all in
+ * capitals ("WHAT WE DO FOR CONNECTIVITY", copied from a replicated draft)
+ * becomes "What we do for connectivity", known names keeping their capitals.
+ * A heading with any lower-case letter is the writer's and stays as it is.
+ */
+export function sentenceCase(text: string): string {
+  const letters = text.replace(/[^\p{L}]/gu, "");
+  if (letters.length < 3 || letters !== letters.toUpperCase()) return text;
+  let lower = text.toLowerCase();
+  for (const { re, as } of KEEP_CASE) lower = lower.replace(re, as);
+  return lower.replace(/\p{L}/u, (c) => c.toUpperCase());
+}
+
 function undashBlock(b: PageBlock): void {
   const rec = b as unknown as Record<string, unknown>;
   for (const k of ["rail", "heading", "highlight", "sub", "lead", "body"]) if (typeof rec[k] === "string") rec[k] = undash(rec[k] as string);
@@ -236,6 +281,11 @@ export function normalizePage(stack: unknown): PageBlock[] | null {
     if (block.type === "stats") {
       // "54 Countries engaged" written whole in the caption: the figure is the label.
       for (const it of block.items ?? []) {
+        // Figure and caption the wrong way round ("Countries engaged" / "54").
+        if (!/\d/.test(it.label) && /\d/.test(it.body) && it.body.trim().length <= 8) {
+          [it.label, it.body] = [it.body.trim(), it.label.trim()];
+          continue;
+        }
         // A caption that is only the figure: the figure is the label.
         if (!/\d/.test(it.label) && /^[~<>≈]?[$€£]?\d[\d.,]*\s?(?:%|[kKMB]\+?|\+|x)?(?:\s?[-–]\s?\d[\d.,]*%?)?$/.test(it.body.trim())) {
           it.label = it.body.trim();
@@ -253,6 +303,8 @@ export function normalizePage(stack: unknown): PageBlock[] | null {
       if (counting || !labels.some((l) => /\d/.test(l))) continue;
     }
     undashBlock(block);
+    for (const k of ["rail", "heading", "sub", "lead"] as const) if (block[k]) block[k] = sentenceCase(block[k]!);
+    if (block.type !== "stats" && block.type !== "compare") block.items?.forEach((it) => (it.label = sentenceCase(it.label)));
     for (const f of BLOCK_FIELDS[block.type]) (block as unknown as Record<string, unknown>)[f] ??= "";
     if (block.type === "stats" || block.type === "panels") block.accent ??= -1;
     out.push(block);

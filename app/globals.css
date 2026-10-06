@@ -407,7 +407,7 @@ body {
   transition: background-color 0.12s;
 }
 .slide-root [data-cell]:hover {
-  background: rgba(39, 122, 255, 0.1);
+  background: rgba(39, 122, 255, 0.12);
   outline: 2px dashed rgba(39, 122, 255, 0.45);
   outline-offset: -2px;
 }
@@ -584,7 +584,8 @@ body {
 
 /* A block being dragged, and the one that just landed after a move. */
 .page-root [data-block].block-dragging {
-  opacity: 0.35;
+  outline-color: rgba(39, 122, 255, 0.9);
+  background: rgba(39, 122, 255, 0.12);
 }
 .page-root [data-block].block-landed {
   outline-color: rgba(39, 122, 255, 0.9);

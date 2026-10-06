@@ -1082,7 +1082,10 @@ the grid, and a per-page budget in characters. `archetype` is the first key of t
 on purpose. Library photos are named by id; empty photo slots get distinct children photos
 (`fillPagePhotos`); the banner defaults to the dark data strip of the Estonia pieces
 (`public/pages/banner-dataviz.jpg`). `normalizePage` also takes out em and en dashes (a range keeps a
-hyphen) and drops a stats block whose "figures" are 1, 2, 3 or no figures at all.
+hyphen), sets headings written all in capitals in sentence case (`sentenceCase`: acronyms, Giga
+products and every country name keep their capitals), puts a stat card's figure back in the label
+when the model swapped it with the caption, and drops a stats block whose "figures" are 1, 2, 3 or
+no figures at all.
 
 **Golden test.** `npx tsx tools/twopager-golden.ts` draws both Estonia pieces from
 `tools/twopager-golden.json` and screenshots them: they must match the signed-off PDFs, and each
@@ -1106,7 +1109,7 @@ same DOM walker with its own sheet (`A4_SHEET` in `pptx-native.ts`: 96px per inc
 exact line spacing in points). The HTML file is a scrolling A4 document
 (`export-page-html.ts`) and is still the save file.
 
-**Editing.** A two-pager's only bar is the side bar beside the page (Edit with AI, ↑ ↓, + block, + item, remove; DESIGN.md "Block toolbar"): + opens the block menu (`components/AddBlockMenu.tsx`) and
+**Editing.** A two-pager's only bar is the side bar beside the page (Edit with AI, drag grip, + block, + item, remove; DESIGN.md "Block toolbar"): + opens the block menu (`components/AddBlockMenu.tsx`) and
 inserts a block with placeholder copy below. Photos are addressed by path (`data-image`), icons by
 path (`data-icon-pick`).
 
