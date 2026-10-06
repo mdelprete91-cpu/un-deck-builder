@@ -1096,7 +1096,7 @@ same DOM walker with its own sheet (`A4_SHEET` in `pptx-native.ts`: 96px per inc
 exact line spacing in points). The HTML file is a scrolling A4 document
 (`export-page-html.ts`) and is still the save file.
 
-**Editing.** Hover a block for ↑ ↓ + ✕: + opens the block menu (`components/AddBlockMenu.tsx`) and
+**Editing.** Hover a block for its toolbar beside the page (↑ ↓ + and remove): + opens the block menu (`components/AddBlockMenu.tsx`) and
 inserts a block with placeholder copy below. Photos are addressed by path (`data-image`), icons by
 path (`data-icon-pick`).
 

@@ -4,6 +4,8 @@ import { mountAura } from "@/lib/slides/aura-live";
 import { lucideSvg } from "@/lib/slides/icons";
 import { measureFlow } from "@/lib/slides/pages/fit";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { ArrowDown, ArrowUp, Plus, Trash2 } from "lucide-react";
+import Button from "@/components/Button";
 import { autofitAll, refitNode } from "@/lib/slides/autofit";
 import type { ImagePos } from "@/lib/slides/schema";
 
@@ -191,6 +193,14 @@ export default function SlideFrame({
   const logoInputRef = useRef<HTMLInputElement>(null);
   const pendingLogoSlug = useRef<string | null>(null);
   const [box, setBox] = useState({ w: 0, h: 0 });
+  /** Two-pager: the block under the mouse, for the toolbar beside the page. */
+  const [blockBar, setBlockBar] = useState<{ index: number; count: number; top: number } | null>(null);
+  const barTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // A short grace period, so the mouse can travel from the block to the toolbar.
+  const hideBlockBar = () => {
+    if (barTimer.current) clearTimeout(barTimer.current);
+    barTimer.current = setTimeout(() => setBlockBar(null), 300);
+  };
   const onEditRef = useRef(onEdit);
   onEditRef.current = onEdit;
   const onDeleteItemRef = useRef(onDeleteItem);
@@ -493,10 +503,9 @@ export default function SlideFrame({
       });
     }
 
-    // Two-pager blocks: click to focus, hover for move and delete. The chrome
-    // is injected here rather than emitted by the renderer, so the printed
-    // markup and the exports stay exactly what the design says.
-    stage.querySelectorAll(".block-chrome").forEach((b) => b.remove());
+    // Two-pager blocks: click to focus, hover for move, add and delete. The
+    // toolbar lives outside the page, so the printed markup and the exports
+    // stay exactly what the design says.
     if (pageRef.current.onFocusBlock) {
       const blocks = [...stage.querySelectorAll<HTMLElement>("[data-block]")];
       blocks.forEach((node) => {
@@ -508,25 +517,21 @@ export default function SlideFrame({
           node.removeEventListener("click", onClick);
           node.classList.remove("block-on");
         });
-        const bar = document.createElement("div");
-        bar.className = "block-chrome";
-        const button = (icon: string, title: string, fn: () => void, disabled = false) => {
-          const b = document.createElement("button");
-          b.type = "button";
-          b.title = title;
-          b.innerHTML = lucideSvg(icon);
-          b.disabled = disabled;
-          b.addEventListener("click", (e) => {
-            e.stopPropagation();
-            fn();
-          });
-          bar.appendChild(b);
+        // Hover shows the block's toolbar beside the page (rendered below,
+        // outside the stage, so the sheet never carries it).
+        const onEnter = () => {
+          if (barTimer.current) clearTimeout(barTimer.current);
+          const wrap = containerRef.current?.getBoundingClientRect();
+          const r = node.getBoundingClientRect();
+          if (wrap) setBlockBar({ index: i, count: blocks.length, top: r.top - wrap.top });
         };
-        button("arrow-up", "Move this block up", () => pageRef.current.onMoveBlock?.(i, i - 1), i === 0);
-        button("arrow-down", "Move this block down", () => pageRef.current.onMoveBlock?.(i, i + 1), i === blocks.length - 1);
-        button("plus", "Add a block below", () => pageRef.current.onAddBlock?.(i + 1));
-        button("x", "Remove this block", () => pageRef.current.onDeleteBlock?.(i), blocks.length <= 1);
-        node.appendChild(bar);
+        const onLeave = () => hideBlockBar();
+        node.addEventListener("mouseenter", onEnter);
+        node.addEventListener("mouseleave", onLeave);
+        cleanups.push(() => {
+          node.removeEventListener("mouseenter", onEnter);
+          node.removeEventListener("mouseleave", onLeave);
+        });
       });
     }
 
@@ -727,6 +732,55 @@ export default function SlideFrame({
           }}
         />
       </div>
+      {editable && variant === "page" && blockBar && onMoveBlock && scale > 0 && (
+        <div
+          // Beside the sheet, level with the block: the slide bar's pill,
+          // stood upright (DESIGN.md "Block toolbar").
+          className="pop-in absolute z-20 flex flex-col gap-1.5 rounded-full border border-hairline-light bg-surface p-1.5 shadow-float"
+          style={{
+            left: (box.w + size.w * scale) / 2 + 12,
+            top: Math.max(0, Math.min(blockBar.top, box.h - 184)),
+          }}
+          onMouseEnter={() => barTimer.current && clearTimeout(barTimer.current)}
+          onMouseLeave={hideBlockBar}
+        >
+          <Button
+            iconOnly
+            icon={ArrowUp}
+            disabled={blockBar.index === 0}
+            onClick={() => onMoveBlock(blockBar.index, blockBar.index - 1)}
+            title="Move this block up"
+            aria-label="Move this block up"
+          />
+          <Button
+            iconOnly
+            icon={ArrowDown}
+            disabled={blockBar.index >= blockBar.count - 1}
+            onClick={() => onMoveBlock(blockBar.index, blockBar.index + 1)}
+            title="Move this block down"
+            aria-label="Move this block down"
+          />
+          <Button
+            iconOnly
+            icon={Plus}
+            onClick={() => onAddBlock?.(blockBar.index + 1)}
+            title="Add a block below"
+            aria-label="Add a block below"
+          />
+          <Button
+            variant="danger"
+            iconOnly
+            icon={Trash2}
+            disabled={blockBar.count <= 1}
+            onClick={() => {
+              onDeleteBlock?.(blockBar.index);
+              setBlockBar(null);
+            }}
+            title="Remove this block"
+            aria-label="Remove this block"
+          />
+        </div>
+      )}
       {editable && (
         <>
           <input
