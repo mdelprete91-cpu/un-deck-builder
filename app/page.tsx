@@ -265,7 +265,10 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
     abortRef.current?.abort();
     const controller = new AbortController();
     abortRef.current = controller;
-    dispatch({ type: "GENERATION_START", replace: opts.replace });
+    // A new deck is written in its brief's language, which becomes its original
+    // (a replica's is its document's: read off the deck at the first switch).
+    const briefLang = opts.replace && !body.source && typeof body.brief === "string" ? langFromName(languageOf(body.brief)) : undefined;
+    dispatch({ type: "GENERATION_START", replace: opts.replace, source: briefLang });
     const rhythm = opts.rhythm ? makeRhythm(opts.rhythm) : null;
     // Before the first slide of a fresh deck lands, the "Generating…" pill's
     // place is measured, so the slide bar can fly in from there (FLIP in
@@ -276,8 +279,9 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
         method: "POST",
         headers: { "Content-Type": "application/json" },
         // The slide-by-slide reading of a PowerPoint is the editor's: its text already travels.
-        // A deck switched to another language is written in it from now on.
-        body: JSON.stringify(state.lang ? { ...body, outputLanguage: LANG_NAMES[state.lang.current] } : body, (k, v) => (k === "sourceSlides" ? undefined : v)),
+        // Added and rewritten slides are written in the language on screen; a
+        // new deck in its brief's (the route reads it off the brief).
+        body: JSON.stringify(state.lang && !opts.replace ? { ...body, outputLanguage: LANG_NAMES[state.lang.current] } : body, (k, v) => (k === "sourceSlides" ? undefined : v)),
         signal: controller.signal,
       });
       if (!res.ok || !res.body) {

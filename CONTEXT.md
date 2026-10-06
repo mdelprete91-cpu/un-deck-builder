@@ -1053,8 +1053,10 @@ keeps every language's text field by field (`textFields`, paths in `setPath`'s f
   own.
 - A slide whose shape changed (a point added or removed) is translated afresh from the screen,
   because paths are positions (`shapeOf`).
-- New generation and Edit with AI write in the language on screen (`outputLanguage`), and a new
-  deck takes it as its source. The memory travels in the session and the deck file
+- A new deck is written in its brief's language, and that is its original, the source of truth for
+  the content (Mario, 6 Oct 2026): `GENERATION_START` with `source` from `languageOf(brief)`. A
+  replica's original is its document's, read off the deck at the first switch. Added slides and
+  Edit with AI write in the language on screen (`outputLanguage`, never on a new deck). The memory travels in the session and the deck file
   (`sanitizeLang` on the way in). Renderer words ("Done", "Thank you!") follow `theme.ui`.
 - Latin scripts only: the self-hosted fonts are latin and latin-ext.
 

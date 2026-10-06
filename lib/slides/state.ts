@@ -11,7 +11,7 @@ import { newItem, defaultContent } from "./defaults";
 import { tierDefaultGrid } from "./layouts/tables";
 import { addPart, deleteModular, insertPoint, isModular } from "./modular";
 import type { BrandId } from "./brand";
-import type { DeckLang } from "./i18n";
+import type { DeckLang, Lang } from "./i18n";
 
 interface Snapshot {
   slides: Slide[];
@@ -91,7 +91,13 @@ export type DeckAction =
   | { type: "SET_BRIEF"; brief: string }
   | { type: "SET_COUNT"; count: number }
   | { type: "SET_CHAPTERS"; chapters: boolean }
-  | { type: "GENERATION_START"; replace: boolean }
+  /**
+   * `source`: a new deck's language, the brief's (Mario, 6 Oct 2026: the
+   * prompt's language is the deck's original and its source of truth).
+   * Absent on a new deck, the language is read off the deck's own text at
+   * the first switch (a replica is in its document's language).
+   */
+  | { type: "GENERATION_START"; replace: boolean; source?: Lang }
   | { type: "FILL_PHOTOS" }
   | { type: "APPEND_SLIDE"; content: SlideContent }
   | { type: "REPLACE_SLIDE"; index: number; content: SlideContent }
@@ -277,11 +283,8 @@ function reduce(state: DeckState, action: DeckAction): DeckState {
         startedAt: Date.now(),
         slides: action.replace ? [] : state.slides,
         activeIndex: action.replace ? 0 : state.activeIndex,
-        // A new deck is written in the language on screen, and that is its source now.
-        lang:
-          action.replace && state.lang
-            ? { source: state.lang.current, current: state.lang.current, texts: {} }
-            : state.lang,
+        // A new deck starts a new language memory: its original is the brief's language.
+        lang: action.replace ? (action.source ? { source: action.source, current: action.source, texts: {} } : undefined) : state.lang,
       };
     case "APPEND_SLIDE": {
       // No history push: generation is undone as a whole via GENERATION_START's snapshot.
