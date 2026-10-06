@@ -1,7 +1,7 @@
 import PptxGenJS from "pptxgenjs";
 import { rasterizeSlide } from "./rasterize";
-import { addNativeSlide } from "./pptx-native";
-import type { Slide } from "./schema";
+import { A4_SHEET, addNativeSlide, SLIDE_SHEET } from "./pptx-native";
+import { isPage, type Slide } from "./schema";
 import type { BrandTheme } from "./brand";
 import { renderSlide } from "./layouts";
 import { autofitAll } from "./autofit";
@@ -55,17 +55,25 @@ export async function exportPptxDeck(
   // one is what gets captured. html-to-image copies the captured node's own
   // computed style into the SVG it rasterises, so capturing the offscreen
   // node itself carries "left:-20000px" along and yields a blank picture.
+  // A two-pager exports A4 portrait pages (6 Oct 2026): same walker, its
+  // own sheet. Formats never mix in one deck, so the first slide decides.
+  const pages = slides.some((s) => isPage(s));
+  const sheet = pages ? A4_SHEET : SLIDE_SHEET;
   const outer = document.createElement("div");
-  outer.style.cssText =
-    "position:fixed;left:-20000px;top:0;width:1920px;height:1080px;overflow:hidden;pointer-events:none;";
+  outer.style.cssText = `position:fixed;left:-20000px;top:0;width:${sheet.w}px;height:${sheet.h}px;overflow:hidden;pointer-events:none;`;
   const host = document.createElement("div");
-  host.style.cssText = "position:relative;width:1920px;height:1080px;overflow:hidden;background:#fff;";
+  host.style.cssText = `position:relative;width:${sheet.w}px;height:${sheet.h}px;overflow:hidden;background:#fff;`;
   outer.appendChild(host);
   document.body.appendChild(outer);
 
   const pptx = new PptxGenJS();
-  pptx.defineLayout({ name: "GIGA_16_9", width: SLIDE_W_IN, height: SLIDE_H_IN });
-  pptx.layout = "GIGA_16_9";
+  if (pages) {
+    pptx.defineLayout({ name: "A4_PORTRAIT", width: sheet.w / sheet.pxPerIn, height: sheet.h / sheet.pxPerIn });
+    pptx.layout = "A4_PORTRAIT";
+  } else {
+    pptx.defineLayout({ name: "GIGA_16_9", width: SLIDE_W_IN, height: SLIDE_H_IN });
+    pptx.layout = "GIGA_16_9";
+  }
   pptx.title = title;
 
   try {
@@ -79,11 +87,19 @@ export async function exportPptxDeck(
         // Native objects, read off the DOM. A slide the walker cannot handle
         // falls back to the picture-plus-text-boxes form below, so one odd
         // layout never stops the export.
-        await withTimeout(addNativeSlide(pptx, slide, host), 30000, "native conversion");
+        await withTimeout(addNativeSlide(pptx, slide, host, sheet), 30000, "native conversion");
       } catch (err) {
         console.warn(`[pptx] slide ${i + 1}: native conversion failed, using the picture`, err);
         // pptxgenjs cannot remove a slide: empty what the walker managed to add.
         (slide as unknown as { _slideObjects: unknown[] })._slideObjects = [];
+        if (pages) {
+          // A page falls back to its picture alone: the text-box pass below is
+          // measured for the 16:9 slide.
+          const png = await withTimeout(rasterizeSlide(host, sheet.w, sheet.h), 15000, "capture");
+          slide.addImage({ data: png, x: 0, y: 0, w: sheet.w / sheet.pxPerIn, h: sheet.h / sheet.pxPerIn });
+          onProgress?.(i + 1, slides.length);
+          continue;
+        }
         const boxes = collectTextBoxes(host);
         boxes.forEach((b) => (b.node.style.visibility = "hidden"));
         const png = await captureSlide(host, i, slides[i]?.title);

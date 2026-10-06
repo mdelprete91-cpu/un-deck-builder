@@ -21,13 +21,10 @@ const HISTORY_LIMIT = 50;
 
 /**
  * What the deck produces. "slides" is the 16:9 deck; "two-pager" is the A4
- * print piece, available on the Digital Inclusion brand only. A deck is one or
- * the other, decided while it is still empty.
+ * print piece, on every lockup of the Logo menu (6 Oct 2026). A deck is one or
+ * the other: switching starts a new document.
  */
 export type DeckFormat = "slides" | "two-pager";
-
-/** The only brand the two-pager template exists for. */
-export const TWO_PAGER_BRAND = "inclusion";
 
 /** What a deck is called until someone names it. */
 export const DEFAULT_DECK_NAME = "New deck";
@@ -232,23 +229,26 @@ function reduce(state: DeckState, action: DeckAction): DeckState {
         future: [],
       };
     case "SET_BRAND":
-      // A two-pager only exists on the Digital Inclusion brand. The guard is
-      // here rather than only in the sidebar so no other path can strand a
-      // cyan print piece on the Giga palette.
-      if (state.format === "two-pager" && action.brandId !== TWO_PAGER_BRAND) return state;
       return { ...state, brandId: action.brandId };
-    case "SET_FORMAT":
-      // Only while the deck is empty: the two formats do not mix, and the
-      // switch is a decision about the document, not a view toggle.
-      if (state.slides.length > 0 || state.format === action.format) return state;
+    case "SET_FORMAT": {
+      if (state.format === action.format) return state;
+      // A two-pager is a two-pager: the name is the spec. The slide default
+      // (8) would ask the model for an eight-page brief.
+      const count = action.format === "two-pager" ? 2 : initialDeckState.count;
+      if (state.slides.length === 0) return { ...state, format: action.format, count };
+      // The formats do not mix: switching starts a new document (the sidebar
+      // asks first). The history goes with the old deck, since an undo would
+      // bring slides back into a document of the other kind.
       return {
-        ...state,
+        ...initialDeckState,
+        name: state.name,
+        brandId: state.brandId,
+        brief: state.brief,
+        chapters: state.chapters,
         format: action.format,
-        brandId: action.format === "two-pager" ? TWO_PAGER_BRAND : state.brandId,
-        // A two-pager is a two-pager: the name is the spec. The slide default
-        // (8) would ask the model for an eight-page brief.
-        count: action.format === "two-pager" ? 2 : initialDeckState.count,
+        count,
       };
+    }
     case "RENAME":
       return { ...state, name: action.name.trim() || DEFAULT_DECK_NAME };
     case "SET_BRIEF":

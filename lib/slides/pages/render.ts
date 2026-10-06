@@ -1,8 +1,8 @@
 import type { BrandTheme } from "../brand";
 import type { Slide } from "../schema";
-import { A4, GRID, pageFooter, pageHeader, pageSection, pt } from "./a4";
-import { BLOCKS, spaceBetween } from "./blocks";
-import type { PageBlock } from "./schema";
+import { DENSITY, GRID, pageDateNow, pageFooter, pageMasthead, pageSection, pt } from "./a4";
+import { BLOCKS, spaceBefore } from "./blocks";
+import type { PageFit } from "./schema";
 
 export interface PageCtx {
   index: number;
@@ -10,50 +10,29 @@ export interface PageCtx {
 }
 
 /**
- * A page carries the masthead when it opens with a title. That is true of all
- * ten approved boards — the first page of each piece has the lockup and a
- * title, the continuation pages have neither — and it saves a page-level flag
- * that would only ever repeat what the first block already says.
- */
-export function hasHeader(stack: PageBlock[] | undefined): boolean {
-  return stack?.[0]?.type === "title";
-}
-
-/** Stack the blocks and report where the last one ends. */
-function stackBlocks(stack: PageBlock[], t: BrandTheme): { html: string; bottom: number } {
-  const parts: string[] = [];
-  let y = hasHeader(stack) ? GRID.contentTop : GRID.contentTopBare;
-  stack.forEach((block, i) => {
-    const def = BLOCKS[block.type];
-    if (!def) return;
-    if (i > 0) y += spaceBetween(stack[i - 1].type, block.type);
-    const { html, height } = def.render(block, { t, path: `stack.${i}` });
-    parts.push(
-      `<div data-block="${i}" style="position:absolute;left:0;top:${pt(y)};width:${pt(A4.w)};height:${pt(height)};">${html}</div>`,
-    );
-    y += height;
-  });
-  return { html: parts.join(""), bottom: y };
-}
-
-/**
- * The two-pager page renderer: header (when the page opens with a title), the
- * block stack, the footer.
+ * The two-pager page renderer: the masthead on the first page, the block
+ * stack in normal flow inside the content zone, the footer.
  *
- * Block heights are estimated from the text, not measured, so a page can run
- * past the content zone. It is clipped rather than reflowed — the editor reads
- * `data-page-overflow` off the section and tells the user to cut something,
- * because silently pushing content onto a page the user did not ask for is
- * worse than saying it does not fit.
+ * The flow is laid out by the browser, so nothing here estimates a height.
+ * Whether the stack fits is measured afterwards (fit.ts): a page that runs
+ * past the zone is clipped at its bottom edge and the editor says so, rather
+ * than reflowing onto a page the user did not ask for.
  */
 export function renderPage(slide: Slide, t: BrandTheme, ctx?: PageCtx): string {
   const stack = slide.stack ?? [];
-  const { html, bottom } = stackBlocks(stack, t);
-  const over = bottom > GRID.contentBottom;
-  const inner =
-    (hasHeader(stack) ? pageHeader() : "") +
-    html +
+  const fit: PageFit = slide.pageFit ?? "regular";
+  const d = DENSITY[fit];
+  const first = (ctx?.index ?? 0) === 0;
+  const flow = stack
+    .map((block, i) => {
+      const render = BLOCKS[block.type];
+      if (!render) return "";
+      const gap = i === 0 ? 0 : spaceBefore(stack[i - 1].type, block.type, d);
+      return `<div data-block="${i}" style="position:relative;margin-top:${pt(gap)};">${render(block, { t, d, path: `stack.${i}` })}</div>`;
+    })
+    .join("");
+  const chrome =
+    (first ? pageMasthead(t, slide.pageDate || pageDateNow()) : "") +
     pageFooter(slide.footerLabel ?? "", t.footerLabel, ctx?.index ?? 0);
-  const page = pageSection(t, inner);
-  return over ? page.replace("<section ", `<section data-page-overflow="${Math.round(bottom - GRID.contentBottom)}" `) : page;
+  return pageSection(t, first ? GRID.topFirst : GRID.topBare, chrome, flow);
 }

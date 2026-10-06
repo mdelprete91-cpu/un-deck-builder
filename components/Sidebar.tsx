@@ -3,7 +3,7 @@
 import { CircleHelp, Plus } from "lucide-react";
 import { useState } from "react";
 import { BRANDS, PICKER_BRAND_IDS, type BrandId } from "@/lib/slides/brand";
-import type { DeckState, DeckAction } from "@/lib/slides/state";
+import type { DeckState, DeckAction, DeckFormat } from "@/lib/slides/state";
 import type { Attachment } from "@/lib/slides/attachments";
 import Button from "@/components/Button";
 import ThemeToggle from "@/components/ThemeToggle";
@@ -40,13 +40,6 @@ function Eyebrow({ children }: { children: React.ReactNode }) {
     </span>
   );
 }
-
-/**
- * The two-pager is not ready (Mario, 15 Sep 2026: still buggy), so the row that
- * starts one is hidden. Everything behind it stays: a saved two-pager still
- * opens, because the format is derived from the slides, not from this switch.
- */
-const SHOW_TEMPLATE_SWITCH = false;
 
 export default function Sidebar({
   state,
@@ -89,9 +82,8 @@ export default function Sidebar({
 
       {/* Settings rows in the ChatGPT register: label left, value right, no
           rule between them. Logo lockup: colors stay Giga on every option,
-          only logo and footer change. Template only on Digital Inclusion,
-          the one brand the A4 two-pager exists for, and only while the deck
-          is empty: the formats do not mix, and the reducer enforces that. */}
+          only logo and footer change. Document picks slides or the A4
+          two-pager, on every lockup. */}
       <div className="flex flex-col">
         <div className="flex h-9 items-center justify-between gap-3">
           <span className="text-sm text-ink">Logo</span>
@@ -102,21 +94,31 @@ export default function Sidebar({
             onChange={(brandId) => dispatch({ type: "SET_BRAND", brandId })}
           />
         </div>
-        {SHOW_TEMPLATE_SWITCH && state.brandId === "inclusion" && (
-          <div className="flex h-9 items-center justify-between gap-3">
-            <span className="text-sm text-ink">Template</span>
-            <Select
-              ariaLabel="Template"
-              value={state.format}
-              disabled={state.slides.length > 0}
-              options={[
-                { value: "slides", label: "Slides", hint: "16:9 slides" },
-                { value: "two-pager", label: "Two-pager", hint: "A4 pages, made to be printed" },
-              ]}
-              onChange={(format) => dispatch({ type: "SET_FORMAT", format })}
-            />
-          </div>
-        )}
+        <div className="flex h-9 items-center justify-between gap-3">
+          <span className="text-sm text-ink">Document</span>
+          <Select
+            ariaLabel="Document type"
+            value={state.format}
+            disabled={generating}
+            options={[
+              { value: "slides", label: "Slides", hint: "A 16:9 deck to present" },
+              { value: "two-pager", label: "Two-pager", hint: "Two A4 pages, made to be printed" },
+            ]}
+            onChange={(format) => {
+              // The formats do not mix: switching with content starts a new document.
+              if (
+                hasSlides &&
+                !confirm(
+                  format === "two-pager"
+                    ? "Start a new two-pager? The deck on screen will be replaced: download it first if you want to keep it."
+                    : "Start a new slide deck? The two-pager on screen will be replaced: download it first if you want to keep it.",
+                )
+              )
+                return;
+              dispatch({ type: "SET_FORMAT", format: format as DeckFormat });
+            }}
+          />
+        </div>
       </div>
 
       {/* Brief. The composer holds everything one Generate press sends: the
@@ -138,6 +140,7 @@ export default function Sidebar({
           generating={generating}
           blocked={!!attachError}
           hasSlides={hasSlides}
+          twoPager={state.format === "two-pager"}
         />
         {attachError && (
           <div className="mt-2 rounded-lg border border-status-red-border bg-status-red-bg p-3 text-xs leading-relaxed text-status-red">
@@ -163,7 +166,7 @@ export default function Sidebar({
       {/* Targeted additions live in a modal: what to add + how many; the AI
           picks the position and refreshes the agenda, existing slides are
           never touched. */}
-      {hasSlides && (
+      {hasSlides && state.format !== "two-pager" && (
         <Button
           variant="secondary"
           icon={Plus}

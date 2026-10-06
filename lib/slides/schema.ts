@@ -2,7 +2,7 @@ import { z } from "zod";
 import { toChartColor } from "./chart-colors";
 import { cleanModelIcons } from "./icon-set";
 import { libraryPhoto, PHOTO_LAYOUTS } from "./library";
-import { normalizePage, pageBlockSchema, type PageBlock } from "./pages/schema";
+import { normalizePage, PAGE_FITS, pageBlockSchema, type PageBlock, type PageFit } from "./pages/schema";
 import type { ChartSource } from "./chart-import";
 
 /** Layouts the AI is allowed to pick. */
@@ -230,6 +230,10 @@ export interface SlideContent {
    * renderer falls back to the brand label while it is empty.
    */
   footerLabel?: string;
+  /** Two-pager page: how tightly it is set (pages/schema.ts PAGE_FITS). Set by the fit pass. */
+  pageFit?: PageFit;
+  /** Two-pager first page: the date in the masthead ("October 2026"). */
+  pageDate?: string;
 }
 
 export interface Channel {
@@ -376,6 +380,8 @@ export const slideContentSchema = z.object({
   photo: z.string().optional(),
   stack: z.array(pageBlockSchema).optional(),
   footerLabel: z.string().optional(),
+  pageFit: z.enum(PAGE_FITS).optional().catch(undefined),
+  pageDate: z.string().optional(),
   notes: z.string().optional(),
   takeaway: z.string().optional(),
   density: z

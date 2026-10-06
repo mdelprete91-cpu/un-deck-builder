@@ -91,7 +91,7 @@ function read(raw: string | null): Partial<DeckState> | null {
     const twoPager = parsed.slides.some((s) => isPage(s));
     return {
       name: parsed.name?.trim() || DEFAULT_DECK_NAME,
-      brandId: twoPager ? "inclusion" : parsed.brandId,
+      brandId: parsed.brandId,
       // Added after VERSION 2 and defaulted, so it is additive and lossless:
       // bumping the version here would log out every returning user instead.
       format: twoPager ? "two-pager" : (parsed.format ?? "slides"),

@@ -1035,77 +1035,83 @@ section, hero, photo). A pick is `REPLACE_SLIDE` with the same merge as a regene
 ## Two-pagers
 
 A deck is one of two formats, carried on `DeckState.format`: `slides` (16:9) or `two-pager`, the
-A4 portrait print piece. The switch appears in the sidebar on **UNICEF Digital Inclusion only**,
-and only while the deck is empty — the formats do not mix, and `SET_FORMAT` enforces that in the
-reducer rather than only in the UI.
+A4 portrait print piece of exactly two pages. The **Document** row under Logo in the sidebar picks
+it, on every lockup of the menu (Mario, 6 Oct 2026). The formats do not mix: switching with a deck
+on screen asks first, then starts a new document (`SET_FORMAT`), and the undo history goes with the
+old one.
+
+**Rebuilt from scratch on 6 Oct 2026** on the two A4 pieces made for Estonia
+(`~/Desktop/figma-to-pptx-source/estonia/build.py` and `investment.py`). The first version, built
+on the ten DI boards with estimated heights, was hidden as "still buggy" on 15 Sep and is gone; a
+page saved with its blocks opens with only what still exists.
 
 **A page is a slide.** It lives in `state.slides` with `layoutId: "a4-page"` and its content in
-`stack: PageBlock[]`. That is what makes reorder, duplicate, delete, undo, redo, autosave and the
-deck file work on pages with no changes at all. `isPage()` is the guard; the slide-only actions
-(`SET_MAP`, `SET_BARS`, `TOGGLE_CELL`, `SET_LOGO`, `INSERT_TIERS`) no-op on one.
+`stack: PageBlock[]`, so reorder, duplicate, delete, undo, autosave and the deck file work on pages
+unchanged. `isPage()` is the guard. A page also carries `footerLabel`, `pageDate` (the masthead
+date, set once when the piece is generated) and `pageFit`.
 
-**A page is a stack of blocks, not a layout.** The fourteen block types in
-`lib/slides/pages/schema.ts` come from the ten signed-off A4 boards, and so do the grid and the
-type scale in `pages/a4.ts`. "Add page" offers presets — a starting composition, not a fixed
-layout — and blocks can then be added, removed and reordered inside the page.
+**A page is a stack of blocks laid out by the browser.** `lib/slides/pages/`:
 
-**The page renderer works in points, 1:1 with Figma** (`595pt x 842pt` = A4), so printing needs no
-scale factor anywhere. Two consequences that fail silently if you forget them:
+- `a4.ts`: the grid of build.py in pt (margin 24, label column 100, gutter 12, text column 435,
+  stat gap 5, content zone 80 or 24 down to 795, footer at 821), the type, `PALETTE`, the masthead
+  per lockup and the footer.
+- `blocks.ts`: eleven renderers (banner, title, section, stats, figure, pillars, compare, asks,
+  photos, panels, contacts) that emit markup in **normal flow**, inline styles only. No block knows
+  its height and nothing is autofitted: `data-fit` is never used on a page.
+- `render.ts`: masthead on page 1, the blocks in a fixed content zone (`data-page-zone`, holding
+  `data-page-flow`), the footer.
+- `schema.ts`: the block vocabulary, `PAGE_BLOCK_LIMITS`, `PAGE_FITS`, `normalizePage` (maps the
+  model's library photo ids and country names to paths and slugs).
+- `fit.ts`: whether a page fits, **measured, not estimated**. A page is drawn off-screen at 1:1 and
+  its flow compared with its zone.
 
-- **`data-fit` budgets stay in px.** `autofit.ts` reads `getComputedStyle().fontSize` and
-  `scrollHeight`, which are px whatever unit the markup uses. A budget left in pt is a third too
-  generous, so the text overlaps instead of shrinking. Use `edP()` / `fitAttr()`; never write a
-  `data-fit` literal.
-- **Line-heights are unitless.** Autofit only remembers a line-height it can parse as px, so a pt
-  one stays put while the font shrinks underneath it.
+**Density is the fit.** `pageFit` is regular (Open Sans 10/15, sections 22 apart, the advocacy
+piece), compact (9.5/14, 18 apart, the donor update) or tight (9/13.5, last resort). After
+generation and after an AI rewrite of a page, `fitPages` in `app/page.tsx` ("Fitting the pages…"
+in the pill) measures each page: regular, then compact, then `/api/page-shorten` cuts the longest
+block by the overrun (twice at most), and only then tight. A page still over is clipped at the zone
+and the editor draws a red line with how much has to go (`.page-over`, SlideFrame). Nothing ever
+reflows onto a page the user did not ask for. A page with room left stays as it is: lengthening it
+by model was tried and filled pages with sentences that said nothing; the prompt asks for full
+pages instead, and a thin brief gives a thin piece.
 
-**`data-item` and `data-fit` must never sit on the same node.** The ✕ is injected *inside* the
-`[data-item]` element and hangs past its right edge, which makes `scrollWidth` exceed
-`clientWidth` — and that is exactly what autofit reads as overflow. It shrank whole paragraphs to
-the 40% floor before this was understood. Blocks emit a separate empty `hit()` span for the ✕.
+**Generation** (`buildPagePrompt` in `prompt.ts`, `page-catalog.ts`): the model first picks an
+archetype (advocacy brief, donor or partner update, partnership brief, product brief), which sets
+the order of the blocks on each page, then fills the blocks within character limits derived from
+the grid, and a per-page budget in characters. `archetype` is the first key of the output schema
+on purpose. Library photos are named by id; empty photo slots get distinct children photos
+(`fillPagePhotos`); the banner defaults to the dark data strip of the Estonia pieces
+(`public/pages/banner-dataviz.jpg`). `normalizePage` also takes out em and en dashes (a range keeps a
+hyphen) and drops a stats block whose "figures" are 1, 2, 3 or no figures at all.
 
-**Block heights are estimated, not measured.** A renderer is a pure string function, so
-`lineCount()` guesses how many lines a string takes from the average glyph advance measured over
-the boards' own text (0.457em for Open Sans), deliberately erring long. Autofit is the backstop
-when the guess is short.
+**Golden test.** `npx tsx tools/twopager-golden.ts` draws both Estonia pieces from
+`tools/twopager-golden.json` and screenshots them: they must match the signed-off PDFs, and each
+page must end within a few pt of where build.py ended it. Run it after touching `a4.ts` or
+`blocks.ts`. Generation QA: `npx tsx tools/qa-twopager.ts` with the dev server on 3777.
 
-**A page that overruns is clipped, on purpose.** The stacker sums block heights and marks the
-section `data-page-overflow` when it passes the content zone; nothing reflows onto a page the user
-did not ask for. The generation-side guard is the `weight` in `page-catalog.ts` and the prompt rule
-that a page's weights sum to 100 or less — the print twin of the fit-budget/word-limit pairing, and
-it has to be re-checked whenever a block's geometry changes.
+**Exports.** PDF prints on A4: `onExportPdf` sets the default `@page` to 595pt x 842pt for the
+length of the print, because Chrome does not apply the named `@page a4` inside the absolutely
+positioned print root (every page came out on the 16:9 sheet, cut in two). PowerPoint uses the
+same DOM walker with its own sheet (`A4_SHEET` in `pptx-native.ts`: 96px per inch, 1px = 0.75pt,
+exact line spacing in points). The HTML file is a scrolling A4 document
+(`export-page-html.ts`) and is still the save file.
 
-**Printing uses a named `@page` rule.** `@page a4` sits beside the unnamed slide rule, and
-`PrintRoot` picks `.print-page` for a page. Two unnamed rules would silently overwrite each other,
-and the size must be written in the same units as the box (`595pt 842pt`, not the `A4` keyword) or
-Chrome emits a blank sheet after every real page.
-
-**Images and icons are addressed by path.** A page holds several of each, so `SET_IMAGE`,
-`SET_IMAGE_POS` and `SET_ICON` take a `path` and write through `setPath`; `framedImage()` now
-carries its path in `data-image`. Every photo slot also gets its own upload button, because the
-toolbar action can only ever mean one of them.
-
-**The slides decide the format.** `storage.read` and `parseDeckFile` both derive it from the
-content rather than trusting the stored field, so a session or a file saved before the field
-existed still opens as a two-pager. `format` is *not* hydrated as a setting: it belongs to the
-document, and hydrating it would open an empty editor in two-pager mode.
-
-**The HTML file is a scrolling A4 document**, not the fullscreen deck runner
-(`export-page-html.ts`), and it carries the identical `deckStateScript` payload — it is still the
-save file. There is no PPTX for pages.
+**Editing.** Hover a block for ↑ ↓ + ✕: + opens the block menu (`components/AddBlockMenu.tsx`) and
+inserts a block with placeholder copy below. Photos are addressed by path (`data-image`), icons by
+path (`data-icon-pick`).
 
 ### Adding or changing a block
 
-1. `lib/slides/pages/schema.ts`: the type in `PAGE_BLOCK_TYPES`, and an entry in
-   `PAGE_BLOCK_LIMITS` if it has a repeating array.
-2. `lib/slides/page-catalog.ts`: usage line, field spec with hard word limits, and a `weight`.
-   A compile-time check enforces that every AI-selectable block has an entry.
-3. `lib/slides/pages/blocks.ts`: the renderer, geometry from the boards, `edP()` / `fitAttr()` /
-   `hit()` / `esc()`, inline styles only, and it must return its own height.
-4. `SPACE_BEFORE` in the same file, and `BOXED` if it is a framed block.
-5. `lib/slides/pages/presets.ts`: a default, and a preset if it starts a page.
-6. Check the block at its `PAGE_BLOCK_LIMITS` minimum and maximum with text at the catalog limit,
-   and check a page of them still fits inside 842pt.
+1. `lib/slides/pages/schema.ts`: the type in `PAGE_BLOCK_TYPES`, `PAGE_BLOCK_LIMITS`, and its text
+   fields in `BLOCK_FIELDS`.
+2. `lib/slides/page-catalog.ts`: usage line and field spec with hard character limits from the
+   grid; where it goes in the archetypes.
+3. `lib/slides/pages/blocks.ts`: the renderer, normal flow, the grid from `a4.ts`, `edP()` and
+   `esc()`, `item()` on the item wrapper, inline styles only; `spaceBefore` if it needs a
+   different gap.
+4. `lib/slides/pages/presets.ts`: its menu label and default content.
+5. `PAGE_BLOCK_SCHEMA` in `prompt.ts` if it needs a field the schema does not have.
+6. Run the golden test and the QA, and export a page with it to PDF and PowerPoint.
 
 ## Adding or changing a layout
 

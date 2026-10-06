@@ -6,8 +6,11 @@ import { BRANDS } from "@/lib/slides/brand";
 import { DEFAULT_DECK_NAME, deckReducer, initialDeckState, readPath } from "@/lib/slides/state";
 import { ensureId, isChartLayout, isPage, normalizeSlide, overLimits, PRIMARY_ARRAY, type LayoutId, type Slide, type SlideContent } from "@/lib/slides/schema";
 import { renderSlide } from "@/lib/slides/layouts";
-import { A4_PX } from "@/lib/slides/pages/a4";
-import { PAGE_BLOCK_LIMITS, type PageBlock } from "@/lib/slides/pages/schema";
+import { A4_PX, pageDateNow } from "@/lib/slides/pages/a4";
+import { fitPage, type Resizer } from "@/lib/slides/pages/fit";
+import { fillPagePhotos } from "@/lib/slides/library";
+import AddBlockMenu from "@/components/AddBlockMenu";
+import { normalizePage, PAGE_BLOCK_LIMITS, type PageBlock } from "@/lib/slides/pages/schema";
 import { defaultContent, denseContent } from "@/lib/slides/defaults";
 import { familyOf } from "@/lib/slides/families";
 import { countFromBrief, seriesFromBrief, uniformFromBrief, MIN_SLIDES_WITH_CHAPTERS, TIERS_REQUEST } from "@/lib/slides/brief";
@@ -186,6 +189,14 @@ function recolor(content: SlideContent, old?: { color?: string }[]): SlideConten
     ...content,
     bars: content.bars.map((b, i) => (old[i]?.color ? { ...b, color: old[i].color } : b)),
   };
+}
+
+/** A block as the model sees it: no photos (an upload is a data URL), no picked icons. */
+function lightBlock(block: PageBlock): PageBlock {
+  const { image: _i, imagePos: _p, ...rest } = block;
+  void _i;
+  void _p;
+  return { ...rest, items: rest.items?.map(({ image: _ii, imagePos: _ip, ...it }) => (void _ii, void _ip, it)) };
 }
 
 function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent {
@@ -637,6 +648,46 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
   };
 
 
+  /**
+   * The two-pager's fit pass (lib/slides/pages/fit.ts): each page is drawn
+   * off-screen and measured, set tighter until it fits, and as a last step
+   * its longest block is shortened by the model. `from` is the index of the
+   * first page in the deck. The first page of a new piece is dated here, once,
+   * so the masthead does not change month with every reopening.
+   */
+  const fitPages = async (pages: SlideContent[], from: number, opts: { dated?: boolean } = {}): Promise<void> => {
+    setFitting(true);
+    try {
+      await fitEach(pages, from, opts);
+    } finally {
+      setFitting(false);
+    }
+  };
+  const fitEach = async (pages: SlideContent[], from: number, opts: { dated?: boolean }): Promise<void> => {
+    const total = Math.max(state.slides.length, from + pages.length);
+    const call = async (payload: object): Promise<Record<string, unknown> | null> => {
+      const res = await fetch("/api/page-shorten", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      return res.ok ? ((await res.json()) as Record<string, unknown>) : null;
+    };
+    const resize: Resizer = {
+      shorten: async (block, chars) => normalizePage([(await call({ block: lightBlock(block), chars }))?.block])?.[0] ?? null,
+    };
+    const filled = fillPagePhotos(pages);
+    for (let i = 0; i < filled.length; i++) {
+      const index = from + i;
+      const page = { ...filled[i], id: `fit-${index}` } as Slide;
+      if (opts.dated && index === 0 && !page.pageDate) page.pageDate = pageDateNow();
+      const { slide } = await fitPage(page, theme, index, total, resize);
+      const { id: _id, ...content } = slide;
+      void _id;
+      dispatch({ type: "REPLACE_SLIDE", index, content });
+    }
+  };
+
   /** `fallback`: a replica that could not run, said in the sidebar once the deck generated from the file as a source is in. */
   const runGenerate = async (fallback?: string): Promise<void> => {
     const brief = state.brief;
@@ -744,6 +795,7 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
         }
       }
     }
+    if (received > 0 && twoPager) await fitPages(kept, 0, { dated: true });
     if (received > 0 && TIERS_REQUEST.test(brief)) dispatch({ type: "INSERT_TIERS" });
     if (received > 0) onDeckArrived();
     if (received > 0 && fallback) dispatch({ type: "GENERATION_ERROR", error: fallback });
@@ -1051,9 +1103,12 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
       { replace: false, collectInsert: true, dropChapters: !state.chapters },
     );
 
-  const onRegenerateSlide = (instruction: string, target: Slide = active!) => {
+  const onRegenerateSlide = async (instruction: string, target: Slide = active!) => {
     if (!active) return;
-    runGeneration(
+    const index = state.activeIndex;
+    const page = isPage(active) ? active : null;
+    const rewritten: SlideContent[] = [];
+    await runGeneration(
       {
         mode: "regenerate",
         brief: state.brief,
@@ -1067,7 +1122,7 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
         targetIndex: state.activeIndex,
         // uploaded assets survive the AI rewrite
         preserve: isPage(active)
-          ? { footerLabel: active.footerLabel }
+          ? { footerLabel: active.footerLabel, pageDate: active.pageDate }
           : {
               // A photo already on the slide stays; an empty slot lets the rewrite pick one from the library.
               ...(active.image ? { image: active.image, imagePos: active.imagePos } : {}),
@@ -1083,8 +1138,16 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
             },
         mergeImages: isPage(active) ? active.stack : undefined,
         keepColors: active.bars,
+        collect: rewritten,
       },
     );
+    // A rewritten page is fitted to its sheet like a generated one.
+    if (page && rewritten[0]) {
+      await fitPages(
+        [{ ...reattachImages(rewritten[0], page.stack), footerLabel: page.footerLabel, pageDate: page.pageDate }],
+        index,
+      );
+    }
   };
 
   /**
@@ -1270,10 +1333,20 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
   const onExportPdf = () => {
     const tabTitle = document.title;
     document.title = state.name;
+    // A two-pager prints on A4. The named `@page a4` rule alone is not enough:
+    // Chrome does not apply a named page inside the absolutely positioned
+    // print root, so every page went out on the 16:9 sheet, cut in two
+    // (6 Oct 2026). For the length of the print the default sheet is A4.
+    const sheet = twoPager ? document.createElement("style") : null;
+    if (sheet) {
+      sheet.textContent = "@page { size: 595pt 842pt; margin: 0; }";
+      document.head.appendChild(sheet);
+    }
     try {
       window.print();
     } finally {
       document.title = tabTitle;
+      sheet?.remove();
     }
   };
 
@@ -1375,6 +1448,10 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
   // The icon picker is keyed by whatever [data-icon-pick] carried: a block
   // index on a slide, a state path on a two-pager page.
   const [iconPicker, setIconPicker] = useState<string | null>(null);
+  /** Two-pager: the fit pass is measuring and resizing the pages (lib/slides/pages/fit.ts). */
+  const [fitting, setFitting] = useState(false);
+  /** Two-pager: where the block menu inserts, while it is open. */
+  const [addBlockAt, setAddBlockAt] = useState<number | null>(null);
   // The image picker knows which slot it was opened for: a page has several.
   const [imagePicker, setImagePicker] = useState<string | null>(null);
   /** The "Change layout" modal, opened from the slide bar. */
@@ -1528,6 +1605,7 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
           <>
             <EmptyToolbar onOpenDeckFile={openDeckFilePicker} />
             <EmptyState
+            twoPager={twoPager}
             previous={previous}
             onRestorePrevious={onRestorePrevious}
             onDismissPrevious={onDismissPrevious}
@@ -1603,6 +1681,7 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
                         ? (from, to) => dispatch({ type: "MOVE_BLOCK", index: state.activeIndex, from, to })
                         : null
                     }
+                    onAddBlock={twoPager ? (at) => setAddBlockAt(at) : null}
                     onDeleteBlock={
                       twoPager
                         ? (b) => dispatch({ type: "DELETE_BLOCK", index: state.activeIndex, block: b })
@@ -1620,6 +1699,16 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
                     className="h-full w-full"
                     frameClassName="rounded-xl shadow-stripe-lg"
                   />
+                  {addBlockAt != null && (
+                    <AddBlockMenu
+                      onPick={(blockType) => {
+                        dispatch({ type: "ADD_BLOCK", index: state.activeIndex, at: addBlockAt, blockType });
+                        setFocusedBlock(addBlockAt);
+                        setAddBlockAt(null);
+                      }}
+                      onClose={() => setAddBlockAt(null)}
+                    />
+                  )}
                   {iconPicker != null && (
                     <IconPickerModal
                       current={
@@ -1643,7 +1732,8 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
                       landing slide and the aurora never restarts. */}
                   <SlideActions
                     key={state.status === "generating" ? "generating" : active.id}
-                    busy={state.status === "generating"}
+                    busy={state.status === "generating" || fitting}
+                    busyLabel={fitting ? "Fitting the pages…" : undefined}
                     flightRef={flightRef}
                     onEditWithAi={() => setAiModal(true)}
                     canAddItem={canAddItem}
@@ -1680,10 +1770,10 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
           dispatch={dispatch}
           onInsertLayout={onInsertLayout}
           twoPager={twoPager}
-          onInsertPage={(presetId) => {
+          onInsertPage={() => {
             dispatch({
               type: "INSERT",
-              content: { layoutId: "a4-page", stack: presetStack(presetId), footerLabel: "" },
+              content: { layoutId: "a4-page", stack: presetStack(), footerLabel: state.slides.find(isPage)?.footerLabel ?? "" },
             });
             setFocusedBlock(0);
             onDeckArrived();
@@ -1803,10 +1893,12 @@ function EmptyToolbar({ onOpenDeckFile }: { onOpenDeckFile: () => void }) {
 }
 
 function EmptyState({
+  twoPager,
   previous,
   onRestorePrevious,
   onDismissPrevious,
 }: {
+  twoPager: boolean;
   previous: Partial<DeckState> | null;
   onRestorePrevious: () => void;
   onDismissPrevious: () => void;
@@ -1826,10 +1918,12 @@ function EmptyState({
             <SkeletonDrift />
           </div>
           <h1 className="empty-in text-[26px] font-medium tracking-tight text-ink" style={{ "--i": 1 } as React.CSSProperties}>
-            What are we presenting today?
+            {twoPager ? "What goes on the two pages?" : "What are we presenting today?"}
           </h1>
           <p className="empty-in -mt-1.5 max-w-md text-balance text-center text-sm leading-relaxed text-ink-muted" style={{ "--i": 2 } as React.CSSProperties}>
-            Tell us on the left, or attach a document. Your slides land here, ready to edit.
+            {twoPager
+              ? "Tell us on the left, or attach a document. Your A4 pages land here, ready to edit and print."
+              : "Tell us on the left, or attach a document. Your slides land here, ready to edit."}
           </p>
           {/* The editor no longer restores the last deck on its own, so the
               deck is offered here instead of appearing under the user: a toast
@@ -1957,9 +2051,9 @@ function Toolbar({
                   </span>
                 </span>
               </button>
-              {/* Slides only: a two-pager is a printed piece, its file is the PDF. */}
+              {/* A two-pager exports A4 portrait pages, editable like the slides. */}
               <button
-                disabled={twoPager || pptxProgress !== null}
+                disabled={pptxProgress !== null}
                 onClick={() => {
                   setExportOpen(false);
                   onExportPptx();
@@ -1968,9 +2062,9 @@ function Toolbar({
               >
                 PowerPoint
                 {/* No description in the resting state; only why it is busy or off. */}
-                {(twoPager || pptxProgress) && (
+                {pptxProgress && (
                   <span className="block text-xs text-ink-muted">
-                    {twoPager ? "Slides only" : `Exporting ${pptxProgress!.done} of ${pptxProgress!.total}…`}
+                    {`Exporting ${pptxProgress.done} of ${pptxProgress.total}…`}
                   </span>
                 )}
               </button>
@@ -2000,17 +2094,18 @@ function Toolbar({
  * slide management. Keyed by slide id so state resets on slide change.
  */
 /** "Generating…" in Ink with the spinner, the button's measurements and no tint (Mario, 25 Sep 2026): a status, not a control. */
-function GeneratingLabel() {
+function GeneratingLabel({ label = "Generating…" }: { label?: string }) {
   return (
     <span className="flex h-9 items-center gap-1.5 px-3 text-sm font-medium text-ink" aria-busy>
       <LoaderCircle size={ICON_SIZE} className="animate-spin" aria-hidden />
-      Generating…
+      {label}
     </span>
   );
 }
 
 function SlideActions({
   busy,
+  busyLabel,
   flightRef,
   onEditWithAi,
   canAddItem,
@@ -2033,6 +2128,8 @@ function SlideActions({
   onDelete,
 }: {
   busy: boolean;
+  /** What the busy pill says, when it is not generating (a two-pager's fit pass). */
+  busyLabel?: string;
   /** Where the centred "Generating…" pill was when the first slide landed: the bar flies in from there. */
   flightRef?: React.MutableRefObject<DOMRect | null>;
   /** Opens the Edit with AI dialog, which lives at page level. */
@@ -2138,7 +2235,7 @@ function SlideActions({
           className={`flex w-max items-center gap-2 ${settled.current ? "bar-mode" : ""}`}
         >
         {busy ? (
-          <GeneratingLabel />
+          <GeneratingLabel label={busyLabel} />
         ) : (
           <>
             <Button variant="primary" onClick={onEditWithAi} disabled={busy} style={{ "--i": 0 } as CSSProperties}>

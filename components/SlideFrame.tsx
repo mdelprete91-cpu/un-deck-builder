@@ -2,6 +2,7 @@
 
 import { mountAura } from "@/lib/slides/aura-live";
 import { lucideSvg } from "@/lib/slides/icons";
+import { measureFlow } from "@/lib/slides/pages/fit";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { autofitAll, refitNode } from "@/lib/slides/autofit";
 import type { ImagePos } from "@/lib/slides/schema";
@@ -117,6 +118,8 @@ interface SlideFrameProps {
   focusedBlock?: number | null;
   onMoveBlock?: ((from: number, to: number) => void) | null;
   onDeleteBlock?: ((index: number) => void) | null;
+  /** Two-pager: open the block menu to insert a block at this index. */
+  onAddBlock?: ((at: number) => void) | null;
   /** Editor chrome is sized for the 1920 stage; a page needs the small set. */
   variant?: "slide" | "page";
   className?: string;
@@ -177,6 +180,7 @@ export default function SlideFrame({
   focusedBlock,
   onMoveBlock,
   onDeleteBlock,
+  onAddBlock,
   size = { w: 1920, h: 1080 },
   variant = "slide",
   className,
@@ -216,8 +220,8 @@ export default function SlideFrame({
   // The two-pager callbacks travel together in one ref: the wiring effect
   // must not re-run when a parent re-renders, and one ref is one lint waiver
   // rather than four.
-  const pageRef = useRef({ onPickImage, onFocusBlock, onMoveBlock, onDeleteBlock, onChartClick });
-  pageRef.current = { onPickImage, onFocusBlock, onMoveBlock, onDeleteBlock, onChartClick };
+  const pageRef = useRef({ onPickImage, onFocusBlock, onMoveBlock, onDeleteBlock, onAddBlock, onChartClick });
+  pageRef.current = { onPickImage, onFocusBlock, onMoveBlock, onDeleteBlock, onAddBlock, onChartClick };
 
   useLayoutEffect(() => {
     const el = containerRef.current;
@@ -520,8 +524,34 @@ export default function SlideFrame({
         };
         button("arrow-up", "Move this block up", () => pageRef.current.onMoveBlock?.(i, i - 1), i === 0);
         button("arrow-down", "Move this block down", () => pageRef.current.onMoveBlock?.(i, i + 1), i === blocks.length - 1);
+        button("plus", "Add a block below", () => pageRef.current.onAddBlock?.(i + 1));
         button("x", "Remove this block", () => pageRef.current.onDeleteBlock?.(i), blocks.length <= 1);
         node.appendChild(bar);
+      });
+    }
+
+    // A page that runs past its sheet is clipped at the bottom of the content
+    // zone. Say so where it happens, with how much has to go (pages/fit.ts
+    // measures the same way). Re-measured once the type has loaded.
+    stage.querySelectorAll(".page-over").forEach((b) => b.remove());
+    if (variant === "page" && editable) {
+      const mark = () => {
+        stage.querySelectorAll(".page-over").forEach((b) => b.remove());
+        const over = measureFlow(stage);
+        const zone = stage.querySelector<HTMLElement>("[data-page-zone]");
+        if (over == null || over <= 1 || !zone) return;
+        const lines = Math.max(1, Math.round(over / 15));
+        const note = document.createElement("div");
+        note.className = "page-over";
+        note.style.top = `${zone.offsetTop + zone.offsetHeight}px`;
+        note.textContent = `About ${lines} line${lines === 1 ? "" : "s"} past the page: shorten a section or remove a block`;
+        zone.parentElement?.appendChild(note);
+      };
+      mark();
+      let live = true;
+      document.fonts.ready.then(() => live && mark());
+      cleanups.push(() => {
+        live = false;
       });
     }
 

@@ -192,7 +192,6 @@ export function parseDeckFile(html: string): DeckFileResult {
   // `format` at all, and a file whose envelope disagrees with what it carries
   // is trusted about the pages, not about the label.
   state.format = slides.some((s) => isPage(s)) ? "two-pager" : "slides";
-  if (state.format === "two-pager") state.brandId = "inclusion";
 
   return { ok: true, state, dropped };
 }

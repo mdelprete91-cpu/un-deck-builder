@@ -129,6 +129,37 @@ export function fillPhotos<T extends { layoutId: string; image?: string; map?: s
   return slides.map((s) => (PHOTO_LAYOUTS.has(s.layoutId) && !s.image && !s.map ? { ...s, image: next() } : s));
 }
 
+/**
+ * The same for a two-pager: every photo card and every photo figure left
+ * empty gets a children photo the piece does not use yet. The banner keeps
+ * its own default (the data strip), and a figure with a map is a map.
+ */
+export function fillPagePhotos<T extends { stack?: { type: string; image?: string; map?: string; items?: { image?: string }[] }[] }>(pages: T[]): T[] {
+  const used = new Set<string>();
+  for (const p of pages)
+    for (const b of p.stack ?? []) {
+      if (b.image) used.add(b.image);
+      for (const it of b.items ?? []) if (it.image) used.add(it.image);
+    }
+  const pool = CHILDREN_PHOTOS.map(librarySrc);
+  let k = 0;
+  const next = () => {
+    const pick = pool.find((p) => !used.has(p)) ?? pool[k++ % pool.length];
+    used.add(pick);
+    return pick;
+  };
+  return pages.map((p) => ({
+    ...p,
+    stack: p.stack?.map((b) =>
+      b.type === "photos"
+        ? { ...b, items: b.items?.map((it) => (it.image ? it : { ...it, image: next() })) }
+        : b.type === "figure" && !b.image && !b.map
+          ? { ...b, image: next() }
+          : b,
+    ),
+  }));
+}
+
 /** The slides whose layout has a photo slot the model may fill from the library. */
 export const PHOTO_LAYOUTS = new Set<string>([
   "callout",

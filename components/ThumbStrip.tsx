@@ -9,7 +9,6 @@ import { defaultContent, denseContent } from "@/lib/slides/defaults";
 import { DENSE_RENDERERS } from "@/lib/slides/layouts/density";
 import { DENSE_LAYOUTS } from "@/lib/slides/schema";
 import { A4_PX } from "@/lib/slides/pages/a4";
-import { PAGE_PRESETS, presetStack } from "@/lib/slides/pages/presets";
 import Button from "@/components/Button";
 import SlideFrame from "./SlideFrame";
 import type { DeckAction } from "@/lib/slides/state";
@@ -169,45 +168,6 @@ function LayoutPickerModal({
   );
 }
 
-/**
- * "Add page" for two-pagers: the presets, rendered live. A preset is a
- * starting composition, not a layout: every block in it can be moved,
- * removed or added to afterwards.
- */
-function PagePresetModal({
-  theme,
-  onPick,
-  onClose,
-}: {
-  theme: BrandTheme;
-  onPick: (presetId: string) => void;
-  onClose: () => void;
-}) {
-  const items = useMemo(
-    () =>
-      PAGE_PRESETS.map((preset) => ({
-        id: preset.id,
-        label: preset.label,
-        html: renderSlide(
-          { id: `preview-${preset.id}`, layoutId: "a4-page", stack: presetStack(preset.id) },
-          theme,
-          { index: 0, total: 1 },
-        ),
-        size: A4_PX,
-        aspect: "aspect-[595/842]",
-      })),
-    [theme],
-  );
-  return (
-    <PickerModal
-      title="Add a page"
-      items={items}
-      onPick={onPick}
-      onClose={onClose}
-    />
-  );
-}
-
 interface ThumbStripProps {
   slides: Slide[];
   theme: BrandTheme;
@@ -216,7 +176,7 @@ interface ThumbStripProps {
   onInsertLayout: (layoutId: LayoutId, dense?: boolean) => void;
   /** Two-pager decks add pages from presets and are A4-shaped. */
   twoPager?: boolean;
-  onInsertPage?: (presetId: string) => void;
+  onInsertPage?: () => void;
 }
 
 export default function ThumbStrip({
@@ -268,7 +228,7 @@ export default function ThumbStrip({
         <Button
           variant="secondary"
           icon={Plus}
-          onClick={() => setLayoutsOpen(true)}
+          onClick={() => (twoPager ? onInsertPage?.() : setLayoutsOpen(true))}
           data-tour="insert"
           title={twoPager ? "Add a page after the selected one" : "Add a slide after the selected one"}
           className="w-full"
@@ -349,16 +309,6 @@ export default function ThumbStrip({
       ))}
     </div>
 
-      {layoutsOpen && twoPager && (
-        <PagePresetModal
-          theme={theme}
-          onPick={(id) => {
-            onInsertPage?.(id);
-            setLayoutsOpen(false);
-          }}
-          onClose={() => setLayoutsOpen(false)}
-        />
-      )}
       {layoutsOpen && !twoPager && (
         <LayoutPickerModal
           theme={theme}

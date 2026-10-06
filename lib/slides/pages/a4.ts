@@ -1,22 +1,17 @@
 import type { BrandTheme } from "../brand";
 import { ed, esc, MANROPE, OPEN_SANS } from "../layouts/shared";
+import type { PageFit } from "./schema";
 
 /**
- * The A4 two-pager shell: the print twin of `layouts/shared.ts`.
+ * The A4 two-pager shell, rebuilt on the Estonia canon (figma-to-pptx-source/
+ * estonia/build.py, 6 Oct 2026).
  *
- * Units are **points, 1:1 with the Figma boards** (595x842pt = A4). CSS pt is a
- * real absolute unit, so `@page { size: 595pt 842pt }` prints at exactly the
- * size the page is drawn at, with no scale factor anywhere in the chain.
- *
- * The one thing that is not in pt: `data-fit` budgets. `autofit.ts` reads
- * `getComputedStyle().fontSize` and `scrollHeight`, which are px whatever unit
- * the markup is authored in, so a budget left in pt would be a third too
- * generous and the text would overlap instead of shrinking, silently. Use
- * `edP()` and never write a `data-fit` literal here.
- *
- * For the same reason line-heights in this file are unitless: autofit only
- * remembers a line-height it can parse as px, so a pt one would stay put while
- * the font shrank underneath it.
+ * Units are points, 1:1 with the printed sheet (595x842pt = A4): CSS pt is an
+ * absolute unit, so `@page a4 { size: 595pt 842pt }` prints at exactly the
+ * size the page is drawn at. Unlike the slide renderers, a page is laid out
+ * by the browser (normal flow inside a fixed content zone) and never
+ * autofitted: fit.ts measures the flow and the page steps down its density
+ * instead, so the type stays on the grid.
  */
 
 /** 1pt = 4/3 CSS px, exactly. */
@@ -31,150 +26,150 @@ export function pt(n: number): string {
   return `${Math.round(n * 100) / 100}pt`;
 }
 
-/**
- * The grid, measured from the ten approved boards (Digital Inclusion,
- * Spectrum Certificates, Songbird, Lunar). Do not round these to something
- * tidier: they are the design, not a proposal.
- */
+/** The grid of build.py. Do not round these: they are the design. */
 export const GRID = {
   margin: 24,
-  /** Accent labels down the left edge. */
-  rail: { x: 24, w: 100 },
-  /** The main text column, which starts after the rail. */
-  content: { x: 136, w: 435 },
-  /** Elements that span rail and content (title, callout, divider). */
-  full: { x: 24, w: 546 },
-  /** The dense two-column body of the partnership boards. */
-  cols2: [
-    { x: 24, w: 273 },
-    { x: 307, w: 274 },
-  ],
-  /** Stat cards, three across the content column. */
-  cards3: { xs: [136.5, 282.83, 429.17], w: 141.33 },
-  /** Icon columns, three across the content column. */
-  icons3: { xs: [136, 281, 426], w: 145 },
-  /** Photo cards, two across the content column. */
-  photos2: { xs: [136, 357.5], w: 213.5 },
-  /** The lockup: UNICEF mark, hairline rule, Digital Inclusion wordmark. */
-  header: { top: 26.53, h: 36.94, markW: 66.85, markH: 35.58, markTop: 27.41, ruleX: 102.28, ruleW: 0.88, wordX: 115.5, wordW: 88.5 },
-  /**
-   * Where the stack may live. 80 is the box top of the title on the boards,
-   * derived from its baseline (110.99) and the CSS half-leading, not eyeballed.
-   */
-  contentTop: 80,
-  contentTopBare: 24,
-  contentBottom: 795,
-  footer: { baseline: 821.1, size: 8 },
+  /** Labels down the left edge. */
+  label: 100,
+  /** Gap between the label column and the text column (24 + 100 + 12 = 136). */
+  gutter: 12,
+  /** The text column. */
+  body: 435,
+  /** Full width, 24 to 571. */
+  full: 547,
+  /** Gap between stat cards. */
+  cardGap: 5,
+  /** Where the flow starts: under the masthead on the first page, at the margin after. */
+  topFirst: 80,
+  topBare: 24,
+  /** Content must end above this: the footer sits at 821. */
+  bottom: 795,
+  footerBaseline: 821.1,
 } as const;
 
 /**
- * The eight type styles of the boards. There are no others: a ninth size is a
- * question for the design team, not a judgement call in a renderer.
+ * The type of build.py and investment.py, per fit. Regular is the advocacy
+ * piece (Open Sans 10/15, sections 22 apart), compact is the donor update
+ * (9.5/14, 18 apart), tight one notch under it for the last resort. Line
+ * heights are in pt: nothing on a page is autofitted.
  */
-export const TYPE = {
-  /** Page title. 30/39. */
-  title: `font-family:${MANROPE};font-weight:500;font-size:30pt;line-height:1.3;letter-spacing:-.01em;`,
-  /** Stat number. */
-  stat: `font-family:${MANROPE};font-weight:500;font-size:24pt;line-height:1.25;letter-spacing:-.01em;`,
-  /** Rail label and section head, accent. 12/18. */
-  rail: `font-family:${OPEN_SANS};font-weight:600;font-size:12pt;line-height:1.5;letter-spacing:-.01em;`,
-  /** Block heading. */
-  head: `font-family:${OPEN_SANS};font-weight:600;font-size:10pt;line-height:1.6;letter-spacing:-.01em;`,
-  /** Body. 10/16. */
-  body: `font-family:${OPEN_SANS};font-weight:400;font-size:10pt;line-height:1.6;letter-spacing:-.01em;`,
-  /** Body in the narrow two-column boards. 10/15. */
-  bodyTight: `font-family:${OPEN_SANS};font-weight:400;font-size:10pt;line-height:1.5;letter-spacing:-.01em;`,
-  /** Card caption. 9/12. */
-  caption: `font-family:${OPEN_SANS};font-weight:400;font-size:9pt;line-height:1.33;letter-spacing:-.01em;`,
-  /** Footer. */
-  footer: `font-family:${OPEN_SANS};font-weight:400;font-size:8pt;line-height:1.3;letter-spacing:-.01em;`,
-} as const;
+export interface Density {
+  body: number;
+  lh: number;
+  para: number;
+  gap: number;
+  small: number;
+  smallLh: number;
+}
+export const DENSITY: Record<PageFit, Density> = {
+  regular: { body: 10, lh: 15, para: 8, gap: 22, small: 9, smallLh: 12 },
+  compact: { body: 9.5, lh: 14, para: 7, gap: 18, small: 9, smallLh: 12 },
+  tight: { body: 9, lh: 13.5, para: 6, gap: 14, small: 8.5, smallLh: 11.5 },
+};
 
-/**
- * Print surfaces. These are not on `BrandTheme` on purpose: they exist for A4
- * print pieces only and no slide renderer can reach them from here. The accent
- * still comes from the brand (`var(--accent)`), so the cyan rule holds.
- */
+/** Open Sans and Manrope vertical metrics (hhea), for baseline alignment. */
+const ASC = { open: 1.069, manrope: 1.066 };
+const DESC = { open: 0.293, manrope: 0.3 };
+
+/** Distance from a line box's top to its baseline, as CSS lays it out. */
+export function firstBaseline(size: number, lh: number, font: "open" | "manrope" = "open"): number {
+  return (lh - (ASC[font] + DESC[font]) * size) / 2 + ASC[font] * size;
+}
+
 export const PALETTE = {
   ink: "#000000",
-  inkSoft: "#1A1A1A",
-  /** The status/attention hue of the printed boards. */
+  /** Table row labels and the "before" column head (investment.py GREY). */
+  grey: "#6B6B6B",
+  /** The attention hue of the printed pieces: the accented stat, the asks panel. */
   orange: "#D14807",
   orangeBorder: "#E8B8A2",
-  orangeTint: "rgba(209,72,7,.1)",
+  orangeTint: "#FAEDE6",
+  card: "#E6E6E6",
   panel: "#EFF2F5",
-  /** The table header row. */
-  panelSoft: "#F4F4F4",
-  /** The pale field behind a framed figure. */
-  figureTint: "#EDF4FC",
   hairline: "#E6E6E6",
-  rule: "#D9D9D9",
   white: "#FFFFFF",
 } as const;
 
-/** A fit budget in pt, expressed in the px autofit measures in. */
-export function fitPx(fitPt: number): number {
-  return Math.round(fitPt * PX);
+export const FONT = { open: OPEN_SANS, manrope: MANROPE };
+
+/** Letter-spacing of every style on the pieces. */
+export const LS = "letter-spacing:-.01em;";
+
+/** Text styles. `d` is the page's density. */
+export const TYPE = {
+  body: (d: Density) => `font-family:${OPEN_SANS};font-weight:400;font-size:${pt(d.body)};line-height:${pt(d.lh)};${LS}`,
+  small: (d: Density) => `font-family:${OPEN_SANS};font-weight:400;font-size:${pt(d.small)};line-height:${pt(d.smallLh)};${LS}`,
+  label: `font-family:${OPEN_SANS};font-weight:600;font-size:12pt;line-height:18pt;${LS}`,
+  head: (d: Density) => `font-family:${OPEN_SANS};font-weight:600;font-size:${pt(d.body)};line-height:${pt(d.lh)};${LS}`,
+  stat: `font-family:${MANROPE};font-weight:500;font-size:24pt;line-height:30pt;${LS}`,
+  banner: `font-family:${MANROPE};font-weight:500;font-size:24pt;line-height:30pt;${LS}`,
+  title: `font-family:${MANROPE};font-weight:500;font-size:30pt;line-height:39pt;${LS}`,
+  footer: `font-family:${OPEN_SANS};font-weight:400;font-size:8pt;line-height:10pt;${LS}`,
+  date: `font-family:${OPEN_SANS};font-weight:600;font-size:8pt;line-height:10pt;letter-spacing:.08em;text-transform:uppercase;`,
+} as const;
+
+/** `data-edit` for a page node. Pages are never autofitted, so no budget. */
+export function edP(path: string): string {
+  return ed(path);
 }
 
-/** `ed()` for A4 renderers: the budget goes in as pt and comes out as px. */
-export function edP(path: string, fitPt?: number): string {
-  return ed(path, fitPt ? fitPx(fitPt) : undefined);
-}
-
-/** `data-fit` for a node that is not itself editable (its spans are). */
-export function fitAttr(fitPt: number): string {
-  return `data-fit="${fitPx(fitPt)}"`;
-}
-
-/** Line height in pt for a style, so blocks can compute their own height. */
-export function lineHeight(sizePt: number, ratio: number): number {
-  return sizePt * ratio;
+/** The month and year a new piece is dated with ("October 2026"). */
+export function pageDateNow(): string {
+  return new Date().toLocaleString("en-GB", { month: "long", year: "numeric" });
 }
 
 /**
- * The page box. The single place the A4 dimensions are declared, mirroring
- * `section()` for slides, and the only place the brand CSS variables are set.
+ * The masthead of the first page: the brand's lockup on the left (the UNICEF
+ * mark, a hairline and the wordmark for Digital Inclusion, as on the Estonia
+ * pieces; the unboxed lockup for the Digital Impact Division; the mark alone
+ * for UNICEF), the date on the right.
  */
-export function pageSection(t: BrandTheme, inner: string): string {
-  const vars =
-    `--accent:${t.accent};--accent-deep:${t.deep};--accent-light:${t.light};` +
-    `--accent-soft:${t.soft};--accent-soft2:${t.soft2};`;
+export function pageMasthead(t: BrandTheme, date: string): string {
+  const m = GRID.margin;
+  let logo: string;
+  if (t.id === "inclusion") {
+    const wordW = 88.5;
+    const wordH = (wordW * 92.33) / 647.12;
+    logo =
+      `<img src="/logos/unicef.svg" alt="" style="position:absolute;left:${pt(m)};top:${pt(27.41)};width:${pt(66.85)};height:${pt(35.58)};filter:brightness(0);">` +
+      `<div style="position:absolute;left:${pt(102.28)};top:${pt(26.53)};width:${pt(0.88)};height:${pt(36.94)};background:${PALETTE.ink};"></div>` +
+      `<img src="/logos/unicef-digital-inclusion-black.svg" alt="" style="position:absolute;left:${pt(115.5)};top:${pt(26.53 + (36.94 - wordH) / 2)};width:${pt(wordW)};height:${pt(wordH)};filter:brightness(0);">`;
+  } else if (t.id === "did") {
+    const h = 37;
+    logo = `<img src="/logos/unicef-digital-impact-unboxed.svg" alt="" style="position:absolute;left:${pt(m)};top:${pt(26.5)};width:${pt((h * 337) / 112)};height:${pt(h)};filter:brightness(0);">`;
+  } else {
+    logo = `<img src="${t.logoLight.src}" alt="" style="position:absolute;left:${pt(m)};top:${pt(27.41)};width:${pt(66.85)};height:${pt(35.58)};filter:brightness(0);">`;
+  }
   return (
-    `<section style="position:relative;width:${pt(A4.w)};height:${pt(A4.h)};background:${PALETTE.white};` +
-    `font-family:${OPEN_SANS};color:${PALETTE.ink};overflow:hidden;${vars}">` +
-    `<div style="position:absolute;inset:0;">${inner}</div></section>`
+    logo +
+    `<div ${edP("pageDate")} style="position:absolute;right:${pt(m)};top:${pt(40)};width:${pt(150)};${TYPE.date}color:${PALETTE.ink};text-align:right;white-space:nowrap;">${esc(date)}</div>`
   );
 }
 
 /**
- * The approved A4 lockup: UNICEF mark, hairline rule, Digital Inclusion
- * wordmark. Fixed assets rather than the theme's lockup, because this is the
- * printed piece's masthead and the format only exists on that one brand.
- */
-export function pageHeader(): string {
-  const h = GRID.header;
-  const wordH = (h.wordW * 92.33) / 647.12;
-  return (
-    `<img src="/logos/unicef.svg" alt="" style="position:absolute;left:${pt(GRID.margin)};top:${pt(h.markTop)};width:${pt(h.markW)};height:${pt(h.markH)};filter:brightness(0);">` +
-    `<div style="position:absolute;left:${pt(h.ruleX)};top:${pt(h.top)};width:${pt(h.ruleW)};height:${pt(h.h)};background:${PALETTE.ink};"></div>` +
-    `<img src="/logos/unicef-digital-inclusion-black.svg" alt="" style="position:absolute;left:${pt(h.wordX)};top:${pt(h.top + (h.h - wordH) / 2)};width:${pt(h.wordW)};height:${pt(wordH)};filter:brightness(0);">`
-  );
-}
-
-/**
- * Footer: editable label bottom-left, page number bottom-right.
- *
- * The number is derived from the page's position and deliberately not
- * editable: `setPath` has nothing to write it to that would survive a
- * reorder, so a `data-edit` here would be a field the user types into and
- * watches revert. The label is real state (`slide.footerLabel`).
+ * Footer: the piece's name bottom-left (editable, real state on the page),
+ * the page number bottom-right (derived from the position, so not editable).
  */
 export function pageFooter(label: string, fallback: string, index: number): string {
-  const top = GRID.footer.baseline - GRID.footer.size;
+  const top = GRID.footerBaseline - 8;
   const n = String(index + 1).padStart(2, "0");
   return (
-    `<div ${edP("footerLabel", 12)} style="position:absolute;left:${pt(GRID.margin)};top:${pt(top)};width:${pt(380)};${TYPE.footer}color:${PALETTE.ink};">${esc(label || fallback)}</div>` +
+    `<div ${edP("footerLabel")} style="position:absolute;left:${pt(GRID.margin)};top:${pt(top)};width:${pt(380)};${TYPE.footer}color:${PALETTE.ink};white-space:nowrap;">${esc(label || fallback)}</div>` +
     `<div style="position:absolute;right:${pt(GRID.margin)};top:${pt(top)};${TYPE.footer}color:${PALETTE.ink};text-align:right;">${n}</div>`
+  );
+}
+
+/**
+ * The page box. The single place the A4 size is declared and the brand
+ * accent is set. `data-page-zone` is the fixed area the flow must fit in and
+ * `data-page-flow` the flow itself: fit.ts and the editor compare the two.
+ */
+export function pageSection(t: BrandTheme, top: number, chrome: string, flow: string): string {
+  return (
+    `<section data-page-fit style="position:relative;width:${pt(A4.w)};height:${pt(A4.h)};background:${PALETTE.white};` +
+    `font-family:${OPEN_SANS};color:${PALETTE.ink};overflow:hidden;--accent:${t.accent};">` +
+    chrome +
+    `<div data-page-zone style="position:absolute;left:0;top:${pt(top)};width:${pt(A4.w)};height:${pt(GRID.bottom - top)};overflow:hidden;">` +
+    `<div data-page-flow style="display:flow-root;">${flow}</div></div></section>`
   );
 }

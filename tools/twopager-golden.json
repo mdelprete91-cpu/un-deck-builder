@@ -1,0 +1,363 @@
+{
+ "estonia": [
+  {
+   "layoutId": "a4-page",
+   "footerLabel": "Digital Inclusion",
+   "pageDate": "October 2026",
+   "stack": [
+    {
+     "type": "banner",
+     "heading": "Accelerating access to affordable, sustainable, safe and resilient digital infrastructure for children",
+     "image": "/pages/banner-dataviz.jpg"
+    },
+    {
+     "type": "section",
+     "rail": "The challenge",
+     "items": [
+      {
+       "kind": "para",
+       "label": "",
+       "body": "Digital markets were never designed to serve children. 2.2 billion people remain offline, not by choice, but because the economics of last-mile connectivity were never built to reach them. 1.3 billion children have no internet at home, more than 500 million students have no internet access at all, and in Africa families pay around five times the global average for mobile data.",
+       "extra": ""
+      },
+      {
+       "kind": "para",
+       "label": "",
+       "body": "The cost falls on children. A learner without a connection can’t reach digital classrooms; an offline clinic can’t track immunisations or flag at-risk cases in time; an unregistered child stays invisible to the systems meant to protect them. As the services children depend on shift onto digital rails, those same children risk being left out of the AI revolution before it ever reaches them. Where the infrastructure is weak, systems fail quietly, at scale.",
+       "extra": ""
+      }
+     ]
+    },
+    {
+     "type": "stats",
+     "accent": 2,
+     "items": [
+      {
+       "label": "2.2B",
+       "body": "People remain offline",
+       "extra": ""
+      },
+      {
+       "label": "1.3B",
+       "body": "Children lack internet at home",
+       "extra": ""
+      },
+      {
+       "label": "5x",
+       "body": "Mobile data cost in Africa vs the global average",
+       "extra": ""
+      }
+     ]
+    },
+    {
+     "type": "section",
+     "rail": "Why it matters",
+     "items": [
+      {
+       "kind": "para",
+       "label": "",
+       "body": "The reverse is also true. A connected clinic can track every child’s immunisations and flag those at risk in time; a connected school can reach digital and AI-powered learning; a connected registration point makes a child visible to the systems meant to protect them.",
+       "extra": ""
+      }
+     ]
+    },
+    {
+     "type": "section",
+     "rail": "What we do",
+     "items": [
+      {
+       "kind": "para",
+       "label": "UNICEF’s Digital Inclusion",
+       "body": "team works to ensure that no child is left behind in the digital world. Together with governments, technology partners, development finance institutions and the private sector, we help expand access to affordable, sustainable, safe and resilient digital infrastructure.",
+       "extra": ""
+      },
+      {
+       "kind": "para",
+       "label": "",
+       "body": "We take a proven model (map, procure, finance) and apply it across the systems children depend on: schools, health facilities, emergencies, and social and child protection. One live platform gives governments, partners and investors a shared, real-time picture at facility level.",
+       "extra": ""
+      }
+     ]
+    },
+    {
+     "type": "section",
+     "rail": "What the evidence shows",
+     "items": [
+      {
+       "kind": "para",
+       "label": "",
+       "body": "The pattern is consistent across every country case. Where facilities are mapped and costed, governments plan with greater confidence and implementation moves faster. Where procurement is organised, markets respond with better pricing and service quality. Where monitoring is routine, attention shifts from access alone to performance and reliability. Because governments contract, monitor and own the result, connectivity becomes national infrastructure, embedded in policy, budgets and delivery.",
+       "extra": ""
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "layoutId": "a4-page",
+   "footerLabel": "Digital Inclusion",
+   "stack": [
+    {
+     "type": "title",
+     "heading": "How Digital Inclusion works",
+     "highlight": "Digital Inclusion"
+    },
+    {
+     "type": "figure",
+     "image": "/golden/map.png",
+     "body": ""
+    },
+    {
+     "type": "section",
+     "rail": "A proven model",
+     "items": [
+      {
+       "kind": "para",
+       "label": "",
+       "body": "A model that already works, country after country. Through Giga, the UNICEF and ITU initiative to connect every school to the internet, we have spent the past several years proving this approach in education, and the results speak for themselves.",
+       "extra": ""
+      }
+     ]
+    },
+    {
+     "type": "stats",
+     "accent": -1,
+     "items": [
+      {
+       "label": "54",
+       "body": "Countries engaged",
+       "extra": ""
+      },
+      {
+       "label": "2.3M",
+       "body": "Schools mapped",
+       "extra": ""
+      },
+      {
+       "label": "44k+",
+       "body": "Schools with increased access to connectivity",
+       "extra": ""
+      },
+      {
+       "label": "20M+",
+       "body": "Children benefiting from schools with increased access to connectivity",
+       "extra": ""
+      },
+      {
+       "label": "145k+",
+       "body": "Schools reporting real-time connectivity",
+       "extra": ""
+      },
+      {
+       "label": "30-50%",
+       "body": "Price reduction in countries like Kenya and Rwanda",
+       "extra": ""
+      }
+     ]
+    },
+    {
+     "type": "section",
+     "rail": "What we do for connectivity",
+     "items": [
+      {
+       "kind": "para",
+       "label": "",
+       "body": "UNICEF Digital Inclusion supports governments to connect public child-facing facilities through technical assistance, digital tools, data analysis, financing support, and guidance on procurement and service delivery, so that they have the connectivity they need to serve children, families and communities better.",
+       "extra": ""
+      }
+     ]
+    },
+    {
+     "type": "pillars",
+     "items": [
+      {
+       "label": "Mapping",
+       "body": "Connecting facilities starts with knowing where they are and which remain offline. We bring data sources together, map child-facing facilities on Giga Maps and advise on the data needed to assess connectivity.",
+       "extra": "",
+       "icon": "cpu"
+      },
+      {
+       "label": "Procurement",
+       "body": "We advise on market assessment, competitive bidding, contract design and service-level monitoring, helping governments cut costs, improve quality and manage provider performance.",
+       "extra": "",
+       "icon": "file-user"
+      },
+      {
+       "label": "Financing",
+       "body": "We build investment cases and identify financing: public budgets, donor funding, loans, Universal Service Funds, private partnerships, blended finance and mechanisms such as Connectivity Credits.",
+       "extra": "",
+       "icon": "hand-coins"
+      }
+     ]
+    }
+   ]
+  }
+ ],
+ "investment": [
+  {
+   "layoutId": "a4-page",
+   "footerLabel": "Digital Inclusion",
+   "pageDate": "October 2026",
+   "stack": [
+    {
+     "type": "banner",
+     "heading": "UNICEF Digital Inclusion and Estonia, 2023-2026 and beyond",
+     "image": "/pages/banner-dataviz.jpg"
+    },
+    {
+     "type": "section",
+     "rail": "Estonia's investment in Giga",
+     "items": [
+      {
+       "kind": "para",
+       "label": "",
+       "body": "Estonia has been a valued and far-sighted partner to UNICEF, through Giga. Its early support, a two-year grant of €120,000 channelled through the Ministry of Foreign Affairs in 2023-2024, helped deliver concrete results in Kenya and Namibia and laid the groundwork for Giga’s procurement work.",
+       "extra": ""
+      },
+      {
+       "kind": "para",
+       "label": "",
+       "body": "When the partnership began, Giga was a pilot initiative supporting 19 countries and 5,700 connected schools, backed by a handful of seed funders. Today, it provides active support across 54 countries, with a focus on Central Asia, Sub-Saharan Africa and Central America, and a further 25 countries, including Ukraine, have expressed interest. Giga has mapped 2.3 million schools and connected and supported more than 140,000 of them, helping over 42 million young people access a safe and empowering internet.",
+       "extra": ""
+      }
+     ]
+    },
+    {
+     "type": "stats",
+     "accent": -1,
+     "items": [
+      {
+       "label": "54",
+       "body": "Countries engaged",
+       "extra": ""
+      },
+      {
+       "label": "44k+",
+       "body": "Schools with increased access to connectivity",
+       "extra": ""
+      },
+      {
+       "label": "2.3M",
+       "body": "Schools mapped",
+       "extra": ""
+      },
+      {
+       "label": "30-50%",
+       "body": "Lower connectivity prices in Kenya and Rwanda",
+       "extra": ""
+      }
+     ]
+    },
+    {
+     "type": "section",
+     "rail": "Results",
+     "items": [
+      {
+       "kind": "para",
+       "label": "Namibia.",
+       "body": "By the end of 2024, we had mapped 1,900 schools in Namibia and infrastructure analysis was still underway. Building on that foundation, infrastructure modelling has been completed, giving the Government an evidence base to plan connectivity investments. 1,300 schools are now connected, with 671 still to go, as the Government works toward its goal of connecting 80% of all schools by 2030. To track connectivity quality and target investment, Namibia’s Ministry of Education, Arts and Culture now uses Giga Meter, a real-time monitoring app developed at the Giga Technology Centre in Barcelona.",
+       "extra": ""
+      },
+      {
+       "kind": "para",
+       "label": "Kenya.",
+       "body": "Estonia’s contribution helped catalyse collaboration between the Ministry of Education and the Ministry of ICT. That collaboration produced a roadmap to connect 1,000 schools, backed by €9.8 million in EU funding. At the time, procurement was still being finalised and connectivity costs were high. Today, Kenya shows how competitive procurement can cut the cost of school connectivity. Giga supported the development of a multi-vendor model, which helped reduce average monthly connectivity costs by around 60%, from US$110-120 to about US$45 per school. More than 600 schools have been connected through this model. Kenya is also one of four pilot locations for Giga’s Connectivity Credits, which reward internet service providers with tradeable digital credits for connecting schools, helping to make connectivity financially sustainable.",
+       "extra": ""
+      },
+      {
+       "kind": "para",
+       "label": "Market shaping.",
+       "body": "In 2024, Giga’s procurement work focused on analysing the barriers to affordable connectivity, with plans to scale procurement strategies across countries. Today, Giga has operationalised its Global Procurement Facility in Geneva, in collaboration with UNICEF Supply Division. This delivers the ambition Giga outlined to Estonia in 2024: moving beyond fragmented, country-by-country tenders to a pooled, transparent and competitive model.",
+       "extra": ""
+      }
+     ]
+    }
+   ],
+   "pageFit": "compact"
+  },
+  {
+   "layoutId": "a4-page",
+   "footerLabel": "Digital Inclusion",
+   "stack": [
+    {
+     "type": "section",
+     "rail": "Pooled procurement for Africa",
+     "items": [
+      {
+       "kind": "para",
+       "label": "",
+       "body": "Giga has framed a US$6 billion opportunity to connect over 520,000 schools and 260,000 health centres across Africa and, working with Smart Africa and the UN Economic Commission for Africa, secured expressions of interest from 16 African countries to pursue connectivity through coordinated, pooled approaches. Building on this, Giga launched a continent-wide tender through the Global Procurement Facility to support African governments in procuring connectivity services. Over 100 suppliers are preparing their bids, and the tender will establish Long-Term Agreements: pre-negotiated contracts that governments can buy from through UNICEF, giving them price benchmarks and lowering costs.",
+       "extra": ""
+      }
+     ]
+    },
+    {
+     "type": "compare",
+     "heading": "Progress since 2023",
+     "sub": "2023-2024",
+     "lead": "Today",
+     "items": [
+      {
+       "group": "Namibia",
+       "label": "Mapping & monitoring",
+       "body": "1,900 schools mapped",
+       "extra": "1,300 schools connected; Giga Meter deployed in 230+ schools"
+      },
+      {
+       "group": "Namibia",
+       "label": "Infrastructure",
+       "body": "Infrastructure analysis and cost estimate complete",
+       "extra": "Full infrastructure modelling complete"
+      },
+      {
+       "group": "Namibia",
+       "label": "Financing",
+       "body": "Initial engagement",
+       "extra": "Investment case with cost-benefit analysis of school connectivity"
+      },
+      {
+       "group": "Kenya",
+       "label": "Mapping & monitoring",
+       "body": "2,000 schools assessed for e-readiness; data gaps identified",
+       "extra": "Comprehensive dataset underpins the national connectivity plan"
+      },
+      {
+       "group": "Kenya",
+       "label": "Procurement",
+       "body": "US$110-120 per month (market rate); single supplier; ISP consultations completed",
+       "extra": "Multi-vendor model via public fibre (NOFBI); ~US$45, a 60% reduction through competitive procurement"
+      },
+      {
+       "group": "Kenya",
+       "label": "Financing",
+       "body": "€9.8M EU funding secured to connect 1,000 schools; roadmap agreed",
+       "extra": "600+ schools connected; Connectivity Credits piloted; scale-up underway"
+      }
+     ]
+    },
+    {
+     "type": "asks",
+     "heading": "Shaping the next phase together: opportunities for renewed partnership",
+     "items": [
+      {
+       "label": "Universal basic compute",
+       "body": "Connectivity is only half of AI access: schools and other child-facing public institutions also need affordable computing power. UNICEF Digital Inclusion is exploring a model of universal basic compute (UBC), under which every connected school would receive a baseline allocation of compute credits for child-safe AI tools, hosted on shared regional infrastructure, purchased in bulk through the Global Procurement Facility and monitored through Giga Meter. Estonia could help turn this into practice by co-designing the governance and data-protection model, piloting UBC in connected schools in a chosen country, and funding a feasibility study to build the evidence base for EU and Team Europe co-financing.",
+       "extra": ""
+      },
+      {
+       "label": "Connectivity for AI readiness",
+       "body": "Children cannot benefit from AI without meaningful connectivity: enough bandwidth, low latency and reliable quality, verified in real time through Giga Meter. We have already supported the Government of Uzbekistan in assessing school connectivity for AI readiness. Building on that work, Estonia could co-develop a joint connectivity benchmark for AI-ready schools, drawing on lessons from AI Leap, and help extend Giga Meter with new layers that measure AI readiness.",
+       "extra": ""
+      },
+      {
+       "label": "Transparent procurement on a shared platform",
+       "body": "Giga’s Global Procurement Facility, run with UNICEF Supply Division, replaces fragmented country-by-country tenders with pooled, competitive procurement. The next step is a digital procurement platform where contracts are open, prices are comparable and service delivery is checked against real connectivity data. Estonia could help build it by contributing its expertise in e-procurement and interoperability to the platform’s design, and supporting its rollout in partner countries such as Kenya and Namibia.",
+       "extra": ""
+      }
+     ]
+    }
+   ],
+   "pageFit": "compact"
+  }
+ ]
+}

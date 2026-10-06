@@ -2,7 +2,7 @@ import { CATALOG } from "./catalog";
 import { MAX_SLIDES } from "./brief";
 import type { Attachment } from "@/lib/slides/attachments";
 import type { ResponseInputContent } from "openai/resources/responses/responses";
-import { PAGE_CATALOG } from "./page-catalog";
+import { ARCHETYPES, PAGE_CATALOG } from "./page-catalog";
 import { AI_LAYOUT_IDS, type SlideContent } from "./schema";
 import { AI_BLOCK_TYPES } from "./pages/schema";
 import type { DeckFormat } from "./state";
@@ -47,40 +47,53 @@ RULES:
 }
 
 /**
- * The two-pager planner. Same contract as the slide one: the model picks
- * blocks from an approved catalog and writes the text, and never touches
- * geometry. The one thing it has to keep track of that a slide planner does
- * not is how full the sheet is, since a page is a fixed A4 box.
+ * The two-pager planner (rebuilt 6 Oct 2026 on the Estonia pieces). Same
+ * contract as the slide one: the model picks blocks from an approved catalog
+ * and writes the text, and never touches geometry. A page is a fixed A4
+ * sheet, so it also keeps a running budget; the fit pass (pages/fit.ts)
+ * measures the result and tightens or shortens what still runs over.
  */
 function buildPagePrompt(): string {
-  const catalogLines = PAGE_CATALOG.map(
-    (c) => `- ${c.type} (weight ${c.weight}): ${c.usage}. Fields: ${c.fields}`,
+  const catalogLines = PAGE_CATALOG.map((c) => `- ${c.type}: ${c.usage}. Fields: ${c.fields}`).join("\n");
+  const archetypes = ARCHETYPES.map(
+    (a) => `- ${a.id} (${a.name}): ${a.when}.\n  Page 1: ${a.page1}.\n  Page 2: ${a.page2}.`,
   ).join("\n");
-  return `You are the page planner for the UNICEF Digital Inclusion two-pager: a printed A4 brief, not a slide deck. You turn a brief into pages by stacking blocks from a fixed, approved catalog and writing the text that fills them. You never design a page — you only choose block types and fill their fields.
+  return `You are the planner of a two-pager: a printed A4 brief of exactly two pages for UNICEF teams, the kind handed to a minister, a donor or a partner. You turn a brief into pages by stacking blocks from a fixed, approved catalog and writing the text that fills them. You never design a page: you choose block types, fill their fields and keep each page within its budget.
 
-BLOCK CATALOG (type: when to use. fields with hard word limits):
+FIRST pick the archetype that fits the brief and set "archetype". Follow its order of blocks; blocks marked optional may be left out, and you may add a section where the material needs one. When the brief prescribes its own structure (its sections, their order, their titles), the brief wins over the archetype.
+ARCHETYPES:
+${archetypes}
+
+BLOCK CATALOG (type: when to use. fields with hard limits in characters):
 ${catalogLines}
 
+PAGE BUDGET. A page is a fixed sheet and text that does not fit is cut off, so plan it like a printed page:
+- Page 1 holds a banner, one stats row and about 2,300 characters of section text in total. Without stats, about 2,700.
+- Page 2 holds about 2,800 characters of text plus ONE visual block (figure, stats of 6, pillars, compare or photos), or about 3,600 characters with no visual block.
+- A compare row costs about 150 characters of budget, a pillar about 230.
+- Fill both pages: a two-pager that ends half-way down a page reads as unfinished. Write to the budget even from a short brief: a section is two or three full paragraphs, and what fills them is explanation, not new facts (how the work is done, why it matters for children and for the reader, what changes when it is in place, what the reader can do). Explaining is allowed; inventing a figure, a name, a date, a place or a result is not.
+- Every fact appears once in the piece: page 2 never restates a figure or a result already on page 1.
+- Plan the material across both pages before writing page 1: page 2 carries as much as page 1, so keep part of the material (how it works, the evidence, what comes next, the asks) for it instead of spending it all up front.
+- No "stats" block when the brief gives no figures: never number points 1, 2, 3 as if they were figures.
+
+PHOTOS for banner, figure and photos items: set "photo" to the id of the library photo that fits, never the same photo twice, or "" to keep the default (the banner's default is a dark data strip that suits any piece). Library (id: what it shows; suits):
+${LIBRARY.map((l) => `- ${l.id}: ${l.description} Suits: ${l.useFor}.`).join("\n")}
+
 RULES:
-- A page is a vertical stack of blocks, in reading order. Output pages in reading order.
-- THE PAGE IS A FIXED SHEET. The weights of the blocks on one page must add up to 100 or less. Text that does not fit is cut off, so keep well inside the limit rather than at it.
-- The first page starts with a "title" block, which also brings the masthead. Later pages do NOT start with a title.
-- Use "rail-prose" for most content: its rail label is what gives a printed page its structure. Every rail label on a page must be different.
-- A page carries 3 to 6 blocks. Never two blocks of the same type in a row, except "rail-prose".
-- Put "contacts" (preceded by "divider") only at the end of the last page, and only if the brief names people. Never invent a name or an address.
-- The brief's opening instruction ("Create a deck", "creami uno slide deck per", "fammi una presentazione su") is a request, not the subject: it never appears on a slide, and the cover title names the topic that follows it.
-- Respect every word limit strictly. Numbers do the talking: prefer concrete figures over adjectives. A stat value is a number (61%, 1.4M, $500M), never a word. "big-stat" and "single-stat" exist for a figure the brief gives; a sentence without a figure goes on section-image-deep or section-image-light, never on a stat slide with the number left empty.
-- Voice: plain, declarative, public-good. Sentence case everywhere (never Title Case in body text). Banned words: leveraging, synergies, cutting-edge, revolutionary, empower, unlock.
-- WHAT TEXT TO SHOW AND WHERE (fidelity first):
-  - Take the words from the brief and the material: their terms, names and figures, shortened to the limits, never paraphrased into claims they do not make. Prefer the material's own headings and labels for titles.
-  - Include every point, item and figure the brief asks for; from the material, choose what matters for this brief. Never pad a slide with generic sentences to fill it.
-  - Put each text where its shape fits: parallel points as blocks with a short label and a body, a sequence as steps or a timeline, figures as stats or a chart, one statement as a section slide. Parallel slides use the same kind of label and the same level of detail.
-  - Every slide adds something new: after a chart or a stat, the next slide never restates the same figures.
-  - Every figure carries its unit or currency, and its date or period when the source gives one; never set side by side figures that measure different things.
+- Exactly two pages unless the user message says otherwise. Page 1 opens with "banner". Page 2 never opens with a banner.
+- Every section's rail label is different from every other one in the piece. Labels are short and in sentence case ("The challenge", "Why it matters", "What we do", "Results", "What the evidence shows").
+- Never two "stats" blocks on one page. Stats only for figures the brief or the material gives, each with its unit; never a stat that restates a figure already shown in another stat.
+- A bold lead-in (an item's "label" in a section) names what the paragraph is about ("Namibia.", "Market shaping."); leave it empty on ordinary paragraphs.
+- Asks are concrete: what it is, then what the partner could do ("Estonia could help by ...").
+- "contacts" only at the end of the last page, and only with names the brief gives. Never invent a name or an address.
+- The brief's opening instruction ("Create a two-pager", "fammi un two pager su") is a request, not the subject: the banner names the topic that follows it.
+- WHAT TEXT TO SHOW (fidelity first): take the brief's and the material's own terms, names and figures; never paraphrase them into claims they do not make. Include every point and figure the brief asks for; from long material, choose what matters for this brief.
+- Every figure carries its unit or currency, and its date or period when the source gives one.
+- Only state facts given in the brief or the material. Never invent statistics, names, emails or dates. Giga's own figures belong only in a piece the brief makes about Giga.
+- Voice: plain, declarative, public-good, written for a reader with two minutes. Sentence case. No em dashes: use commas, colons or full stops. Banned words: leveraging, synergies, cutting-edge, revolutionary, empower, unlock.
 - Write in the same language as the brief.
-- The subject is whatever the brief and the attached material are about. Only state facts given there. Never invent statistics, names, emails or dates. Giga's own figures (2.2M+ schools mapped, 146 countries, giga.global) belong only in a piece the brief makes about Giga.
-- Every page carries "footerLabel": the piece's name, <=5 words, identical on every page.
-- Every block object includes every field of the output schema. Set fields the chosen block does not use to "" or [] — never invent content for them.`;
+- Every page carries "footerLabel": the brand or programme name the piece is from, <=40 chars, identical on both pages.
+- Every block object includes every field of the output schema. Set fields the chosen block does not use to "" (strings), [] (arrays) or -1 (accent).`;
 }
 
 interface GenerateBody {
@@ -251,15 +264,24 @@ export function buildUserMessage(body: GenerateBody): string {
 }
 
 function buildPageUserMessage(body: GenerateBody): string {
+  const brand = body.brandLabel
+    ? ` The piece carries the "${body.brandLabel}" lockup: that sets its logo, not its subject.`
+    : "";
+  const language = body.language ? ` The brief is in ${body.language}: write every page in ${body.language}.` : "";
+  const notes = body.briefNotes?.trim()
+    ? `\n\nThe user answered questions about this brief; these answers rank with the brief: ${body.briefNotes.trim()}`
+    : "";
   switch (body.mode) {
     case "add": {
       const n = body.count ?? 1;
-      return `Existing pages (JSON): ${JSON.stringify(body.existingSlides ?? [])}\n\nBrief: ${body.brief}\n\nRequest: ${body.instruction?.trim() || "continue the piece"}\n\nAdd exactly ${n} new page${n === 1 ? "" : "s"} fulfilling the request. Return ONLY the new pages, never repeat an existing one, and do not start them with a "title" block.\n- Set "insertAfter" to the 1-based index of the existing page the new ones belong after (0 = before the first).`;
+      return `Existing pages (JSON): ${JSON.stringify(body.existingSlides ?? [])}\n\nBrief: ${body.brief}${brand}${language}${notes}\n\nRequest: ${body.instruction?.trim() || "continue the piece"}\n\nAdd exactly ${n} new page${n === 1 ? "" : "s"} fulfilling the request. Return ONLY the new pages, never repeat an existing one, never open them with a banner, and keep the same "archetype" and "footerLabel".\n- Set "insertAfter" to the 1-based index of the existing page the new ones belong after (0 = before the first).`;
     }
     case "regenerate":
-      return `Current page (JSON): ${JSON.stringify(body.targetSlide)}\n\nBrief: ${body.brief}\n\nRewrite this single page.${body.instruction ? ` Instruction: ${body.instruction}` : " Improve the copy."} Keep the same kind of blocks unless the instruction asks otherwise, and return exactly one page.`;
-    default:
-      return `Brief: ${body.brief}\n\nWrite the two-pager that tells this story in ${body.count ?? 2} page${(body.count ?? 2) === 1 ? "" : "s"}. The first page opens with a title block.`;
+      return `Current page (JSON): ${JSON.stringify(body.targetSlide)}\n\nBrief: ${body.brief}${brand}${language}\n\nRewrite this single page.${body.instruction ? ` Instruction: ${body.instruction}` : " Improve the copy."} Keep the same kinds of blocks and the same amount of text unless the instruction asks otherwise, keep the budget of the page, and return exactly one page.`;
+    default: {
+      const n = body.count ?? 2;
+      return `Brief: ${body.brief}${brand}${language}${notes}\n\nWrite the two-pager that tells this story in exactly ${n} page${n === 1 ? "" : "s"}.`;
+    }
   }
 }
 
@@ -407,73 +429,88 @@ export const ADD_OUTPUT_SCHEMA = {
 } as const;
 
 /**
- * Output schema for two-pager pages. Same philosophy as the slide one: one
- * flat block object, every field required, an enum for the type and no
- * `oneOf` — a discriminated union per block type is exactly the grammar that
- * returns "Schema is too complex" on Haiku.
+ * Output schema for two-pager pages. One flat block object, every field
+ * required, an enum for the type and no `oneOf`: a union per block type is
+ * the grammar that comes back as "Schema is too complex". `archetype` is
+ * emitted first on purpose, so the model commits to a shape before it writes.
  */
+const PAGE_ITEM_SCHEMA = {
+  type: "object",
+  properties: {
+    kind: { type: "string", enum: ["para", "bullet"] },
+    group: { type: "string" },
+    label: { type: "string" },
+    body: { type: "string" },
+    extra: { type: "string" },
+    icon: { type: "string" },
+    photo: { type: "string" },
+  },
+  required: ["kind", "group", "label", "body", "extra", "icon", "photo"],
+  additionalProperties: false,
+} as const;
+
+export const PAGE_BLOCK_SCHEMA = {
+  type: "object",
+  properties: {
+    type: { type: "string", enum: [...AI_BLOCK_TYPES] },
+    rail: { type: "string" },
+    heading: { type: "string" },
+    highlight: { type: "string" },
+    sub: { type: "string" },
+    lead: { type: "string" },
+    body: { type: "string" },
+    map: { type: "string" },
+    photo: { type: "string" },
+    accent: { type: "integer" },
+    items: { type: "array", items: PAGE_ITEM_SCHEMA },
+  },
+  required: ["type", "rail", "heading", "highlight", "sub", "lead", "body", "map", "photo", "accent", "items"],
+  additionalProperties: false,
+} as const;
+
+const PAGES_ARRAY = {
+  type: "array",
+  items: {
+    type: "object",
+    properties: {
+      // The running footer is set on each page as it streams in, instead of
+      // arriving after the last one.
+      footerLabel: { type: "string" },
+      blocks: { type: "array", items: PAGE_BLOCK_SCHEMA },
+    },
+    required: ["footerLabel", "blocks"],
+    additionalProperties: false,
+  },
+} as const;
+
 export const PAGES_OUTPUT_SCHEMA = {
   type: "object",
   properties: {
-    pages: {
-      type: "array",
-      items: {
-        type: "object",
-        properties: {
-          // The running footer is the piece's name and is the same on every
-          // page. It sits on the page rather than beside `pages` so it is set
-          // as each page streams in, instead of arriving after the last one.
-          footerLabel: { type: "string" },
-          blocks: {
-            type: "array",
-            items: {
-              type: "object",
-              properties: {
-                type: { type: "string", enum: [...AI_BLOCK_TYPES] },
-                rail: { type: "string" },
-                heading: { type: "string" },
-                sub: { type: "string" },
-                lead: { type: "string" },
-                body: { type: "string" },
-                accent: { type: "integer" },
-                tag: { type: "string" },
-                items: {
-                  type: "array",
-                  items: {
-                    type: "object",
-                    properties: {
-                      kind: { type: "string", enum: ["para", "bullet", "number"] },
-                      label: { type: "string" },
-                      body: { type: "string" },
-                      extra: { type: "string" },
-                    },
-                    required: ["kind", "label", "body", "extra"],
-                    additionalProperties: false,
-                  },
-                },
-              },
-              required: ["type", "rail", "heading", "sub", "lead", "body", "accent", "tag", "items"],
-              additionalProperties: false,
-            },
-          },
-        },
-        required: ["footerLabel", "blocks"],
-        additionalProperties: false,
-      },
-    },
+    archetype: { type: "string", enum: ARCHETYPES.map((a) => a.id) },
+    pages: PAGES_ARRAY,
   },
-  required: ["pages"],
+  required: ["archetype", "pages"],
   additionalProperties: false,
 } as const;
+
+/** The fit pass's rewrite (app/api/page-shorten): one block back, shorter. */
+export const SHORTEN_OUTPUT_SCHEMA = {
+  type: "object",
+  properties: { block: PAGE_BLOCK_SCHEMA },
+  required: ["block"],
+  additionalProperties: false,
+} as const;
+
 
 /** "add" mode for pages: the new pages plus where they go. */
 export const ADD_PAGES_OUTPUT_SCHEMA = {
   type: "object",
   properties: {
     insertAfter: { type: "integer" },
-    pages: PAGES_OUTPUT_SCHEMA.properties.pages,
+    archetype: PAGES_OUTPUT_SCHEMA.properties.archetype,
+    pages: PAGES_ARRAY,
   },
-  required: ["insertAfter", "pages"],
+  required: ["insertAfter", "archetype", "pages"],
   additionalProperties: false,
 } as const;
 

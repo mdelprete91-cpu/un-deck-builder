@@ -36,6 +36,7 @@ export default function PromptBox({
   generating,
   blocked = false,
   hasSlides,
+  twoPager = false,
 }: {
   brief: string;
   onBrief: (brief: string) => void;
@@ -51,6 +52,8 @@ export default function PromptBox({
   /** A file was refused: Generate waits until the user removes or replaces it. */
   blocked?: boolean;
   hasSlides: boolean;
+  /** A two-pager has no chapters, and the brief describes a printed piece. */
+  twoPager?: boolean;
 }) {
   const textRef = useRef<HTMLTextAreaElement>(null);
   const mirrorRef = useRef<HTMLDivElement>(null);
@@ -162,7 +165,7 @@ export default function PromptBox({
                 onGenerate();
               }
             }}
-            placeholder="Describe the deck you need…"
+            placeholder={twoPager ? "Describe the two-pager you need…" : "Describe the deck you need…"}
             rows={3}
             className="relative block w-full resize-none rounded-t-[28px] bg-transparent px-4 pt-3.5 pb-1 text-sm leading-relaxed text-transparent caret-ink outline-none placeholder:text-ink-faint"
           />
@@ -223,6 +226,7 @@ export default function PromptBox({
                 one on screen. As a pressed pill next to Generate it reads as
                 part of what the press sends. */}
             {/* The glyph is the state: a ticked circle on, an empty one off. */}
+            {!twoPager && (
             <Button
               variant={chapters ? "accent" : "ghost"}
               icon={chapters ? CircleCheck : Circle}
@@ -239,6 +243,7 @@ export default function PromptBox({
             >
               Chapters
             </Button>
+            )}
 
             <Button
               variant="primary"

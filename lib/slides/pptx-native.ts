@@ -12,12 +12,26 @@ import { rasterizeSlide } from "./rasterize";
  * cropped and zoomed photo) is rasterised on its own and placed as a picture
  * of exactly its size. Change a renderer and the export follows.
  *
- * Units: 1920px = 13.333in, so 144px per inch and 1px = 0.5pt.
+ * Units come with the sheet (`PptxSheet`): a slide is 1920px = 13.333in, so
+ * 144px per inch and 1px = 0.5pt; an A4 two-pager page is drawn in CSS pt,
+ * 793.33px = 8.268in, so 96px per inch and 1px = 0.75pt.
  */
-const PX_PER_IN = 144;
-const PT_PER_PX = 0.5;
-const SLIDE_W = 1920;
-const SLIDE_H = 1080;
+export interface PptxSheet {
+  /** The rendered page in CSS px. */
+  w: number;
+  h: number;
+  pxPerIn: number;
+  ptPerPx: number;
+  /**
+   * Line spacing as exact points rather than a multiple. A two-pager's body is
+   * set on a fixed leading (10/15) like the Estonia files, and a multiple
+   * opens up in LibreOffice and Keynote, where it is read against the font's
+   * own line height, until paragraphs touch.
+   */
+  exactLeading?: boolean;
+}
+export const SLIDE_SHEET: PptxSheet = { w: 1920, h: 1080, pxPerIn: 144, ptPerPx: 0.5 };
+export const A4_SHEET: PptxSheet = { w: (595 * 4) / 3, h: (842 * 4) / 3, pxPerIn: 96, ptPerPx: 0.75, exactLeading: true };
 /** Pixels per slide pixel in a rasterised element. */
 const RASTER_SCALE = 2;
 
@@ -28,11 +42,17 @@ interface Ctx {
   slide: PptxGenJS.Slide;
   stage: HTMLElement;
   origin: DOMRect;
+  g: PptxSheet;
 }
 
-export async function addNativeSlide(pptx: PptxGenJS, slide: PptxGenJS.Slide, stage: HTMLElement): Promise<void> {
+export async function addNativeSlide(
+  pptx: PptxGenJS,
+  slide: PptxGenJS.Slide,
+  stage: HTMLElement,
+  g: PptxSheet = SLIDE_SHEET,
+): Promise<void> {
   const root = (stage.firstElementChild as HTMLElement | null) ?? stage;
-  const ctx: Ctx = { pptx, slide, stage, origin: stage.getBoundingClientRect() };
+  const ctx: Ctx = { pptx, slide, stage, origin: stage.getBoundingClientRect(), g };
   const rootBg = rgba(getComputedStyle(root).backgroundColor);
   if (rootBg && rootBg.a > 0) slide.background = { color: rootBg.hex };
   for (const child of Array.from(root.children)) await walk(ctx, child as HTMLElement, 1);
@@ -80,6 +100,16 @@ async function walk(ctx: Ctx, el: HTMLElement, opacity: number): Promise<void> {
 
   if (isTextLeaf(el)) {
     addText(ctx, el, cs, rect, alpha);
+    // A text leaf can carry drawn marks of its own: an empty, absolutely
+    // placed span (a two-pager's bullet dot) is a shape, not text.
+    for (const child of Array.from(el.children)) {
+      const c = child as HTMLElement;
+      if (!c.innerText?.trim() && getComputedStyle(c).position === "absolute") {
+        const ccs = getComputedStyle(c);
+        const r = relRect(ctx, c);
+        if (r.w >= 0.5 && r.h >= 0.5) addBox(ctx, c, ccs, r, alpha);
+      }
+    }
     return;
   }
   for (const child of Array.from(el.children)) {
@@ -114,8 +144,8 @@ function drawnRect(ctx: Ctx, svg: SVGElement): Rect | null {
   const pad = stroke / 2 + 2;
   const left = Math.max(0, x0 - pad - ctx.origin.left);
   const top = Math.max(0, y0 - pad - ctx.origin.top);
-  const right = Math.min(SLIDE_W, x1 + pad - ctx.origin.left);
-  const bottom = Math.min(SLIDE_H, y1 + pad - ctx.origin.top);
+  const right = Math.min(ctx.g.w, x1 + pad - ctx.origin.left);
+  const bottom = Math.min(ctx.g.h, y1 + pad - ctx.origin.top);
   if (right - left < 0.5 || bottom - top < 0.5) return null;
   return { x: left, y: top, w: right - left, h: bottom - top };
 }
@@ -169,13 +199,13 @@ function addBox(ctx: Ctx, el: HTMLElement, cs: CSSStyleDeclaration, rect: Rect, 
   const shape = circle ? ctx.pptx.ShapeType.ellipse : radius > 0 ? ctx.pptx.ShapeType.roundRect : ctx.pptx.ShapeType.rect;
   if (hasFill || uniform) {
     ctx.slide.addShape(shape, {
-      x: rect.x / PX_PER_IN,
-      y: rect.y / PX_PER_IN,
-      w: rect.w / PX_PER_IN,
-      h: rect.h / PX_PER_IN,
+      x: rect.x / ctx.g.pxPerIn,
+      y: rect.y / ctx.g.pxPerIn,
+      w: rect.w / ctx.g.pxPerIn,
+      h: rect.h / ctx.g.pxPerIn,
       fill: hasFill ? { color: bg!.hex, transparency: toTransparency(bg!.a * alpha) } : { type: "none" },
       line: uniform
-        ? { color: top.color.hex, width: top.width * PT_PER_PX, transparency: toTransparency(top.color.a * alpha) }
+        ? { color: top.color.hex, width: top.width * ctx.g.ptPerPx, transparency: toTransparency(top.color.a * alpha) }
         : { type: "none" },
       // pptxgenjs takes the corner radius as a fraction of the shorter side.
       ...(shape === ctx.pptx.ShapeType.roundRect ? { rectRadius: Math.min(0.5, radius / Math.min(rect.w, rect.h)) } : {}),
@@ -186,11 +216,11 @@ function addBox(ctx: Ctx, el: HTMLElement, cs: CSSStyleDeclaration, rect: Rect, 
   // drawn along that edge, inside the box like the browser draws it.
   const edge = (b: { width: number; color: { hex: string; a: number } }, x: number, y: number, w: number, h: number) =>
     ctx.slide.addShape(ctx.pptx.ShapeType.line, {
-      x: x / PX_PER_IN,
-      y: y / PX_PER_IN,
-      w: w / PX_PER_IN,
-      h: h / PX_PER_IN,
-      line: { color: b.color.hex, width: b.width * PT_PER_PX, transparency: toTransparency(b.color.a * alpha) },
+      x: x / ctx.g.pxPerIn,
+      y: y / ctx.g.pxPerIn,
+      w: w / ctx.g.pxPerIn,
+      h: h / ctx.g.pxPerIn,
+      line: { color: b.color.hex, width: b.width * ctx.g.ptPerPx, transparency: toTransparency(b.color.a * alpha) },
     });
   if (top) edge(top, rect.x, rect.y + top.width / 2, rect.w, 0);
   if (bottom) edge(bottom, rect.x, rect.y + rect.h - bottom.width / 2, rect.w, 0);
@@ -219,17 +249,17 @@ function addText(ctx: Ctx, el: HTMLElement, cs: CSSStyleDeclaration, rect: Rect,
   const cy = rect.y + rect.h / 2;
   const lines = text.split("\n");
   ctx.slide.addText(
-    lines.map((line, i) => ({ text: line, options: { breakLine: i < lines.length - 1 } })),
+    styledRuns(el, cs, alpha) ?? lines.map((line, i) => ({ text: line, options: { breakLine: i < lines.length - 1 } })),
     {
-      x: (angle ? cx - w / 2 : rect.x + padL) / PX_PER_IN,
-      y: (angle ? cy - h / 2 : rect.y + padT) / PX_PER_IN,
+      x: (angle ? cx - w / 2 : rect.x + padL) / ctx.g.pxPerIn,
+      y: (angle ? cy - h / 2 : rect.y + padT) / ctx.g.pxPerIn,
       // Office text engines measure a hair wider than the browser: a few px
       // of slack keep the last word on its line.
-      w: Math.max(1, (angle ? w : rect.w - padL - padR) + 6) / PX_PER_IN,
-      h: Math.max(1, angle ? h : rect.h - padT - padB) / PX_PER_IN,
+      w: Math.max(1, (angle ? w : rect.w - padL - padR) + 6) / ctx.g.pxPerIn,
+      h: Math.max(1, angle ? h : rect.h - padT - padB) / ctx.g.pxPerIn,
       rotate: angle ? ((angle % 360) + 360) % 360 : undefined,
       fontFace: fontFaceOf(cs.fontFamily),
-      fontSize: round2(fontSize * PT_PER_PX),
+      fontSize: round2(fontSize * ctx.g.ptPerPx),
       bold: weight >= 600,
       italic: cs.fontStyle === "italic",
       color: color?.hex ?? "000000",
@@ -237,13 +267,55 @@ function addText(ctx: Ctx, el: HTMLElement, cs: CSSStyleDeclaration, rect: Rect,
       align: alignOf(cs.textAlign),
       valign: "top",
       margin: 0,
-      lineSpacingMultiple: round2(lineHeight / fontSize),
-      charSpacing: letterSpacing ? round2(letterSpacing * PT_PER_PX) : undefined,
+      ...(ctx.g.exactLeading
+        ? { lineSpacing: round2(lineHeight * ctx.g.ptPerPx) }
+        : { lineSpacingMultiple: round2(lineHeight / fontSize) }),
+      charSpacing: letterSpacing ? round2(letterSpacing * ctx.g.ptPerPx) : undefined,
       autoFit: false,
       shrinkText: false,
       wrap: true,
     },
   );
+}
+
+/**
+ * A leaf whose inline children differ from it in weight or colour (a bold
+ * lead-in, a title's phrase in the accent) as styled runs, so PowerPoint keeps
+ * the emphasis. Null when the leaf is one style, or holds line breaks the
+ * runs would lose: the plain text path handles those.
+ */
+function styledRuns(
+  el: HTMLElement,
+  cs: CSSStyleDeclaration,
+  alpha: number,
+): PptxGenJS.TextProps[] | null {
+  // A flex or grid leaf keeps its parts apart with the gap: leafText owns those.
+  if (/flex|grid/.test(cs.display)) return null;
+  const spans = Array.from(el.children).filter((c) => (c as HTMLElement).innerText?.trim()) as HTMLElement[];
+  if (spans.length === 0) return null;
+  const base = { weight: parseInt(cs.fontWeight, 10) || 400, color: cs.color };
+  const differs = spans.some((c) => {
+    const ccs = getComputedStyle(c);
+    return (parseInt(ccs.fontWeight, 10) || 400) !== base.weight || ccs.color !== base.color;
+  });
+  if (!differs || /\n/.test(el.innerText.trim())) return null;
+  const runs: PptxGenJS.TextProps[] = [];
+  for (const n of Array.from(el.childNodes)) {
+    const text = (n.nodeType === Node.TEXT_NODE ? (n.textContent ?? "") : ((n as HTMLElement).innerText ?? "")).replace(/\u00a0/g, " ").replace(/\s+/g, " ");
+    if (!text) continue;
+    const ncs = n.nodeType === Node.TEXT_NODE ? cs : getComputedStyle(n as HTMLElement);
+    const color = rgba(ncs.color);
+    runs.push({
+      text,
+      options: {
+        bold: (parseInt(ncs.fontWeight, 10) || 400) >= 600,
+        color: color?.hex ?? "000000",
+        transparency: color ? toTransparency(color.a * alpha) : undefined,
+      },
+    });
+  }
+  if (runs.length) runs[runs.length - 1].text = (runs[runs.length - 1].text ?? "").replace(/\s+$/, "");
+  return runs.length ? runs : null;
 }
 
 /**
@@ -291,14 +363,14 @@ async function addRaster(ctx: Ctx, el: HTMLElement, rect: Rect, alpha: number): 
   // came out soft and greyish on a Retina screen and in previews (5 Oct 2026).
   // Photos and full-bleed backgrounds stay 1:1: already photographic, and at
   // twice the pixels they would only make the file four times heavier.
-  const small = rect.w * rect.h < (SLIDE_W * SLIDE_H) / 4;
-  const png = await rasterizeSlide(clone, SLIDE_W, SLIDE_H, rect, small ? RASTER_SCALE : 1);
+  const small = rect.w * rect.h < (ctx.g.w * ctx.g.h) / 4;
+  const png = await rasterizeSlide(clone, ctx.g.w, ctx.g.h, rect, small ? RASTER_SCALE : 1);
   ctx.slide.addImage({
     data: png,
-    x: rect.x / PX_PER_IN,
-    y: rect.y / PX_PER_IN,
-    w: rect.w / PX_PER_IN,
-    h: rect.h / PX_PER_IN,
+    x: rect.x / ctx.g.pxPerIn,
+    y: rect.y / ctx.g.pxPerIn,
+    w: rect.w / ctx.g.pxPerIn,
+    h: rect.h / ctx.g.pxPerIn,
     transparency: toTransparency(alpha),
   });
 }

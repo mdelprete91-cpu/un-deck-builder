@@ -414,7 +414,7 @@ export function defaultContent(layoutId: LayoutId): SlideContent {
     // A two-pager page is inserted through the preset picker, which passes the
     // stack it built; this is the bare fallback for any other caller.
     case "a4-page":
-      return { layoutId, stack: presetStack("blank"), footerLabel: "" };
+      return { layoutId, stack: presetStack(), footerLabel: "" };
   }
 }
 
