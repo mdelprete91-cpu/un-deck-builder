@@ -9,8 +9,8 @@ import { LANG_LABELS, LANGS, type Lang } from "@/lib/slides/i18n";
  * The deck's language, in the toolbar (Mario, 6 Oct 2026): the whole piece
  * switches, never one slide. The menu is the Download menu's card and only
  * the languages: a tick on the one on screen, "original" on the one the deck
- * was written in. The fixes Mario makes are kept without being shown
- * (lib/slides/i18n.ts): no glossary to manage, no retranslate button.
+ * was written in. A text fixed by hand in a language comes back as it was
+ * (lib/slides/i18n.ts); after an edit the editor asks whether to keep it.
  */
 export default function LanguageMenu({
   current,

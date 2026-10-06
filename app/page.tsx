@@ -12,7 +12,8 @@ import { dropStatEchoes, fillStatFigures, isMastheadLine, putBackLines } from "@
 import { fillPagePhotos } from "@/lib/slides/library";
 import AddBlockMenu from "@/components/AddBlockMenu";
 import LanguageMenu from "@/components/LanguageMenu";
-import { apply, langFromName, LANG_LABELS, LANG_NAMES, plan, remember, snapshot, textFields, UI_STRINGS, type DeckLang, type Glossary, type Job, type Lang } from "@/lib/slides/i18n";
+import EditChoice from "@/components/EditChoice";
+import { apply, langFromName, LANG_LABELS, LANG_NAMES, plan, remember, snapshot, textFields, translationOf, UI_STRINGS, type DeckLang, type Job, type Lang } from "@/lib/slides/i18n";
 import { undash } from "@/lib/slides/pages/schema";
 import { normalizePage, PAGE_BLOCK_LIMITS, type PageBlock } from "@/lib/slides/pages/schema";
 import { defaultContent, denseContent } from "@/lib/slides/defaults";
@@ -870,11 +871,11 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
   const deckLang = (): DeckLang => {
     if (state.lang) return state.lang;
     const written = langFromName(languageOf(state.slides.flatMap((s) => textFields(s).map((f) => f.text)).join(" ")));
-    return { source: written, current: written, texts: {}, glossary: {} };
+    return { source: written, current: written, texts: {} };
   };
 
   /** The jobs of a switch through /api/translate, in batches, by the language they are written in. */
-  const translateJobs = async (jobs: Job[], to: Lang, glossary: Glossary[]): Promise<Map<string, string>> => {
+  const translateJobs = async (jobs: Job[], to: Lang): Promise<Map<string, string>> => {
     const done = new Map<string, string>();
     // Small batches side by side: a call's time grows with its output, so a
     // two-pager in one call of forty fields took 40 s, in batches of 15 about 5.
@@ -894,7 +895,7 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
       const res = await fetch("/api/translate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ from: batch[0].from, to, glossary, items }),
+        body: JSON.stringify({ from: batch[0].from, to, items }),
       });
       if (!res.ok) throw new Error((await res.text().catch(() => "")) || `Translation failed (${res.status})`);
       const { items: out } = (await res.json()) as { items: { id: string; text: string }[] };
@@ -910,26 +911,17 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
   /**
    * The whole deck into another language (Mario, 6 Oct 2026). What the memory
    * already has in that language comes back as it was, his fixes included;
-   * only new fields and fields whose original changed are translated, with
-   * his term fixes for that language. `prune` drops the remembered
-   * translations he never touched first, for a full retranslation.
+   * only new fields and fields whose original changed are translated.
    */
-  const switchLanguage = async (to: Lang, prune = false) => {
+  const switchLanguage = async (to: Lang) => {
     if (translating || state.status === "generating" || fitting || !state.slides.length) return;
     const lang0 = deckLang();
-    if (to === lang0.current && !prune) return;
+    if (to === lang0.current) return;
     setTranslating(to);
     try {
-      let texts = snapshot(state.slides, lang0);
-      if (prune && texts[to]) {
-        const kept: NonNullable<DeckLang["texts"][Lang]> = {};
-        for (const [id, fields] of Object.entries(texts[to]!)) {
-          kept[id] = Object.fromEntries(Object.entries(fields).filter(([path, f]) => path.startsWith("#") || f.edited));
-        }
-        texts = { ...texts, [to]: kept };
-      }
+      const texts = snapshot(state.slides, lang0);
       const { ready, jobs } = plan(state.slides, lang0, texts, to);
-      const translated = jobs.length ? await translateJobs(jobs, to, lang0.glossary[to] ?? []) : new Map<string, string>();
+      const translated = jobs.length ? await translateJobs(jobs, to) : new Map<string, string>();
       // A batch that came back short leaves those texts as they were, said rather than hidden.
       const missing = jobs.length - jobs.filter((j) => translated.has(`${j.slide}\u0000${j.path}`)).length;
       const slides = apply(state.slides, ready, translated);
@@ -1634,6 +1626,12 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
   const [iconPicker, setIconPicker] = useState<string | null>(null);
   /** Two-pager: the fit pass is measuring and resizing the pages (lib/slides/pages/fit.ts). */
   const [fitting, setFitting] = useState(false);
+  /**
+   * The last text changed by hand in a translated language, and the
+   * translation it can go back to (components/EditChoice.tsx). Shown only on
+   * its own slide and in its own language, so moving on closes it.
+   */
+  const [editChoice, setEditChoice] = useState<{ slideId: string; path: string; translation: string; lang: Lang } | null>(null);
   /** The deck is being translated into this language (switchLanguage). */
   const [translating, setTranslating] = useState<Lang | null>(null);
   /** Two-pager: where the block menu inserts, while it is open. */
@@ -1849,9 +1847,16 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
                   <SlideFrame
                     html={activeHtml}
                     editable
-                    onEdit={(path, value) =>
-                      dispatch({ type: "EDIT_FIELD", index: state.activeIndex, path, value })
-                    }
+                    onEdit={(path, value) => {
+                      dispatch({ type: "EDIT_FIELD", index: state.activeIndex, path, value });
+                      // A translated text changed by hand: keep it, or go back to the translation.
+                      const translation = translationOf(state.lang, active.id, path);
+                      setEditChoice(
+                        translation !== undefined && translation !== value && state.lang
+                          ? { slideId: active.id, path, translation, lang: state.lang.current }
+                          : null,
+                      );
+                    }}
                     onDeleteItem={(path) =>
                       dispatch({ type: "DELETE_ITEM", index: state.activeIndex, path })
                     }
@@ -1911,6 +1916,17 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
                     className="h-full w-full"
                     frameClassName="rounded-xl shadow-stripe-lg"
                   />
+                  {editChoice && editChoice.slideId === active.id && editChoice.lang === state.lang?.current && !translating && (
+                    <EditChoice
+                      language={LANG_LABELS[editChoice.lang]}
+                      onKeep={() => setEditChoice(null)}
+                      onRevert={() => {
+                        const index = state.slides.findIndex((s) => s.id === editChoice.slideId);
+                        if (index >= 0) dispatch({ type: "EDIT_FIELD", index, path: editChoice.path, value: editChoice.translation });
+                        setEditChoice(null);
+                      }}
+                    />
+                  )}
                   {addBlockAt != null && (
                     <AddBlockMenu
                       onPick={(blockType) => {

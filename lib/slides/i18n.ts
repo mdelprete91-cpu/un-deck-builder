@@ -51,11 +51,8 @@ export interface Field {
   basis?: string;
   /** Mario changed it by hand: kept as it is, and his wording guides a retranslation. */
   edited?: boolean;
-}
-
-export interface Glossary {
-  from: string;
-  to: string;
+  /** The translation as it came, before any edit: what "Use the translation" puts back. */
+  machine?: string;
 }
 
 export interface DeckLang {
@@ -65,8 +62,6 @@ export interface DeckLang {
   current: Lang;
   /** language -> slide id -> path -> field */
   texts: Partial<Record<Lang, Record<string, Record<string, Field>>>>;
-  /** Mario's fixes per language, as term rules for every translation into it. */
-  glossary: Partial<Record<Lang, Glossary[]>>;
 }
 
 // ─── The text of a slide, field by field ───────────────────────────────────
@@ -141,7 +136,7 @@ function writePath(slide: Record<string, unknown>, path: string, value: string):
  * say. Paths are positions ("bullets.2"), so a point deleted in Spanish would
  * shift every English text after it onto the wrong point: a slide whose
  * shape changed since a language was remembered is translated afresh from
- * what is on screen (the glossary still brings the fixes back).
+ * what is on screen.
  */
 export function shapeOf(s: SlideContent): string {
   const n = (a?: unknown[]) => a?.length ?? 0;
@@ -179,7 +174,11 @@ export function snapshot(slides: Slide[], lang: DeckLang): DeckLang["texts"] {
     for (const { path, text } of textFields(s)) {
       const was = fields[path];
       if (cur === lang.source) fields[path] = { text };
-      else fields[path] = { text, basis: was?.basis, edited: was?.edited || (!!was && was.text !== text) };
+      else {
+        // Edited means different from the translation as it came: a text put back is a translation again.
+        const machine = was?.machine ?? was?.text;
+        fields[path] = { text, basis: was?.basis, edited: machine !== undefined && text !== machine, ...(machine !== undefined ? { machine } : {}) };
+      }
     }
   }
   return texts;
@@ -282,67 +281,22 @@ export function remember(
     } else {
       // A field born in another language gets its source text too, so the next switch has a basis.
       const basis = src[j.slide]?.[j.path]?.text;
-      fields[j.path] = { text, basis };
+      fields[j.path] = { text, basis, machine: text };
     }
   }
   return out;
 }
-
-// ─── Fixes → glossary ──────────────────────────────────────────────────────
 
 /**
- * The terms Mario replaced in a translated text: word runs swapped for
- * other words ("conectividad escolar" -> "conexión de escuelas"). Pure
- * insertions and deletions are edits, not terms; a run past six words is a
- * rewrite, not a term.
+ * The translation the memory holds for a field in the language on screen:
+ * what "Use the translation" puts back after an edit (components/EditChoice.tsx).
+ * Undefined in the original language, or for a field that never was a
+ * translation (a point written in Spanish).
  */
-export function diffTerms(before: string, after: string): Glossary[] {
-  const a = before.split(/\s+/).filter(Boolean);
-  const b = after.split(/\s+/).filter(Boolean);
-  // Longest common subsequence of words, then the runs between matches.
-  const n = a.length;
-  const m = b.length;
-  const dp: number[][] = Array.from({ length: n + 1 }, () => new Array<number>(m + 1).fill(0));
-  for (let i = n - 1; i >= 0; i--)
-    for (let j = m - 1; j >= 0; j--) dp[i][j] = clean(a[i]) === clean(b[j]) ? dp[i + 1][j + 1] + 1 : Math.max(dp[i + 1][j], dp[i][j + 1]);
-  const out: Glossary[] = [];
-  let i = 0;
-  let j = 0;
-  let ra: string[] = [];
-  let rb: string[] = [];
-  const flush = () => {
-    if (ra.length && rb.length && ra.length <= 6 && rb.length <= 6) {
-      const from = strip(ra.join(" "));
-      const to = strip(rb.join(" "));
-      if (from && to && from.toLowerCase() !== to.toLowerCase()) out.push({ from, to });
-    }
-    ra = [];
-    rb = [];
-  };
-  while (i < n || j < m) {
-    if (i < n && j < m && clean(a[i]) === clean(b[j])) {
-      flush();
-      i++;
-      j++;
-    } else if (j < m && (i === n || dp[i][j + 1] >= dp[i + 1][j])) rb.push(b[j++]);
-    else ra.push(a[i++]);
-  }
-  flush();
-  return out;
-}
-
-const clean = (w: string) => w.toLowerCase().replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, "");
-const strip = (s: string) => s.replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}%]+$/gu, "");
-
-/** Merge new rules into a language's glossary: a rule for the same term replaces the old one. */
-export function addTerms(list: Glossary[] | undefined, terms: Glossary[]): Glossary[] {
-  const out = [...(list ?? [])];
-  for (const t of terms) {
-    const k = out.findIndex((g) => g.from.toLowerCase() === t.from.toLowerCase());
-    if (k >= 0) out[k] = t;
-    else out.push(t);
-  }
-  return out.slice(-200);
+export function translationOf(lang: DeckLang | undefined, slideId: string, path: string): string | undefined {
+  if (!lang || lang.current === lang.source) return undefined;
+  const f = lang.texts[lang.current]?.[slideId]?.[path];
+  return f?.machine ?? f?.text;
 }
 
 // ─── Strings the renderers draw themselves ─────────────────────────────────
@@ -395,6 +349,7 @@ export function sanitizeLang(raw: unknown): DeckLang | undefined {
             text: v.text.slice(0, MAX_FIELD),
             ...(typeof v.basis === "string" ? { basis: v.basis.slice(0, MAX_FIELD) } : {}),
             ...(v.edited === true ? { edited: true } : {}),
+            ...(typeof v.machine === "string" ? { machine: v.machine.slice(0, MAX_FIELD) } : {}),
           };
         }
         outL[id] = outF;
@@ -402,15 +357,6 @@ export function sanitizeLang(raw: unknown): DeckLang | undefined {
       texts[l] = outL;
     }
   }
-  const glossary: DeckLang["glossary"] = {};
-  if (r.glossary && typeof r.glossary === "object") {
-    for (const [l, list] of Object.entries(r.glossary as Record<string, unknown>)) {
-      if (!isLang(l) || !Array.isArray(list)) continue;
-      glossary[l] = list
-        .filter((g): g is Glossary => !!g && typeof g.from === "string" && typeof g.to === "string")
-        .slice(0, 200)
-        .map((g) => ({ from: g.from.slice(0, 120), to: g.to.slice(0, 120) }));
-    }
-  }
-  return { source: r.source, current: r.current, texts, glossary };
+  // A `glossary` in a file saved on 6 Oct 2026 is ignored: the term rules come later, designed apart.
+  return { source: r.source, current: r.current, texts };
 }

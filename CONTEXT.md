@@ -1037,17 +1037,18 @@ section, hero, photo). A pick is `REPLACE_SLIDE` with the same merge as a regene
 The whole deck switches language from the toolbar (English, Español, Français, Português; a deck
 written in Italian or German keeps its own as "original"), never one slide (Mario, 6 Oct 2026).
 `lib/slides/i18n.ts` holds it: `state.slides` is always the language on screen, and `state.lang`
-keeps every language's text field by field (`textFields`, paths in `setPath`'s format) and Mario's
-fixes per language as a glossary.
+keeps every language's text field by field (`textFields`, paths in `setPath`'s format).
 
 - A switch (`switchLanguage` in `app/page.tsx`) photographs the screen into the current language
   (`snapshot`), takes from memory every field the target already has whose original has not changed
-  (fixes included, nothing re-sent), and translates only the rest through `/api/translate`, in
+  (edits included, nothing re-sent), and translates only the rest through `/api/translate`, in
   batches of 15, six at a time (a two-pager in about 5 s). Undo history is cleared by a switch.
-- A field edited in a translation is kept as it is; the words it replaced become glossary rules
-  (`diffTerms`) that go into every later translation into that language, so a fix also comes back
-  in new or retranslated text. The glossary is not shown in the UI (Mario: it made the menu
-  complicated); `DROP_TERM` exists for when it is.
+- A text changed by hand in a translated language shows a choice (`components/EditChoice.tsx`):
+  **Keep my version**, the default, so ignoring it never loses the edit; or **Use the translation**,
+  which puts back the translation as it came (`Field.machine`, `translationOf`) as an ordinary,
+  undoable edit. "Edited" means different from that translation, so a text put back is a
+  translation again. No glossary and no word rules for now (Mario, 6 Oct 2026: a per-language
+  rules system comes later, designed on its own).
 - A slide whose shape changed (a point added or removed) is translated afresh from the screen,
   because paths are positions (`shapeOf`).
 - New generation and Edit with AI write in the language on screen (`outputLanguage`), and a new

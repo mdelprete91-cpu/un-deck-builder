@@ -7,9 +7,8 @@ export const maxDuration = 120;
 /**
  * Translates a batch of a deck's texts (lib/slides/i18n.ts), field by field,
  * for the language switch. The deck's model, reasoning off, strict schema.
- * Mario's fixes for the target language come in as `glossary` and are used
- * as written; a field he had reworded by hand comes with `previous`, his
- * wording, to keep where the meaning has not changed.
+ * A field reworded by hand whose original then changed comes with
+ * `previous`, the user's wording, to keep where the meaning has not changed.
  */
 const MAX_ITEMS = 160;
 const MAX_TEXT = 3000;
@@ -40,12 +39,11 @@ RULES:
 - Keep the form: a line that starts with "- " keeps it; line breaks stay where they are; a short label stays short; a text of one or two words stays one or two words.
 - An item may say "highlight of" another item: its translation must be copied word for word from that other item's translation.
 - No em or en dashes. No added words, no explanations.
-- When an item has "previous", that is the user's own wording for this text in ${LANG_NAMES[to]}: keep it wherever the meaning of the new text has not changed.
-- When a GLOSSARY is given, it lists words the user corrected in earlier ${LANG_NAMES[to]} translations of this presentation: wherever you would write the left-hand words, write the right-hand ones instead, with the grammar around them adjusted.`;
+- When an item has "previous", that is the user's own wording for this text in ${LANG_NAMES[to]}: keep it wherever the meaning of the new text has not changed.`;
 }
 
 export async function POST(request: Request): Promise<Response> {
-  let body: { from?: unknown; to?: unknown; glossary?: unknown; items?: unknown };
+  let body: { from?: unknown; to?: unknown; items?: unknown };
   try {
     body = (await request.json()) as typeof body;
   } catch {
@@ -64,12 +62,6 @@ export async function POST(request: Request): Promise<Response> {
         }))
     : [];
   if (!items.length) return Response.json({ items: [] });
-  const glossary = Array.isArray(body.glossary)
-    ? body.glossary
-        .filter((g): g is { from: string; to: string } => !!g && typeof g.from === "string" && typeof g.to === "string")
-        .slice(0, 200)
-        .map((g) => `"${g.from.slice(0, 80)}" -> "${g.to.slice(0, 80)}"`)
-    : [];
   if (!process.env.OPENAI_API_KEY) return new Response("OPENAI_API_KEY is not configured", { status: 500 });
 
   const client = new OpenAI({ maxRetries: 3 });
@@ -80,7 +72,7 @@ export async function POST(request: Request): Promise<Response> {
       input: [
         {
           role: "user",
-          content: `From ${LANG_NAMES[body.from as Lang]} into ${LANG_NAMES[body.to]}.${glossary.length ? `\n\nGLOSSARY (your earlier wording -> the user's correction, both in ${LANG_NAMES[body.to]}):\n${glossary.join("\n")}` : ""}\n\nItems (JSON):\n${JSON.stringify(items)}`,
+          content: `From ${LANG_NAMES[body.from as Lang]} into ${LANG_NAMES[body.to]}.\n\nItems (JSON):\n${JSON.stringify(items)}`,
         },
       ],
       text: { format: { type: "json_schema", name: "translation", schema: SCHEMA as unknown as Record<string, unknown>, strict: true } },
