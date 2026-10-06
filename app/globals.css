@@ -582,6 +582,16 @@ body {
   border-radius: 4px;
 }
 
+/* A block being dragged, and the one that just landed after a move. */
+.page-root [data-block].block-dragging {
+  opacity: 0.35;
+}
+.page-root [data-block].block-landed {
+  outline-color: rgba(39, 122, 255, 0.9);
+  background: rgba(39, 122, 255, 0.06);
+  transition: outline-color 0.6s, background-color 0.6s;
+}
+
 /* Two-pager: the line where a page that runs too long is cut, and how much
    has to go. Editor chrome only, never in the markup that prints. */
 .page-root .page-over {

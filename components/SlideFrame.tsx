@@ -4,7 +4,7 @@ import { mountAura } from "@/lib/slides/aura-live";
 import { lucideSvg } from "@/lib/slides/icons";
 import { measureFlow } from "@/lib/slides/pages/fit";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { ArrowDown, ArrowUp, ListPlus, Plus, Sparkles, Trash2 } from "lucide-react";
+import { ArrowDown, ArrowUp, GripVertical, ListPlus, Plus, Sparkles, Trash2 } from "lucide-react";
 import Button from "@/components/Button";
 import { autofitAll, refitNode } from "@/lib/slides/autofit";
 import type { ImagePos } from "@/lib/slides/schema";
@@ -207,7 +207,12 @@ export default function SlideFrame({
    * reach (Mario, 6 Oct 2026: the side bar is the page's only bar).
    */
   const [hoverBlock, setHoverBlock] = useState<number | null>(null);
-  const [blockTops, setBlockTops] = useState<number[]>([]);
+  /** Each block's top and height in the frame's coordinates (screen px). */
+  const [blockRects, setBlockRects] = useState<{ top: number; height: number }[]>([]);
+  /** A move in flight: where the blocks were, so the new order can slide in from there. */
+  const pendingMove = useRef<{ from: number; to: number; rects: { top: number; height: number }[] } | null>(null);
+  /** Dragging a block by the grip: which one, and the gap it would drop into. */
+  const [drag, setDrag] = useState<{ from: number; gap: number } | null>(null);
   const barTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   // A short grace period, so the mouse can travel from the block to the bar.
   const leaveBlock = () => {
@@ -544,10 +549,43 @@ export default function SlideFrame({
           node.removeEventListener("mouseleave", onLeave);
         });
       });
-      // Where each block starts, for the side bar, once this frame is laid out.
+      // A block just moved: every block slides from where it was to where it
+      // is now (FLIP), so the eye follows the moved one instead of losing it.
+      const moved = pendingMove.current;
+      pendingMove.current = null;
+      const wrapNow = containerRef.current?.getBoundingClientRect();
+      if (moved && wrapNow && moved.rects.length === blocks.length) {
+        const order = blocks.map((_, k) => k);
+        order.splice(moved.to, 0, order.splice(moved.from, 1)[0]);
+        const zoom = stage.getBoundingClientRect().height / stage.offsetHeight || 1;
+        blocks.forEach((node, k) => {
+          const was = moved.rects[order[k]];
+          const dy = (was.top - (node.getBoundingClientRect().top - wrapNow.top)) / zoom;
+          if (Math.abs(dy) < 0.5) return;
+          node.style.transition = "none";
+          node.style.transform = `translateY(${dy}px)`;
+        });
+        void stage.offsetHeight;
+        blocks.forEach((node) => {
+          node.style.transition = "transform 320ms cubic-bezier(0.16, 1, 0.3, 1)";
+          node.style.transform = "";
+        });
+        const landed = blocks[moved.to];
+        landed?.classList.add("block-landed");
+        const t = setTimeout(() => landed?.classList.remove("block-landed"), 900);
+        cleanups.push(() => clearTimeout(t));
+      }
+      // Where each block sits, for the side bar, once this frame is laid out.
       const frame = requestAnimationFrame(() => {
         const wrap = containerRef.current?.getBoundingClientRect();
-        if (wrap) setBlockTops(blocks.map((n) => n.getBoundingClientRect().top - wrap.top));
+        // From the layout, not the painted box: right after a move the
+        // blocks are still sliding, and their painted place is the old one.
+        const flow = blocks[0]?.offsetParent as HTMLElement | null;
+        const zoom = stage.getBoundingClientRect().height / stage.offsetHeight || 1;
+        if (wrap && flow) {
+          const origin = flow.getBoundingClientRect().top - wrap.top;
+          setBlockRects(blocks.map((n) => ({ top: origin + n.offsetTop * zoom, height: n.offsetHeight * zoom })));
+        }
       });
       cleanups.push(() => cancelAnimationFrame(frame));
     }
@@ -749,65 +787,116 @@ export default function SlideFrame({
           }}
         />
       </div>
-      {editable && variant === "page" && onMoveBlock && scale > 0 && blockTops.length > 0 && (() => {
-        const count = blockTops.length;
-        const index = Math.min(hoverBlock ?? focusedBlock ?? 0, count - 1);
+      {editable && variant === "page" && onMoveBlock && scale > 0 && blockRects.length > 0 && (() => {
+        const count = blockRects.length;
+        const index = Math.min(drag?.from ?? hoverBlock ?? focusedBlock ?? 0, count - 1);
         const canItem = canAddBlockItem?.(index) ?? false;
-        const height = 46 * (canItem ? 6 : 5) + 12;
+        const height = 46 * (canItem ? 7 : 6) + 12;
+        const pageLeft = (box.w - size.w * scale) / 2;
+        // Move a block: the side bar goes with it, and it stays the selected one.
+        const move = (from: number, to: number) => {
+          if (to < 0 || to >= count || to === from) return;
+          pendingMove.current = { from, to, rects: blockRects };
+          setHoverBlock(to);
+          onFocusBlock?.(to);
+          onMoveBlock(from, to);
+        };
+        // The gap a pointer at this height drops into: 0 is above the first block.
+        const gapAt = (y: number) => blockRects.filter((r) => r.top + r.height / 2 < y).length;
+        const gapY = (gap: number) =>
+          gap === 0 ? blockRects[0].top - 6 : blockRects[gap - 1].top + blockRects[gap - 1].height + 6;
         return (
-          <div
-            // Beside the sheet, level with the block: the slide bar's pill
-            // stood upright (DESIGN.md "Block toolbar").
-            className="absolute z-20 flex flex-col gap-1.5 rounded-full border border-hairline-light bg-surface p-1.5 shadow-float transition-[top] duration-200 ease-out"
-            style={{
-              left: (box.w + size.w * scale) / 2 + 12,
-              top: Math.max(0, Math.min(blockTops[index] ?? 0, box.h - height)),
-            }}
-            onMouseEnter={() => barTimer.current && clearTimeout(barTimer.current)}
-            onMouseLeave={leaveBlock}
-          >
-            {onEditWithAi && (
-              <Button variant="primary" iconOnly icon={Sparkles} onClick={onEditWithAi} title="Edit this page with AI" aria-label="Edit with AI" />
-            )}
-            <Button
-              iconOnly
-              icon={ArrowUp}
-              disabled={index === 0}
-              onClick={() => onMoveBlock(index, index - 1)}
-              title="Move this block up"
-              aria-label="Move this block up"
-            />
-            <Button
-              iconOnly
-              icon={ArrowDown}
-              disabled={index >= count - 1}
-              onClick={() => onMoveBlock(index, index + 1)}
-              title="Move this block down"
-              aria-label="Move this block down"
-            />
-            <Button iconOnly icon={Plus} onClick={() => onAddBlock?.(index + 1)} title="Add a block below" aria-label="Add a block below" />
-            {canItem && (
+          <>
+            <div
+              // Beside the sheet, level with the block: the slide bar's pill
+              // stood upright (DESIGN.md "Block toolbar").
+              className="absolute z-20 flex flex-col gap-1.5 rounded-full border border-hairline-light bg-surface p-1.5 shadow-float transition-[top] duration-300 ease-out"
+              style={{
+                left: pageLeft + size.w * scale + 12,
+                top: Math.max(0, Math.min(blockRects[index]?.top ?? 0, box.h - height)),
+              }}
+              onMouseEnter={() => barTimer.current && clearTimeout(barTimer.current)}
+              onMouseLeave={leaveBlock}
+            >
+              {onEditWithAi && (
+                <Button variant="primary" iconOnly icon={Sparkles} onClick={onEditWithAi} title="Edit this page with AI" aria-label="Edit with AI" />
+              )}
               <Button
                 iconOnly
-                icon={ListPlus}
-                onClick={() => onAddBlockItem?.(index)}
-                title="Add an item to this block (a paragraph, a card, a row)"
-                aria-label="Add an item to this block"
+                icon={GripVertical}
+                title="Drag to move this block"
+                aria-label="Drag to move this block (or use the arrows)"
+                className="cursor-grab touch-none active:cursor-grabbing"
+                onPointerDown={(e) => {
+                  e.preventDefault();
+                  (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+                  stageRef.current?.querySelector(`[data-block="${index}"]`)?.classList.add("block-dragging");
+                  setDrag({ from: index, gap: index });
+                }}
+                onPointerMove={(e) => {
+                  if (!drag) return;
+                  const wrap = containerRef.current?.getBoundingClientRect();
+                  if (wrap) setDrag({ from: drag.from, gap: gapAt(e.clientY - wrap.top) });
+                }}
+                onPointerUp={() => {
+                  if (!drag) return;
+                  stageRef.current?.querySelectorAll(".block-dragging").forEach((n) => n.classList.remove("block-dragging"));
+                  const to = drag.gap > drag.from ? drag.gap - 1 : drag.gap;
+                  setDrag(null);
+                  move(drag.from, to);
+                }}
+                onPointerCancel={() => {
+                  stageRef.current?.querySelectorAll(".block-dragging").forEach((n) => n.classList.remove("block-dragging"));
+                  setDrag(null);
+                }}
+              />
+              <Button
+                iconOnly
+                icon={ArrowUp}
+                disabled={index === 0}
+                onClick={() => move(index, index - 1)}
+                title="Move this block up"
+                aria-label="Move this block up"
+              />
+              <Button
+                iconOnly
+                icon={ArrowDown}
+                disabled={index >= count - 1}
+                onClick={() => move(index, index + 1)}
+                title="Move this block down"
+                aria-label="Move this block down"
+              />
+              <Button iconOnly icon={Plus} onClick={() => onAddBlock?.(index + 1)} title="Add a block below" aria-label="Add a block below" />
+              {canItem && (
+                <Button
+                  iconOnly
+                  icon={ListPlus}
+                  onClick={() => onAddBlockItem?.(index)}
+                  title="Add an item to this block (a paragraph, a card, a row)"
+                  aria-label="Add an item to this block"
+                />
+              )}
+              <Button
+                variant="danger"
+                iconOnly
+                icon={Trash2}
+                disabled={count <= 1}
+                onClick={() => {
+                  onDeleteBlock?.(index);
+                  setHoverBlock(null);
+                }}
+                title="Remove this block"
+                aria-label="Remove this block"
+              />
+            </div>
+            {drag && drag.gap !== drag.from && drag.gap !== drag.from + 1 && (
+              // Where the block will land: a line across the text width.
+              <div
+                className="pointer-events-none absolute z-20 h-[3px] rounded-full bg-giga"
+                style={{ left: pageLeft + 24 * (4 / 3) * scale, width: (595 - 48) * (4 / 3) * scale, top: gapY(drag.gap) - 1.5 }}
               />
             )}
-            <Button
-              variant="danger"
-              iconOnly
-              icon={Trash2}
-              disabled={count <= 1}
-              onClick={() => {
-                onDeleteBlock?.(index);
-                setHoverBlock(null);
-              }}
-              title="Remove this block"
-              aria-label="Remove this block"
-            />
-          </div>
+          </>
         );
       })()}
       {editable && (
