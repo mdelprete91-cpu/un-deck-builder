@@ -111,7 +111,7 @@ const CYAN_PALETTE = {
 export const BRANDS: Record<BrandId, BrandTheme> = {
   did: {
     id: "did",
-    label: "UNICEF Digital Impact Division",
+    label: "UNICEF DID",
     ...CYAN_PALETTE,
     footerLabel: "Digital Impact Division",
     // Unboxed lockup (no cyan square), slightly scaled up to match the others
