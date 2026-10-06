@@ -80,7 +80,7 @@ export function stagesSlide(s: Slide, t: BrandTheme, mode: "progress" | "timelin
               ? `background:#FFFFFF;border:4px solid ${NEXT_RING};box-sizing:border-box;`
               : `background:#FFFFFF;border:5px solid var(--accent);box-sizing:border-box;`;
       const inner = state === "done" ? TICK : state === "current" ? `<div style="width:18px;height:18px;border-radius:50%;background:var(--accent);"></div>` : "";
-      const status = state === "done" ? "Done" : state === "current" ? "In progress" : state === "next" ? "Next" : "";
+      const status = state === "done" ? (t.ui?.done ?? "Done") : state === "current" ? (t.ui?.inProgress ?? "In progress") : state === "next" ? (t.ui?.next ?? "Next") : "";
       const number = String(i + 1).padStart(2, "0");
       const accentText = state === "done" || state === "current" || state === "plain";
       const left = Math.round(100 + colW * i);

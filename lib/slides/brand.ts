@@ -1,3 +1,4 @@
+import type { UiStrings } from "./i18n";
 export type BrandId = "giga" | "unicef" | "did" | "inclusion";
 
 export interface BrandTheme {
@@ -35,6 +36,12 @@ export interface BrandTheme {
     surface: "light" | "dark";
   };
   footerLabel: string;
+  /**
+   * The words a renderer draws itself ("Done", "Thank you!"), in the deck's
+   * language (lib/slides/i18n.ts UI_STRINGS). Set by the editor per deck,
+   * absent on the brand constants: English then.
+   */
+  ui?: UiStrings;
   /** Logo on light surfaces (black variant) */
   logoLight: { src: string; filter?: string; scale?: number };
   /** Logo on dark/colored surfaces (white variant) */

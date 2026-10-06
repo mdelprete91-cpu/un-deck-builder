@@ -54,7 +54,7 @@ export function agenda(s: Slide, t: BrandTheme): string {
     t,
     "var(--accent)",
     "#FFFFFF",
-    `<div class="ar" ${ed("title", 780)} style="position:absolute;left:100px;top:100px;width:770px;font-family:${MANROPE};font-weight:500;font-size:144px;line-height:1.05;letter-spacing:-.02em;color:#FFFFFF;">${esc(s.title ?? "Agenda")}</div>` +
+    `<div class="ar" ${ed("title", 780)} style="position:absolute;left:100px;top:100px;width:770px;font-family:${MANROPE};font-weight:500;font-size:144px;line-height:1.05;letter-spacing:-.02em;color:#FFFFFF;">${esc(s.title ?? t.ui?.agenda ?? "Agenda")}</div>` +
       `<div data-fit="790" style="position:absolute;left:920px;top:100px;width:925px;box-sizing:border-box;padding-right:28px;display:flex;flex-direction:column;gap:.3em;font-family:${MANROPE};font-weight:600;font-size:48px;line-height:1.12;letter-spacing:-.02em;color:#FFFFFF;">${items}</div>` +
       coverFooterDark(t),
   );
@@ -226,7 +226,7 @@ export function partners(s: Slide, t: BrandTheme): string {
     t,
     "var(--accent)",
     "#FFFFFF",
-    `<div class="ar" ${ed("title", 340)} style="position:absolute;left:100px;top:100px;width:810px;font-family:${MANROPE};font-weight:500;font-size:144px;line-height:1;letter-spacing:-.02em;color:#FFFFFF;white-space:pre-line;">${esc(s.title ?? "Our partners")}</div>` +
+    `<div class="ar" ${ed("title", 340)} style="position:absolute;left:100px;top:100px;width:810px;font-family:${MANROPE};font-weight:500;font-size:144px;line-height:1;letter-spacing:-.02em;color:#FFFFFF;white-space:pre-line;">${esc(s.title ?? t.ui?.partners ?? "Our partners")}</div>` +
       cells,
   );
 }
@@ -264,7 +264,7 @@ export function thankYou(s: Slide, t: BrandTheme): string {
     "var(--accent)",
     "#FFFFFF",
     aura("closing") +
-      `<div class="ar" ${ed("title")} style="position:absolute;left:100px;top:100px;width:1720px;font-family:${MANROPE};font-weight:500;font-size:144px;line-height:1;letter-spacing:-.02em;color:#FFFFFF;">${esc(s.title ?? "Thank you!")}</div>` +
+      `<div class="ar" ${ed("title")} style="position:absolute;left:100px;top:100px;width:1720px;font-family:${MANROPE};font-weight:500;font-size:144px;line-height:1;letter-spacing:-.02em;color:#FFFFFF;">${esc(s.title ?? t.ui?.thanks ?? "Thank you!")}</div>` +
       contacts +
       `<div style="position:absolute;left:100px;top:898px;width:1720px;opacity:.8;display:flex;gap:40px;">${channels}</div>`,
   );

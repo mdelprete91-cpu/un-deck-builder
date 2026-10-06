@@ -1,3 +1,4 @@
+import { sanitizeLang } from "./i18n";
 import { MAX_SLIDES as MAX_GENERATED } from "./brief";
 import { z } from "zod";
 import { DEFAULT_DECK_NAME } from "./state";
@@ -53,6 +54,8 @@ const envelopeSchema = z.object({
     count: z.number().optional(),
     chapters: z.boolean().optional(),
     activeIndex: z.number().optional(),
+    // Added 6 Oct 2026, optional both ways: the language memory and term fixes.
+    lang: z.unknown().optional(),
     slides: z.array(z.unknown()),
   }),
 });
@@ -80,6 +83,7 @@ export function deckStateScript(state: DeckState): string {
       count: state.count,
       chapters: state.chapters,
       activeIndex: state.activeIndex,
+      lang: state.lang,
       slides: state.slides,
     },
   };
@@ -185,6 +189,7 @@ export function parseDeckFile(html: string): DeckFileResult {
     brief: raw.brief ?? "",
     count: Math.min(MAX_GENERATED, Math.max(1, Math.trunc(raw.count ?? 8))),
     chapters: raw.chapters ?? true,
+    lang: sanitizeLang(raw.lang),
   };
   // An unknown brand leaves the current one alone rather than picking for the user.
   if (isBrandId(raw.brandId)) state.brandId = raw.brandId;

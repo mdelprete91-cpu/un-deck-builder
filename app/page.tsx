@@ -1,7 +1,7 @@
 "use client";
 
 import { ChartColumn, ChevronDown, ChevronUp, Play, Copy, History, Image as ImageIcon, LayoutTemplate, LoaderCircle, Plus, Redo2, Superscript, Trash2, Undo2, Upload } from "lucide-react";
-import { useEffect, useLayoutEffect, useReducer, useRef, useState, type CSSProperties } from "react";
+import { useEffect, useLayoutEffect, useMemo, useReducer, useRef, useState, type CSSProperties } from "react";
 import { BRANDS } from "@/lib/slides/brand";
 import { DEFAULT_DECK_NAME, deckReducer, initialDeckState, readPath } from "@/lib/slides/state";
 import { ensureId, isChartLayout, isPage, normalizeSlide, overLimits, PRIMARY_ARRAY, type LayoutId, type Slide, type SlideContent } from "@/lib/slides/schema";
@@ -11,10 +11,13 @@ import { fitPage, type Resizer } from "@/lib/slides/pages/fit";
 import { dropStatEchoes, fillStatFigures, isMastheadLine, putBackLines } from "@/lib/slides/pages/restore";
 import { fillPagePhotos } from "@/lib/slides/library";
 import AddBlockMenu from "@/components/AddBlockMenu";
+import LanguageMenu from "@/components/LanguageMenu";
+import { apply, langFromName, LANG_LABELS, LANG_NAMES, plan, remember, snapshot, textFields, UI_STRINGS, type DeckLang, type Glossary, type Job, type Lang } from "@/lib/slides/i18n";
+import { undash } from "@/lib/slides/pages/schema";
 import { normalizePage, PAGE_BLOCK_LIMITS, type PageBlock } from "@/lib/slides/pages/schema";
 import { defaultContent, denseContent } from "@/lib/slides/defaults";
 import { familyOf } from "@/lib/slides/families";
-import { countFromBrief, seriesFromBrief, uniformFromBrief, MIN_SLIDES_WITH_CHAPTERS, TIERS_REQUEST } from "@/lib/slides/brief";
+import { countFromBrief, languageOf, seriesFromBrief, uniformFromBrief, MIN_SLIDES_WITH_CHAPTERS, TIERS_REQUEST } from "@/lib/slides/brief";
 import { makeRhythm, stripInventedYear } from "@/lib/slides/rhythm";
 import { presetStack } from "@/lib/slides/pages/presets";
 import { clearSaved, openSession, saveDeck } from "@/lib/slides/storage";
@@ -97,7 +100,9 @@ export default function Studio() {
   /** The How it works dialog: the create video on an empty editor, the edit one with a deck. */
   const [help, setHelp] = useState<"create" | "edit" | null>(null);
   const abortRef = useRef<AbortController | null>(null);
-  const theme = BRANDS[state.brandId];
+  // The brand, with the words its renderers draw themselves in the deck's language.
+  const deckLangCode = state.lang?.current ?? "en";
+  const theme = useMemo(() => ({ ...BRANDS[state.brandId], ui: UI_STRINGS[deckLangCode] }), [state.brandId, deckLangCode]);
   const twoPager = state.format === "two-pager";
   const pageSize = twoPager ? A4_PX : { w: 1920, h: 1080 };
   const active = state.slides[state.activeIndex];
@@ -270,7 +275,8 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
         method: "POST",
         headers: { "Content-Type": "application/json" },
         // The slide-by-slide reading of a PowerPoint is the editor's: its text already travels.
-        body: JSON.stringify(body, (k, v) => (k === "sourceSlides" ? undefined : v)),
+        // A deck switched to another language is written in it from now on.
+        body: JSON.stringify(state.lang ? { ...body, outputLanguage: LANG_NAMES[state.lang.current] } : body, (k, v) => (k === "sourceSlides" ? undefined : v)),
         signal: controller.signal,
       });
       if (!res.ok || !res.body) {
@@ -857,6 +863,87 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
    * block. No rhythm pass and no merge: the slides are the source's, one to
    * one; only empty photo slots are filled and the closing slide added.
    */
+  /**
+   * The deck's language as it stands: absent until the first switch, when the
+   * deck is taken to be in the language its own text is written in.
+   */
+  const deckLang = (): DeckLang => {
+    if (state.lang) return state.lang;
+    const written = langFromName(languageOf(state.slides.flatMap((s) => textFields(s).map((f) => f.text)).join(" ")));
+    return { source: written, current: written, texts: {}, glossary: {} };
+  };
+
+  /** The jobs of a switch through /api/translate, in batches, by the language they are written in. */
+  const translateJobs = async (jobs: Job[], to: Lang, glossary: Glossary[]): Promise<Map<string, string>> => {
+    const done = new Map<string, string>();
+    // Small batches side by side: a call's time grows with its output, so a
+    // two-pager in one call of forty fields took 40 s, in batches of 15 about 5.
+    const BATCH = 15;
+    const batches: Job[][] = [];
+    for (const from of new Set(jobs.map((j) => j.from))) {
+      const group = jobs.filter((j) => j.from === from);
+      for (let i = 0; i < group.length; i += BATCH) batches.push(group.slice(i, i + BATCH));
+    }
+    const run = async (batch: Job[]) => {
+      // A page title's accent phrase is translated beside its heading, and must stay inside it.
+      const idOf = (j: Job) => String(jobs.indexOf(j));
+      const items = batch.map((j) => {
+        const heading = j.path.endsWith(".highlight") ? batch.find((h) => h.slide === j.slide && h.path === j.path.replace(/highlight$/, "heading")) : undefined;
+        return { id: idOf(j), text: j.text, ...(j.previous ? { previous: j.previous } : {}), ...(heading ? { highlightOf: idOf(heading) } : {}) };
+      });
+      const res = await fetch("/api/translate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ from: batch[0].from, to, glossary, items }),
+      });
+      if (!res.ok) throw new Error((await res.text().catch(() => "")) || `Translation failed (${res.status})`);
+      const { items: out } = (await res.json()) as { items: { id: string; text: string }[] };
+      for (const x of out) {
+        const j = jobs[Number(x.id)];
+        if (j && x.text.trim()) done.set(`${j.slide}\u0000${j.path}`, undash(x.text));
+      }
+    };
+    for (let i = 0; i < batches.length; i += 6) await Promise.all(batches.slice(i, i + 6).map(run));
+    return done;
+  };
+
+  /**
+   * The whole deck into another language (Mario, 6 Oct 2026). What the memory
+   * already has in that language comes back as it was, his fixes included;
+   * only new fields and fields whose original changed are translated, with
+   * his term fixes for that language. `prune` drops the remembered
+   * translations he never touched first, for a full retranslation.
+   */
+  const switchLanguage = async (to: Lang, prune = false) => {
+    if (translating || state.status === "generating" || fitting || !state.slides.length) return;
+    const lang0 = deckLang();
+    if (to === lang0.current && !prune) return;
+    setTranslating(to);
+    try {
+      let texts = snapshot(state.slides, lang0);
+      if (prune && texts[to]) {
+        const kept: NonNullable<DeckLang["texts"][Lang]> = {};
+        for (const [id, fields] of Object.entries(texts[to]!)) {
+          kept[id] = Object.fromEntries(Object.entries(fields).filter(([path, f]) => path.startsWith("#") || f.edited));
+        }
+        texts = { ...texts, [to]: kept };
+      }
+      const { ready, jobs } = plan(state.slides, lang0, texts, to);
+      const translated = jobs.length ? await translateJobs(jobs, to, lang0.glossary[to] ?? []) : new Map<string, string>();
+      // A batch that came back short leaves those texts as they were, said rather than hidden.
+      const missing = jobs.length - jobs.filter((j) => translated.has(`${j.slide}\u0000${j.path}`)).length;
+      const slides = apply(state.slides, ready, translated);
+      const lang: DeckLang = { ...lang0, current: to, texts: remember(slides, texts, lang0, to, jobs, translated) };
+      dispatch({ type: "SET_LANGUAGE", slides, lang });
+      if (twoPager) await fitPages(slides, 0, { keepText: true });
+      if (missing) dispatch({ type: "GENERATION_ERROR", error: `${missing} text${missing === 1 ? " was" : "s were"} not translated and stayed as they were. Switch again to retry.` });
+    } catch (err) {
+      dispatch({ type: "GENERATION_ERROR", error: `Could not translate the deck: ${(err as Error).message}` });
+    } finally {
+      setTranslating(null);
+    }
+  };
+
   /**
    * Replicate on a two-pager (Mario, 6 Oct 2026: the source fidelity always
    * shows after a replica, two-pagers included). The document is rebuilt in
@@ -1547,6 +1634,8 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
   const [iconPicker, setIconPicker] = useState<string | null>(null);
   /** Two-pager: the fit pass is measuring and resizing the pages (lib/slides/pages/fit.ts). */
   const [fitting, setFitting] = useState(false);
+  /** The deck is being translated into this language (switchLanguage). */
+  const [translating, setTranslating] = useState<Lang | null>(null);
   /** Two-pager: where the block menu inserts, while it is open. */
   const [addBlockAt, setAddBlockAt] = useState<number | null>(null);
   // The image picker knows which slot it was opened for: a page has several.
@@ -1724,6 +1813,14 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
               pptxProgress={pptxProgress}
               onOpenDeckFile={openDeckFilePicker}
               twoPager={twoPager}
+              languageMenu={
+                <LanguageMenu
+                  current={deckLang().current}
+                  source={deckLang().source}
+                  busy={!!translating || state.status === "generating" || fitting}
+                  onSwitch={(to) => void switchLanguage(to)}
+                />
+              }
             />
             {dataPanelOpen && active && isChart && (
               <ChartDataPanel
@@ -1847,11 +1944,11 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
                       landing slide and the aurora never restarts. */}
                   {/* A two-pager's actions live in the side bar beside the page
                       (SlideFrame): the bottom pill only says it is busy. */}
-                  {(!twoPager || state.status === "generating" || fitting) && (
+                  {(!twoPager || state.status === "generating" || fitting || translating) && (
                   <SlideActions
                     key={state.status === "generating" ? "generating" : active.id}
-                    busy={state.status === "generating" || fitting}
-                    busyLabel={fitting ? "Fitting the pages…" : undefined}
+                    busy={state.status === "generating" || fitting || !!translating}
+                    busyLabel={translating ? `Translating to ${LANG_LABELS[translating]}…` : fitting ? "Fitting the pages…" : undefined}
                     flightRef={flightRef}
                     onEditWithAi={() => setAiModal(true)}
                     canAddItem={canAddItem}
@@ -2092,6 +2189,7 @@ function Toolbar({
   pptxProgress,
   onOpenDeckFile,
   twoPager = false,
+  languageMenu,
 }: {
   name: string;
   onRename: (name: string) => void;
@@ -2107,6 +2205,8 @@ function Toolbar({
   pptxProgress: { done: number; total: number } | null;
   onOpenDeckFile: () => void;
   twoPager?: boolean;
+  /** The deck's language (components/LanguageMenu.tsx), first of the controls. */
+  languageMenu?: React.ReactNode;
 }) {
   const [exportOpen, setExportOpen] = useState(false);
   useEffect(() => {
@@ -2124,6 +2224,7 @@ function Toolbar({
     <div className="flex items-center gap-3 border-b border-hairline bg-surface px-4 py-2.5">
       <DeckName name={name} onRename={onRename} />
       <div className="ml-auto flex shrink-0 items-center gap-2" data-tour="download">
+        {languageMenu}
         <Button variant="secondary" icon={Undo2} onClick={onUndo} disabled={!canUndo} title="Undo (Cmd+Z)">
           Undo
         </Button>

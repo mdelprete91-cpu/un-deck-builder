@@ -207,7 +207,7 @@ export async function buildHtmlDeck(
 
   // 3. Assemble the document
   const html = `<!DOCTYPE html>
-<html lang="en">
+<html lang="${state.lang?.current ?? "en"}">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">

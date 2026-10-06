@@ -120,6 +120,8 @@ interface GenerateBody {
   chapters?: boolean;
   /** The brief's language when it is not English (languageOf in brief.ts): named in the user turn. */
   language?: string;
+  /** The deck's language once it has been switched (lib/slides/i18n.ts): wins over the brief's. */
+  outputLanguage?: string;
   /** The user's answers to the questions a short brief raised (compileInsights): they rank with the brief. */
   briefNotes?: string;
 }

@@ -1032,6 +1032,29 @@ section, hero, photo). A pick is `REPLACE_SLIDE` with the same merge as a regene
   the slide in that layout. So the switcher's targets are reachable here whatever
   `SHOW_LAYOUT_SWITCH` says. The dialog states that photos and images are never edited by the AI.
 
+## Languages
+
+The whole deck switches language from the toolbar (English, Español, Français, Português; a deck
+written in Italian or German keeps its own as "original"), never one slide (Mario, 6 Oct 2026).
+`lib/slides/i18n.ts` holds it: `state.slides` is always the language on screen, and `state.lang`
+keeps every language's text field by field (`textFields`, paths in `setPath`'s format) and Mario's
+fixes per language as a glossary.
+
+- A switch (`switchLanguage` in `app/page.tsx`) photographs the screen into the current language
+  (`snapshot`), takes from memory every field the target already has whose original has not changed
+  (fixes included, nothing re-sent), and translates only the rest through `/api/translate`, in
+  batches of 15, six at a time (a two-pager in about 5 s). Undo history is cleared by a switch.
+- A field edited in a translation is kept as it is; the words it replaced become glossary rules
+  (`diffTerms`) that go into every later translation into that language, so a fix also comes back
+  in new or retranslated text. The glossary is not shown in the UI (Mario: it made the menu
+  complicated); `DROP_TERM` exists for when it is.
+- A slide whose shape changed (a point added or removed) is translated afresh from the screen,
+  because paths are positions (`shapeOf`).
+- New generation and Edit with AI write in the language on screen (`outputLanguage`), and a new
+  deck takes it as its source. The memory travels in the session and the deck file
+  (`sanitizeLang` on the way in). Renderer words ("Done", "Thank you!") follow `theme.ui`.
+- Latin scripts only: the self-hosted fonts are latin and latin-ext.
+
 ## Two-pagers
 
 A deck is one of two formats, carried on `DeckState.format`: `slides` (16:9) or `two-pager`, the

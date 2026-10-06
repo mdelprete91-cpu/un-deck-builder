@@ -11,6 +11,7 @@ import { newItem, defaultContent } from "./defaults";
 import { tierDefaultGrid } from "./layouts/tables";
 import { addPart, deleteModular, insertPoint, isModular } from "./modular";
 import type { BrandId } from "./brand";
+import { addTerms, diffTerms, type DeckLang, type Lang } from "./i18n";
 
 interface Snapshot {
   slides: Slide[];
@@ -58,6 +59,13 @@ export interface DeckState {
   startedAt?: number;
   past: Snapshot[];
   future: Snapshot[];
+  /**
+   * The deck's language (lib/slides/i18n.ts): the one on screen, the one it
+   * was written in, every language's text field by field, and Mario's fixes
+   * per language. Absent until the first switch: the deck is then in the
+   * language it was generated in.
+   */
+  lang?: DeckLang;
 }
 
 export const initialDeckState: DeckState = {
@@ -137,7 +145,11 @@ export type DeckAction =
   | { type: "STEP"; delta: number }
   | { type: "UNDO" }
   | { type: "REDO" }
-  | { type: "CLEAR" };
+  | { type: "CLEAR" }
+  /** The whole deck in another language, and the memory after the switch (app/page.tsx switchLanguage). */
+  | { type: "SET_LANGUAGE"; slides: Slide[]; lang: DeckLang }
+  /** Remove one of Mario's term fixes from a language's glossary. */
+  | { type: "DROP_TERM"; lang: Lang; from: string };
 
 /** Slide fields a ✕ may remove outright (DELETE_ITEM with a bare field name). */
 const FIELD_ITEMS: ReadonlySet<string> = new Set(["notes", "takeaway", "support", "subtitle"]);
@@ -266,6 +278,12 @@ function reduce(state: DeckState, action: DeckAction): DeckState {
         startedAt: Date.now(),
         slides: action.replace ? [] : state.slides,
         activeIndex: action.replace ? 0 : state.activeIndex,
+        // A new deck is written in the language on screen, and that is its
+        // source now; the fixes Mario made per language stay.
+        lang:
+          action.replace && state.lang
+            ? { source: state.lang.current, current: state.lang.current, texts: {}, glossary: state.lang.glossary }
+            : state.lang,
       };
     case "APPEND_SLIDE": {
       // No history push: generation is undone as a whole via GENERATION_START's snapshot.
@@ -358,7 +376,31 @@ function reduce(state: DeckState, action: DeckAction): DeckState {
       }
       const slides = [...state.slides];
       slides[action.index] = setPath(slide, action.path, action.value);
+      // A word fixed in a translation becomes a rule for every later
+      // translation into that language (Mario, 6 Oct 2026: never lose a fix).
+      const lang = state.lang;
+      if (lang && lang.current !== lang.source) {
+        const before = readPath(slide, action.path);
+        const terms = typeof before === "string" ? diffTerms(before, action.value) : [];
+        if (terms.length) {
+          return {
+            ...state,
+            ...remember(state),
+            slides,
+            lang: { ...lang, glossary: { ...lang.glossary, [lang.current]: addTerms(lang.glossary[lang.current], terms) } },
+          };
+        }
+      }
       return { ...state, ...remember(state), slides };
+    }
+    case "SET_LANGUAGE":
+      // Undo would put the other language's text back on these slides.
+      return { ...state, slides: action.slides, lang: action.lang, past: [], future: [] };
+    case "DROP_TERM": {
+      const lang = state.lang;
+      if (!lang) return state;
+      const list = (lang.glossary[action.lang] ?? []).filter((g) => g.from !== action.from);
+      return { ...state, lang: { ...lang, glossary: { ...lang.glossary, [action.lang]: list } } };
     }
     case "DELETE_ITEM": {
       // path like "blocks.2" — remove one element from the slide's item array

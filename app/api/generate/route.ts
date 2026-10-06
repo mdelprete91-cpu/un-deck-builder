@@ -105,7 +105,13 @@ export async function POST(request: Request): Promise<Response> {
     ...body,
     attachments: [...attachments, ...linked],
     // A replicated slide keeps the source's language, whatever the brief's.
-    language: body.mode === "replicate" ? undefined : languageOf(body.brief ?? ""),
+    // The deck's language once it has been switched (lib/slides/i18n.ts), else the brief's.
+    language:
+      typeof body.outputLanguage === "string" && /^(English|Spanish|French|Portuguese|Italian|German)$/.test(body.outputLanguage)
+        ? body.outputLanguage
+        : body.mode === "replicate"
+          ? undefined
+          : languageOf(body.brief ?? ""),
     briefNotes: typeof body.briefNotes === "string" ? body.briefNotes.slice(0, 2000) : undefined,
   };
   if (!body.brief?.trim() && !oneSlide) {

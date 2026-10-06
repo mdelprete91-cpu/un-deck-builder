@@ -1,3 +1,4 @@
+import { sanitizeLang } from "./i18n";
 import { channelsFor, isPage } from "./schema";
 import { DEFAULT_DECK_NAME } from "./state";
 import type { DeckState } from "./state";
@@ -19,6 +20,8 @@ interface Persisted {
   usage: DeckState["usage"];
   /** Added 22 Sep 2026, optional: the readout under How it works survives a reload. */
   lastRun?: DeckState["lastRun"];
+  /** Added 6 Oct 2026, optional: the deck's language memory and term fixes (lib/slides/i18n.ts). */
+  lang?: DeckState["lang"];
 }
 
 export interface OpenedSession {
@@ -45,6 +48,7 @@ export function saveDeck(state: DeckState): void {
       activeIndex: state.activeIndex,
       usage: state.usage,
       lastRun: state.lastRun,
+      lang: state.lang,
     };
     localStorage.setItem(KEY, JSON.stringify(payload));
   } catch {
@@ -110,6 +114,7 @@ function read(raw: string | null): Partial<DeckState> | null {
       activeIndex: parsed.activeIndex ?? 0,
       usage: parsed.usage ?? { inputTokens: 0, outputTokens: 0 },
       lastRun: parsed.lastRun,
+      lang: sanitizeLang(parsed.lang),
     };
   } catch {
     return null;
