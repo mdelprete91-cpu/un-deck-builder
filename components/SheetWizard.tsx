@@ -60,6 +60,8 @@ export default function SheetWizard({
   const Glyph = GLYPH[s.kind];
   const questions = analysis?.questions ?? [];
   const [step, setStep] = useState(0);
+  /** What is typed in a question's custom row, by question id, before it is a valid number. */
+  const [drafts, setDrafts] = useState<Record<string, string>>({});
   const answers = s.answers;
   const q: SheetQuestion | undefined = questions[step];
   const last = step >= questions.length - 1;
@@ -178,6 +180,7 @@ export default function SheetWizard({
                                 set(q.id, picked ? list.filter((x) => x !== opt) : [...list, opt]);
                               } else {
                                 set(q.id, picked ? "" : opt);
+                                if (q.custom) setDrafts((d) => ({ ...d, [q.id]: "" }));
                               }
                             }}
                             className={`flex min-h-10 ${detail ? "items-start" : "items-center"} gap-3 rounded-[10px] px-3 py-2 text-left text-sm transition-colors duration-100 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-giga/30 ${
@@ -206,6 +209,58 @@ export default function SheetWizard({
                           </button>
                         );
                       })}
+                      {q.custom && q.kind === "single" && (() => {
+                        const c = q.custom;
+                        const current = answers[q.id];
+                        const answered = typeof current === "string" && current !== "" && !q.options.includes(current);
+                        const draft = drafts[q.id] ?? (answered ? String(parseInt(current as string, 10)) : "");
+                        const picked = answered || (!!draft && !q.options.includes(current as string));
+                        const take = (v: string) => {
+                          setDrafts((d) => ({ ...d, [q.id]: v }));
+                          const n = parseInt(v, 10);
+                          set(q.id, Number.isFinite(n) && n >= c.min && n <= c.max ? `${n} ${c.unit}` : "");
+                        };
+                        return (
+                          // The number of your own: typed on the row, picked as you type.
+                          <label
+                            className={`flex min-h-10 items-start gap-3 rounded-[10px] px-3 py-2 text-left text-sm transition-colors duration-100 ${
+                              picked ? "bg-giga-tint text-giga" : "text-ink hover:bg-mist"
+                            }`}
+                          >
+                            <span
+                              aria-hidden
+                              className={`mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full border transition-colors duration-100 ${
+                                picked ? "border-giga bg-giga text-white" : "border-mist-deep bg-surface"
+                              }`}
+                            >
+                              {picked && <Check size={11} strokeWidth={3} aria-hidden />}
+                            </span>
+                            <span className="min-w-0 flex-1">
+                              <span className="flex items-center gap-2">
+                                <span className="font-medium">{c.label}</span>
+                                <input
+                                  type="number"
+                                  inputMode="numeric"
+                                  min={c.min}
+                                  max={c.max}
+                                  value={draft}
+                                  onChange={(e) => take(e.target.value)}
+                                  onFocus={() => draft && take(draft)}
+                                  placeholder="e.g. 16"
+                                  aria-label={`${c.label} number of ${c.unit}`}
+                                  className="h-8 w-20 rounded-lg border border-hairline bg-surface px-2 text-sm text-ink outline-none transition-shadow duration-150 placeholder:text-ink-faint focus:border-giga focus:ring-[3px] focus:ring-giga/15"
+                                />
+                                <span className={picked ? "text-giga/80" : "text-ink-muted"}>{c.unit}</span>
+                              </span>
+                              {c.detail && (
+                                <span className={`mt-0.5 block text-[13px] ${picked ? "text-giga/80" : "text-ink-muted"}`}>
+                                  {draft && !answered ? `Between ${c.min} and ${c.max}` : c.detail}
+                                </span>
+                              )}
+                            </span>
+                          </label>
+                        );
+                      })()}
                     </div>
                   )}
                 </div>

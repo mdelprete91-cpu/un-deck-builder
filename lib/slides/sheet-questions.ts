@@ -1,4 +1,4 @@
-import { MIN_SLIDES_WITH_CHAPTERS } from "./brief";
+import { MAX_SLIDES, MIN_SLIDES_WITH_CHAPTERS } from "./brief";
 /**
  * The questions a spreadsheet raises before it becomes a deck. The model
  * reads the workbook (one table per sheet, as the composer extracts it)
@@ -23,6 +23,11 @@ export interface SheetQuestion {
   options: string[];
   /** Client-written questions only: one line under each option saying what it does (the model never sets it). */
   details?: string[];
+  /**
+   * Client-written single questions only: a last row that takes a number
+   * typed on it, answered as "<n> <unit>" (the length question's "Custom").
+   */
+  custom?: { label: string; unit: string; min: number; max: number; detail?: string };
 }
 
 export interface SheetAnalysis {
@@ -215,13 +220,11 @@ export function answeredCount(analysis: SheetAnalysis, answers: SheetAnswers): n
  * the builder decide" leave the length to the model, as before.
  */
 export const LENGTH_QUESTION_ID = "deck-length";
-export const LENGTH_DECIDE = "Let the builder decide";
+// Auto, two lengths and a number of your own (Mario, 6 Oct 2026).
+export const LENGTH_DECIDE = "Auto";
 const LENGTHS: [number, string][] = [
-  [5, "A short update or a single topic"],
-  [8, "Most briefings and presentations"],
-  [10, "A fuller story with data"],
-  [12, "A detailed review or a proposal"],
-  [15, "A long report or a workshop"],
+  [12, "A full presentation or a proposal"],
+  [20, "A long report or a workshop"],
 ];
 const lengthAnalysis: SheetAnalysis = {
   summary: "Your brief doesn't say how long the deck should be.",
@@ -231,8 +234,9 @@ const lengthAnalysis: SheetAnalysis = {
       question: "How many slides should the deck have?",
       why: "The cover and the closing slide count. You can add or remove slides afterwards.",
       kind: "single",
-      options: [...LENGTHS.map(([n]) => `${n} slides`), LENGTH_DECIDE],
-      details: [...LENGTHS.map(([, d]) => d), "It sizes the deck to what the brief and the material need"],
+      options: [LENGTH_DECIDE, ...LENGTHS.map(([n]) => `${n} slides`)],
+      details: ["Sized to what the brief and the material need", ...LENGTHS.map(([, d]) => d)],
+      custom: { label: "Custom", unit: "slides", min: 3, max: MAX_SLIDES, detail: `Any length up to ${MAX_SLIDES} slides` },
     },
   ],
 };
