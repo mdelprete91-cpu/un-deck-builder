@@ -1032,6 +1032,24 @@ section, hero, photo). A pick is `REPLACE_SLIDE` with the same merge as a regene
   the slide in that layout. So the switcher's targets are reachable here whatever
   `SHOW_LAYOUT_SWITCH` says. The dialog states that photos and images are never edited by the AI.
 
+## Voice
+
+How UNICEF speaks is a fixed block of rules, `UNICEF_VOICE` in `lib/slides/brand-voice.ts`,
+distilled from the UNICEF Brand Book 4.0 (Mario, 6 Oct 2026). It sits at the end of both system
+prompts (slides and two-pagers); the translator gets `UNICEF_VOICE_SHORT`. It covers:
+
+- the tone: direct, authoritative, positive, engaging;
+- the six personality traits: hopeful, compassionate, collaborative, influential, principled,
+  persistent;
+- dignity and protection of children;
+- "UNICEF" in capitals and "for every child" in lowercase;
+- the brand definition when a piece introduces UNICEF;
+- the approved wording for private-sector partners ("X supports UNICEF", never an endorsement);
+- no new sub-brands.
+
+It shapes what the model writes, never a text it was asked to copy (replicas) or translate word
+for word. A rule about how UNICEF speaks goes in that file, not in a prompt.
+
 ## Languages
 
 The whole deck switches language from the toolbar, never one slide (Mario, 6 Oct 2026): the 30 most

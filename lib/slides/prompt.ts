@@ -3,6 +3,7 @@ import { MAX_SLIDES } from "./brief";
 import type { Attachment } from "@/lib/slides/attachments";
 import type { ResponseInputContent } from "openai/resources/responses/responses";
 import { ARCHETYPES, PAGE_CATALOG } from "./page-catalog";
+import { UNICEF_VOICE } from "./brand-voice";
 import { AI_LAYOUT_IDS, type SlideContent } from "./schema";
 import { AI_BLOCK_TYPES } from "./pages/schema";
 import type { DeckFormat } from "./state";
@@ -43,7 +44,9 @@ RULES:
 - FOOTNOTES: "notes" carries the footnotes the material prints for that slide (sources, definitions, "1. Cumulative 5-years"), as written, <=40 words, numbered as in the material, with the matching superscript (¹ ²) kept in the slide text; "" when the slide has none, and always "" on cover, agenda, section-divider, partner and thank-you.
 - For chart-bars, values are relative heights 0-100.
 - For "partner", use it only when the brief names partners, and copy the names EXACTLY from this list (each maps to a real logo): ${PARTNER_NAMES.join(", ")}. Never invent partner names or write categories like "Telecom operators" — a name outside the list renders as plain text instead of a logo.
-- Every slide object includes every field of the output schema. Set fields the chosen layout does not use to "" (strings), [] (arrays) or 0 (numbers) — never invent content for them.`;
+- Every slide object includes every field of the output schema. Set fields the chosen layout does not use to "" (strings), [] (arrays) or 0 (numbers) — never invent content for them.
+
+${UNICEF_VOICE}`;
 }
 
 /**
@@ -93,7 +96,9 @@ RULES:
 - Voice: plain, declarative, public-good, written for a reader with two minutes. Sentence case. No em dashes: use commas, colons or full stops. Banned words: leveraging, synergies, cutting-edge, revolutionary, empower, unlock.
 - Write in the same language as the brief.
 - Every page carries "footerLabel": the brand or programme name the piece is from, <=40 chars, identical on both pages.
-- Every block object includes every field of the output schema. Set fields the chosen block does not use to "" (strings), [] (arrays) or -1 (accent).`;
+- Every block object includes every field of the output schema. Set fields the chosen block does not use to "" (strings), [] (arrays) or -1 (accent).
+
+${UNICEF_VOICE}`;
 }
 
 interface GenerateBody {
