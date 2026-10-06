@@ -309,6 +309,57 @@ export function newEdits(slides: Slide[], lang: DeckLang | undefined): { slide: 
   return out;
 }
 
+// ─── Names that are never translated ───────────────────────────────────────
+
+/**
+ * Divisions, products and initiatives, as written (Mario, 6 Oct 2026: "UNICEF
+ * DID" is never translated). The model translated "Digital Impact Division"
+ * every time it was asked not to, so the names never reach it: they go out
+ * as placeholders and come back exactly as written (`protectNames`).
+ * Case-sensitive on purpose: "digital inclusion" in a sentence is a phrase
+ * to translate, "Digital Inclusion" the team.
+ */
+export const PROTECTED_NAMES = [
+  "UNICEF Digital Impact Division",
+  "UNICEF Digital Inclusion",
+  "Digital Impact Division",
+  "Digital Inclusion",
+  "UNICEF DID",
+  "UNICEF Supply Division",
+  "Supply Division",
+  "Global Procurement Facility",
+  "Giga Technology Centre",
+  "Giga Technology Center",
+  "Connectivity Credits",
+  "Giga Maps",
+  "Giga Meter",
+  "Giga",
+  "UNICEF",
+  "ITU",
+  "Smart Africa",
+  "AI Leap",
+  "Team Europe",
+];
+
+const NAME_RE = new RegExp(
+  `(?<![\\p{L}\\p{N}])(${[...PROTECTED_NAMES].sort((a, b) => b.length - a.length).map((n) => n.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|")})(?![\\p{L}\\p{N}])`,
+  "gu",
+);
+
+/** A text with its protected names swapped for ⟦1⟧, ⟦2⟧…, and the way back. */
+export function protectNames(text: string): { text: string; restore: (out: string) => string } {
+  const found: string[] = [];
+  const masked = text.replace(NAME_RE, (name) => {
+    let k = found.indexOf(name);
+    if (k < 0) k = found.push(name) - 1;
+    return `⟦${k + 1}⟧`;
+  });
+  return {
+    text: masked,
+    restore: (out) => out.replace(/⟦\s*(\d+)\s*⟧/g, (hit, n: string) => found[Number(n) - 1] ?? hit),
+  };
+}
+
 // ─── Strings the renderers draw themselves ─────────────────────────────────
 
 export interface UiStrings {

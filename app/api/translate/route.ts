@@ -1,5 +1,5 @@
 import OpenAI from "openai";
-import { isLang, LANG_NAMES, type Lang } from "@/lib/slides/i18n";
+import { isLang, LANG_NAMES, protectNames, type Lang } from "@/lib/slides/i18n";
 
 export const runtime = "nodejs";
 export const maxDuration = 120;
@@ -35,7 +35,8 @@ function instructions(to: Lang): string {
 
 RULES:
 - Translate the meaning, in the plain, public-good voice of UNICEF communications in ${LANG_NAMES[to]}. Sentence case: a capital only where ${LANG_NAMES[to]} needs one.
-- Keep exactly as written: every figure, unit, currency, percentage and date; names of people, places and organisations; product names (Giga, Giga Maps, Giga Meter, Connectivity Credits, UNICEF, ITU, UNICEF Digital Inclusion).
+- Keep exactly as written: every figure, unit, currency, percentage and date; names of people and organisations, programmes, products and teams.
+- A token like ⟦1⟧ is a name that is never translated: copy every token exactly as it is, in the place the grammar of ${LANG_NAMES[to]} needs it.
 - Keep the form: a line that starts with "- " keeps it; line breaks stay where they are; a short label stays short; a text of one or two words stays one or two words.
 - An item may say "highlight of" another item: its translation must be copied word for word from that other item's translation.
 - No em or en dashes. No added words, no explanations.
@@ -64,6 +65,13 @@ export async function POST(request: Request): Promise<Response> {
   if (!items.length) return Response.json({ items: [] });
   if (!process.env.OPENAI_API_KEY) return new Response("OPENAI_API_KEY is not configured", { status: 500 });
 
+  // The names go out as tokens and come back as written (protectNames).
+  const guards = new Map(items.map((x) => [x.id, protectNames(x.text)]));
+  const sent = items.map((x) => ({
+    ...x,
+    text: guards.get(x.id)!.text,
+    ...(x.previous ? { previous: protectNames(x.previous).text } : {}),
+  }));
   const client = new OpenAI({ maxRetries: 3 });
   try {
     const response = await client.responses.create({
@@ -72,7 +80,7 @@ export async function POST(request: Request): Promise<Response> {
       input: [
         {
           role: "user",
-          content: `From ${LANG_NAMES[body.from as Lang]} into ${LANG_NAMES[body.to]}.\n\nItems (JSON):\n${JSON.stringify(items)}`,
+          content: `From ${LANG_NAMES[body.from as Lang]} into ${LANG_NAMES[body.to]}.\n\nItems (JSON):\n${JSON.stringify(sent)}`,
         },
       ],
       text: { format: { type: "json_schema", name: "translation", schema: SCHEMA as unknown as Record<string, unknown>, strict: true } },
@@ -81,7 +89,9 @@ export async function POST(request: Request): Promise<Response> {
     });
     const parsed = JSON.parse(response.output_text || "{}") as { items?: { id: string; text: string }[] };
     const known = new Set(items.map((x) => x.id));
-    return Response.json({ items: (parsed.items ?? []).filter((x) => known.has(x.id)) });
+    return Response.json({
+      items: (parsed.items ?? []).filter((x) => known.has(x.id)).map((x) => ({ id: x.id, text: guards.get(x.id)!.restore(x.text) })),
+    });
   } catch (err) {
     return new Response(err instanceof Error ? err.message : "Could not translate", { status: 502 });
   }

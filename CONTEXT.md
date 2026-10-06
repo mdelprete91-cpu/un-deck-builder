@@ -1058,6 +1058,11 @@ keeps every language's text field by field (`textFields`, paths in `setPath`'s f
   replica's original is its document's, read off the deck at the first switch. Added slides and
   Edit with AI write in the language on screen (`outputLanguage`, never on a new deck). The memory travels in the session and the deck file
   (`sanitizeLang` on the way in). Renderer words ("Done", "Thank you!") follow `theme.ui`.
+- Names are never translated (Mario: "UNICEF DID"): `PROTECTED_NAMES` in `i18n.ts` go to the
+  model as tokens (⟦1⟧) and come back as written (`protectNames`), because asked in words it
+  translated "Digital Impact Division" every time. Case-sensitive: "digital inclusion" in a sentence
+  is translated, "Digital Inclusion" the team is not. QA: `npx tsx tools/qa-names.ts` (162/162
+  across es, fr, pt; 69/81 before the tokens). A new division or product goes on that list.
 - Latin scripts only: the self-hosted fonts are latin and latin-ext.
 
 ## Two-pagers
