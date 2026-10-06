@@ -8,7 +8,7 @@ import { ensureId, isChartLayout, isPage, normalizeSlide, overLimits, PRIMARY_AR
 import { renderSlide } from "@/lib/slides/layouts";
 import { A4_PX, pageDateNow } from "@/lib/slides/pages/a4";
 import { fitPage, type Resizer } from "@/lib/slides/pages/fit";
-import { putBackLines } from "@/lib/slides/pages/restore";
+import { dropStatEchoes, fillStatFigures, isMastheadLine, putBackLines } from "@/lib/slides/pages/restore";
 import { fillPagePhotos } from "@/lib/slides/library";
 import AddBlockMenu from "@/components/AddBlockMenu";
 import { normalizePage, PAGE_BLOCK_LIMITS, type PageBlock } from "@/lib/slides/pages/schema";
@@ -873,6 +873,10 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
     const text = (sources.length ? sources.map((s) => s.text).join("\n\n") : file.kind === "text" ? file.text : "")
       .split("\n")
       .map((l) => l.replace(/^\s*(Chart labels|Figures) written on the slide[^:]*:\s*/, ""))
+      // The source's masthead is not content: its lockup, a page number on
+      // its own, the date line ("OCTOBER 2026"). A replica made a section of
+      // them above the stats (Mario, 6 Oct 2026).
+      .filter((l) => !isMastheadLine(l))
       .join("\n");
     if (!text.trim()) return runGenerate(`Could not read the text of "${file.name}" to replicate it, so the two-pager uses it as a source.`);
     const words = text.split(/\s+/).filter(Boolean).length;
@@ -898,23 +902,32 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
     // (repairNote), as a slide replica does; the closer of the two stays.
     let repairs = 0;
     let repaired = 0;
-    if (fidelityScore(best.r) < 95) {
-      repairs = 1;
-      const second = await pass(repairNote(best.r));
-      if (second && fidelityScore(second.r) > fidelityScore(best.r)) {
-        best = second;
-        repaired = 1;
-      } else {
-        // The first answer was closer: put it back.
-        dispatch({ type: "GENERATION_START", replace: true });
-        for (const c of best.kept) dispatch({ type: "APPEND_SLIDE", content: c });
-        dispatch({ type: "GENERATION_DONE" });
+    // Up to two second passes, each told what the best answer so far changed.
+    while (repairs < 2 && fidelityScore(best.r) < 95) {
+      repairs++;
+      const next = await pass(repairNote(best.r));
+      if (next && fidelityScore(next.r) > fidelityScore(best.r)) {
+        best = next;
+        repaired++;
       }
+    }
+    // The pages on screen are the last pass's: put the closest one back.
+    if (repairs > 0) {
+      dispatch({ type: "GENERATION_START", replace: true });
+      for (const c of best.kept) dispatch({ type: "APPEND_SLIDE", content: c });
+      dispatch({ type: "GENERATION_DONE" });
     }
     // What the model still left out, the app puts back (lib/slides/pages/restore.ts).
     const modelPass = totals([best.r]);
-    const { pages: kept, putBack } = putBackLines(best.kept, units.lines, best.r.lines.missing);
-    const r = putBack ? compareSlide(1, title, units, kept) : best.r;
+    // Source figures that landed nowhere, in source order: a card without a figure takes them.
+    // As written in the source ("2.3M"), not the check's normalised key ("2.3").
+    const asWritten = (w: { figure: string; source: string }) =>
+      w.source.split(/[\s,;]+/).find((t) => t.replace(/[,\s]/g, "").toLowerCase().includes(w.figure)) ?? w.figure;
+    const check = compareSlide(1, title, units, best.kept);
+    const unplaced = [...new Set(check.figures.wrong.filter((w) => !/^0\d$/.test(w.figure)).map(asWritten))];
+    const cleaned = fillStatFigures(dropStatEchoes(best.kept), unplaced, check.lines.missing);
+    const { pages: kept, putBack } = putBackLines(cleaned, units.lines, compareSlide(1, title, units, cleaned).lines.missing);
+    const r = compareSlide(1, title, units, kept);
     await fitPages(kept, 0, { dated: true, keepText: true });
     setFidelity({
       slides: [{ ...r, at: 0, layoutId: "a4-page", deckTitle: kept[0]?.stack?.[0]?.heading ?? title, parts: kept.length, putBack }],

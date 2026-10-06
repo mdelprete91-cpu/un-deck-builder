@@ -62,6 +62,10 @@ export function putBackLines(pages: SlideContent[], order: string[], missing: st
   for (let k = 0; k < order.length; k++) {
     const line = order[k];
     if (!gone.has(line)) continue;
+    // Only sentences come back as paragraphs. A short line is a caption, a
+    // label or a figure, and a loose one in a section reads as a bug
+    // ("Countries engaged" under Why it matters): it stays reported missing.
+    if (tokens(line).length < 6) continue;
     let spot: Spot | null = null;
     for (let j = k - 1; j >= 0 && !spot; j--) {
       const s = find(out, order[j]);
@@ -77,4 +81,102 @@ export function putBackLines(pages: SlideContent[], order: string[], missing: st
     putBack++;
   }
   return { pages: out, putBack };
+}
+
+/**
+ * A replica sometimes writes the stat cards twice: as cards, and again as a
+ * section of loose lines ("2.2B", "People remain offline", …), usually under
+ * the source's masthead. A section line that only repeats a card's figure or
+ * caption goes; a section left with nothing goes too.
+ */
+export function dropStatEchoes(pages: SlideContent[]): SlideContent[] {
+  const said = new Set<string>();
+  for (const p of pages)
+    for (const b of p.stack ?? [])
+      if (b.type === "stats") for (const it of b.items ?? []) for (const t of [it.label, it.body]) if (t.trim()) said.add(key(t));
+  if (!said.size) return pages;
+  return pages.map((p) => ({
+    ...p,
+    stack: (p.stack ?? [])
+      .map((b) => {
+        if (b.type !== "section") return b;
+        const items = (b.items ?? [])
+          .map((it) => {
+            const all = `${it.label}\n${it.body}`.split("\n").filter((l) => l.trim());
+            const kept = all.filter((l) => !said.has(key(l)));
+            // Untouched, it keeps its bold lead-in; echoes removed, the rest is plain text.
+            if (kept.length === all.length) return it;
+            return kept.length ? { ...it, label: "", body: kept.join("\n") } : null;
+          })
+          .filter((it): it is PageItem => !!it);
+        return { ...b, items };
+      })
+      .filter((b) => b.type !== "section" || (b.items?.length ?? 0) > 0),
+  }));
+}
+
+const MONTHS = "january|february|march|april|may|june|july|august|september|october|november|december";
+/** Lockup words a printed piece carries in its masthead or footer. */
+const LOCKUPS = new Set(["unicef", "for every child", "digital inclusion", "digital impact division", "unicef digital inclusion", "unicef digital impact division", "giga"]);
+
+/**
+ * A line of a source document's masthead or footer rather than its content:
+ * a lockup, a page number on its own, a date line ("OCTOBER 2026").
+ */
+export function isMastheadLine(line: string): boolean {
+  const t = line.replace(/[\u200b\u00a0]/g, " ").trim().toLowerCase();
+  if (!t) return false;
+  if (/^\d{1,2}$/.test(t)) return true;
+  if (new RegExp(`^(${MONTHS})\\s+\\d{4}$`).test(t)) return true;
+  return LOCKUPS.has(t);
+}
+
+/**
+ * A stat card with no figure ("Countries" / "engaged") takes the next source
+ * figure the piece does not carry anywhere, in source order, and its words
+ * go back together as the caption. A PDF reader can set a figure apart from
+ * its caption ("02, 54" on a line of its own), and the model cannot pair them.
+ */
+export function fillStatFigures(pages: SlideContent[], unplaced: string[], captions: string[] = []): SlideContent[] {
+  const queue = [...unplaced];
+  if (!queue.length) return pages;
+  const filled = fillEmptyCards(pages, queue);
+  // Figures still unplaced, and short source lines missing from the piece
+  // ("Countries engaged"): paired in order into new cards, on the last stats
+  // block that has room. The model left the whole card out.
+  const caps = captions.filter((c) => tokens(c).length > 0 && tokens(c).length < 6 && !/\d/.test(c));
+  const n = Math.min(queue.length, caps.length);
+  if (!n) return filled;
+  for (let p = filled.length - 1; p >= 0; p--) {
+    const stack = filled[p].stack ?? [];
+    for (let b = stack.length - 1; b >= 0; b--) {
+      const block = stack[b];
+      if (block.type !== "stats") continue;
+      const room = 6 - (block.items?.length ?? 0);
+      if (room <= 0) continue;
+      const add = Array.from({ length: Math.min(n, room) }, (_, i): PageItem => ({ label: queue[i], body: caps[i], extra: "" }));
+      const out = structuredClone(filled);
+      out[p].stack![b].items = [...(block.items ?? []), ...add];
+      return out;
+    }
+  }
+  return filled;
+}
+
+/** The cards with no figure take the unplaced figures in order (consumes `queue`). */
+function fillEmptyCards(pages: SlideContent[], queue: string[]): SlideContent[] {
+  return pages.map((p) => ({
+    ...p,
+    stack: (p.stack ?? []).map((b) =>
+      b.type !== "stats"
+        ? b
+        : {
+            ...b,
+            items: (b.items ?? []).map((it) => {
+              if (/\d/.test(it.label) || !queue.length) return it;
+              return { ...it, label: queue.shift()!, body: `${it.label} ${it.body}`.trim() };
+            }),
+          },
+    ),
+  }));
 }

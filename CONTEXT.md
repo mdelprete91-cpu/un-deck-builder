@@ -1096,10 +1096,14 @@ page must end within a few pt of where build.py ended it. Run it after touching 
 included). On a two-pager the file-use question is asked for any document, Word too.
 `runReplicatePages` sends the whole text in `source` (REPLICATE_PAGES in `prompt.ts`), as many
 pages as its words need (about 600 a page, two at least), with no voice pass. The piece is measured
-against the whole document with `compareSlide` (`slideStrings` reads page stacks); below 95% one
-second pass gets `repairNote` and the closer answer stays; then `putBackLines`
-(`pages/restore.ts`) puts every line still missing back after its neighbour, and the fit pass may
-only tighten the type, never shorten. The report carries `piece`, so the review speaks in pages.
+against the whole document with `compareSlide` (`slideStrings` reads page stacks); below 95% up to
+two more passes get `repairNote` and the closest answer stays. Then, in `pages/restore.ts`:
+`isMastheadLine` keeps the source's lockup, page numbers and date line out of the text the model
+sees (a replica made a section of them); `dropStatEchoes` removes section lines that only repeat a
+stat card; `fillStatFigures` gives a card with no figure the next source figure the piece lost, or
+pairs a lost figure with a lost caption into a new card; `putBackLines` puts every missing
+sentence (six words or more) back after its neighbour. A shorter missing line stays reported, never
+inserted as a loose paragraph. The fit pass may only tighten the type, never shorten. The report carries `piece`, so the review speaks in pages.
 A PDF reader's "Figures written on the slide" note loses its preamble but keeps its figures.
 
 **Exports.** PDF prints on A4: `onExportPdf` sets the default `@page` to 595pt x 842pt for the
