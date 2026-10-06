@@ -195,6 +195,65 @@ export function defaultContent(layoutId: LayoutId): SlideContent {
           { label: "Asia", value: 12000, values: [12000, 15400] },
         ],
       };
+    case "chart-funnel":
+      return {
+        layoutId,
+        title: "From mapped to connected",
+        bars: [
+          { label: "Schools mapped", value: 12000 },
+          { label: "Location verified", value: 9600 },
+          { label: "Monitored", value: 6100 },
+          { label: "Connected", value: 3700 },
+        ],
+      };
+    case "chart-waterfall":
+      return {
+        layoutId,
+        title: "Funding gap, 2026",
+        bars: [
+          { label: "Budget needed", value: 48 },
+          { label: "Government", value: -18 },
+          { label: "Donors", value: -12 },
+          { label: "Private sector", value: -6 },
+          { label: "Gap", value: 12 },
+        ],
+      };
+    case "chart-area":
+      return {
+        layoutId,
+        title: "Schools online over time",
+        series: ["Connected", "Monitored"],
+        bars: [
+          { label: "2021", value: 400, values: [400, 1500] },
+          { label: "2022", value: 1200, values: [1200, 3200] },
+          { label: "2023", value: 2600, values: [2600, 5100] },
+          { label: "2024", value: 4800, values: [4800, 7400] },
+          { label: "2025", value: 7100, values: [7100, 9800] },
+        ],
+      };
+    case "chart-bars-100":
+      return {
+        layoutId,
+        title: "Connectivity type by region",
+        series: ["Fibre", "Mobile", "Satellite"],
+        bars: [
+          { label: "East Africa", value: 2100, values: [2100, 3200, 800] },
+          { label: "West Africa", value: 600, values: [600, 1200, 550] },
+          { label: "LatAm", value: 6500, values: [6500, 3900, 800] },
+          { label: "Asia", value: 9000, values: [9000, 5400, 1000] },
+        ],
+      };
+    case "chart-progress":
+      return {
+        layoutId,
+        title: "Progress towards targets",
+        series: ["Current", "Target"],
+        bars: [
+          { label: "First indicator", value: 640, values: [640, 1000] },
+          { label: "Second indicator", value: 2300, values: [2300, 2500] },
+          { label: "Third indicator", value: 45, values: [45, 120] },
+        ],
+      };
     case "chart-columns-stacked":
       return {
         layoutId,

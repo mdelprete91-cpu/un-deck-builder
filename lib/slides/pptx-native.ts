@@ -46,7 +46,17 @@ async function walk(ctx: Ctx, el: HTMLElement, opacity: number): Promise<void> {
   const alpha = opacity * (Number.isNaN(own) ? 1 : own);
   if (alpha <= 0) return;
   const rect = relRect(ctx, el);
-  if (rect.w < 0.5 || rect.h < 0.5) return;
+  if (rect.w < 0.5 || rect.h < 0.5) {
+    // A zero-size box that only positions its children (a grouped chart's
+    // group, a dense chart's column, 6 Oct 2026: they never reached the
+    // PPTX) has no shape of its own, but its children do. One that clips
+    // shows nothing, in the browser as here.
+    if (cs.overflow !== "visible" || el instanceof SVGElement) return;
+    for (const child of Array.from(el.children)) {
+      if (child instanceof HTMLElement || child instanceof SVGElement) await walk(ctx, child as HTMLElement, alpha);
+    }
+    return;
+  }
 
   // Pictures first: an <img>, an icon, or a node CSS draws in a way
   // PowerPoint has no shape for. The framed photo's clipping box is

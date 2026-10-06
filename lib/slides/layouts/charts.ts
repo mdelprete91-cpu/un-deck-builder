@@ -408,3 +408,271 @@ export function columnsStacked(s: Slide, t: BrandTheme): string {
       footer(t, "light"),
   );
 }
+
+/*
+ * Five more charts (Mario, 6 Oct 2026): a funnel, a waterfall, an area
+ * chart, 100% bars and progress towards a target. Same title, grid, axis,
+ * legend and tints as the charts above; nothing here is a new colour,
+ * typeface or surface, except the waterfall's decrease, which takes the
+ * chart palette's red so a fall reads as one.
+ */
+
+/** Dark text on the two palest tints, white on the rest. */
+function onShade(i: number): string {
+  return i >= 3 ? "#000000" : "#FFFFFF";
+}
+
+/** Stages narrowing to an outcome, 3-6, the share kept from each step on the right. */
+export function funnel(s: Slide, t: BrandTheme): string {
+  const bars = (s.bars ?? []).slice(0, 6);
+  const n = Math.max(bars.length, 1);
+  const AREA = { y: 300, h: 600, cx: 1060, maxW: 960 };
+  const rowH = Math.min(116, AREA.h / n);
+  const barH = Math.round(rowH * 0.8);
+  const values = bars.map((b) => Math.max(0, signedValue(b.value)));
+  const max = Math.max(...values, 1);
+  const px = n <= 4 ? 34 : 28;
+  const rows = bars
+    .map((b, i) => {
+      const v = values[i];
+      const w = Math.max(180, Math.round((v / max) * AREA.maxW));
+      const y = Math.round(AREA.y + rowH * i + (rowH - barH) / 2);
+      const shade = Math.min(i, 4);
+      const prev = i > 0 ? values[i - 1] : 0;
+      const kept = i > 0 && prev > 0 ? Math.round((v / prev) * 100) : null;
+      return (
+        `<div class="ars" ${ed(`bars.${i}.label`, barH)} style="position:absolute;left:100px;top:${y}px;width:${AREA.cx - AREA.maxW / 2 - 140}px;height:${barH}px;display:flex;align-items:center;font-family:${OPEN_SANS};font-weight:500;font-size:${px - 2}px;line-height:1.2;color:#000000;${dly(10 + i * 4)}">${esc(b.label)}</div>` +
+        `<div class="agw" ${item(`bars.${i}`)} style="position:absolute;left:${Math.round(AREA.cx - w / 2)}px;top:${y}px;width:${w}px;height:${barH}px;border-radius:8px;background:${b.color ?? t.barShades[shade]};transform-origin:center;${dly(10 + i * 4)}"></div>` +
+        `<div class="ars" ${ed(`bars.${i}.value`, barH)} style="position:absolute;left:${Math.round(AREA.cx - w / 2)}px;top:${y}px;width:${w}px;height:${barH}px;display:flex;align-items:center;justify-content:center;text-align:center;font-family:${MANROPE};font-weight:600;font-size:${px}px;line-height:1.2;color:${b.color ? "#FFFFFF" : onShade(shade)};white-space:nowrap;${dly(14 + i * 4)}">${fmt(v)}</div>` +
+        (kept !== null
+          ? `<div class="ars" style="position:absolute;left:${AREA.cx + AREA.maxW / 2 + 60}px;top:${y}px;width:${1820 - (AREA.cx + AREA.maxW / 2 + 60)}px;height:${barH}px;display:flex;flex-direction:column;justify-content:center;${dly(18 + i * 4)}">` +
+            `<div style="font-family:${MANROPE};font-weight:600;font-size:30px;line-height:1.1;color:${t.accent};">${kept}%</div>` +
+            `<div style="${AXIS}font-size:20px;">of the step above</div></div>`
+          : "")
+      );
+    })
+    .join("");
+  return section(
+    t,
+    "#FFFFFF",
+    "#000000",
+    heading80(s.title ?? "", "title", "#000000", 1720, TITLE_FIT) +
+      `<div data-chart style="position:absolute;left:${AREA.cx - AREA.maxW / 2}px;top:${AREA.y}px;width:${AREA.maxW}px;height:${AREA.h}px;"></div>` +
+      rows +
+      footer(t, "light"),
+  );
+}
+
+/**
+ * From a starting total to an ending one through the changes between, 3-10
+ * bars: the first and the last are totals drawn from zero, the ones between
+ * float from the running total, up in the accent, down in red, joined by a
+ * dashed line at each level.
+ */
+export function waterfall(s: Slide, t: BrandTheme): string {
+  const bars = (s.bars ?? []).slice(0, 10);
+  const n = Math.max(bars.length, 1);
+  const colW = PLOT.w / n;
+  const barW = Math.min(150, Math.round(colW * 0.6));
+  const px = n <= 6 ? 28 : 22;
+  const values = bars.map((b) => signedValue(b.value));
+  // Each bar's span: totals from zero, changes from the running level.
+  let level = 0;
+  const spans = values.map((v, i) => {
+    const total = i === 0 || i === n - 1;
+    const from = total ? 0 : level;
+    const to = total ? v : level + v;
+    level = to;
+    return { from, to, total };
+  });
+  const levels = spans.flatMap((sp) => [sp.from, sp.to]);
+  const max = Math.max(...levels, 1);
+  const lo = Math.min(0, ...levels);
+  const room = px + 20;
+  const below = lo < 0 ? room : 0;
+  const usable = PLOT.h - room - below;
+  const yOf = (v: number) => Math.round(PLOT.h - below - ((v - lo) / (max - lo)) * usable);
+  const zero = yOf(0);
+  const DOWN = "#E2231A";
+  const cols = spans
+    .map((sp, i) => {
+      const x = Math.round(colW * i + (colW - barW) / 2);
+      const top = Math.min(yOf(sp.from), yOf(sp.to));
+      const h = Math.max(6, Math.abs(yOf(sp.from) - yOf(sp.to)));
+      const up = sp.to >= sp.from;
+      const color = bars[i].color ?? (sp.total ? t.barShades[0] : up ? t.barShades[2] : DOWN);
+      const label = sp.total ? fmt(sp.to) : `${up ? "+" : ""}${fmt(sp.to - sp.from)}`;
+      const labelTop = up || sp.total ? top - px - 12 : top + h + 8;
+      // The dashed line from this bar's end to the next bar.
+      const link =
+        i < n - 1
+          ? `<div style="position:absolute;left:${x + barW}px;top:${yOf(sp.to)}px;width:${Math.round(colW - barW)}px;height:0;border-top:2px dashed #C9C9CF;"></div>`
+          : "";
+      return (
+        `<div class="agh" ${item(`bars.${i}`)} style="position:absolute;left:${x}px;top:${top}px;width:${barW}px;height:${h}px;background:${color};border-radius:4px;${dly(10 + i * 3)}"></div>` +
+        link +
+        `<div class="ars" ${ed(`bars.${i}.value`, px + 8)} style="position:absolute;left:${Math.round(colW * i)}px;top:${labelTop}px;width:${Math.round(colW)}px;${VALUE(px)}${dly(14 + i * 3)}">${label}</div>`
+      );
+    })
+    .join("");
+  return section(
+    t,
+    "#FFFFFF",
+    "#000000",
+    heading80(s.title ?? "", "title", "#000000", 1720, TITLE_FIT) +
+      yAxis(max, lo, zero) +
+      `<div data-chart style="position:absolute;left:${PLOT.x}px;top:${PLOT.y}px;width:${PLOT.w}px;height:${PLOT.h}px;">${gridLines()}${zeroLine(lo, zero)}${cols}</div>` +
+      xLabels(bars, colW) +
+      footer(t, "light"),
+  );
+}
+
+/** Lines over time with the area under each filled, 1-3 series over 3-24 periods. */
+export function area(s: Slide, t: BrandTheme): string {
+  const bars = (s.bars ?? []).slice(0, 24);
+  const series = (s.series ?? ["Series 1"]).slice(0, 3);
+  const k = series.length;
+  const colors = seriesColors(t, k);
+  const n = Math.max(bars.length, 1);
+  const colW = PLOT.w / n;
+  const rows = bars.map((b) => valuesOf(b, k).map((v) => Math.max(0, v)));
+  const max = Math.max(...rows.flat(), 1);
+  const top = 40;
+  const yOf = (v: number) => Math.round(PLOT.h - (v / max) * (PLOT.h - top));
+  const xOf = (i: number) => Math.round(colW * (i + 0.5));
+  // The first series drawn last, on top.
+  const shapes = series
+    .map((_, j) => {
+      const pts = rows.map((r, i) => `${xOf(i)},${yOf(r[j])}`);
+      const fill = `${xOf(0)},${PLOT.h} ${pts.join(" ")} ${xOf(n - 1)},${PLOT.h}`;
+      return (
+        `<polygon points="${fill}" fill="${colors[j]}" fill-opacity="0.18"/>` +
+        `<polyline points="${pts.join(" ")}" fill="none" stroke="${colors[j]}" stroke-width="5" stroke-linejoin="round" stroke-linecap="round"/>`
+      );
+    })
+    .reverse()
+    .join("");
+  const labels =
+    k === 1 && n <= 12
+      ? rows
+          .map(
+            (r, i) =>
+              `<div class="ars" style="position:absolute;left:${Math.round(colW * i)}px;top:${yOf(r[0]) - 48}px;width:${Math.round(colW)}px;${VALUE(26)}${dly(24 + i * 3)}">${fmt(r[0])}</div>`,
+          )
+          .join("")
+      : "";
+  return section(
+    t,
+    "#FFFFFF",
+    "#000000",
+    heading80(s.title ?? "", "title", "#000000", 1720, TITLE_FIT) +
+      legend(series, colors) +
+      yAxis(max) +
+      `<div data-chart style="position:absolute;left:${PLOT.x}px;top:${PLOT.y}px;width:${PLOT.w}px;height:${PLOT.h}px;">${gridLines()}` +
+      `<svg class="af" width="${PLOT.w}" height="${PLOT.h}" viewBox="0 0 ${PLOT.w} ${PLOT.h}" style="position:absolute;left:0;top:0;overflow:visible;${dly(16)}">${shapes}</svg>` +
+      labels +
+      `</div>` +
+      xLabels(bars, colW) +
+      footer(t, "light"),
+  );
+}
+
+/** Composition compared across categories: one bar per row split into shares of 100%, 2-4 parts. */
+export function bars100(s: Slide, t: BrandTheme): string {
+  const bars = (s.bars ?? []).slice(0, 8);
+  const series = (s.series ?? ["Part 1", "Part 2"]).slice(0, 4);
+  const k = series.length;
+  const colors = seriesColors(t, k);
+  const n = Math.max(bars.length, 1);
+  const AREA = { x: 560, y: 380, w: 1260, h: 480 };
+  const rowH = Math.min(104, AREA.h / n);
+  const barH = Math.round(Math.min(64, rowH * 0.66));
+  const px = n <= 5 ? 28 : 24;
+  const rows = bars
+    .map((b, i) => {
+      const parts = valuesOf(b, k).map((v) => Math.max(0, v));
+      const total = parts.reduce((a, c) => a + c, 0) || 1;
+      const y = Math.round(AREA.y + rowH * i + (rowH - barH) / 2);
+      let x = 0;
+      const segs = parts
+        .map((v, j) => {
+          const w = Math.round((v / total) * AREA.w);
+          const pct = Math.round((v / total) * 100);
+          const seg =
+            `<div style="position:absolute;left:${x}px;top:0;width:${w}px;height:${barH}px;background:${colors[j]};${j === 0 ? "border-radius:4px 0 0 4px;" : ""}${j === k - 1 ? "border-radius:0 4px 4px 0;" : ""}"></div>` +
+            (w >= 72
+              ? `<div style="position:absolute;left:${x}px;top:0;width:${w}px;height:${barH}px;display:flex;align-items:center;justify-content:center;text-align:center;font-family:${MANROPE};font-weight:600;font-size:${px - 2}px;color:${lightColor(colors[j]) ? "#000000" : "#FFFFFF"};white-space:nowrap;">${pct}%</div>`
+              : "");
+          x += w;
+          return seg;
+        })
+        .join("");
+      return (
+        `<div class="ars" ${ed(`bars.${i}.label`, barH + 6)} style="position:absolute;left:100px;top:${y}px;width:${AREA.x - 130}px;height:${barH}px;display:flex;align-items:center;font-family:${OPEN_SANS};font-weight:500;font-size:${px}px;line-height:1.2;color:#000000;${dly(10 + i * 4)}">${esc(b.label)}</div>` +
+        `<div class="agw" ${item(`bars.${i}`)} style="position:absolute;left:${AREA.x}px;top:${y}px;width:${AREA.w}px;height:${barH}px;transform-origin:left;${dly(10 + i * 4)}">${segs}</div>`
+      );
+    })
+    .join("");
+  const guides = [0, 0.5, 1]
+    .map(
+      (f) =>
+        `<div style="position:absolute;left:${Math.round(AREA.x + AREA.w * f)}px;top:${AREA.y}px;width:1px;height:${AREA.h}px;background:${GRID};"></div>` +
+        `<div style="position:absolute;left:${Math.round(AREA.x + AREA.w * f) - 100}px;top:${AREA.y + AREA.h + 12}px;width:200px;text-align:center;${AXIS}">${Math.round(f * 100)}%</div>`,
+    )
+    .join("");
+  return section(
+    t,
+    "#FFFFFF",
+    "#000000",
+    heading80(s.title ?? "", "title", "#000000", 1720, TITLE_FIT) +
+      legend(series, colors) +
+      `<div data-chart style="position:absolute;left:${AREA.x}px;top:${AREA.y}px;width:${AREA.w}px;height:${AREA.h}px;"></div>` +
+      guides +
+      rows +
+      footer(t, "light"),
+  );
+}
+
+/** Indicators against their targets, 1-5: a track per indicator, filled to the share reached. */
+export function progressTarget(s: Slide, t: BrandTheme): string {
+  const bars = (s.bars ?? []).slice(0, 5);
+  const n = Math.max(bars.length, 1);
+  const AREA = { x: 100, y: 320, w: 1360, h: 560 };
+  const rowH = Math.min(176, AREA.h / n);
+  const rows = bars
+    .map((b, i) => {
+      const [current, target] = valuesOf(b, 2).map((v) => Math.max(0, v));
+      const share = target > 0 ? current / target : 0;
+      const pct = Math.round(share * 100);
+      // Fewer rows sit in the middle of the area, not at its top.
+      const y = Math.round(AREA.y + (AREA.h - rowH * n) / 2 + rowH * i);
+      const fill = Math.max(share > 0 ? 28 : 0, Math.round(Math.min(1, share) * AREA.w));
+      return (
+        // The name on the left and "640 of 1,000" at the track's end, on one
+        // line over the track: five rows fit under a two-line title.
+        `<div class="ars" ${ed(`bars.${i}.label`, 44)} style="position:absolute;left:${AREA.x}px;top:${y}px;width:${AREA.w - 320}px;font-family:${OPEN_SANS};font-weight:600;font-size:32px;line-height:1.3;color:#000000;white-space:nowrap;overflow:hidden;${dly(10 + i * 4)}">${esc(b.label)}</div>` +
+        `<div class="ars" style="position:absolute;left:${AREA.x + AREA.w - 300}px;top:${y + 4}px;width:300px;text-align:right;${AXIS}white-space:nowrap;${dly(16 + i * 4)}">${fmt(current)} of ${fmt(target)}</div>` +
+        `<div ${item(`bars.${i}`)} style="position:absolute;left:${AREA.x}px;top:${y + 56}px;width:${AREA.w}px;height:28px;border-radius:14px;background:${GRID};"></div>` +
+        `<div class="agw" style="position:absolute;left:${AREA.x}px;top:${y + 56}px;width:${fill}px;height:28px;border-radius:14px;background:${b.color ?? t.accent};transform-origin:left;${dly(12 + i * 4)}"></div>` +
+        `<div class="ars" style="position:absolute;left:${AREA.x + AREA.w + 40}px;top:${y + (n <= 3 ? 8 : 18)}px;width:${1820 - AREA.x - AREA.w - 40}px;text-align:right;font-family:${MANROPE};font-weight:500;font-size:${n <= 3 ? 88 : 64}px;line-height:1;letter-spacing:-.02em;color:${t.accent};${dly(16 + i * 4)}">${pct}%</div>`
+      );
+    })
+    .join("");
+  return section(
+    t,
+    "#FFFFFF",
+    "#000000",
+    heading80(s.title ?? "", "title", "#000000", 1720, TITLE_FIT) +
+      `<div data-chart style="position:absolute;left:${AREA.x}px;top:${AREA.y}px;width:${AREA.w}px;height:${AREA.h}px;"></div>` +
+      rows +
+      footer(t, "light"),
+  );
+}
+
+/** Whether a fill is pale enough to want dark text (the pale tints, yellow). */
+function lightColor(hex: string): boolean {
+  const m = /^#?([0-9a-f]{6})$/i.exec(hex);
+  if (!m) return false;
+  const n = parseInt(m[1], 16);
+  return 0.299 * ((n >> 16) & 255) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255) > 170;
+}

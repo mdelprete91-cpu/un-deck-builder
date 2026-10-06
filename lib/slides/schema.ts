@@ -39,6 +39,14 @@ export const AI_LAYOUT_IDS = [
   "chart-line",
   "chart-columns-grouped",
   "chart-columns-stacked",
+  // Drawn 6 Oct 2026 on the same axis, grid and tints (Mario): a funnel, a
+  // waterfall, an area chart, 100% bars and progress towards a target, which
+  // reads its two series as current and target.
+  "chart-funnel",
+  "chart-waterfall",
+  "chart-area",
+  "chart-bars-100",
+  "chart-progress",
   "timeline",
   "timeline-phases",
   // Drawn 26 Sep 2026 from timeline-phases with Mario's approval: stages on a
@@ -130,6 +138,10 @@ export const SERIES_LAYOUTS: Partial<Record<LayoutId, [number, number]>> = {
   "chart-line": [1, 3],
   "chart-columns-grouped": [2, 3],
   "chart-columns-stacked": [2, 4],
+  "chart-area": [1, 3],
+  "chart-bars-100": [2, 4],
+  // Current and target, always both.
+  "chart-progress": [2, 2],
   "chart-text": [1, 3],
 };
 
@@ -418,6 +430,11 @@ const ARRAY_LIMITS: Partial<Record<LayoutId, Partial<Record<ArrayField, [number,
   "chart-line": { bars: [3, 24] },
   "chart-columns-grouped": { bars: [2, 10] },
   "chart-columns-stacked": { bars: [2, 10] },
+  "chart-funnel": { bars: [3, 6] },
+  "chart-waterfall": { bars: [3, 10] },
+  "chart-area": { bars: [3, 24] },
+  "chart-bars-100": { bars: [2, 8] },
+  "chart-progress": { bars: [1, 5] },
   partner: { bullets: [1, 15] },
   timeline: { blocks: [2, 6] },
   "timeline-phases": { blocks: [1, 5] },

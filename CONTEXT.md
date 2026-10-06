@@ -932,7 +932,7 @@ chart's grid and series colours, and the closing slide's accent surface for the 
 
 ## Charts
 
-Seven chart layouts, all on white, all read `bars` and all open the Data panel on a click on
+Twelve chart layouts, all on white, all read `bars` and all open the Data panel on a click on
 `[data-chart]` (`isChartLayout` in `schema.ts` is the guard, keyed off `ARRAY_LIMITS`). The
 template's two, `chart-bars` (2-5 columns beside a legend) and `donut-chart`, are as they were.
 The five drawn on 25 Sep 2026 in `layouts/charts.ts` share one geometry: the 80px title at the
@@ -965,6 +965,19 @@ left margin, category labels under it. Things that follow:
 - **The Data panel is per layout**: row limits from `PRIMARY_ARRAY` (thirty rows scroll), series
   names in a header row with add/remove inside the layout's span. `SET_BARS` takes `series` and
   runs `normalizeSeries`.
+- **Five more** (Mario, 6 Oct 2026), in `charts.ts` on the same title, grid, axis, legend and
+  tints: `chart-funnel` (3-6 stages, centred bars narrowing by value, the share kept from the step
+  above on the right), `chart-waterfall` (3-10 bars: the first and the last are totals from zero,
+  the ones between are signed changes floating from the running level, up in a tint, down in the
+  palette's red #E2231A, a dashed line at each level), `chart-area` (1-3 series, filled at 18%
+  under the line), `chart-bars-100` (2-8 rows of 2-4 parts as shares, the percentage inside each
+  part wide enough to hold it) and `chart-progress` (1-5 indicators; it is a series layout with
+  exactly two series, current and target, so the Data panel and the import edit both as columns;
+  the name and "640 of 1,000" over a track, the share large on the right, rows centred). All in
+  the catalog for the model; `.omc/charts-qa.ts` covers each at its minimum and maximum.
+- **A zero-size box only positions** (the grouped and dense charts' groups): the PPTX walker
+  exports its children instead of skipping the subtree, which had left grouped columns and the
+  dense series charts out of every PowerPoint until 6 Oct 2026.
 - **Import from a spreadsheet** (Mario, 5 Oct 2026). "Import" in the Data panel's header
   (`components/ChartImport.tsx`) reads an .xlsx, a .csv or a public Google Sheet into one grid:
   `readWorkbook` in `attachments.ts` (cells by their place in the sheet, raw numbers, a
