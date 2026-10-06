@@ -1093,7 +1093,9 @@ keeps every language's text field by field (`textFields`, paths in `setPath`'s f
 ## Two-pagers
 
 A deck is one of two formats, carried on `DeckState.format`: `slides` (16:9) or `two-pager`, the
-A4 portrait print piece of exactly two pages. The **Document** row under Logo in the sidebar picks
+A4 portrait print piece of exactly two pages. **Not released yet** (Mario, 6 Oct 2026): the Document
+row shows only with `NEXT_PUBLIC_SHOW_TWO_PAGER=1`, set in `.env.local`, never on Vercel. To release
+it, set the variable on Vercel or remove the flag in `components/Sidebar.tsx`. The **Document** row under Logo in the sidebar picks
 it, on every lockup of the menu (Mario, 6 Oct 2026). The formats do not mix: switching with a deck
 on screen asks first, then starts a new document (`SET_FORMAT`), and the undo history goes with the
 old one.

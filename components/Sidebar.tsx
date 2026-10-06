@@ -41,6 +41,14 @@ function Eyebrow({ children }: { children: React.ReactNode }) {
   );
 }
 
+/**
+ * The two-pager is not released yet (Mario, 6 Oct 2026: "il two pager ancora
+ * no"): the Document row shows only where NEXT_PUBLIC_SHOW_TWO_PAGER=1, set in
+ * .env.local for development and absent on Vercel. A two-pager saved or
+ * opened from a file still opens, since the slides decide the format.
+ */
+const SHOW_TWO_PAGER = process.env.NEXT_PUBLIC_SHOW_TWO_PAGER === "1";
+
 export default function Sidebar({
   state,
   dispatch,
@@ -94,6 +102,7 @@ export default function Sidebar({
             onChange={(brandId) => dispatch({ type: "SET_BRAND", brandId })}
           />
         </div>
+        {SHOW_TWO_PAGER && (
         <div className="flex h-9 items-center justify-between gap-3">
           <span className="text-sm text-ink">Document</span>
           <Select
@@ -119,6 +128,7 @@ export default function Sidebar({
             }}
           />
         </div>
+        )}
       </div>
 
       {/* Brief. The composer holds everything one Generate press sends: the
