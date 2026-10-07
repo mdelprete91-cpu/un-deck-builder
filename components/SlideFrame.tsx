@@ -238,7 +238,7 @@ export default function SlideFrame({
    * mouse, and by the selected block otherwise, so Edit with AI is always in
    * reach (Mario, 6 Oct 2026: the side bar is the page's only bar).
    */
-  const [hoverBlock, setHoverBlock] = useState<number | null>(null);
+  const [, setHoverBlock] = useState<number | null>(null);
   /** Each block's top and height in the frame's coordinates (screen px). */
   const [blockRects, setBlockRects] = useState<{ top: number; height: number }[]>([]);
   /** A move in flight: where the blocks were, so the new order can slide in from there. */
@@ -902,7 +902,8 @@ export default function SlideFrame({
       </div>
       {editable && variant === "page" && onMoveBlock && scale > 0 && blockRects.length > 0 && (() => {
         const count = blockRects.length;
-        const index = Math.min(drag?.from ?? hoverBlock ?? focusedBlock ?? 0, count - 1);
+        // The bar stays with the selected block: hovering another never moves it (Mario, 7 Oct 2026).
+        const index = Math.min(drag?.from ?? focusedBlock ?? 0, count - 1);
         const canItem = canAddBlockItem?.(index) ?? false;
         const canLess = canRemoveBlockItem?.(index) ?? false;
         const tone = toneOf?.(index) ?? null;
