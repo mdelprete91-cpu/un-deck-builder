@@ -1,6 +1,47 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { useEffect, useState, type CSSProperties, type ReactNode } from "react";
+
+/** The clay 3D row (Mario, 7 Oct 2026), loaded only when it will be drawn. */
+const Drift3D = dynamic(() => import("./SkeletonDrift3D"), { ssr: false, loading: () => <FlatDrift /> });
+
+function canDraw3D(): boolean {
+  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return false;
+  try {
+    const c = document.createElement("canvas");
+    return !!(c.getContext("webgl2") || c.getContext("webgl"));
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * The 3D row where WebGL and motion are on, the flat CSS row otherwise (and
+ * for the frame before the check). Both read the same session clock.
+ */
+export default function SkeletonDrift() {
+  const [mode, setMode] = useState<{ epoch: number; dark: boolean } | null>(null);
+  useEffect(() => {
+    if (!canDraw3D()) return;
+    const root = document.documentElement;
+    const read = () => setMode({ epoch: sessionEpoch().epoch, dark: root.classList.contains("dark") });
+    const first = requestAnimationFrame(read);
+    // The theme can change while the stage is empty.
+    const watch = new MutationObserver(read);
+    watch.observe(root, { attributes: true, attributeFilter: ["class"] });
+    return () => {
+      cancelAnimationFrame(first);
+      watch.disconnect();
+    };
+  }, []);
+  if (!mode) return <FlatDrift />;
+  return (
+    <div aria-hidden className="skeleton-window -my-12 h-[246px] w-[720px] max-w-full">
+      <Drift3D epoch={mode.epoch} dark={mode.dark} />
+    </div>
+  );
+}
 
 /**
  * The empty stage's one picture (Mario, 1 Oct 2026): slide skeletons in a
@@ -42,7 +83,7 @@ function sessionEpoch(): { epoch: number; resumed: boolean } {
   }
 }
 
-export default function SkeletonDrift() {
+function FlatDrift() {
   // null until the clock is read on the client, so the server render and the
   // first client render agree; the row is hidden for that one frame.
   const [step, setStep] = useState<number | null>(null);

@@ -74,7 +74,7 @@ function pose(pos: number) {
   return {
     x: pos * SPACING,
     z: d === 0 ? 0.35 : -0.25 * Math.min(d, 2),
-    rotY: pos === 0 ? 0 : pos < 0 ? 0.42 : -0.42,
+    rotY: pos === 0 ? 0 : pos < 0 ? 0.3 : -0.3,
     scale: d === 0 ? 1.12 : 0.88,
   };
 }
@@ -117,17 +117,17 @@ function Slide({ index, epoch, paper }: { index: number; epoch: number; paper: s
   return (
     <group ref={group}>
       {/* The sheet: soft clay paper with a rounded edge. */}
-      <RoundedBox args={[W, H, 0.07]} radius={0.06} smoothness={6} castShadow>
-        <meshPhysicalMaterial color={paper} roughness={0.42} clearcoat={0.35} clearcoatRoughness={0.4} sheen={0.4} sheenColor="#ffffff" />
+      <RoundedBox args={[W, H, 0.035]} radius={0.017} smoothness={4} castShadow>
+        <meshPhysicalMaterial color={paper} roughness={0.5} clearcoat={0.3} clearcoatRoughness={0.45} />
       </RoundedBox>
       {/* A second sheet behind, a little turned: a deck, not a card. */}
-      <RoundedBox args={[W, H, 0.05]} radius={0.06} smoothness={4} position={[0.07, -0.05, -0.09]} rotation={[0, 0, -0.035]}>
+      <RoundedBox args={[W, H, 0.03]} radius={0.014} smoothness={4} position={[0.06, -0.045, -0.07]} rotation={[0, 0, -0.03]}>
         <meshPhysicalMaterial color={paper} roughness={0.5} clearcoat={0.2} />
       </RoundedBox>
-      <group ref={bars} position={[-W / 2, H / 2, 0.035]}>
+      <group ref={bars} position={[-W / 2, H / 2, 0.0175]}>
         {layout.map((bar, j) => (
           <group key={j} position={[bar.x + bar.w / 2, -(bar.y + bar.h / 2), 0]}>
-            <RoundedBox args={[bar.w, bar.h, 0.07]} radius={Math.min(bar.h, bar.w) / 2.2} smoothness={5} position={[0, 0, 0.035]}>
+            <RoundedBox args={[bar.w, bar.h, 0.07]} radius={Math.min(bar.h, bar.w, 0.13) / 2.2} smoothness={5} position={[0, 0, 0.035]}>
               <meshPhysicalMaterial color={BLUE} roughness={0.18} clearcoat={1} clearcoatRoughness={0.12} />
             </RoundedBox>
           </group>
@@ -138,7 +138,7 @@ function Slide({ index, epoch, paper }: { index: number; epoch: number; paper: s
 }
 
 export default function SkeletonDrift3D({ epoch, dark }: { epoch: number; dark: boolean }) {
-  const paper = dark ? "#E4E9F1" : "#F3F6FB";
+  const paper = dark ? "#EEF2F8" : "#F7F9FC";
   const slides = useMemo(() => Array.from({ length: N }, (_, i) => i), []);
   return (
     <Canvas
@@ -147,8 +147,8 @@ export default function SkeletonDrift3D({ epoch, dark }: { epoch: number; dark: 
       gl={{ antialias: true, alpha: true, powerPreference: "low-power" }}
       style={{ background: "transparent" }}
     >
-      <ambientLight intensity={dark ? 0.55 : 0.7} />
-      <directionalLight position={[-3, 4, 5]} intensity={1.6} />
+      <ambientLight intensity={dark ? 0.8 : 0.9} />
+      <directionalLight position={[-3, 4, 5]} intensity={1.9} />
       <directionalLight position={[4, -1, 3]} intensity={0.35} color="#cfe6ff" />
       {slides.map((i) => (
         <Slide key={i} index={i} epoch={epoch} paper={paper} />
