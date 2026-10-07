@@ -359,5 +359,237 @@
    ],
    "pageFit": "compact"
   }
+ ],
+ "usPartnerships": [
+  {
+   "layoutId": "a4-page",
+   "footerLabel": "Digital Inclusion",
+   "pageDate": "October 2026",
+   "stack": [
+    {
+     "type": "banner",
+     "heading": "Accelerating access to affordable, sustainable, safe and resilient digital infrastructure for children",
+     "image": "/pages/banner-dataviz.jpg"
+    },
+    {
+     "type": "section",
+     "rail": "",
+     "wide": true,
+     "items": [
+      {
+       "label": "UNICEF’s Digital Inclusion",
+       "body": "team advises, advocates and acts so that children are neither excluded from nor left behind in the digital world. Together with governments, technology partners, development finance institutions and the private sector, we work to accelerate access to affordable, sustainable, safe and resilient digital infrastructure for every child. This strengthens the public services children rely on across education, health, protection and emergency response, while creating opportunity in the digital economy.",
+       "extra": "",
+       "kind": "para"
+      }
+     ]
+    },
+    {
+     "type": "section",
+     "rail": "How Digital Inclusion works",
+     "items": [
+      {
+       "label": "",
+       "body": "The Digital Inclusion team works with governments to tailor integrated packages of open-source solutions, technical assistance and advisory services to their digital transformation ambitions, resources, ecosystem readiness and timing. Our package combines in-country support in 190 countries and territories, with mapping and real-time monitoring, finance and sustainable business models, market shaping and procurement, ecosystem development, and evidence. Together, these capabilities enable governments to plan, build, own, manage and sustain digital infrastructure at scale, delivering reliable and equitable digital public services for children. They also strengthen markets for technology providers, from multinational companies to local small and medium-sized enterprises.",
+       "extra": "",
+       "kind": "para"
+      }
+     ]
+    },
+    {
+     "type": "section",
+     "rail": "Why it exists",
+     "items": [
+      {
+       "label": "",
+       "body": "Digital markets were not designed to reach every child. Last-mile costs, fragmented demand and weak procurement leave essential services without reliable infrastructure.",
+       "extra": "",
+       "kind": "para"
+      }
+     ]
+    },
+    {
+     "type": "stats",
+     "accent": 2,
+     "items": [
+      {
+       "label": "2.6B",
+       "body": "People remain offline",
+       "extra": ""
+      },
+      {
+       "label": "1.3B",
+       "body": "Children lack internet at home",
+       "extra": ""
+      },
+      {
+       "label": "5x",
+       "body": "what Africa pays vs the global avg. for mobile data",
+       "extra": ""
+      }
+     ]
+    },
+    {
+     "type": "pillars",
+     "rail": "How UNICEF works",
+     "items": [
+      {
+       "label": "Technology",
+       "body": "Map and measure connectivity inequality; support policy and infrastructure decisions.",
+       "extra": "",
+       "icon": "cpu"
+      },
+      {
+       "label": "Procurement",
+       "body": "Develop service profiles and tender templates; provide market intelligence, contracting support and quality checks.",
+       "extra": "",
+       "icon": "file-user"
+      },
+      {
+       "label": "Financing",
+       "body": "Build national financing paths; work with governments, IFIs and donors; use targeted mechanisms where useful.",
+       "extra": "",
+       "icon": "hand-coins"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "layoutId": "a4-page",
+   "footerLabel": "Digital Inclusion",
+   "stack": [
+    {
+     "type": "photos",
+     "rail": "Where the model applies",
+     "items": [
+      {
+       "label": "Schools",
+       "body": "Giga, proven at scale",
+       "extra": "",
+       "image": "/library/laptop-smile.jpg"
+      },
+      {
+       "label": "Health",
+       "body": "Primary care and referral systems",
+       "extra": "",
+       "image": "/library/health-centre.jpg"
+      },
+      {
+       "label": "Emergencies",
+       "body": "Camps, sites and response hubs",
+       "extra": "",
+       "image": "/library/mountain-walk.jpg"
+      },
+      {
+       "label": "Social protection",
+       "body": "Payment and registration points",
+       "extra": "",
+       "image": "/library/roundtable.jpg"
+      },
+      {
+       "label": "Child protection",
+       "body": "Case management and reporting systems",
+       "extra": "",
+       "image": "/library/students-tablet.jpg"
+      }
+     ]
+    },
+    {
+     "type": "section",
+     "rail": "Proven at the scale",
+     "items": [
+      {
+       "label": "",
+       "body": "Giga, the flagship UNICEF–ITU partnership, a government-led delivery model already running across dozens of countries and proves the model works at scale",
+       "extra": "",
+       "kind": "para"
+      }
+     ]
+    },
+    {
+     "type": "stats",
+     "accent": -1,
+     "items": [
+      {
+       "label": "54",
+       "body": "Countries formally engaged",
+       "extra": ""
+      },
+      {
+       "label": "2.3M",
+       "body": "School mapped",
+       "extra": ""
+      },
+      {
+       "label": "44k+",
+       "body": "Schools with increased access to connectivity",
+       "extra": ""
+      },
+      {
+       "label": "20M+",
+       "body": "Children’s benefited from schools with increased access to connectivity",
+       "extra": ""
+      },
+      {
+       "label": "145k+",
+       "body": "School reporting real-time connectivity",
+       "extra": ""
+      },
+      {
+       "label": "30-50%",
+       "body": "price reduction in countries like Kenya & Rwanda",
+       "extra": ""
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "layoutId": "a4-page",
+   "footerLabel": "Digital Inclusion Partnerships with U.S. Based Companies",
+   "stack": [
+    {
+     "type": "banner",
+     "heading": "Digital Inclusion Partnerships with U.S. Based Companies",
+     "image": "/pages/banner-dataviz.jpg"
+    },
+    {
+     "type": "section",
+     "rail": "",
+     "wide": true,
+     "items": [
+      {
+       "label": "",
+       "body": "UNICEF's Digital Inclusion works to accelerate affordable, sustainable, safe, and resilient digital infrastructure, including the connectivity, compute, and AI-enabling infrastructure children need, so that no child is excluded from or left behind in the digital world, and every child can safely and equitably access the public services and economic opportunity it unlocks.",
+       "extra": "",
+       "kind": "para"
+      },
+      {
+       "label": "",
+       "body": "U.S. companies are central to that model, supplying infrastructure capacity, technical expertise, and capital that make connectivity viable at scale. Below: where those partnerships stand today, and the specific, live asks in front of U.S. companies, carriers, hyperscalers, and the FCC to build the next wave.",
+       "extra": "",
+       "kind": "para"
+      }
+     ]
+    },
+    {
+     "type": "panels",
+     "accent": 1,
+     "items": [
+      {
+       "label": "Active U.S. Patnerships",
+       "body": "# Equinix\nEquinix Foundation partners with UNICEF, investing specifically in Connectivity Credits, an innovative model that incentivizes internet service providers to connect and sustain school connectivity through discounted backhaul access, making it more affordable for ISPs to deliver reliable connectivity to schools over the long term. Equinix also contributes technical expertise and access to its global infrastructure to help identify connectivity gaps, deliver access to remote and underserved schools, and improve online learning experiences for students worldwide.\n- Provided digital infrastructure capacity at its São Paulo data center, dedicated high-capacity connectivity, managed security, and technical onboarding support, powering a proof of concept of the connectivity measurement platform, which collects more accurate data on real internet quality. UNICEF aims to replicate the model in other regions, including Africa.\n- Over the past six months, Equinix technical expertise has helped frame how to expand Connectivity Credits toward fiber capacity, IP transit, and data center integration. Equinix is already funding the first wave of pilots; this sets the stage for a second wave linked to Equinix infrastructure. The Equinix Nigeria team and Giga are refining a small-scale pilot and follow-on proposal.\n# Cloudflare\nCloudflare partnered with UNICEF to bring real-time data from Cloudflare's Speed Test into Giga Maps, helping better measure and monitor internet connectivity at schools around the globe, a critical step in helping governments and nonprofits advocate for and implement better connectivity solutions where they're needed most.\n- Runs up to 10 million availability tests per month directly from schools, collecting data on speed, latency, and affordability to power Giga Maps, giving governments, the private sector, and civil society the data they need to plan investments and track progress.\n- Cloudflare's global network, data centers in over 330 cities worldwide, is positioned to minimize latency and deliver accurate, real-time connectivity assessments globally.\n# Internet Society\nThere is no standard way of measuring the internet, it's complex, highly technical, and yet affects everyone. UNICEF Giga is working with Internet Society to combine technical expertise, research, and community-building to better understand how connectivity is measured, where the gaps are, and how to close them. The collaboration launched at Pulse Research Week at Giga's Technology Center in Barcelona, convening measurement experts to explore meaningful connectivity, identifying needs, testing solutions, and validating frameworks. The two organizations continue to jointly develop more transparent, reliable, and inclusive approaches to measuring the internet.\n# Mapbox\nProvides the geospatial and mapping infrastructure behind Giga's school-connectivity data, powering the maps and location analysis used to measure the real-world impact of school connectivity.\n# Maxar\nMaxar's satellite imagery helps Giga identify and geolocate schools worldwide, supporting the effort to connect millions of young people to the internet by pinpointing where connectivity is needed most.",
+       "extra": ""
+      },
+      {
+       "label": "Open asks and needs, Not yet partners",
+       "body": "# Satellite / LEO Backhaul\n- **Starlink (SpaceX)**: A formalized “impact backhaul” wholesale pricing agreement, discounted satellite capacity for ISPs that keep a verified school or health facility connected, checked daily through Connectivity Credits. A detailed proposal is already in front of them; no agreement yet.\n- **Amazon Leo**: Early engagement now, so its capacity becomes a second LEO source alongside Starlink in the same marketplace once commercially available.\n- **Skylo Technologies**: A third candidate worth engaging in parallel, already has a live commercial direct-to-device deal with T-Mobile, a useful near-term proof point for the same backhaul model.\n# Terrestrial Backbone, Tier 1 IP Transit & Data Center\n- **Cogent, AT&T, Lumen, GTT Communications, Zayo**: “Impact pricing” on IP transit, passed through the chain so Tier 2 carriers can offer better pricing to the Tier 3 ISPs that actually connect schools.\n- **Digital Realty, Vantage Data Centers, CyrusOne**: Impact-priced data center space and interconnection, the same model as the existing Equinix partnership, extended to additional U.S. data center operators.\n# Hyperscalers & African Subsea Capacity\nAI is driving the largest subsea build cycle in two decades, led by **Google, Meta, Amazon, and Microsoft**.\n- Introductions to hyperscalers and cable consortium members already investing in African subsea capacity, for wholesale capacity, IRU, or landing-partnership arrangements. Meta's 2Africa cable, one of the largest, just completed its core buildout, a live, current hook for this conversation.\n- **SubCom**, the U.S. subsea cable manufacturer and installer that physically builds many hyperscaler-backed systems, is also a concrete introduction target, it sits underneath most of these projects and just closed a $2.3B raise for AI-driven subsea demand.\n- Work with the FCC on how an open-access, trusted-vendor wholesale layer in Africa fits broader U.S. priorities on secure, resilient, diversified international connectivity infrastructure.\n# Spectrum Certificates, Regulatory Standards\n- U.S./FCC sandbox: Integrate the Spectrum Certificates registry with current spectrum management tools; prove the framework's value for responsiveness and telecom resilience; build management-platform tools; work with FCC innovation partners on granular spectrum sharing. Federated Wireless, an FCC-approved CBRS Spectrum Access System administrator already running a live registry, is a natural technical integration partner.\n- International traction: Strong regulatory interest from Nigeria, Kenya, and Ghana, plus an early-stage pilot in Sierra Leone. Seeking further FCC introductions and support as deployments continue.\n- Emerging technologies: Unmanned-vehicle communication, LEO satellite communication, and dynamic spectrum sharing for emergency response. Seeking partnerships with technology providers, including Starlink, Amazon Leo, and Skylo (above), with FCC backing.\n- Partnership development with space tech developers and operators, and with standards bodies such as the IESG and ISE.\n# Financial institutions, Founders\n- Connect with U.S. development finance institutions and other U.S.-backed instruments for pre-seed/seed investment, guarantees, or blended finance.",
+       "extra": ""
+      }
+     ]
+    }
+   ]
+  }
  ]
 }

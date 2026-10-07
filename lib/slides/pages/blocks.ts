@@ -267,7 +267,8 @@ const pillars: BlockRender = (b, { path, d }) => {
       );
     })
     .join("");
-  return side(b, "", `<div style="display:grid;grid-template-columns:repeat(${Math.max(2, (b.items ?? []).length)},minmax(0,1fr));column-gap:${pt(5)};">${cols}</div>`);
+  // A side title when the piece gives one ("How UNICEF works", US partnerships piece).
+  return side(b, railLabel(b.rail || undefined, `${path}.rail`, d), `<div style="display:grid;grid-template-columns:repeat(${Math.max(2, (b.items ?? []).length)},minmax(0,1fr));column-gap:${pt(5)};">${cols}</div>`);
 };
 
 /** Before / today, by group (investment.py `progress_table`). */

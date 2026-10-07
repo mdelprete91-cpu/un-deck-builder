@@ -50,7 +50,7 @@ export const PAGE_CATALOG: PageCatalogEntry[] = [
   {
     type: "pillars",
     usage: "Three areas of work side by side, each with an icon. After a section that introduces them",
-    fields: 'items(3: label(<=22 chars), body(<=210 chars), icon(a Lucide icon name, e.g. "map-pin", "handshake", "hand-coins", "school", "wifi", "heart-pulse", "shield-check", "chart-column"))',
+    fields: 'rail(the side title when the document gives one, else ""), items(3: label(<=22 chars), body(<=210 chars), icon(a Lucide icon name, e.g. "map-pin", "handshake", "hand-coins", "school", "wifi", "heart-pulse", "shield-check", "chart-column"))',
   },
   {
     type: "asks",

@@ -1,6 +1,6 @@
 import { tokens } from "../fidelity";
 import type { SlideContent } from "../schema";
-import type { PageItem } from "./schema";
+import type { PageBlock, PageItem } from "./schema";
 import { undash } from "./schema";
 
 /**
@@ -207,4 +207,72 @@ export function unwrapLines(text: string): string {
     out[out.length - 1] = /[a-z]-$/.test(prev) ? prev + t : /^[.,;:)\]]/.test(t) ? prev + t : `${prev} ${t}`;
   }
   return out.join("\n");
+}
+
+/** Words only, lower case: how a heading is looked up in the source. */
+const plain = (s: string) => s.toLowerCase().normalize("NFKD").replace(/[^\p{L}\p{N}]+/gu, " ").trim();
+
+/**
+ * The shape rules of a replica, applied after the model (US partnerships
+ * piece, 7 Oct 2026, where each one failed):
+ * - a title, heading or side label the document does not have goes ("The
+ *   opportunity", "2.3M Schools"); a section left without its label runs
+ *   the full width;
+ * - a comparison is one table: two in a row (across a page break too) are
+ *   merged, column by column;
+ * - a page number is never a figure: a stat card reading "02" goes;
+ * - a banner starts a new part of the document, so it starts a page.
+ */
+export function shapeReplica(pages: SlideContent[], source: string): SlideContent[] {
+  const src = ` ${plain(source)} `;
+  const known = (s?: string) => !s?.trim() || src.includes(` ${plain(s)} `) || src.includes(plain(s));
+  // 1. Invented heads.
+  let out = pages.map((p, pi) => ({
+    ...p,
+    stack: (p.stack ?? [])
+      .filter((b, bi) => !((b.type === "title" || b.type === "heading") && !known(b.heading) && !(pi === 0 && bi === 0)))
+      .map((b) => {
+        if (b.rail && !known(b.rail)) return { ...b, rail: "", ...(b.type === "section" ? { wide: true } : {}) };
+        if (b.type === "section" && !b.rail?.trim()) return { ...b, wide: true };
+        return b;
+      }),
+  }));
+  // 2. One comparison table.
+  let prev: PageBlock | null = null;
+  out = out.map((p) => {
+    const stack: PageBlock[] = [];
+    for (const b of p.stack) {
+      if (b.type === "panels" && prev?.type === "panels" && (prev.items?.length ?? 0) === (b.items?.length ?? 0)) {
+        prev.items = prev.items!.map((it, i) => ({ ...it, body: [it.body, b.items![i].body].filter((x) => x.trim()).join("\n") }));
+        continue;
+      }
+      const copy = b.type === "panels" ? { ...b, items: b.items?.map((it) => ({ ...it })), cont: undefined } : b;
+      stack.push(copy);
+      prev = copy;
+    }
+    // Anything after the table on the same page breaks the run.
+    if (stack.length && stack[stack.length - 1].type !== "panels") prev = null;
+    return { ...p, stack };
+  });
+  // 3. Page numbers are not figures.
+  out = out.map((p) => ({
+    ...p,
+    stack: p.stack
+      .map((b) => (b.type === "stats" ? { ...b, items: (b.items ?? []).filter((it) => !/^0\d$/.test(it.label.trim())) } : b))
+      .filter((b) => b.type !== "stats" || (b.items?.length ?? 0) > 0),
+  }));
+  // 4. A banner opens a page.
+  const paged: SlideContent[] = [];
+  for (const p of out) {
+    let cur: PageBlock[] = [];
+    p.stack.forEach((b, i) => {
+      if (b.type === "banner" && i > 0 && cur.length) {
+        paged.push({ ...p, stack: cur });
+        cur = [];
+      }
+      cur.push(b);
+    });
+    if (cur.length) paged.push({ ...p, stack: cur });
+  }
+  return paged.filter((p) => (p.stack?.length ?? 0) > 0);
 }

@@ -8,7 +8,7 @@ import { ensureId, isChartLayout, isPage, normalizeSlide, overLimits, PRIMARY_AR
 import { renderSlide } from "@/lib/slides/layouts";
 import { A4_PX, pageDateNow } from "@/lib/slides/pages/a4";
 import { fitPage, flowOver, pullForward, type Resizer } from "@/lib/slides/pages/fit";
-import { dropStatEchoes, fillStatFigures, isMastheadLine, putBackLines, unwrapLines } from "@/lib/slides/pages/restore";
+import { dropStatEchoes, fillStatFigures, isMastheadLine, putBackLines, shapeReplica, unwrapLines } from "@/lib/slides/pages/restore";
 import { logoFor } from "@/lib/slides/pages/logos";
 import { fillPagePhotos } from "@/lib/slides/library";
 import BlockRail from "@/components/BlockRail";
@@ -1006,7 +1006,9 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
     const pass = async (repair?: string) => {
       const kept: SlideContent[] = [];
       const received = await runGeneration(
-        { mode: "generate", brief, briefNotes, brandLabel: theme.label, format: "two-pager", count, source: text, attachments: [], repair },
+        // The PDF goes with its text: the model reads the layout (what sits
+        // side by side, a card, a photo) from the pages, the words from the text.
+        { mode: "generate", brief, briefNotes, brandLabel: theme.label, format: "two-pager", count, source: text, attachments: file.kind === "pdf" ? [file] : [], repair },
         { replace: true, collect: kept },
       );
       return received ? { kept, r: compareSlide(1, title, units, kept) } : null;
@@ -1042,7 +1044,10 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
     const check = compareSlide(1, title, units, best.kept);
     const unplaced = [...new Set(check.figures.wrong.filter((w) => !/^0\d$/.test(w.figure)).map(asWritten))];
     const cleaned = fillStatFigures(dropStatEchoes(best.kept), unplaced, check.lines.missing);
-    const { pages: kept, putBack } = putBackLines(cleaned, units.lines, compareSlide(1, title, units, cleaned).lines.missing);
+    const { pages: restored, putBack } = putBackLines(cleaned, units.lines, compareSlide(1, title, units, cleaned).lines.missing);
+    // The shape rules (restore.ts shapeReplica): no invented heads, one
+    // comparison table, no page number as a figure, a banner opens a page.
+    const kept = shapeReplica(restored, text);
     const r = compareSlide(1, title, units, kept);
     const logo = pieceLogo(state.brief, text);
     if (logo && kept[0]) kept[0] = { ...kept[0], pageLogo: logo };

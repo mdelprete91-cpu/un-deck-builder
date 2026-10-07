@@ -144,7 +144,17 @@ export async function POST(request: Request): Promise<Response> {
   const perItem = twoPager ? 1600 : 800;
   // A replicated slide carries a whole source slide: up to 250 words and a
   // chart, in the dense layouts' items and stats.
-  const maxTokens = body.mode === "replicate" ? 3000 : Math.min(800 + perItem * count + (isAdd ? 400 : 0), 36000);
+  // A two-pager replica rewrites the whole document as JSON, and reasons
+  // first (below): its budget follows the source, about 1.8 tokens of output
+  // for each token of text, plus room for the reasoning. At 1,600 a page a
+  // four-page piece was cut short and the app put the rest back in bulk.
+  const replicaPages = twoPager && !!body.source;
+  const maxTokens =
+    body.mode === "replicate"
+      ? 3000
+      : replicaPages
+        ? Math.min(4000 + Math.ceil((body.source!.length / 3.5) * 1.8) + 12000, 48000)
+        : Math.min(800 + perItem * count + (isAdd ? 400 : 0), 36000);
   const encoder = new TextEncoder();
 
   const stream = new ReadableStream({
@@ -195,7 +205,11 @@ export async function POST(request: Request): Promise<Response> {
                 strict: true,
               },
             },
-            reasoning: { effort: "none" },
+            // A two-pager replica reads a layout (columns over two pages, cards,
+            // captions) before it writes: with no reasoning the same PDF came
+            // out right one time and scrambled the next (7 Oct 2026). Every
+            // other generation keeps it off.
+            reasoning: { effort: twoPager && body.source ? "medium" : "none" },
             max_output_tokens: maxTokens,
             stream: true,
           },

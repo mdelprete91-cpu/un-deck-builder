@@ -170,6 +170,28 @@ const SPLITS = new Set(["section", "table", "numbered", "compare", "asks", "cont
  * Returns null when every page already fits.
  */
 export async function flowOver(pages: Slide[], t: BrandTheme): Promise<Slide[] | null> {
+  const flowed = await flowOnce(pages, t);
+  if (!flowed || flowed.length <= pages.length) return flowed;
+  // It took a page more. When that page holds only a few lines, the part
+  // it continues is set compact instead, from the page that overflowed on,
+  // and runs again (US partnerships piece, 7 Oct 2026: a fifth page with
+  // two short paragraphs). Kept only when it saves the page.
+  const last = flowed[flowed.length - 1];
+  const room = -(await measurePage({ ...last, pageFit: last.pageFit ?? "regular" }, t, flowed.length - 1, flowed.length));
+  const zone = 842 - 104; // about the content zone of a page without masthead, pt
+  if (room < zone * 0.65) return flowed;
+  const from = pages.findIndex((p, i) => (p.stack?.length ?? 0) !== (flowed[i]?.stack?.length ?? 0) || JSON.stringify(p.stack) !== JSON.stringify(flowed[i]?.stack));
+  if (from < 0) return flowed;
+  let start = from;
+  while (start > 0 && pages[start].stack?.[0]?.type !== "banner") start--;
+  if (pages[start].stack?.[0]?.type !== "banner") start = from;
+  const tighter = pages.map((p, i) => (i >= start && (p.pageFit ?? "regular") === "regular" ? { ...p, pageFit: "compact" as const } : p));
+  const again = await flowOnce(tighter, t);
+  const result = again ?? tighter;
+  return result.length < flowed.length ? result : flowed;
+}
+
+async function flowOnce(pages: Slide[], t: BrandTheme): Promise<Slide[] | null> {
   if (!host) await measurePage(pages[0], t, 0, pages.length);
   const out = pages.map((p) => ({ ...p, stack: [...(p.stack ?? [])] }));
   let changed = false;
@@ -207,7 +229,8 @@ export async function flowOver(pages: Slide[], t: BrandTheme): Promise<Slide[] |
     } else continue;
     out[i] = { ...out[i], stack: keep };
     if (i + 1 < out.length) out[i + 1] = { ...out[i + 1], stack: [...carry, ...(out[i + 1].stack ?? [])] };
-    else out.push({ id: "", layoutId: out[i].layoutId, footerLabel: out[i].footerLabel, stack: carry });
+    // A new page keeps the setting of the one it continues: one type size per part.
+    else out.push({ id: "", layoutId: out[i].layoutId, footerLabel: out[i].footerLabel, pageFit: out[i].pageFit, stack: carry });
     changed = true;
   }
   host!.innerHTML = "";
