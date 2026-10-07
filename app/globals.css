@@ -863,3 +863,9 @@ body {
 .side-bar-block {
   background: var(--color-canvas-2);
 }
+
+/* The empty stage's clay slides (SkeletonDrift): the side ones step back,
+   dimmed so they stay solid (no sheet showing through another). */
+.clay-front { opacity: 1; filter: none; }
+.clay-side { opacity: 0.6; filter: saturate(0.6); }
+.dark .clay-side { opacity: 1; filter: brightness(0.42) saturate(0.6); }
