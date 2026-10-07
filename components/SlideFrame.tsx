@@ -960,7 +960,7 @@ export default function SlideFrame({
         const tone = toneOf?.(index) ?? null;
         const sideTitle = onSideTitle ? (sideTitleOf?.(index) ?? null) : null;
         const cols = onColumns ? (columnsOf?.(index) ?? null) : null;
-        const height = 46 * (3 + (canItem ? 1 : 0) + (canLess ? 1 : 0) + (tone ? 1 : 0) + (sideTitle !== null ? 1 : 0) + (cols !== null ? 2 : 0)) + 12;
+        const height = 54 + 46 * (2 + (canItem ? 1 : 0) + (canLess ? 1 : 0) + (tone ? 1 : 0) + (sideTitle !== null ? 1 : 0) + (cols !== null ? 2 : 0)) + 12;
         // The gap a pointer at this height drops into: 0 is above the first block.
         const gapAt = (y: number) => blockRects.filter((r) => r.top + r.height / 2 < y).length;
         const gapY = (gap: number) =>
@@ -968,9 +968,11 @@ export default function SlideFrame({
         return (
           <>
             <div
-              // Beside the sheet, level with the block: the slide bar's pill
-              // stood upright (DESIGN.md "Block toolbar").
-              className="side-bar side-bar-block absolute z-20 flex flex-col gap-1.5 rounded-full p-1.5 shadow-float transition-[top] duration-300 ease-out"
+              // Beside the sheet, level with the block (DESIGN.md "Page bar and
+              // block bar"): the block's own actions in a lighter pill, and
+              // under it, apart, the + that adds a block below, which is not
+              // an action on the block (Mario, 7 Oct 2026).
+              className="absolute z-20 flex flex-col items-center gap-2.5 transition-[top] duration-300 ease-out"
               style={{
                 left: pageLeft + size.w * scale + 12,
                 top: Math.max(0, Math.min(blockRects[index]?.top ?? 0, box.h - height)),
@@ -978,6 +980,7 @@ export default function SlideFrame({
               onMouseEnter={() => barTimer.current && clearTimeout(barTimer.current)}
               onMouseLeave={leaveBlock}
             >
+            <div className="side-bar side-bar-block flex flex-col gap-1.5 rounded-full p-1.5 shadow-float">
               <Button
                 iconOnly
                 icon={GripVertical}
@@ -992,15 +995,6 @@ export default function SlideFrame({
                 }}
                 onPointerUp={dropBlock}
                 onPointerCancel={() => releaseDrag()}
-              />
-              <Button
-                iconOnly
-                variant={addingBlocks ? "primary" : undefined}
-                icon={Plus}
-                onClick={() => onAddBlock?.(index + 1)}
-                data-tip-side="right" data-tip={addingBlocks ? "Close blocks" : "Add block below"}
-                aria-label="Add a block below"
-                aria-pressed={addingBlocks}
               />
               {canItem && (
                 <Button
@@ -1100,6 +1094,19 @@ export default function SlideFrame({
                 data-tip-side="right" data-tip={canDeleteBlock?.(index) === false ? "Page 1 keeps its title" : "Delete block"}
                 aria-label="Remove this block"
               />
+            </div>
+            <div className="side-bar rounded-full border border-hairline-light bg-surface p-1 shadow-float">
+              <Button
+                iconOnly
+                variant={addingBlocks ? "primary" : undefined}
+                icon={Plus}
+                onClick={() => onAddBlock?.(index + 1)}
+                data-tip-side="right"
+                data-tip={addingBlocks ? "Close blocks" : "Add block below"}
+                aria-label="Add a block below"
+                aria-pressed={addingBlocks}
+              />
+            </div>
             </div>
             {incoming != null && (
               // Where a block from the rail will land.
