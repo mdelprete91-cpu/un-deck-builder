@@ -99,6 +99,11 @@ export default function Studio() {
   const [hydrated, setHydrated] = useState(false);
   const [dataPanelOpen, setDataPanelOpen] = useState(false);
   /** Which block of a two-pager page the pill's actions apply to. */
+  /**
+   * Two-pagers: the block plan as it streams, shown on the stage while the
+   * model works, so the wait says what is being decided (Mario, 7 Oct 2026).
+   */
+  const [livePlan, setLivePlan] = useState<PlanRow[] | null>(null);
   /** Two-pager: the selected block, null when none is (the page's own bar shows). */
   const [focusedBlock, setFocusedBlock] = useState<number | null>(null);
   /** Last session's deck, offered on the empty state. Never applied on its own. */
@@ -284,6 +289,7 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
     try {
       const t0 = performance.now();
       let firstAt = 0;
+      if (body.format === "two-pager" && opts.replace) setLivePlan([]);
       const res = await fetch("/api/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -354,8 +360,12 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
             received++;
           } else if (event.type === "plan" && !firstAt) {
             firstAt = performance.now();
-            if (event.row) opts.plan?.push(event.row as PlanRow);
+            if (event.row) {
+              opts.plan?.push(event.row as PlanRow);
+              setLivePlan((rows) => [...(rows ?? []), event.row as PlanRow]);
+            }
           } else if (event.type === "plan") {
+            if (event.row) setLivePlan((rows) => [...(rows ?? []), event.row as PlanRow]);
             if (event.row) opts.plan?.push(event.row as PlanRow);
           } else if (event.type === "meta") {
             meta = event;
@@ -1895,10 +1905,32 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
             <div className="absolute inset-0 flex items-center justify-center">
               <div ref={genPillRef} className="gen-pill rounded-full shadow-float">
                 <div className="rounded-full border border-hairline-light bg-surface p-2.5">
-                  <GeneratingLabel />
+                  <GeneratingLabel
+                    label={
+                      !twoPager || !livePlan
+                        ? undefined
+                        : livePlan.length === 0
+                          ? replicaChosen()
+                            ? "Reading the document and choosing the blocks…"
+                            : "Choosing the blocks…"
+                          : `Planning the pages · ${livePlan.length} block${livePlan.length === 1 ? "" : "s"}`
+                    }
+                  />
                 </div>
               </div>
             </div>
+            {twoPager && livePlan && livePlan.length > 0 && (
+              // The plan as it arrives: which block tells which part, page by page.
+              <ol className="absolute left-1/2 top-[calc(50%+44px)] flex w-[min(560px,calc(100%-48px))] -translate-x-1/2 flex-col gap-1 text-[13px] leading-snug">
+                {livePlan.slice(-8).map((r, i) => (
+                  <li key={`${livePlan.length - Math.min(8, livePlan.length) + i}`} className="float-in grid grid-cols-[52px_120px_minmax(0,1fr)] gap-3 text-ink-muted">
+                    <span className="tabular-nums text-ink-faint">Page {r.page}</span>
+                    <span className="font-medium text-ink">{BLOCK_LABELS[r.block as keyof typeof BLOCK_LABELS] ?? r.block}</span>
+                    <span className="truncate">{r.part.replace(/\s*[—–]\s*/g, ", ")}</span>
+                  </li>
+                ))}
+              </ol>
+            )}
           </div>
         ) : state.slides.length === 0 ? (
           <>
