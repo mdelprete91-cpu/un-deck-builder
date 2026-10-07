@@ -282,6 +282,8 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
     // SlideActions; see .gen-pill in globals.css).
     let firstLanding = !!opts.replace;
     try {
+      const t0 = performance.now();
+      let firstAt = 0;
       const res = await fetch("/api/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -313,6 +315,7 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
           if (!line.trim()) continue;
           const event = JSON.parse(line);
           if (event.type === "slide") {
+            if (!firstAt) firstAt = performance.now();
             // A two-pager streams pages, not slides: the model writes a block
             // stack and the page shell is ours.
             const raw = twoPager
@@ -349,11 +352,15 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
             }
             opts.collect?.push(content);
             received++;
+          } else if (event.type === "plan" && !firstAt) {
+            firstAt = performance.now();
+            if (event.row) opts.plan?.push(event.row as PlanRow);
           } else if (event.type === "plan") {
             if (event.row) opts.plan?.push(event.row as PlanRow);
           } else if (event.type === "meta") {
             meta = event;
           } else if (event.type === "done") {
+            console.info(`[timing] generate: first output ${Math.round(((firstAt || performance.now()) - t0) / 1000)}s, done ${Math.round((performance.now() - t0) / 1000)}s, ${received} pieces, ${event.usage?.outputTokens ?? "?"} output tokens`);
             dispatch({ type: "GENERATION_DONE", usage: event.usage });
             opts.onDone?.(event);
             // The route says when the model hit max_tokens. The slides that
@@ -715,8 +722,17 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
       });
       return res.ok ? ((await res.json()) as Record<string, unknown>) : null;
     };
+    let shortens = 0;
+    let shortenMs = 0;
+    const tFitAll = performance.now();
     const resize: Resizer = {
-      shorten: async (block, chars) => normalizePage([(await call({ block: lightBlock(block), chars }))?.block])?.[0] ?? null,
+      shorten: async (block, chars) => {
+        const t = performance.now();
+        shortens++;
+        const out = normalizePage([(await call({ block: lightBlock(block), chars }))?.block])?.[0] ?? null;
+        shortenMs += performance.now() - t;
+        return out;
+      },
     };
     // A new piece fills page one before page two (pullForward); a page
     // rewritten on its own keeps its blocks where they are.
@@ -738,6 +754,7 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
       dispatch({ type: "REPLACE_SLIDE", index, content });
     }
     for (const index of emptied.reverse()) dispatch({ type: "DELETE", index });
+    console.info(`[timing] fit ${pages.length} pages: ${Math.round((performance.now() - tFitAll) / 1000)}s, ${shortens} shorten call(s) taking ${Math.round(shortenMs / 1000)}s`);
   };
 
   /** `fallback`: a replica that could not run, said in the sidebar once the deck generated from the file as a source is in. */
@@ -1026,6 +1043,7 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
       );
       return received ? { kept, plan, r: compareSlide(1, title, units, kept) } : null;
     };
+    const tRep = performance.now();
     let best = await pass();
     if (!best) return;
     const firstPass = totals([best.r]);
@@ -1064,7 +1082,9 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
     const r = compareSlide(1, title, units, kept);
     const logo = pieceLogo(state.brief, text);
     if (logo && kept[0]) kept[0] = { ...kept[0], pageLogo: logo };
+    const tFit = performance.now();
     await fitPages(kept, 0, { dated: true, keepText: true });
+    console.info(`[timing] replica: ${repairs} repair pass(es), model ${Math.round((tFit - tRep) / 1000)}s, fit ${Math.round((performance.now() - tFit) / 1000)}s`);
     setFidelity({
       slides: [{ ...r, at: 0, layoutId: "a4-page", deckTitle: kept[0]?.stack?.[0]?.heading ?? title, parts: kept.length, putBack }],
       leftovers: [],

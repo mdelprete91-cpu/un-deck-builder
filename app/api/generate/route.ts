@@ -196,6 +196,10 @@ export async function POST(request: Request): Promise<Response> {
           {
             model: MODEL,
             instructions: SYSTEM_PROMPTS[twoPager ? "two-pager" : "slides"],
+            // The system prompt (catalog, library, rules) is the same on every
+            // call: one cache key per format lets the provider reuse it, which
+            // shortens the wait before the first token. Output is unchanged.
+            prompt_cache_key: twoPager ? "udb-two-pager-v1" : "udb-slides-v1",
             input: [{ role: "user", content: buildUserContent(body) }],
             text: {
               format: {
