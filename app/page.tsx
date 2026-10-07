@@ -8,7 +8,7 @@ import { ensureId, isChartLayout, isPage, normalizeSlide, overLimits, PRIMARY_AR
 import { renderSlide } from "@/lib/slides/layouts";
 import { A4_PX, pageDateNow } from "@/lib/slides/pages/a4";
 import { fitPage, flowOver, pullForward, type Resizer } from "@/lib/slides/pages/fit";
-import { dropStatEchoes, fillStatFigures, isMastheadLine, putBackLines, checkRhythm, shapeReplica, unwrapLines } from "@/lib/slides/pages/restore";
+import { dropStatEchoes, fillStatFigures, isMastheadLine, putBackLines, checkRhythm, layoutIssues, shapeReplica, tidyBriefPieces, unwrapLines } from "@/lib/slides/pages/restore";
 import { logoFor } from "@/lib/slides/pages/logos";
 import { fillPagePhotos } from "@/lib/slides/library";
 import BlockRail from "@/components/BlockRail";
@@ -874,9 +874,41 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
         }
       }
     }
+    // A two-pager that came back as running text is laid out again once,
+    // with the reasons and its own text (Mario, 7 Oct 2026: "too textual,
+    // too linear"). The second answer stays only if it reads better.
+    let pieces = kept;
+    if (received > 0 && twoPager && !truncated) {
+      const issues = layoutIssues(kept);
+      if (issues.length) {
+        const again: SlideContent[] = [];
+        const got = await runGeneration(
+          {
+            mode: "generate",
+            brief,
+            attachments,
+            brandLabel: theme.label,
+            format: state.format,
+            count,
+            relayout: issues.join("; "),
+            relayoutPages: JSON.stringify(kept.map((k) => ({ stack: (k.stack ?? []).map((b) => ({ type: b.type, rail: b.rail, heading: b.heading, body: b.body, items: b.items?.map((it) => ({ label: it.label, body: it.body })) })) }))),
+          },
+          { replace: true, collect: again },
+        );
+        if (got > 0 && layoutIssues(again).length < issues.length) pieces = again;
+        else {
+          // The first draft back on screen.
+          dispatch({ type: "GENERATION_START", replace: true });
+          for (const c of kept) dispatch({ type: "APPEND_SLIDE", content: c });
+          dispatch({ type: "GENERATION_DONE" });
+        }
+        console.info(`[timing] relayout: ${issues.join("; ")} -> ${pieces === kept ? "kept the first draft" : `second draft (${layoutIssues(again).length} issues left)`}`);
+      }
+    }
     if (received > 0 && twoPager) {
+      pieces = tidyBriefPieces(pieces);
       const logo = pieceLogo(brief);
-      await fitPages(logo ? [{ ...kept[0], pageLogo: logo }, ...kept.slice(1)] : kept, 0, { dated: true });
+      await fitPages(logo ? [{ ...pieces[0], pageLogo: logo }, ...pieces.slice(1)] : pieces, 0, { dated: true });
     }
     if (received > 0 && TIERS_REQUEST.test(brief)) dispatch({ type: "INSERT_TIERS" });
     if (received > 0) onDeckArrived();
@@ -1905,17 +1937,7 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
             <div className="absolute inset-0 flex items-center justify-center">
               <div ref={genPillRef} className="gen-pill rounded-full shadow-float">
                 <div className="rounded-full border border-hairline-light bg-surface p-2.5">
-                  <GeneratingLabel
-                    label={
-                      !twoPager || !livePlan
-                        ? undefined
-                        : livePlan.length === 0
-                          ? replicaChosen()
-                            ? "Reading the document and choosing the blocks…"
-                            : "Choosing the blocks…"
-                          : `Planning the pages · ${livePlan.length} block${livePlan.length === 1 ? "" : "s"}`
-                    }
-                  />
+                  <GeneratingLabel />
                 </div>
               </div>
             </div>

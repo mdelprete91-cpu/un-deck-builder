@@ -121,7 +121,7 @@ export const PAGE_CATALOG: PageCatalogEntry[] = [
     signals: "2-6 short items, each a name and one line, about where the work happens or who it reaches",
     role: "anchor",
     capacity: "2-6 cards, 2 to a row; ~150pt a row",
-    never: "never for abstract ideas with no fitting library photo",
+    never: "never for articles, guides, tools or abstract ideas: only real places, settings or people a library photo shows",
   },
   {
     type: "heading",
@@ -176,12 +176,12 @@ export const PAGE_CATALOG: PageCatalogEntry[] = [
   {
     type: "numbered",
     usage: "Asks or next steps, each a full sentence in a numbered circle. The block for what the reader is asked to do",
-    fields: "rail(<=28 chars), items(1-6: body(<=220 chars))",
+    fields: "rail(<=28 chars), items(2-6: body(<=220 chars))",
     shape: "what the reader is asked to do",
     signals: "asks or next steps, one sentence each, where the order matters",
     role: "scan",
     capacity: "1-6 points; ~35pt each",
-    never: "never for long paragraphs",
+    never: "never for long paragraphs; never for a single point (two at least)",
   },
   {
     type: "table",
@@ -201,7 +201,7 @@ export const PAGE_CATALOG: PageCatalogEntry[] = [
     signals: "named people with a role and an email",
     role: "structure",
     capacity: "1-4 people; ~40pt each",
-    never: "never without names the brief gives; never anywhere but last",
+    never: "never without people to write to, named with an email in the brief; never the author of a source article; never anywhere but last",
   },
 ];
 

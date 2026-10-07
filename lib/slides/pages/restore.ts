@@ -359,3 +359,43 @@ export function checkRhythm(pages: SlideContent[], plan: { block: string; page: 
   }
   return notes;
 }
+
+/**
+ * Why a two-pager written from a brief reads as a report rather than a
+ * two-pager (Mario, 7 Oct 2026: "too textual, too linear"): pages with no
+ * anchor block, runs of three sections, sections over half the piece, too
+ * few kinds of block. Empty when the layout has enough variety.
+ */
+export function layoutIssues(pages: SlideContent[]): string[] {
+  const blocks = pages.flatMap((p) => (p.stack ?? []).filter((b) => !b.cont));
+  if (!blocks.length) return [];
+  const issues: string[] = [];
+  pages.forEach((p, i) => {
+    const stack = p.stack ?? [];
+    if (stack.length && !stack.some((b) => ANCHORS.has(b.type))) issues.push(`page ${i + 1} has no figures, photos, cards or table`);
+    let run = 0;
+    for (const b of stack) {
+      run = b.type === "section" ? run + 1 : 0;
+      if (run === 3) issues.push(`page ${i + 1} has three text sections in a row`);
+    }
+  });
+  const sections = blocks.filter((b) => b.type === "section").length;
+  if (sections > 3 && sections / blocks.length > 0.5) issues.push(`${sections} of its ${blocks.length} blocks are text sections`);
+  const kinds = new Set(blocks.map((b) => b.type)).size;
+  if (kinds < 4) issues.push(`only ${kinds} kinds of block`);
+  return issues;
+}
+
+/**
+ * A two-pager written from a brief: a contacts block needs someone to write
+ * to (an address), a list of asks needs more than one. Not for replicas,
+ * which keep what the document has.
+ */
+export function tidyBriefPieces(pages: SlideContent[]): SlideContent[] {
+  return pages.map((p) => ({
+    ...p,
+    stack: (p.stack ?? [])
+      .filter((b) => b.type !== "contacts" || (b.items ?? []).some((it) => /@/.test(it.extra)))
+      .map((b): PageBlock => (b.type === "numbered" && (b.items?.length ?? 0) === 1 ? { type: "section", rail: b.rail, items: [{ kind: "para", label: "", body: b.items![0].body, extra: "" }] } : b)),
+  }));
+}

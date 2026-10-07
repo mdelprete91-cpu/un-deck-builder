@@ -122,6 +122,9 @@ interface GenerateBody {
   sourceContext?: string;
   /** Replicate, second attempt: what the first answer changed (fidelity.ts `repairNote`) and that answer. */
   repair?: string;
+  /** Two-pager from a brief: the first answer's pages, too textual, to lay out again (pages/restore.ts layoutIssues). */
+  relayout?: string;
+  relayoutPages?: string;
   previous?: SlideContent;
   /** Reference material attached to the brief; never persisted, see lib/slides/attachments.ts */
   attachments?: Attachment[];
@@ -319,7 +322,9 @@ function buildPageUserMessage(body: GenerateBody): string {
         const repair = body.repair?.trim() ? `\n\n${body.repair.trim().slice(0, 6000).replace("for this slide", "for this two-pager")}` : "";
         return `Brief: ${body.brief}${brand}${notes}\n\n${REPLICATE_PAGES(n)}\n\nDocument:\n<<<\n${body.source.slice(0, REPLICATE_SOURCE_CHARS)}\n>>>${repair}`;
       }
-      return `Brief: ${body.brief}${brand}${language}${notes}\n\nWrite the two-pager that tells this story in exactly ${n} page${n === 1 ? "" : "s"}.`;
+      if (body.relayout?.trim())
+        return `Brief: ${body.brief}${brand}${language}${notes}\n\nA first draft of this two-pager came back as running text, block after block of "section": it reads as a report, not a two-pager (${body.relayout.slice(0, 600)}). Write it again in exactly ${n} page${n === 1 ? "" : "s"}, keeping its facts and its best wording, but laid out the way the block spreadsheet says. Before writing, find in the material each part that has a shape of its own and give it that block: two sides (known and unknown, now and next, offer and ask) on "panels"; steps or recommendations on "numbered"; a status or a caveat on "callout"; three aspects on "pillars"; a tool or product on "screens"; places, settings or people on "photos"; figures on "stats"; a phase or site on "split". At least five different block types across the piece, every page with an anchor block, at most two "section" blocks in a row and at most three in the whole piece. Never invent a figure, a name or a fact to fill a block: when the material has no figures, there is no "stats" block.\n\nFirst draft (JSON, its text is yours to reuse):\n${body.relayoutPages ?? ""}`;
+      return `Brief: ${body.brief}${brand}${language}${notes}\n\nWrite the two-pager that tells this story in exactly ${n} page${n === 1 ? "" : "s"}. Lay it out, do not just write it: give each part of the story the block its shape calls for (the block spreadsheet), with at least five different block types across the piece and at most two "section" blocks in a row.`;
     }
   }
 }
