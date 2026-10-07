@@ -932,12 +932,12 @@ export default function SlideFrame({
               onMouseLeave={leaveBlock}
             >
               {onEditWithAi && (
-                <Button variant="primary" iconOnly icon={Sparkles} onClick={onEditWithAi} data-tip="Edit with AI" aria-label="Edit with AI" />
+                <Button variant="primary" iconOnly icon={Sparkles} onClick={onEditWithAi} data-tip-side="right" data-tip="Edit with AI" aria-label="Edit with AI" />
               )}
               <Button
                 iconOnly
                 icon={GripVertical}
-                data-tip="Move"
+                data-tip-side="right" data-tip="Move"
                 aria-label="Drag to move this block"
                 className="cursor-grab touch-none active:cursor-grabbing"
                 onPointerDown={(e) => grabBlock(e, index)}
@@ -954,7 +954,7 @@ export default function SlideFrame({
                 variant={addingBlocks ? "primary" : undefined}
                 icon={Plus}
                 onClick={() => onAddBlock?.(index + 1)}
-                data-tip={addingBlocks ? "Close blocks" : "Add block"}
+                data-tip-side="right" data-tip={addingBlocks ? "Close blocks" : "Add block"}
                 aria-label="Add a block"
                 aria-pressed={addingBlocks}
               />
@@ -963,7 +963,7 @@ export default function SlideFrame({
                   iconOnly
                   icon={ListPlus}
                   onClick={() => onAddBlockItem?.(index)}
-                  data-tip="Add item"
+                  data-tip-side="right" data-tip="Add item"
                   aria-label="Add an item to this block"
                 />
               )}
@@ -980,7 +980,7 @@ export default function SlideFrame({
                     const path = at?.getAttribute("data-item") ?? (rows?.length ? rows[rows.length - 1].getAttribute("data-item") : null);
                     if (path) onDeleteItemRef.current?.(path.replace(/^(stack\.\d+\.items\.\d+).*$/, "$1"));
                   }}
-                  data-tip="Remove item"
+                  data-tip-side="right" data-tip="Remove item"
                   aria-label="Remove an item from this block"
                 />
               )}
@@ -990,7 +990,7 @@ export default function SlideFrame({
                     iconOnly
                     icon={Palette}
                     onClick={() => setTones((v) => !v)}
-                    data-tip="Colour"
+                    data-tip-side="right" data-tip="Colour"
                     aria-label="Colour of this banner"
                     aria-expanded={tones}
                   />
@@ -1020,7 +1020,7 @@ export default function SlideFrame({
                   iconOnly
                   icon={sideTitle ? PanelLeftClose : PanelLeftOpen}
                   onClick={() => onSideTitle?.(index)}
-                  data-tip={sideTitle ? "Hide side title" : "Show side title"}
+                  data-tip-side="right" data-tip={sideTitle ? "Hide side title" : "Show side title"}
                   aria-label={sideTitle ? "Remove the side title" : "Bring back the side title"}
                 />
               )}
@@ -1031,7 +1031,7 @@ export default function SlideFrame({
                     icon={BetweenVerticalEnd}
                     disabled={cols >= 5}
                     onClick={() => onColumns?.(index, true)}
-                    data-tip={cols >= 5 ? "Max 5 columns" : "Add column"}
+                    data-tip-side="right" data-tip={cols >= 5 ? "Max 5 columns" : "Add column"}
                     aria-label="Add a column"
                   />
                   <Button
@@ -1039,7 +1039,7 @@ export default function SlideFrame({
                     icon={Columns2}
                     disabled={cols <= 2}
                     onClick={() => onColumns?.(index, false)}
-                    data-tip={cols <= 2 ? "Min 2 columns" : "Remove column"}
+                    data-tip-side="right" data-tip={cols <= 2 ? "Min 2 columns" : "Remove column"}
                     aria-label="Remove the last column"
                   />
                 </>
@@ -1053,7 +1053,7 @@ export default function SlideFrame({
                   onDeleteBlock?.(index);
                   setHoverBlock(null);
                 }}
-                data-tip={canDeleteBlock?.(index) === false ? "Page 1 keeps its title" : "Delete block"}
+                data-tip-side="right" data-tip={canDeleteBlock?.(index) === false ? "Page 1 keeps its title" : "Delete block"}
                 aria-label="Remove this block"
               />
             </div>

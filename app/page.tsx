@@ -2132,17 +2132,24 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
             {/* The block rail opens from the side bar's + and closes with it
                 (Mario, 7 Oct 2026): blocks are dragged onto the page, or
                 clicked to land where the + was pressed. */}
-            {twoPager && active && isPage(active) && addBlockAt != null && (
-              <div className="rail-in w-[168px] shrink-0 border-l border-hairline-light bg-canvas">
-                <BlockRail
-                  onAdd={(blockType) => {
-                    const at = Math.min(addBlockAt, active.stack?.length ?? 0);
-                    dispatch({ type: "ADD_BLOCK", index: state.activeIndex, at, blockType });
-                    setFocusedBlock(at);
-                    setAddBlockAt(at + 1);
-                  }}
-                  onClose={() => setAddBlockAt(null)}
-                />
+            {twoPager && active && isPage(active) && (
+              // Opens by width, so the page beside it rescales smoothly
+              // instead of jumping (Mario, 7 Oct 2026: "scattosa"); the list
+              // inside slides and fades in a step behind. Mounted throughout,
+              // inert while closed.
+              <div className="block-rail-wrap shrink-0 overflow-hidden" data-open={addBlockAt != null} inert={addBlockAt == null}>
+                <div className="block-rail-panel h-full w-[168px] border-x border-hairline bg-surface">
+                  <BlockRail
+                    onAdd={(blockType) => {
+                      if (addBlockAt == null) return;
+                      const at = Math.min(addBlockAt, active.stack?.length ?? 0);
+                      dispatch({ type: "ADD_BLOCK", index: state.activeIndex, at, blockType });
+                      setFocusedBlock(at);
+                      setAddBlockAt(at + 1);
+                    }}
+                    onClose={() => setAddBlockAt(null)}
+                  />
+                </div>
               </div>
             )}
             </div>

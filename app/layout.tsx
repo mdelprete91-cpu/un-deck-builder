@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Script from "next/script";
 import "./globals.css";
 import ThemeProvider from "@/components/ThemeProvider";
+import TooltipLayer from "@/components/TooltipLayer";
 
 export const metadata: Metadata = {
   title: "UNICEF Deck Builder",
@@ -33,6 +34,7 @@ export default function RootLayout({
             })(window,document,'https://static.hotjar.com/c/hotjar-','.js?sv=');`}
           </Script>
         )}
+        <TooltipLayer />
       </body>
     </html>
   );
