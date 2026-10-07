@@ -537,17 +537,23 @@ body {
 }
 
 /* The iOS-style switch (components/Switch.tsx). 36x22 track, 18px knob with
-   2px of air. The knob's travel and its stretch share one spring curve
-   without overshoot; held down, it widens toward the side it will move to. */
+   2px of air. One purpose per motion (Mario, 7 Oct 2026: the first version,
+   left/width in two phases, was jerky):
+   - travel: transform only, 340ms on Apple's ease-out, the track's colour on the
+     same curve and duration so the two move as one;
+   - press: while held, the knob widens by 5px toward the side it will move
+     to (feedback, not a second phase after the release). */
 .switch-track {
   --switch-off: #e9e9ea;
+  /* Apple's own ease-out (its sheets and toggles): even start, soft landing. */
+  --switch-ease: cubic-bezier(0.32, 0.72, 0, 1);
   position: relative;
   width: 36px;
   height: 22px;
   flex: none;
   border-radius: 999px;
   background: var(--switch-off);
-  transition: background-color 250ms cubic-bezier(0.32, 0.72, 0, 1);
+  transition: background-color 340ms var(--switch-ease);
 }
 .dark .switch-track {
   --switch-off: #39393d;
@@ -564,27 +570,27 @@ body {
   border-radius: 999px;
   background: #ffffff;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15), 0 0 0 0.5px rgba(0, 0, 0, 0.04), 0 2px 1px rgba(0, 0, 0, 0.06);
+  transform: translateX(0);
   transition:
-    left 260ms cubic-bezier(0.32, 0.72, 0, 1),
-    width 260ms cubic-bezier(0.32, 0.72, 0, 1);
+    transform 340ms var(--switch-ease),
+    width 240ms var(--switch-ease);
+  will-change: transform;
 }
 .switch.is-on .switch-knob {
-  left: 16px;
+  transform: translateX(14px);
 }
-/* Held down, or on its way: the knob stretches by 6px. On, it grows to the
-   left so its right edge stays put. */
-.switch:active .switch-knob,
-.switch.is-travel .switch-knob {
-  width: 24px;
+/* Held: 23px wide. Off it grows rightward from the left; on, it grows
+   leftward, so the edge it rests against stays put. */
+.switch:active .switch-knob {
+  width: 23px;
 }
-.switch.is-on:active .switch-knob,
-.switch.is-on.is-travel .switch-knob {
-  left: 10px;
+.switch.is-on:active .switch-knob {
+  transform: translateX(9px);
 }
 @media (prefers-reduced-motion: reduce) {
   .switch-knob,
   .switch-track {
-    transition: none;
+    transition-duration: 0.01ms;
   }
 }
 
