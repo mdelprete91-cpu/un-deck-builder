@@ -382,31 +382,14 @@ body {
   outline: none;
   cursor: text;
 }
-/* The element being edited (Mario, 7 Oct 2026, from the redesign
-   prototype): a cyan frame a little off the text with two square handles,
-   so it is clear which element is in hand. Cyan reads on the blue slides
-   and on white alike. Sizes undo the stage's zoom (--inv). */
+/* The element being edited: SlideFrame draws its frame (cyan, two handles)
+   on a layer over the slide, kept inside the slide's edges, so it is never
+   cut (Mario, 7 Oct 2026). Hover is a thin line inside the text. */
 .slide-root [data-edit]:hover {
-  outline: calc(1px * var(--inv, 1)) solid rgba(92, 196, 240, 0.6);
-  outline-offset: calc(6px * var(--inv, 1));
+  box-shadow: inset 0 0 0 calc(1px * var(--inv, 1)) rgba(92, 196, 240, 0.7);
 }
 .slide-root [data-edit]:focus {
-  outline: calc(2px * var(--inv, 1)) solid #5cc4f0;
-  outline-offset: calc(6px * var(--inv, 1));
-}
-.slide-root [data-edit]:focus:not([style*="position:absolute"]):not([style*="position: absolute"]) {
-  position: relative;
-}
-.slide-root [data-edit]:focus::before,
-.slide-root [data-edit]:focus::after {
-  content: "";
-  position: absolute;
-  width: calc(9px * var(--inv, 1));
-  height: calc(9px * var(--inv, 1));
-  background: #ffffff;
-  box-shadow: 0 0 0 calc(1.5px * var(--inv, 1)) #5cc4f0;
-  border-radius: calc(2px * var(--inv, 1));
-  pointer-events: none;
+  box-shadow: none;
 }
 .slide-root [data-edit]:focus::before {
   left: calc(-11px * var(--inv, 1));
@@ -418,10 +401,9 @@ body {
 }
 /* Items nest on the dense layouts (a row and its figures, a group and its
    policies): only the innermost hovered one shows its outline and its ✕. */
-.slide-root [data-item]:hover:not(:has([data-item]:hover)) {
-  outline: 2px dashed rgba(39, 122, 255, 0.4);
-  outline-offset: 8px;
-}
+/* Inside the item, never past it: rows that touch each other no longer
+   overlap their outlines. The ✕ sits on its top-right corner. */
+/* An item's outline and ✕ are drawn by SlideFrame on its overlay. */
 /* An item that cannot go (the last point of a block, a block at its
    minimum): SlideFrame gives it no ✕, so no outline either. */
 .slide-root [data-item].item-fixed:hover {
@@ -455,17 +437,15 @@ body {
 }
 .slide-root .item-delete {
   position: absolute;
-  top: -24px;
-  right: -24px;
-  width: 56px;
-  height: 56px;
+  top: calc(-10px * var(--inv, 1));
+  right: calc(-10px * var(--inv, 1));
+  width: calc(22px * var(--inv, 1));
+  height: calc(22px * var(--inv, 1));
   border-radius: 50%;
   background: #161616;
   color: #ffffff;
-  border: 3px solid #ffffff;
-  font-size: 26px;
-  font-family: system-ui, sans-serif;
-  line-height: 1;
+  border: calc(1.5px * var(--inv, 1)) solid #ffffff;
+  box-shadow: 0 calc(1px * var(--inv, 1)) calc(4px * var(--inv, 1)) rgba(0, 0, 0, 0.25);
   cursor: pointer;
   opacity: 0;
   transition: opacity 0.15s;

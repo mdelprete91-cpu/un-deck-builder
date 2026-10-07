@@ -4,7 +4,7 @@ import { mountAura } from "@/lib/slides/aura-live";
 import { lucideSvg } from "@/lib/slides/icons";
 import { measureFlow } from "@/lib/slides/pages/fit";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { BetweenVerticalEnd, Columns2, Copy, GripVertical, ListMinus, ListPlus, PanelLeftClose, PanelLeftOpen, Palette, Plus, Sparkles, Trash2 } from "lucide-react";
+import { BetweenVerticalEnd, Columns2, Copy, X, GripVertical, ListMinus, ListPlus, PanelLeftClose, PanelLeftOpen, Palette, Plus, Sparkles, Trash2 } from "lucide-react";
 import { CALLOUT_TONES, type CalloutTone } from "@/lib/slides/pages/schema";
 import Button from "@/components/Button";
 import { BLOCK_MIME } from "@/components/BlockRail";
@@ -256,6 +256,12 @@ export default function SlideFrame({
   const [drag, setDrag] = useState<{ from: number; gap: number } | null>(null);
   /** A block dragged in from the rail: the gap it would drop into. */
   const [incoming, setIncoming] = useState<number | null>(null);
+  /**
+   * The frame of the text being edited, in the container's coordinates:
+   * drawn over the slide instead of on the element, and kept inside the
+   * slide's edges, so it is never cut off (Mario, 7 Oct 2026).
+   */
+  const [editBox, setEditBox] = useState<{ left: number; top: number; width: number; height: number } | null>(null);
   /** The status banner's colour swatches, open beside the side bar. */
   const [tones, setTones] = useState(false);
   const barTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -438,57 +444,11 @@ export default function SlideFrame({
     // Per-element delete buttons (rebuilt on every wiring pass)
     stage.querySelectorAll(".item-delete").forEach((b) => b.remove());
     // A page has no ✕ on its rows: the side bar removes them (Mario, 7 Oct 2026).
+    // Slides: the ✕ is drawn on the overlay (hoverItem below); only the
+    // refusal marks stay here.
     if (onDeleteItemRef.current && variant !== "page") {
       stage.querySelectorAll<HTMLElement>("[data-item]").forEach((node) => {
-        // Refused here (the last point of a block, a block at its minimum):
-        // no ✕, and no outline promising one.
-        if (canDeleteRef.current && !canDeleteRef.current(node.getAttribute("data-item")!)) {
-          node.classList.add("item-fixed");
-          return;
-        }
-        if (getComputedStyle(node).position === "static") {
-          node.style.position = "relative";
-        }
-        const btn = document.createElement("button");
-        btn.className = "item-delete";
-        btn.type = "button";
-        btn.title = "Delete element";
-        btn.innerHTML = lucideSvg("x");
-        // The ✕ overhangs the item's top-right corner (-24px). Keep it inside
-        // when the item clips itself (partner logos) or when a clipping
-        // ancestor would cut the overhang off (callout rows in the flex zone).
-        // An item that holds other items puts its ✕ on the top-left corner
-        // (data-item-corner="left"), clear of theirs on the right.
-        const left = node.getAttribute("data-item-corner") === "left";
-        let inside = getComputedStyle(node).overflow === "hidden";
-        if (!inside) {
-          const overhang = 24 * (stage.getBoundingClientRect().width / size.w);
-          const r = node.getBoundingClientRect();
-          for (let p = node.parentElement; p && p !== stage; p = p.parentElement) {
-            const cs = getComputedStyle(p);
-            if (cs.overflow === "hidden" || cs.overflowX === "hidden" || cs.overflowY === "hidden") {
-              const cr = p.getBoundingClientRect();
-              const out = left ? r.left - overhang < cr.left - 1 : r.right + overhang > cr.right + 1;
-              if (out || r.top - overhang < cr.top - 1) {
-                inside = true;
-                break;
-              }
-            }
-          }
-        }
-        if (left) {
-          btn.style.right = "auto";
-          btn.style.left = inside ? "8px" : "-24px";
-        }
-        if (inside) {
-          btn.style.top = "8px";
-          if (!left) btn.style.right = "8px";
-        }
-        btn.addEventListener("click", (e) => {
-          e.stopPropagation();
-          onDeleteItemRef.current?.(node.getAttribute("data-item")!);
-        });
-        node.appendChild(btn);
+        if (canDeleteRef.current && !canDeleteRef.current(node.getAttribute("data-item")!)) node.classList.add("item-fixed");
       });
     }
 
@@ -852,6 +812,79 @@ export default function SlideFrame({
   // it itself, so there is no gap to hide and no overscan: the container
   // stays open so the frame's shadow can fall outside the slide.
   const scale = fit > 0 ? (frameClassName ? fit : fit + 2 / size.w) : 0;
+  useEffect(() => {
+    const stage = stageRef.current;
+    const wrap = containerRef.current;
+    if (!stage || !wrap || variant === "page") return;
+    const place = () => {
+      const el = document.activeElement as HTMLElement | null;
+      if (!el || !stage.contains(el) || !el.hasAttribute("data-edit")) return setEditBox(null);
+      const w = wrap.getBoundingClientRect();
+      const r = el.getBoundingClientRect();
+      const st = stage.parentElement!.getBoundingClientRect();
+      const pad = 6;
+      const left = Math.max(st.left + 3, r.left - pad);
+      const top = Math.max(st.top + 3, r.top - pad);
+      const right = Math.min(st.right - 3, r.right + pad);
+      const bottom = Math.min(st.bottom - 3, r.bottom + pad);
+      setEditBox({ left: left - w.left, top: top - w.top, width: right - left, height: bottom - top });
+    };
+    const later = () => requestAnimationFrame(place);
+    stage.addEventListener("focusin", later);
+    stage.addEventListener("focusout", later);
+    stage.addEventListener("input", later);
+    window.addEventListener("resize", later);
+    return () => {
+      stage.removeEventListener("focusin", later);
+      stage.removeEventListener("focusout", later);
+      stage.removeEventListener("input", later);
+      window.removeEventListener("resize", later);
+    };
+  }, [variant, html, scale]);
+  /** The item under the mouse on a slide: its outline and ✕, drawn on the overlay like the edit frame. */
+  const [hoverItem, setHoverItem] = useState<{ path: string; left: number; top: number; width: number; height: number } | null>(null);
+  const itemTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    const stage = stageRef.current;
+    const wrap = containerRef.current;
+    if (!stage || !wrap || variant === "page" || !editable || !onDeleteItem) return;
+    const show = (e: MouseEvent) => {
+      const items = (document.elementsFromPoint(e.clientX, e.clientY) as HTMLElement[]).filter((n) => n.hasAttribute?.("data-item") && stage.contains(n));
+      const node = items[0];
+      if (!node || node.classList.contains("item-fixed")) {
+        if (itemTimer.current) clearTimeout(itemTimer.current);
+        itemTimer.current = setTimeout(() => setHoverItem(null), 250);
+        return;
+      }
+      if (itemTimer.current) clearTimeout(itemTimer.current);
+      const w = wrap.getBoundingClientRect();
+      // The frame hugs what the item shows, not its layout box (a timeline
+      // stop's box runs down to the footer).
+      const box = node.getBoundingClientRect();
+      const range = document.createRange();
+      range.selectNodeContents(node);
+      const c = range.getBoundingClientRect();
+      const r = c.width > 0 && c.height > 0 ? { left: Math.max(box.left, c.left), top: Math.max(box.top, c.top), right: Math.min(box.right, c.right), bottom: Math.min(box.bottom, c.bottom) } : box;
+      const st = stage.parentElement!.getBoundingClientRect();
+      const pad = 6;
+      const left = Math.max(st.left + 2, r.left - pad);
+      const top = Math.max(st.top + 2, r.top - pad);
+      const right = Math.min(st.right - 2, r.right + pad);
+      const bottom = Math.min(st.bottom - 2, r.bottom + pad);
+      const path = node.getAttribute("data-item")!;
+      setHoverItem((h) => (h && h.path === path ? h : { path, left: left - w.left, top: top - w.top, width: right - left, height: bottom - top }));
+    };
+    const hide = () => {
+      if (itemTimer.current) clearTimeout(itemTimer.current);
+      itemTimer.current = setTimeout(() => setHoverItem(null), 250);
+    };
+    stage.addEventListener("mousemove", show);
+    stage.addEventListener("mouseleave", hide);
+    return () => {
+      stage.removeEventListener("mousemove", show);
+      stage.removeEventListener("mouseleave", hide);
+    };
+  }, [variant, html, scale, editable, onDeleteItem]);
 
   return (
     // data-hj-suppress: Hotjar records the page, not the deck's words.
@@ -911,6 +944,39 @@ export default function SlideFrame({
           }}
         />
       </div>
+      {hoverItem && (
+        <div className="pointer-events-none absolute z-10 rounded-[4px] border border-[#5cc4f0]/70" style={{ left: hoverItem.left, top: hoverItem.top, width: hoverItem.width, height: hoverItem.height }}>
+          {/* The ✕ sits on the frame's top-right corner, always the same place. */}
+          <button
+            type="button"
+            title="Delete element"
+            aria-label="Delete element"
+            className="pointer-events-auto absolute -right-[11px] -top-[11px] flex size-[22px] items-center justify-center rounded-full border-[1.5px] border-white bg-[#161616] text-white shadow-[0_1px_4px_rgba(0,0,0,0.25)] transition-colors duration-150 hover:bg-[#d92d20]"
+            onMouseEnter={() => itemTimer.current && clearTimeout(itemTimer.current)}
+            onMouseLeave={() => {
+              itemTimer.current = setTimeout(() => setHoverItem(null), 250);
+            }}
+            onClick={(e) => {
+              e.stopPropagation();
+              const path = hoverItem.path;
+              setHoverItem(null);
+              onDeleteItemRef.current?.(path);
+            }}
+          >
+            <X size={12} strokeWidth={2.5} aria-hidden />
+          </button>
+        </div>
+      )}
+      {editBox && (
+        <div
+          aria-hidden
+          className="pointer-events-none absolute z-10 rounded-[3px] border-2 border-[#5cc4f0]"
+          style={editBox}
+        >
+          <span className="absolute -left-[5px] -top-[5px] size-[9px] rounded-[2px] bg-white shadow-[0_0_0_1.5px_#5cc4f0]" />
+          <span className="absolute -bottom-[5px] -right-[5px] size-[9px] rounded-[2px] bg-white shadow-[0_0_0_1.5px_#5cc4f0]" />
+        </div>
+      )}
       {editable && variant === "page" && onMoveBlock && scale > 0 && blockRects.length > 0 && (() => {
         const count = blockRects.length;
         // Two bars (Mario, 7 Oct 2026). Nothing selected: the page's bar at the
