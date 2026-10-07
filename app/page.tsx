@@ -15,6 +15,7 @@ import AddBlockMenu from "@/components/AddBlockMenu";
 import LanguageMenu from "@/components/LanguageMenu";
 import EditChoice from "@/components/EditChoice";
 import LogoMenu from "@/components/LogoMenu";
+import PartnerLogoModal from "@/components/PartnerLogoModal";
 import { apply, detectLang, LANG_LABELS, LANG_NAMES, plan, newEdits, remember, snapshot, textFields, uiStrings, type DeckLang, type Job, type Lang } from "@/lib/slides/i18n";
 import { undash } from "@/lib/slides/pages/schema";
 import { normalizePage, PAGE_BLOCK_LIMITS, type PageBlock } from "@/lib/slides/pages/schema";
@@ -1439,12 +1440,15 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
       dispatch({ type: "EDIT_FIELD", index: state.activeIndex, path: "notes", value: notes.trim() ? `${notes.trimEnd()}\n${n}. ` : `${n}. ` });
     }
   };
-  const onAddItem = () =>
+  const onAddItem = () => {
+    // A partner is picked from the logo library or uploaded, not typed in.
+    if (active?.layoutId === "partner") return setPartnerModal({ at: null });
     dispatch(
       activePage
         ? { type: "ADD_ITEM", index: state.activeIndex, path: `stack.${focusedBlock}` }
         : { type: "ADD_ITEM", index: state.activeIndex },
     );
+  };
 
   // High density (lib/slides/modular.ts): Element is a menu of what can be
   // added where the caret is, points are split and joined from the keyboard,
@@ -1664,6 +1668,8 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
    * language being left (components/EditChoice.tsx).
    */
   const [pendingSwitch, setPendingSwitch] = useState<{ to: Lang; edits: ReturnType<typeof newEdits> } | null>(null);
+  /** The partner slide's logo dialog: adding (`at` null) or replacing the partner at `at`. */
+  const [partnerModal, setPartnerModal] = useState<{ at: number | null } | null>(null);
   /** Two-pager: the programme-logo menu, open at this point (components/LogoMenu.tsx). */
   const [logoMenu, setLogoMenu] = useState<{ x: number; y: number } | null>(null);
   /** The deck is being translated into this language (switchLanguage). */
@@ -1935,6 +1941,7 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
                     onUploadLogo={(slug, dataUrl) =>
                       dispatch({ type: "SET_LOGO", index: state.activeIndex, slug, dataUrl })
                     }
+                    onReplacePartner={active.layoutId === "partner" ? (at) => setPartnerModal({ at }) : null}
                     onImagePos={
                       hasImage
                         ? (pos, path) =>
@@ -1963,6 +1970,18 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
                           edits.filter((e) => e.slide === sl.id).reduce((acc, e) => setPath(acc, e.path, e.translation), sl),
                         );
                         void switchLanguage(to, { asked: true, slides: back });
+                      }}
+                    />
+                  )}
+                  {partnerModal && active.layoutId === "partner" && (
+                    <PartnerLogoModal
+                      accent={theme.accent}
+                      replacing={partnerModal.at !== null ? (active.bullets?.[partnerModal.at] ?? null) : null}
+                      onSlide={active.bullets ?? []}
+                      onClose={() => setPartnerModal(null)}
+                      onPick={(name, logo) => {
+                        dispatch({ type: "SET_PARTNER", index: state.activeIndex, at: partnerModal.at, name, logo });
+                        setPartnerModal(null);
                       }}
                     />
                   )}

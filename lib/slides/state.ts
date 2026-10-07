@@ -2,6 +2,7 @@ import type { ImagePos, Slide, SlideContent } from "./schema";
 import { ensureId, isPage, normalizeSeries, normalizeSlide, PRIMARY_ARRAY } from "./schema";
 import { closingFor, finishDeck, mergeContinuations, unifyLayouts } from "./rhythm";
 import { BRANDS } from "./brand";
+import { MAX_PARTNERS, partnerSlug } from "./partners";
 import { applyChapterPlan, ensureAgenda, type ChapterPlan } from "./chapters";
 import type { ChartSource } from "./chart-import";
 import { fillPhotos } from "./library";
@@ -151,6 +152,11 @@ export type DeckAction =
   /** `source`: the sheet the data came from (chart-import.ts), null to unlink, absent to leave as is. */
   | { type: "SET_BARS"; index: number; bars: { label: string; value: number; values?: number[]; color?: string }[]; series?: string[]; source?: ChartSource | null }
   | { type: "SET_LOGO"; index: number; slug: string; dataUrl: string }
+  /**
+   * The partner slide: add a partner (`at` null) or put one in place of the
+   * partner at `at`, by name, with an uploaded logo or the library's.
+   */
+  | { type: "SET_PARTNER"; index: number; at: number | null; name: string; logo?: string }
   | { type: "SET_IMAGE"; index: number; dataUrl: string; path?: string }
   | { type: "CLEAR_IMAGE"; index: number; path?: string }
   | { type: "SET_MAP"; index: number; slug: string | null }
@@ -484,6 +490,31 @@ function reduce(state: DeckState, action: DeckAction): DeckState {
       // The contract (one figure per series on every bar) holds after every edit.
       normalizeSeries(next);
       slides[action.index] = next;
+      return { ...state, ...remember(state), slides };
+    }
+    case "SET_PARTNER": {
+      const slide = state.slides[action.index];
+      const name = action.name.trim();
+      if (!slide || slide.layoutId !== "partner" || !name) return state;
+      const clone = structuredClone(slide);
+      const names = (clone.bullets ??= []);
+      const slug = partnerSlug(name);
+      if (action.at === null) {
+        if (names.length >= MAX_PARTNERS) return state;
+        names.push(name);
+      } else {
+        const old = names[action.at];
+        if (old === undefined) return state;
+        names[action.at] = name;
+        // The old partner's uploaded logo goes with it, unless it is still on the slide.
+        const oldSlug = partnerSlug(old);
+        if (oldSlug !== slug && clone.logos?.[oldSlug] && !names.some((n) => partnerSlug(n) === oldSlug)) delete clone.logos[oldSlug];
+      }
+      if (action.logo) clone.logos = { ...clone.logos, [slug]: action.logo };
+      // A library partner shows the library's file, not an upload left under its name.
+      else if (clone.logos?.[slug]) delete clone.logos[slug];
+      const slides = [...state.slides];
+      slides[action.index] = clone;
       return { ...state, ...remember(state), slides };
     }
     case "SET_LOGO": {

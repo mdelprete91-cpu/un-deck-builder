@@ -20,3 +20,16 @@ export const PARTNER_NAMES = [
   "Mawingu",
   "Suisse",
 ] as const;
+
+/** A partner's name as its logo file's name: "Dubai Cares" → "dubai-cares". */
+export function partnerSlug(name: string): string {
+  return name
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
+}
+
+/** The logos the partner slide holds at most (three columns, five rows). */
+export const MAX_PARTNERS = 15;

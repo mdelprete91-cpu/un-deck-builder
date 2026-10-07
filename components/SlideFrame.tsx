@@ -92,6 +92,8 @@ interface SlideFrameProps {
    * for that slot; on a page every slot also gets its own upload button.
    */
   onPickImage?: ((path: string) => void) | null;
+  /** The partner slide: open the logo dialog to replace the partner at this position. */
+  onReplacePartner?: ((at: number) => void) | null;
   /** Two-pager, first page: open the programme-logo menu at this point on screen. */
   onPickLogo?: ((at: { x: number; y: number }) => void) | null;
   /** High density: Enter / Backspace / Tab on points. */
@@ -180,6 +182,7 @@ export default function SlideFrame({
   onUploadLogo,
   onPickImage,
   onPickLogo,
+  onReplacePartner,
   onChartClick,
   onAutofit,
   pointOps,
@@ -274,8 +277,8 @@ export default function SlideFrame({
   // The two-pager callbacks travel together in one ref: the wiring effect
   // must not re-run when a parent re-renders, and one ref is one lint waiver
   // rather than four.
-  const pageRef = useRef({ onPickImage, onPickLogo, onFocusBlock, onMoveBlock, onDeleteBlock, onAddBlock, onChartClick });
-  pageRef.current = { onPickImage, onPickLogo, onFocusBlock, onMoveBlock, onDeleteBlock, onAddBlock, onChartClick };
+  const pageRef = useRef({ onPickImage, onPickLogo, onReplacePartner, onFocusBlock, onMoveBlock, onDeleteBlock, onAddBlock, onChartClick });
+  pageRef.current = { onPickImage, onPickLogo, onReplacePartner, onFocusBlock, onMoveBlock, onDeleteBlock, onAddBlock, onChartClick };
 
   useLayoutEffect(() => {
     const el = containerRef.current;
@@ -529,17 +532,21 @@ export default function SlideFrame({
       });
     }
 
-    // Partner cells: SVG logo upload action
+    // Partner cells: replace the partner from the logo library or an upload
+    // (PartnerLogoModal); without that dialog, the old SVG upload.
     stage.querySelectorAll(".logo-upload").forEach((b) => b.remove());
-    if (onUploadLogoRef.current) {
+    if (pageRef.current.onReplacePartner || onUploadLogoRef.current) {
       stage.querySelectorAll<HTMLElement>("[data-logo]").forEach((cell) => {
         const btn = document.createElement("button");
         btn.className = "logo-upload";
         btn.type = "button";
-        btn.title = "Upload the partner logo (SVG — rendered white automatically)";
-        btn.innerHTML = `${lucideSvg("upload")}<span>SVG</span>`;
+        const replace = pageRef.current.onReplacePartner;
+        btn.title = replace ? "Replace this partner: from the logo library, or upload a logo" : "Upload the partner logo (SVG, rendered white automatically)";
+        btn.innerHTML = replace ? `${lucideSvg("replace")}<span>Replace</span>` : `${lucideSvg("upload")}<span>SVG</span>`;
         btn.addEventListener("click", (e) => {
           e.stopPropagation();
+          const at = Number(/^bullets\.(\d+)$/.exec(cell.getAttribute("data-item") ?? "")?.[1]);
+          if (replace && Number.isFinite(at)) return replace(at);
           pendingLogoSlug.current = cell.getAttribute("data-logo");
           logoInputRef.current?.click();
         });

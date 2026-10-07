@@ -1,3 +1,4 @@
+import { partnerSlug } from "../partners";
 import type { Slide } from "../schema";
 import { channelsFor } from "../schema";
 import type { BrandTheme } from "../brand";
@@ -206,12 +207,7 @@ export function partners(s: Slide, t: BrandTheme): string {
     .map((n, i) => {
       const cx = colXs[i % 3];
       const cy = 114 + Math.floor(i / 3) * rowStep;
-      const slug = n
-        .normalize("NFD")
-        .replace(/[\u0300-\u036f]/g, "")
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, "-")
-        .replace(/^-|-$/g, "");
+      const slug = partnerSlug(n);
       const src = s.logos?.[slug] ?? `/partners/${slug}.svg`;
       // brightness(0) invert(1) forces ANY uploaded logo to render white
       return (
