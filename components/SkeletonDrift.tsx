@@ -6,6 +6,8 @@ import { useEffect, useState, type CSSProperties, type ReactNode } from "react";
 /** The clay 3D row (Mario, 7 Oct 2026), loaded only when it will be drawn. */
 const Drift3D = dynamic(() => import("./SkeletonDrift3D"), { ssr: false, loading: () => <FlatDrift /> });
 
+const SHOW_3D = false;
+
 function canDraw3D(): boolean {
   if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return false;
   try {
@@ -23,7 +25,9 @@ function canDraw3D(): boolean {
 export default function SkeletonDrift() {
   const [mode, setMode] = useState<{ epoch: number; dark: boolean } | null>(null);
   useEffect(() => {
-    if (!canDraw3D()) return;
+    // Off (Mario, 7 Oct 2026: the real-time 3D did not reach the look); kept
+    // for the next attempt. Flip SHOW_3D to bring it back.
+    if (!SHOW_3D || !canDraw3D()) return;
     const root = document.documentElement;
     const read = () => setMode({ epoch: sessionEpoch().epoch, dark: root.classList.contains("dark") });
     const first = requestAnimationFrame(read);

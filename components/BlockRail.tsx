@@ -202,8 +202,8 @@ export default function BlockRail({ onAdd, onClose }: { onAdd: (type: PageBlockT
   const types = Object.keys(BLOCK_LABELS) as (keyof typeof BLOCK_LABELS)[];
   return (
     <aside aria-label="Blocks" className="block-rail flex h-full flex-col">
-      <div className="flex items-center justify-between px-4 pb-2 pt-3">
-        <p className="text-[13px] font-medium text-ink-muted">Blocks</p>
+      <div className="flex h-12 shrink-0 items-center justify-between pl-4 pr-2">
+        <p className="text-[13px] text-ink-faint">Blocks</p>
         <button
           type="button"
           onClick={onClose}
@@ -213,7 +213,7 @@ export default function BlockRail({ onAdd, onClose }: { onAdd: (type: PageBlockT
           <X size={16} aria-hidden />
         </button>
       </div>
-      <ul className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-3 pb-4">
+      <ul className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-4 pb-5 pt-1">
         {types.map((type) => (
           <li key={type}>
             <button
@@ -224,15 +224,16 @@ export default function BlockRail({ onAdd, onClose }: { onAdd: (type: PageBlockT
                 e.dataTransfer.effectAllowed = "copy";
               }}
               onClick={() => onAdd(type)}
-              title={`Drag onto the page, or click to add ${BLOCK_LABELS[type].toLowerCase()} where you pressed +`}
-              className="group flex w-full cursor-grab flex-col gap-1.5 rounded-xl text-left focus-visible:outline-none active:cursor-grabbing"
+              data-tip="Drag onto the page"
+              className="rail-tile group flex w-full cursor-grab flex-col gap-2 text-left focus-visible:outline-none active:cursor-grabbing"
             >
-              <span className="block w-full rounded-lg border border-hairline-light bg-surface transition-[border-color,box-shadow] duration-150 group-hover:border-giga/50 group-focus-visible:ring-[3px] group-focus-visible:ring-giga/30">
+              {/* A sheet of the page itself: white paper, the block drawn on it. */}
+              <span className="rail-paper block w-full overflow-hidden rounded-lg">
                 <svg viewBox="0 0 120 72" className="block w-full" aria-hidden>
                   {DRAW[type]}
                 </svg>
               </span>
-              <span className="px-0.5 text-xs text-ink">{BLOCK_LABELS[type]}</span>
+              <span className="text-[13px] leading-tight text-ink-muted transition-colors duration-150 group-hover:text-ink">{BLOCK_LABELS[type]}</span>
             </button>
           </li>
         ))}

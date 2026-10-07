@@ -769,23 +769,44 @@ body {
 }
 
 
-/* The block rail's wireframes (components/BlockRail.tsx). */
+/* The block rail (components/BlockRail.tsx): each block on a sheet of white
+   paper, as on the page and in the pages strip, so it stands off the Canvas
+   column without a border (Mario, 7 Oct 2026). The drawing keeps the page's
+   own colours in both themes; only the paper's shadow changes. */
 .block-rail {
-  --rail-ink: #9aa3ad;
-  --rail-soft: #d5dae0;
-  --rail-acc: #01aeef;
+  --rail-ink: #a3a9b1;
+  --rail-soft: #dfe3e8;
+  --rail-acc: #1cabe2;
   --rail-tint: #e3f4fc;
   --rail-tint-2: #b9e3f7;
   --rail-card: #ffffff;
   --rail-orange: #f26a21;
   --rail-orange-tint: rgba(242, 106, 33, 0.16);
 }
-.dark .block-rail {
-  --rail-ink: #8e8e93;
-  --rail-soft: #48484d;
-  --rail-tint: #1d3a4a;
-  --rail-tint-2: #2b5970;
-  --rail-card: #2a2a2e;
+.rail-paper {
+  background: #ffffff;
+  box-shadow: 0 0 0 1px rgba(13, 13, 13, 0.06), 0 1px 2px rgba(13, 13, 13, 0.06);
+  transition: transform 200ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 200ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+.dark .rail-paper {
+  box-shadow: none;
+}
+.rail-tile:hover .rail-paper {
+  transform: translateY(-2px);
+  box-shadow: 0 0 0 1px rgba(13, 13, 13, 0.06), 0 8px 20px -8px rgba(13, 13, 13, 0.28);
+}
+.dark .rail-tile:hover .rail-paper {
+  box-shadow: 0 10px 24px -10px rgba(0, 0, 0, 0.8);
+}
+.rail-tile:active .rail-paper {
+  transform: scale(0.98);
+  transition-duration: 90ms;
+}
+.rail-tile:focus-visible .rail-paper {
+  box-shadow: 0 0 0 3px rgba(39, 122, 255, 0.35);
+}
+@media (prefers-reduced-motion: reduce) {
+  .rail-paper { transition: none; }
 }
 
 /* A page's rows have no ✕ and no dashed outline: the side bar adds and removes them. */

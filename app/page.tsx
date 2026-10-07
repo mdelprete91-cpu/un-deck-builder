@@ -2138,7 +2138,7 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
               // inside slides and fades in a step behind. Mounted throughout,
               // inert while closed.
               <div className="block-rail-wrap shrink-0 overflow-hidden" data-open={addBlockAt != null} inert={addBlockAt == null}>
-                <div className="block-rail-panel h-full w-[168px] border-x border-hairline bg-surface">
+                <div className="block-rail-panel h-full w-[168px] border-l border-r border-l-hairline-light border-r-hairline bg-canvas">
                   <BlockRail
                     onAdd={(blockType) => {
                       if (addBlockAt == null) return;
