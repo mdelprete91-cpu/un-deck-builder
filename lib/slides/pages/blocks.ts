@@ -344,10 +344,6 @@ const photos: BlockRender = (b, { path, d }) => {
 };
 
 /**
- * Two headed columns side by side, the ask in orange (template frames 7/8).
- * A body line that starts with "- " is a bullet.
- */
-/**
  * Two columns compared, as on the US partnerships piece (Mario, 7 Oct 2026):
  * each under its own head, grey or a colour (the ask in orange by default,
  * any of CALLOUT_TONES picked in the side bar). A column is written in lines:

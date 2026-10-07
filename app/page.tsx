@@ -8,7 +8,7 @@ import { ensureId, isChartLayout, isPage, normalizeSlide, overLimits, PRIMARY_AR
 import { renderSlide } from "@/lib/slides/layouts";
 import { A4_PX, pageDateNow } from "@/lib/slides/pages/a4";
 import { fitPage, flowOver, pullForward, type Resizer } from "@/lib/slides/pages/fit";
-import { dropStatEchoes, fillStatFigures, isMastheadLine, putBackLines } from "@/lib/slides/pages/restore";
+import { dropStatEchoes, fillStatFigures, isMastheadLine, putBackLines, unwrapLines } from "@/lib/slides/pages/restore";
 import { logoFor } from "@/lib/slides/pages/logos";
 import { fillPagePhotos } from "@/lib/slides/library";
 import BlockRail from "@/components/BlockRail";
@@ -984,7 +984,7 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
     // The reader's notes ("Figures written on the slide (…): 02, 54") are for
     // slide charts: the piece gets the figures, not the note (a "54" a PDF
     // reader filed as a chart label is the "Countries engaged" figure).
-    const text = (sources.length ? sources.map((s) => s.text).join("\n\n") : file.kind === "text" ? file.text : "")
+    const rawText = (sources.length ? sources.map((s) => s.text).join("\n\n") : file.kind === "text" ? file.text : "")
       .split("\n")
       .map((l) => l.replace(/^\s*(Chart labels|Figures) written on the slide[^:]*:\s*/, ""))
       // The source's masthead is not content: its lockup, a page number on
@@ -992,6 +992,8 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
       // them above the stats (Mario, 6 Oct 2026).
       .filter((l) => !isMastheadLine(l))
       .join("\n");
+    // The PDF's line ends inside sentences go: a paragraph is one line again.
+    const text = unwrapLines(rawText);
     if (!text.trim()) return runGenerate(`Could not read the text of "${file.name}" to replicate it, so the two-pager uses it as a source.`);
     const words = text.split(/\s+/).filter(Boolean).length;
     // About 600 words fill an A4 page of this grid with a banner or a stat row.

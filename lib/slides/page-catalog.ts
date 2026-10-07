@@ -65,8 +65,8 @@ export const PAGE_CATALOG: PageCatalogEntry[] = [
   },
   {
     type: "photos",
-    usage: "Two or four photo cards for programmes or places. The photos come from the library",
-    fields: "rail(<=28 chars), items(2 or 4: label(<=28 chars), body(<=60 chars))",
+    usage: "Photo cards for programmes, places or settings, two to a row. The photos come from the library",
+    fields: "rail(<=28 chars), items(2 to 6: label(<=28 chars), body(<=60 chars))",
   },
   {
     type: "heading",

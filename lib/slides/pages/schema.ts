@@ -148,7 +148,7 @@ export const PAGE_BLOCK_LIMITS: Record<PageBlockType, [number, number] | null> =
   pillars: [2, 3],
   compare: [1, 12],
   asks: [1, 5],
-  photos: [2, 4],
+  photos: [2, 6],
   panels: [2, 2],
   contacts: [1, 4],
   lede: null,

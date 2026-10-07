@@ -180,3 +180,31 @@ function fillEmptyCards(pages: SlideContent[], queue: string[]): SlideContent[] 
     ),
   }));
 }
+
+/**
+ * A PDF's text comes with the page's line ends inside its sentences ("U.S." /
+ * "companies", "Microsoft" / "."), and a replica kept them as breaks (US
+ * partnerships piece, 7 Oct 2026). A line runs on into the next when that one
+ * starts in lower case or with punctuation, or when it ends on a hyphen; a
+ * bullet, a heading or a new sentence keeps its own line.
+ */
+export function unwrapLines(text: string): string {
+  const out: string[] = [];
+  for (const raw of text.split("\n")) {
+    const line = raw.replace(/\s+$/, "");
+    const prev = out[out.length - 1];
+    const t = line.trimStart();
+    const continues =
+      prev !== undefined &&
+      prev.trim() !== "" &&
+      t !== "" &&
+      !/^([-•●▪◦*]|\d+[.)])\s/.test(t) &&
+      (/^[a-z.,;:)\]’'"”]/.test(t) || /[a-z]-$/.test(prev));
+    if (!continues) {
+      out.push(line);
+      continue;
+    }
+    out[out.length - 1] = /[a-z]-$/.test(prev) ? prev + t : /^[.,;:)\]]/.test(t) ? prev + t : `${prev} ${t}`;
+  }
+  return out.join("\n");
+}
