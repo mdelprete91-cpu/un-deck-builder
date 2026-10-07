@@ -40,8 +40,8 @@ const DRAW: Record<PageBlockType, React.ReactNode> = {
   banner: (
     <>
       {box(8, 18, 104, 36, TINT, "none", 4)}
-      {bar(16, 30, 54, 6, "#fff")}
-      {bar(16, 40, 36, 6, "#fff")}
+      {bar(16, 30, 54, 6, "var(--rail-on-tint)")}
+      {bar(16, 40, 36, 6, "var(--rail-on-tint)")}
     </>
   ),
   lede: <>{lines(8, 20, [104, 100, 104, 70])}</>,
@@ -227,13 +227,13 @@ export default function BlockRail({ onAdd, onClose }: { onAdd: (type: PageBlockT
               data-tip="Drag onto the page"
               className="rail-tile group flex w-full cursor-grab flex-col gap-2 text-left focus-visible:outline-none active:cursor-grabbing"
             >
-              {/* A sheet of the page itself: white paper, the block drawn on it. */}
-              <span className="rail-paper block w-full overflow-hidden rounded-lg">
+              {/* A soft tile in the chrome's own greys, as ChatGPT draws its cards. */}
+              <span className="rail-paper block w-full overflow-hidden rounded-xl">
                 <svg viewBox="0 0 120 72" className="block w-full" aria-hidden>
                   {DRAW[type]}
                 </svg>
               </span>
-              <span className="text-[13px] leading-tight text-ink-muted transition-colors duration-150 group-hover:text-ink">{BLOCK_LABELS[type]}</span>
+              <span className="px-0.5 text-[13px] leading-tight text-ink">{BLOCK_LABELS[type]}</span>
             </button>
           </li>
         ))}

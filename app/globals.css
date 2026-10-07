@@ -769,34 +769,27 @@ body {
 }
 
 
-/* The block rail (components/BlockRail.tsx): each block on a sheet of white
-   paper, as on the page and in the pages strip, so it stands off the Canvas
-   column without a border (Mario, 7 Oct 2026). The drawing keeps the page's
-   own colours in both themes; only the paper's shadow changes. */
+/* The block rail (components/BlockRail.tsx), drawn like ChatGPT's cards
+   (Mario, 7 Oct 2026): a soft tile one step off the Canvas column, no border,
+   the block sketched in the ink's own greys so it follows the theme. Colour
+   only where it is the point: the status note's orange. */
 .block-rail {
-  --rail-ink: #a3a9b1;
-  --rail-soft: #dfe3e8;
-  --rail-acc: #1cabe2;
-  --rail-tint: #e3f4fc;
-  --rail-tint-2: #b9e3f7;
-  --rail-card: #ffffff;
-  --rail-orange: #f26a21;
+  --rail-ink: color-mix(in srgb, var(--color-ink) 42%, transparent);
+  --rail-soft: color-mix(in srgb, var(--color-ink) 16%, transparent);
+  --rail-acc: color-mix(in srgb, var(--color-ink) 62%, transparent);
+  --rail-tint: color-mix(in srgb, var(--color-ink) 9%, transparent);
+  --rail-tint-2: color-mix(in srgb, var(--color-ink) 18%, transparent);
+  --rail-on-tint: color-mix(in srgb, var(--color-ink) 45%, transparent);
+  --rail-card: var(--color-canvas-2);
+  --rail-orange: #e8692a;
   --rail-orange-tint: rgba(242, 106, 33, 0.16);
 }
 .rail-paper {
-  background: #ffffff;
-  box-shadow: 0 0 0 1px rgba(13, 13, 13, 0.06), 0 1px 2px rgba(13, 13, 13, 0.06);
-  transition: transform 200ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 200ms cubic-bezier(0.16, 1, 0.3, 1);
-}
-.dark .rail-paper {
-  box-shadow: none;
+  background: var(--color-canvas-2);
+  transition: background-color 150ms ease-out, transform 200ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 .rail-tile:hover .rail-paper {
-  transform: translateY(-2px);
-  box-shadow: 0 0 0 1px rgba(13, 13, 13, 0.06), 0 8px 20px -8px rgba(13, 13, 13, 0.28);
-}
-.dark .rail-tile:hover .rail-paper {
-  box-shadow: 0 10px 24px -10px rgba(0, 0, 0, 0.8);
+  background: color-mix(in srgb, var(--color-canvas-2) 88%, var(--color-ink));
 }
 .rail-tile:active .rail-paper {
   transform: scale(0.98);
