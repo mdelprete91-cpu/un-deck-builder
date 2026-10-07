@@ -4,8 +4,8 @@ import { useEffect, useRef, useState } from "react";
 
 /**
  * One tooltip for the whole platform (Mario, 7 Oct 2026: the side bar's tips,
- * "same style everywhere"). Any element with a `title` or a `data-tip` gets
- * it: dark, short, at once on hover, never the browser's slow yellow box.
+ * "same style everywhere"), for elements with no visible text that carry a
+ * `title` or a `data-tip`: dark, short, at once on hover, never the browser's slow yellow box.
  * The title moves to data-tip on first hover so the native one never shows.
  * Placement: `data-tip-side="right"` puts it beside the element (the page's
  * side bar); otherwise below it, or above when there is no room.
@@ -34,6 +34,9 @@ export default function TooltipLayer() {
       }
       const text = el.dataset.tip?.trim();
       if (!text) return hide();
+      // Only where nothing on screen says what it is: an icon button, a
+      // thumbnail. A labelled control gets no tip (Mario, 7 Oct 2026).
+      if (el.innerText.trim()) return hide();
       if (current.current === el) return;
       current.current = el;
       const r = el.getBoundingClientRect();
