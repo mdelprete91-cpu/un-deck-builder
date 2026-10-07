@@ -342,6 +342,25 @@ export default function SlideFrame({
   useEffect(() => {
     const stage = stageRef.current;
     if (!stage) return;
+    // The text being typed in survives the re-injection: on a page the first
+    // click selects its block, which re-wires the stage, and the caret was
+    // lost, so a text took two clicks to edit (7 Oct 2026). Its path and the
+    // caret's place in it are put back once the stage is wired again.
+    const typing = document.activeElement as HTMLElement | null;
+    const keep =
+      typing && stage.contains(typing) && typing.hasAttribute("data-edit")
+        ? (() => {
+            const sel = window.getSelection();
+            let caret = typing.textContent?.length ?? 0;
+            if (sel && sel.rangeCount && typing.contains(sel.anchorNode)) {
+              const r = document.createRange();
+              r.selectNodeContents(typing);
+              r.setEnd(sel.anchorNode!, sel.anchorOffset);
+              caret = r.toString().length;
+            }
+            return { path: typing.getAttribute("data-edit")!, caret };
+          })()
+        : null;
     // Always re-inject from state: edited values can drive geometry (bar
     // heights, donut segments, partner logos), so the DOM is never kept stale.
     stage.innerHTML = html;
@@ -781,6 +800,29 @@ export default function SlideFrame({
       stage.appendChild(btn);
     }
 
+    if (keep) {
+      const node = stage.querySelector<HTMLElement>(`[data-edit="${CSS.escape(keep.path)}"]`);
+      if (node) {
+        node.focus();
+        // The caret back at the same character.
+        const walker = document.createTreeWalker(node, NodeFilter.SHOW_TEXT);
+        let left = keep.caret;
+        for (let t = walker.nextNode(); t; t = walker.nextNode()) {
+          const len = t.textContent?.length ?? 0;
+          if (left <= len) {
+            const sel = window.getSelection();
+            const r = document.createRange();
+            r.setStart(t, left);
+            r.collapse(true);
+            sel?.removeAllRanges();
+            sel?.addRange(r);
+            break;
+          }
+          left -= len;
+        }
+      }
+    }
+
     return () => {
       alive = false;
       cleanups.forEach((fn) => fn());
@@ -812,35 +854,54 @@ export default function SlideFrame({
   // it itself, so there is no gap to hide and no overscan: the container
   // stays open so the frame's shadow can fall outside the slide.
   const scale = fit > 0 ? (frameClassName ? fit : fit + 2 / size.w) : 0;
+  /** The text under the mouse: one thin frame around all of it, on the same layer. */
+  const [hoverBox, setHoverBox] = useState<{ left: number; top: number; width: number; height: number } | null>(null);
   useEffect(() => {
     const stage = stageRef.current;
     const wrap = containerRef.current;
-    if (!stage || !wrap || variant === "page") return;
-    const place = () => {
-      const el = document.activeElement as HTMLElement | null;
-      if (!el || !stage.contains(el) || !el.hasAttribute("data-edit")) return setEditBox(null);
+    if (!stage || !wrap || !editable) return;
+    // One box around the whole text, however many lines it wraps onto: an
+    // outline on the text itself is drawn line by line on a page, whose
+    // texts are inline (Mario, 7 Oct 2026).
+    const boxOf = (el: HTMLElement, pad: number) => {
       const w = wrap.getBoundingClientRect();
       const r = el.getBoundingClientRect();
       const st = stage.parentElement!.getBoundingClientRect();
-      const pad = 6;
       const left = Math.max(st.left + 3, r.left - pad);
       const top = Math.max(st.top + 3, r.top - pad);
       const right = Math.min(st.right - 3, r.right + pad);
       const bottom = Math.min(st.bottom - 3, r.bottom + pad);
-      setEditBox({ left: left - w.left, top: top - w.top, width: right - left, height: bottom - top });
+      return { left: left - w.left, top: top - w.top, width: right - left, height: bottom - top };
+    };
+    const pad = variant === "page" ? 3 : 6;
+    const place = () => {
+      const el = document.activeElement as HTMLElement | null;
+      if (!el || !stage.contains(el) || !el.hasAttribute("data-edit")) return setEditBox(null);
+      setEditBox(boxOf(el, pad));
     };
     const later = () => requestAnimationFrame(place);
+    const hover = (e: MouseEvent) => {
+      const el = (e.target as HTMLElement | null)?.closest?.<HTMLElement>("[data-edit]");
+      const next = el && stage.contains(el) && el !== document.activeElement ? boxOf(el, pad) : null;
+      // Only when it moves: mousemove fires on every pixel.
+      setHoverBox((h) => (h && next && h.left === next.left && h.top === next.top && h.width === next.width && h.height === next.height ? h : next));
+    };
+    const out = () => setHoverBox(null);
     stage.addEventListener("focusin", later);
     stage.addEventListener("focusout", later);
     stage.addEventListener("input", later);
+    stage.addEventListener("mousemove", hover);
+    stage.addEventListener("mouseleave", out);
     window.addEventListener("resize", later);
     return () => {
       stage.removeEventListener("focusin", later);
       stage.removeEventListener("focusout", later);
       stage.removeEventListener("input", later);
+      stage.removeEventListener("mousemove", hover);
+      stage.removeEventListener("mouseleave", out);
       window.removeEventListener("resize", later);
     };
-  }, [variant, html, scale]);
+  }, [variant, html, scale, editable]);
   /** The item under the mouse on a slide: its outline and ✕, drawn on the overlay like the edit frame. */
   const [hoverItem, setHoverItem] = useState<{ path: string; left: number; top: number; width: number; height: number } | null>(null);
   const itemTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -966,6 +1027,9 @@ export default function SlideFrame({
             <X size={12} strokeWidth={2.5} aria-hidden />
           </button>
         </div>
+      )}
+      {hoverBox && !editBox && (
+        <div aria-hidden className="pointer-events-none absolute z-10 rounded-[3px] border border-[#5cc4f0]/70" style={hoverBox} />
       )}
       {editBox && (
         <div
