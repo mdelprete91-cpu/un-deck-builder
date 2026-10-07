@@ -152,7 +152,7 @@ const DRAW: Record<PageBlockType, React.ReactNode> = {
     <>
       {box(8, 12, 104, 48)}
       {bar(14, 19, 22, 6, ACC)}
-      {lines(14, 31, [36, 40, 34, 38, 26])}
+      {lines(14, 32, [36, 38, 30, 34])}
       {box(58, 16, 50, 40, TINT, "none")}
     </>
   ),

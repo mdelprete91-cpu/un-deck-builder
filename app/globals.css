@@ -857,3 +857,9 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .block-rail-wrap, .block-rail-panel { transition: none; }
 }
+
+/* The selected block's bar: a lighter grey than the page's bar, so the two
+   read as different (Mario, 7 Oct 2026). */
+.side-bar-block {
+  background: var(--color-canvas-2);
+}

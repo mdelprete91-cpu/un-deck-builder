@@ -4,7 +4,7 @@ import { mountAura } from "@/lib/slides/aura-live";
 import { lucideSvg } from "@/lib/slides/icons";
 import { measureFlow } from "@/lib/slides/pages/fit";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { BetweenVerticalEnd, Columns2, GripVertical, ListMinus, ListPlus, PanelLeftClose, PanelLeftOpen, Palette, Plus, Sparkles, Trash2 } from "lucide-react";
+import { BetweenVerticalEnd, Columns2, Copy, GripVertical, ListMinus, ListPlus, PanelLeftClose, PanelLeftOpen, Palette, Plus, Sparkles, Trash2 } from "lucide-react";
 import { CALLOUT_TONES, type CalloutTone } from "@/lib/slides/pages/schema";
 import Button from "@/components/Button";
 import { BLOCK_MIME } from "@/components/BlockRail";
@@ -130,6 +130,9 @@ interface SlideFrameProps {
   onAddBlock?: ((at: number) => void) | null;
   /** Two-pager: the block rail is open, so + shows pressed. */
   addingBlocks?: boolean;
+  /** Two-pager: the page's own actions, on the bar shown while no block is selected. */
+  onDuplicatePage?: (() => void) | null;
+  onDeletePage?: (() => void) | null;
   /** Two-pager: a block dragged in from the block rail (BlockRail), dropped at this index. */
   onDropNewBlock?: ((type: string, at: number) => void) | null;
   /** Two-pager: the side bar's Edit with AI (the page has no bottom bar). */
@@ -214,6 +217,8 @@ export default function SlideFrame({
   onDeleteBlock,
   onAddBlock,
   addingBlocks = false,
+  onDuplicatePage,
+  onDeletePage,
   onDropNewBlock,
   onEditWithAi,
   canAddBlockItem,
@@ -905,15 +910,57 @@ export default function SlideFrame({
       </div>
       {editable && variant === "page" && onMoveBlock && scale > 0 && blockRects.length > 0 && (() => {
         const count = blockRects.length;
-        // The bar stays with the selected block: hovering another never moves it (Mario, 7 Oct 2026).
-        const index = Math.min(drag?.from ?? focusedBlock ?? 0, count - 1);
+        // Two bars (Mario, 7 Oct 2026). Nothing selected: the page's bar at the
+        // top (add a block, edit the page with AI, duplicate, delete). A block
+        // selected: its own bar level with it, a lighter grey, its actions
+        // only; it moves when another block is selected, never on hover.
+        const selected = drag?.from ?? focusedBlock ?? null;
+        const index = Math.min(selected ?? 0, count - 1);
+        const pageLeft = (box.w - size.w * scale) / 2;
+        if (selected == null) {
+          const pageTop = (box.h - size.h * scale) / 2;
+          return (
+            <div
+              className="side-bar absolute z-20 flex flex-col gap-1.5 rounded-full border border-hairline-light bg-surface p-1.5 shadow-float"
+              style={{ left: pageLeft + size.w * scale + 12, top: Math.max(0, pageTop) }}
+            >
+              {onEditWithAi && (
+                <Button variant="primary" iconOnly icon={Sparkles} onClick={onEditWithAi} data-tip-side="right" data-tip="Edit page with AI" aria-label="Edit this page with AI" />
+              )}
+              <Button
+                iconOnly
+                variant={addingBlocks ? "primary" : undefined}
+                icon={Plus}
+                onClick={() => onAddBlock?.(count)}
+                data-tip-side="right"
+                data-tip={addingBlocks ? "Close blocks" : "Add block"}
+                aria-label="Add a block"
+                aria-pressed={addingBlocks}
+              />
+              {onDuplicatePage && (
+                <Button iconOnly icon={Copy} onClick={onDuplicatePage} data-tip-side="right" data-tip="Duplicate page" aria-label="Duplicate this page" />
+              )}
+              {onDeletePage !== undefined && (
+                <Button
+                  variant="danger"
+                  iconOnly
+                  icon={Trash2}
+                  disabled={!onDeletePage}
+                  onClick={() => onDeletePage?.()}
+                  data-tip-side="right"
+                  data-tip={onDeletePage ? "Delete page" : "Only page"}
+                  aria-label="Delete this page"
+                />
+              )}
+            </div>
+          );
+        }
         const canItem = canAddBlockItem?.(index) ?? false;
         const canLess = canRemoveBlockItem?.(index) ?? false;
         const tone = toneOf?.(index) ?? null;
         const sideTitle = onSideTitle ? (sideTitleOf?.(index) ?? null) : null;
         const cols = onColumns ? (columnsOf?.(index) ?? null) : null;
-        const height = 46 * (4 + (canItem ? 1 : 0) + (canLess ? 1 : 0) + (tone ? 1 : 0) + (sideTitle !== null ? 1 : 0) + (cols !== null ? 2 : 0)) + 12;
-        const pageLeft = (box.w - size.w * scale) / 2;
+        const height = 46 * (3 + (canItem ? 1 : 0) + (canLess ? 1 : 0) + (tone ? 1 : 0) + (sideTitle !== null ? 1 : 0) + (cols !== null ? 2 : 0)) + 12;
         // The gap a pointer at this height drops into: 0 is above the first block.
         const gapAt = (y: number) => blockRects.filter((r) => r.top + r.height / 2 < y).length;
         const gapY = (gap: number) =>
@@ -923,7 +970,7 @@ export default function SlideFrame({
             <div
               // Beside the sheet, level with the block: the slide bar's pill
               // stood upright (DESIGN.md "Block toolbar").
-              className="side-bar absolute z-20 flex flex-col gap-1.5 rounded-full border border-hairline-light bg-surface p-1.5 shadow-float transition-[top] duration-300 ease-out"
+              className="side-bar side-bar-block absolute z-20 flex flex-col gap-1.5 rounded-full p-1.5 shadow-float transition-[top] duration-300 ease-out"
               style={{
                 left: pageLeft + size.w * scale + 12,
                 top: Math.max(0, Math.min(blockRects[index]?.top ?? 0, box.h - height)),
@@ -931,9 +978,6 @@ export default function SlideFrame({
               onMouseEnter={() => barTimer.current && clearTimeout(barTimer.current)}
               onMouseLeave={leaveBlock}
             >
-              {onEditWithAi && (
-                <Button variant="primary" iconOnly icon={Sparkles} onClick={onEditWithAi} data-tip-side="right" data-tip="Edit with AI" aria-label="Edit with AI" />
-              )}
               <Button
                 iconOnly
                 icon={GripVertical}
@@ -954,8 +998,8 @@ export default function SlideFrame({
                 variant={addingBlocks ? "primary" : undefined}
                 icon={Plus}
                 onClick={() => onAddBlock?.(index + 1)}
-                data-tip-side="right" data-tip={addingBlocks ? "Close blocks" : "Add block"}
-                aria-label="Add a block"
+                data-tip-side="right" data-tip={addingBlocks ? "Close blocks" : "Add block below"}
+                aria-label="Add a block below"
                 aria-pressed={addingBlocks}
               />
               {canItem && (

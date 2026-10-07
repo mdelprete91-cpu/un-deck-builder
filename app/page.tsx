@@ -98,7 +98,8 @@ export default function Studio() {
   const [hydrated, setHydrated] = useState(false);
   const [dataPanelOpen, setDataPanelOpen] = useState(false);
   /** Which block of a two-pager page the pill's actions apply to. */
-  const [focusedBlock, setFocusedBlock] = useState(0);
+  /** Two-pager: the selected block, null when none is (the page's own bar shows). */
+  const [focusedBlock, setFocusedBlock] = useState<number | null>(null);
   /** Last session's deck, offered on the empty state. Never applied on its own. */
   const [previous, setPrevious] = useState<Partial<DeckState> | null>(null);
   /** The How it works dialog: the create video on an empty editor, the edit one with a deck. */
@@ -1409,7 +1410,7 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
   // "Add element" needs to know which one that is.
   const activePage = active && isPage(active) ? active : null;
   const stack = activePage?.stack ?? [];
-  const block = stack[Math.min(focusedBlock, stack.length - 1)];
+  const block = stack[Math.min(focusedBlock ?? 0, stack.length - 1)];
   const blockLimits = block ? PAGE_BLOCK_LIMITS[block.type] : null;
   const canAddItem = activePage
     ? !!blockLimits && (block?.items?.length ?? 0) < blockLimits[1]
@@ -1447,7 +1448,7 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
     if (active?.layoutId === "partner") return setPartnerModal({ at: null });
     dispatch(
       activePage
-        ? { type: "ADD_ITEM", index: state.activeIndex, path: `stack.${focusedBlock}` }
+        ? { type: "ADD_ITEM", index: state.activeIndex, path: `stack.${focusedBlock ?? 0}` }
         : { type: "ADD_ITEM", index: state.activeIndex },
     );
   };
@@ -1676,6 +1677,20 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
   const [logoMenu, setLogoMenu] = useState<{ x: number; y: number } | null>(null);
   /** The deck is being translated into this language (switchLanguage). */
   const [translating, setTranslating] = useState<Lang | null>(null);
+  // Another page, or Esc outside a text: no block selected.
+  const [selectedOn, setSelectedOn] = useState(state.activeIndex);
+  if (selectedOn !== state.activeIndex) {
+    setSelectedOn(state.activeIndex);
+    setFocusedBlock(null);
+  }
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Escape" || (document.activeElement as HTMLElement | null)?.isContentEditable) return;
+      setFocusedBlock(null);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
   // A page that runs past its sheet carries on to the next one (flowOver),
   // a moment after the edit that made it long, never while text is typed.
   const latestSlides = useRef(state.slides);
@@ -1901,7 +1916,16 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
               />
             )}
             <div className="flex min-h-0 flex-1">
-            <div className="relative min-h-0 min-w-0 flex-1 p-6 pb-10" data-tour="canvas">
+            <div
+              className="relative min-h-0 min-w-0 flex-1 p-6 pb-10"
+              data-tour="canvas"
+              // A click off the blocks drops the selection: the page's own bar comes back.
+              onClick={(e) => {
+                if (!twoPager) return;
+                const t = e.target as HTMLElement;
+                if (!t.closest("[data-block], .side-bar, button, [role=dialog], [role=menu]")) setFocusedBlock(null);
+              }}
+            >
               {active && (
                 <>
                   <SlideFrame
@@ -1935,6 +1959,8 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
                     }
                     onAddBlock={twoPager ? (at) => setAddBlockAt((open) => (open == null ? at : null)) : null}
                     addingBlocks={addBlockAt != null}
+                    onDuplicatePage={twoPager ? () => dispatch({ type: "DUPLICATE", index: state.activeIndex }) : null}
+                    onDeletePage={twoPager ? (state.slides.length > 1 ? () => dispatch({ type: "DELETE", index: state.activeIndex }) : null) : undefined}
                     onDropNewBlock={
                       twoPager && state.status !== "generating" && !fitting
                         ? (type, at) => {
@@ -2170,7 +2196,7 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
               type: "INSERT",
               content: { layoutId: "a4-page", stack: presetStack(), footerLabel: state.slides.find(isPage)?.footerLabel ?? "" },
             });
-            setFocusedBlock(0);
+            setFocusedBlock(null);
             onDeckArrived();
           }}
         />
