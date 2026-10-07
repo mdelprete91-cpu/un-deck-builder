@@ -3,7 +3,7 @@
 import { ChartColumn, ChevronDown, ChevronUp, Play, Copy, History, Image as ImageIcon, LayoutTemplate, LoaderCircle, Plus, Redo2, Superscript, Trash2, Undo2, Upload } from "lucide-react";
 import { useEffect, useLayoutEffect, useMemo, useReducer, useRef, useState, type CSSProperties } from "react";
 import { BRANDS } from "@/lib/slides/brand";
-import { DEFAULT_DECK_NAME, deckReducer, initialDeckState, readPath, setPath } from "@/lib/slides/state";
+import { deckReducer, initialDeckState, isDefaultName, readPath, setPath } from "@/lib/slides/state";
 import { ensureId, isChartLayout, isPage, normalizeSlide, overLimits, PRIMARY_ARRAY, type LayoutId, type Slide, type SlideContent } from "@/lib/slides/schema";
 import { renderSlide } from "@/lib/slides/layouts";
 import { A4_PX, pageDateNow } from "@/lib/slides/pages/a4";
@@ -2156,7 +2156,7 @@ function EmptyState({
   // On a cover the title is usually the brand lockup and the subtitle carries
   // the subject, which is what makes one parked deck tell itself from another.
   const first = previous?.slides?.[0];
-  const named = previous?.name && previous.name !== DEFAULT_DECK_NAME ? previous.name : undefined;
+  const named = previous?.name && !isDefaultName(previous.name) ? previous.name : undefined;
   const title = named ?? (first?.layoutId === "cover" ? first.subtitle : first?.title)?.trim();
   return (
     // pb lifts the block above the true middle, where it reads as centred.

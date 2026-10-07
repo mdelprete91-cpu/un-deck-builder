@@ -234,6 +234,11 @@ export interface SlideContent {
   pageFit?: PageFit;
   /** Two-pager first page: the date in the masthead ("October 2026"). */
   pageDate?: string;
+  /**
+   * Two-pager first page: a programme logo at the top right, in place of the
+   * date (pages/logos.ts): a path we ship, or an uploaded image.
+   */
+  pageLogo?: string;
 }
 
 export interface Channel {
@@ -382,6 +387,7 @@ export const slideContentSchema = z.object({
   footerLabel: z.string().optional(),
   pageFit: z.enum(PAGE_FITS).optional().catch(undefined),
   pageDate: z.string().optional(),
+  pageLogo: z.string().optional(),
   notes: z.string().optional(),
   takeaway: z.string().optional(),
   density: z

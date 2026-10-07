@@ -124,7 +124,7 @@ export function pageDateNow(): string {
  * pieces; the unboxed lockup for the Digital Impact Division; the mark alone
  * for UNICEF), the date on the right.
  */
-export function pageMasthead(t: BrandTheme, date: string): string {
+export function pageMasthead(t: BrandTheme, date: string, programmeLogo?: string): string {
   const m = GRID.margin;
   let logo: string;
   if (t.id === "inclusion") {
@@ -140,10 +140,13 @@ export function pageMasthead(t: BrandTheme, date: string): string {
   } else {
     logo = `<img src="${t.logoLight.src}" alt="" style="position:absolute;left:${pt(m)};top:${pt(27.41)};width:${pt(66.85)};height:${pt(35.58)};filter:brightness(0);">`;
   }
-  return (
-    logo +
-    `<div ${edP("pageDate")} style="position:absolute;right:${pt(m)};top:${pt(40)};width:${pt(150)};${TYPE.date}color:${PALETTE.ink};text-align:right;white-space:nowrap;">${esc(date)}</div>`
-  );
+  // A programme logo takes the top right in place of the date, as on the
+  // Songbird piece: 43pt high at most, right-aligned to the margin.
+  const right = programmeLogo
+    ? `<div data-page-logo style="position:absolute;right:${pt(m)};top:${pt(24)};width:${pt(140)};height:${pt(43)};display:flex;justify-content:flex-end;align-items:flex-start;">` +
+      `<img src="${esc(programmeLogo)}" alt="" style="max-width:100%;max-height:100%;display:block;"></div>`
+    : `<div ${edP("pageDate")} style="position:absolute;right:${pt(m)};top:${pt(40)};width:${pt(150)};${TYPE.date}color:${PALETTE.ink};text-align:right;white-space:nowrap;">${esc(date)}</div>`;
+  return logo + right;
 }
 
 /**

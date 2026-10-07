@@ -29,6 +29,17 @@ export type DeckFormat = "slides" | "two-pager";
 
 /** What a deck is called until someone names it. */
 export const DEFAULT_DECK_NAME = "New deck";
+/** And a two-pager (Mario, 7 Oct 2026: not "New deck"). */
+export const DEFAULT_PIECE_NAME = "New two-pager";
+
+export function defaultNameFor(format: DeckFormat): string {
+  return format === "two-pager" ? DEFAULT_PIECE_NAME : DEFAULT_DECK_NAME;
+}
+
+/** A name nobody chose: it follows the format when the format changes. */
+export function isDefaultName(name: string): boolean {
+  return name === DEFAULT_DECK_NAME || name === DEFAULT_PIECE_NAME;
+}
 
 export interface DeckState {
   /** The deck's name: the file name of every download, editable in the toolbar. */
@@ -252,13 +263,14 @@ function reduce(state: DeckState, action: DeckAction): DeckState {
       // A two-pager is a two-pager: the name is the spec. The slide default
       // (8) would ask the model for an eight-page brief.
       const count = action.format === "two-pager" ? 2 : initialDeckState.count;
-      if (state.slides.length === 0) return { ...state, format: action.format, count };
+      const name = isDefaultName(state.name) ? defaultNameFor(action.format) : state.name;
+      if (state.slides.length === 0) return { ...state, format: action.format, count, name };
       // The formats do not mix: switching starts a new document (the sidebar
       // asks first). The history goes with the old deck, since an undo would
       // bring slides back into a document of the other kind.
       return {
         ...initialDeckState,
-        name: state.name,
+        name,
         brandId: state.brandId,
         brief: state.brief,
         chapters: state.chapters,
@@ -267,7 +279,7 @@ function reduce(state: DeckState, action: DeckAction): DeckState {
       };
     }
     case "RENAME":
-      return { ...state, name: action.name.trim() || DEFAULT_DECK_NAME };
+      return { ...state, name: action.name.trim() || defaultNameFor(state.format) };
     case "SET_BRIEF":
       return { ...state, brief: action.brief };
     case "SET_COUNT":

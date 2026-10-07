@@ -32,7 +32,7 @@ export function renderPage(slide: Slide, t: BrandTheme, ctx?: PageCtx): string {
     })
     .join("");
   const chrome =
-    (first ? pageMasthead(t, slide.pageDate || pageDateNow()) : "") +
+    (first ? pageMasthead(t, slide.pageDate || pageDateNow(), slide.pageLogo) : "") +
     pageFooter(slide.footerLabel ?? "", t.footerLabel, ctx?.index ?? 0);
   return pageSection(t, first ? GRID.topFirst : GRID.topBare, chrome, flow);
 }

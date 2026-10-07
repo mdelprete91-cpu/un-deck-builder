@@ -2,7 +2,6 @@
 
 import { Pencil } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import { DEFAULT_DECK_NAME } from "@/lib/slides/state";
 
 /**
  * The deck's name, on the left of the toolbar. It is the file name every
@@ -24,7 +23,8 @@ export default function DeckName({ name, onRename }: { name: string; onRename: (
   }, [editing]);
 
   const commit = () => {
-    onRename(draft.trim() || DEFAULT_DECK_NAME);
+    // Left empty, the reducer names it for its format ("New deck", "New two-pager").
+    onRename(draft.trim());
     setEditing(false);
   };
 

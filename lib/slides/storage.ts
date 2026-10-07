@@ -1,6 +1,6 @@
 import { sanitizeLang } from "./i18n";
 import { channelsFor, isPage } from "./schema";
-import { DEFAULT_DECK_NAME } from "./state";
+import { DEFAULT_DECK_NAME, DEFAULT_PIECE_NAME } from "./state";
 import type { DeckState } from "./state";
 
 const KEY = "giga-deck:session";
@@ -94,7 +94,7 @@ function read(raw: string | null): Partial<DeckState> | null {
     // session saved before the field existed.
     const twoPager = parsed.slides.some((s) => isPage(s));
     return {
-      name: parsed.name?.trim() || DEFAULT_DECK_NAME,
+      name: parsed.name?.trim() || (twoPager ? DEFAULT_PIECE_NAME : DEFAULT_DECK_NAME),
       brandId: parsed.brandId,
       // Added after VERSION 2 and defaulted, so it is additive and lossless:
       // bumping the version here would log out every returning user instead.

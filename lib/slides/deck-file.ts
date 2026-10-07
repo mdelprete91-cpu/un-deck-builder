@@ -1,7 +1,7 @@
 import { sanitizeLang } from "./i18n";
 import { MAX_SLIDES as MAX_GENERATED } from "./brief";
 import { z } from "zod";
-import { DEFAULT_DECK_NAME } from "./state";
+import { DEFAULT_DECK_NAME, DEFAULT_PIECE_NAME } from "./state";
 import { isBrandId } from "./brand";
 import { isCountryMap } from "./country-maps";
 import { ensureId, isPage, normalizeSlide } from "./schema";
@@ -97,6 +97,7 @@ export function deckStateScript(state: DeckState): string {
 /** Drop an asset field that did not come from an upload, keeping the slide. */
 function safeAssets(slide: SlideContent): void {
   if (slide.image !== undefined && !SAFE_ASSET.test(slide.image)) delete slide.image;
+  if (slide.pageLogo !== undefined && !SAFE_ASSET.test(slide.pageLogo)) delete slide.pageLogo;
   // A two-pager page holds its images inside the block stack, so the same
   // check has to walk it: miss this and a hand-edited file has a clear path
   // into an `img src` that SlideFrame injects with innerHTML.
@@ -183,7 +184,7 @@ export function parseDeckFile(html: string): DeckFileResult {
   }
 
   const state: Partial<DeckState> = {
-    name: raw.name?.trim().slice(0, 80) || DEFAULT_DECK_NAME,
+    name: raw.name?.trim().slice(0, 80) || (slides.some((s) => isPage(s)) ? DEFAULT_PIECE_NAME : DEFAULT_DECK_NAME),
     slides,
     activeIndex: Math.min(Math.max(0, Math.trunc(raw.activeIndex ?? 0)), slides.length - 1),
     brief: raw.brief ?? "",
