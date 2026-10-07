@@ -778,6 +778,7 @@ body {
   --rail-tint-2: #b9e3f7;
   --rail-card: #ffffff;
   --rail-orange: #f26a21;
+  --rail-orange-tint: rgba(242, 106, 33, 0.16);
 }
 .dark .block-rail {
   --rail-ink: #8e8e93;
@@ -790,4 +791,59 @@ body {
 /* A page's rows have no ✕ and no dashed outline: the side bar adds and removes them. */
 .page-root [data-item]:hover:not(:has([data-item]:hover)) {
   outline: none;
+}
+
+/* The side bar's tooltips (Mario, 7 Oct 2026: "on hover, tell me at once
+   what it is"): beside the button, no delay, also on a disabled button so
+   it can say why. */
+.side-bar button[data-tip] {
+  position: relative;
+}
+.side-bar button[data-tip]:disabled {
+  pointer-events: auto;
+  cursor: default;
+}
+.side-bar button[data-tip]::after {
+  content: attr(data-tip);
+  position: absolute;
+  left: calc(100% + 14px);
+  top: 50%;
+  transform: translate(-4px, -50%);
+  width: max-content;
+  padding: 5px 9px;
+  border-radius: 8px;
+  background: var(--color-ink);
+  color: var(--color-surface);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.35;
+  text-align: left;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  /* Out at once, so two never show together while one fades. */
+  transition: none;
+  z-index: 40;
+}
+.side-bar button[data-tip]:hover::after {
+  opacity: 1;
+  transform: translate(0, -50%);
+  transition: opacity 120ms ease-out, transform 120ms ease-out;
+}
+
+/* The block rail slides in beside the pages strip when + is pressed. */
+.rail-in {
+  animation: rail-in 220ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+@keyframes rail-in {
+  from { opacity: 0; transform: translateX(12px); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .rail-in { animation: none; }
+}
+/* Dark mode: a dark tip, lifted off the stage by a lighter grey and a hairline. */
+.dark .side-bar button[data-tip]::after {
+  background: #3a3a3a;
+  color: #ffffff;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.08), 0 4px 12px rgba(0, 0, 0, 0.4);
 }

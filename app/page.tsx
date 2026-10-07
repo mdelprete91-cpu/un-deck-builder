@@ -11,7 +11,6 @@ import { fitPage, flowOver, pullForward, type Resizer } from "@/lib/slides/pages
 import { dropStatEchoes, fillStatFigures, isMastheadLine, putBackLines } from "@/lib/slides/pages/restore";
 import { logoFor } from "@/lib/slides/pages/logos";
 import { fillPagePhotos } from "@/lib/slides/library";
-import AddBlockMenu from "@/components/AddBlockMenu";
 import BlockRail from "@/components/BlockRail";
 import LanguageMenu from "@/components/LanguageMenu";
 import EditChoice from "@/components/EditChoice";
@@ -1934,7 +1933,8 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
                         ? (from, to) => dispatch({ type: "MOVE_BLOCK", index: state.activeIndex, from, to })
                         : null
                     }
-                    onAddBlock={twoPager ? (at) => setAddBlockAt(at) : null}
+                    onAddBlock={twoPager ? (at) => setAddBlockAt((open) => (open == null ? at : null)) : null}
+                    addingBlocks={addBlockAt != null}
                     onDropNewBlock={
                       twoPager && state.status !== "generating" && !fitting
                         ? (type, at) => {
@@ -2076,16 +2076,6 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
                       }}
                     />
                   )}
-                  {addBlockAt != null && (
-                    <AddBlockMenu
-                      onPick={(blockType) => {
-                        dispatch({ type: "ADD_BLOCK", index: state.activeIndex, at: addBlockAt, blockType });
-                        setFocusedBlock(addBlockAt);
-                        setAddBlockAt(null);
-                      }}
-                      onClose={() => setAddBlockAt(null)}
-                    />
-                  )}
                   {iconPicker != null && (
                     <IconPickerModal
                       current={
@@ -2139,14 +2129,19 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
                 </>
               )}
             </div>
-            {twoPager && active && isPage(active) && (
-              <div className="w-[168px] shrink-0 border-l border-hairline-light bg-canvas">
+            {/* The block rail opens from the side bar's + and closes with it
+                (Mario, 7 Oct 2026): blocks are dragged onto the page, or
+                clicked to land where the + was pressed. */}
+            {twoPager && active && isPage(active) && addBlockAt != null && (
+              <div className="rail-in w-[168px] shrink-0 border-l border-hairline-light bg-canvas">
                 <BlockRail
                   onAdd={(blockType) => {
-                    const at = Math.min(focusedBlock + 1, active.stack?.length ?? 0);
+                    const at = Math.min(addBlockAt, active.stack?.length ?? 0);
                     dispatch({ type: "ADD_BLOCK", index: state.activeIndex, at, blockType });
                     setFocusedBlock(at);
+                    setAddBlockAt(at + 1);
                   }}
+                  onClose={() => setAddBlockAt(null)}
                 />
               </div>
             )}

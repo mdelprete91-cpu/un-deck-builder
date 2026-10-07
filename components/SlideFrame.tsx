@@ -128,6 +128,8 @@ interface SlideFrameProps {
   onDeleteBlock?: ((index: number) => void) | null;
   /** Two-pager: open the block menu to insert a block at this index. */
   onAddBlock?: ((at: number) => void) | null;
+  /** Two-pager: the block rail is open, so + shows pressed. */
+  addingBlocks?: boolean;
   /** Two-pager: a block dragged in from the block rail (BlockRail), dropped at this index. */
   onDropNewBlock?: ((type: string, at: number) => void) | null;
   /** Two-pager: the side bar's Edit with AI (the page has no bottom bar). */
@@ -211,6 +213,7 @@ export default function SlideFrame({
   onMoveBlock,
   onDeleteBlock,
   onAddBlock,
+  addingBlocks = false,
   onDropNewBlock,
   onEditWithAi,
   canAddBlockItem,
@@ -920,7 +923,7 @@ export default function SlideFrame({
             <div
               // Beside the sheet, level with the block: the slide bar's pill
               // stood upright (DESIGN.md "Block toolbar").
-              className="absolute z-20 flex flex-col gap-1.5 rounded-full border border-hairline-light bg-surface p-1.5 shadow-float transition-[top] duration-300 ease-out"
+              className="side-bar absolute z-20 flex flex-col gap-1.5 rounded-full border border-hairline-light bg-surface p-1.5 shadow-float transition-[top] duration-300 ease-out"
               style={{
                 left: pageLeft + size.w * scale + 12,
                 top: Math.max(0, Math.min(blockRects[index]?.top ?? 0, box.h - height)),
@@ -929,12 +932,12 @@ export default function SlideFrame({
               onMouseLeave={leaveBlock}
             >
               {onEditWithAi && (
-                <Button variant="primary" iconOnly icon={Sparkles} onClick={onEditWithAi} title="Edit this page with AI" aria-label="Edit with AI" />
+                <Button variant="primary" iconOnly icon={Sparkles} onClick={onEditWithAi} data-tip="Edit with AI" aria-label="Edit with AI" />
               )}
               <Button
                 iconOnly
                 icon={GripVertical}
-                title="Drag to move this block"
+                data-tip="Move"
                 aria-label="Drag to move this block"
                 className="cursor-grab touch-none active:cursor-grabbing"
                 onPointerDown={(e) => grabBlock(e, index)}
@@ -946,13 +949,21 @@ export default function SlideFrame({
                 onPointerUp={dropBlock}
                 onPointerCancel={() => releaseDrag()}
               />
-              <Button iconOnly icon={Plus} onClick={() => onAddBlock?.(index + 1)} title="Add a block below" aria-label="Add a block below" />
+              <Button
+                iconOnly
+                variant={addingBlocks ? "primary" : undefined}
+                icon={Plus}
+                onClick={() => onAddBlock?.(index + 1)}
+                data-tip={addingBlocks ? "Close blocks" : "Add block"}
+                aria-label="Add a block"
+                aria-pressed={addingBlocks}
+              />
               {canItem && (
                 <Button
                   iconOnly
                   icon={ListPlus}
                   onClick={() => onAddBlockItem?.(index)}
-                  title="Add an item to this block (a paragraph, a card, a row)"
+                  data-tip="Add item"
                   aria-label="Add an item to this block"
                 />
               )}
@@ -969,7 +980,7 @@ export default function SlideFrame({
                     const path = at?.getAttribute("data-item") ?? (rows?.length ? rows[rows.length - 1].getAttribute("data-item") : null);
                     if (path) onDeleteItemRef.current?.(path.replace(/^(stack\.\d+\.items\.\d+).*$/, "$1"));
                   }}
-                  title="Remove an item: the one with the text cursor, or the last"
+                  data-tip="Remove item"
                   aria-label="Remove an item from this block"
                 />
               )}
@@ -979,7 +990,7 @@ export default function SlideFrame({
                     iconOnly
                     icon={Palette}
                     onClick={() => setTones((v) => !v)}
-                    title="Colour of this banner"
+                    data-tip="Colour"
                     aria-label="Colour of this banner"
                     aria-expanded={tones}
                   />
@@ -1009,7 +1020,7 @@ export default function SlideFrame({
                   iconOnly
                   icon={sideTitle ? PanelLeftClose : PanelLeftOpen}
                   onClick={() => onSideTitle?.(index)}
-                  title={sideTitle ? "Remove the side title: the block runs the full width" : "Bring back the side title"}
+                  data-tip={sideTitle ? "Hide side title" : "Show side title"}
                   aria-label={sideTitle ? "Remove the side title" : "Bring back the side title"}
                 />
               )}
@@ -1020,7 +1031,7 @@ export default function SlideFrame({
                     icon={BetweenVerticalEnd}
                     disabled={cols >= 5}
                     onClick={() => onColumns?.(index, true)}
-                    title={cols >= 5 ? "Five columns at most" : "Add a column"}
+                    data-tip={cols >= 5 ? "Max 5 columns" : "Add column"}
                     aria-label="Add a column"
                   />
                   <Button
@@ -1028,7 +1039,7 @@ export default function SlideFrame({
                     icon={Columns2}
                     disabled={cols <= 2}
                     onClick={() => onColumns?.(index, false)}
-                    title={cols <= 2 ? "Two columns at least" : "Remove the last column"}
+                    data-tip={cols <= 2 ? "Min 2 columns" : "Remove column"}
                     aria-label="Remove the last column"
                   />
                 </>
@@ -1042,7 +1053,7 @@ export default function SlideFrame({
                   onDeleteBlock?.(index);
                   setHoverBlock(null);
                 }}
-                title={canDeleteBlock?.(index) === false ? "The first page always opens with its title" : "Remove this block"}
+                data-tip={canDeleteBlock?.(index) === false ? "Page 1 keeps its title" : "Delete block"}
                 aria-label="Remove this block"
               />
             </div>

@@ -1,5 +1,6 @@
 "use client";
 
+import { X } from "lucide-react";
 import { BLOCK_LABELS } from "@/lib/slides/pages/presets";
 import type { PageBlockType } from "@/lib/slides/pages/schema";
 
@@ -141,7 +142,7 @@ const DRAW: Record<PageBlockType, React.ReactNode> = {
   ),
   callout: (
     <>
-      {box(8, 20, 104, 32, "none", "var(--rail-orange)", 4)}
+      {box(8, 20, 104, 32, "var(--rail-orange-tint)", "none", 4)}
       {bar(15, 28, 18, 4, "var(--rail-orange)")}
       {bar(37, 28, 66)}
       {lines(15, 36, [90, 64])}
@@ -197,11 +198,21 @@ const DRAW: Record<PageBlockType, React.ReactNode> = {
  * under the toolbar (Mario, 7 Oct 2026). Drag one onto the page and a line
  * shows where it lands (SlideFrame); a click adds it after the selected block.
  */
-export default function BlockRail({ onAdd }: { onAdd: (type: PageBlockType) => void }) {
+export default function BlockRail({ onAdd, onClose }: { onAdd: (type: PageBlockType) => void; onClose: () => void }) {
   const types = Object.keys(BLOCK_LABELS) as (keyof typeof BLOCK_LABELS)[];
   return (
     <aside aria-label="Blocks" className="block-rail flex h-full flex-col">
-      <p className="px-4 pb-2 pt-4 text-[13px] font-medium text-ink-muted">Blocks</p>
+      <div className="flex items-center justify-between px-4 pb-2 pt-3">
+        <p className="text-[13px] font-medium text-ink-muted">Blocks</p>
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="Close the blocks"
+          className="flex size-7 items-center justify-center rounded-full text-ink-muted transition-colors duration-150 hover:text-ink focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-giga/30"
+        >
+          <X size={16} aria-hidden />
+        </button>
+      </div>
       <ul className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-3 pb-4">
         {types.map((type) => (
           <li key={type}>
@@ -213,7 +224,7 @@ export default function BlockRail({ onAdd }: { onAdd: (type: PageBlockType) => v
                 e.dataTransfer.effectAllowed = "copy";
               }}
               onClick={() => onAdd(type)}
-              title={`Drag onto the page, or click to add ${BLOCK_LABELS[type].toLowerCase()} below the selected block`}
+              title={`Drag onto the page, or click to add ${BLOCK_LABELS[type].toLowerCase()} where you pressed +`}
               className="group flex w-full cursor-grab flex-col gap-1.5 rounded-xl text-left focus-visible:outline-none active:cursor-grabbing"
             >
               <span className="block w-full rounded-lg border border-hairline-light bg-surface transition-[border-color,box-shadow] duration-150 group-hover:border-giga/50 group-focus-visible:ring-[3px] group-focus-visible:ring-giga/30">
