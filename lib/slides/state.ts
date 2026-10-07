@@ -6,7 +6,7 @@ import { MAX_PARTNERS, partnerSlug } from "./partners";
 import { applyChapterPlan, ensureAgenda, type ChapterPlan } from "./chapters";
 import type { ChartSource } from "./chart-import";
 import { fillPhotos } from "./library";
-import { MAX_BLOCKS_PER_PAGE, PAGE_BLOCK_LIMITS, type PageBlockType } from "./pages/schema";
+import { MAX_BLOCKS_PER_PAGE, PAGE_BLOCK_LIMITS, type PageBlockType, tableCells, tableHeads } from "./pages/schema";
 import { defaultBlock, newPageItem } from "./pages/presets";
 import { newItem, defaultContent } from "./defaults";
 import { tierDefaultGrid } from "./layouts/tables";
@@ -140,6 +140,10 @@ export type DeckAction =
   | { type: "MOVE_BLOCK"; index: number; from: number; to: number }
   /** Two-pager: pages after an overflow ran on to the next one (pages/fit.ts flowOver). Part of the edit that caused it, so no undo step of its own. */
   | { type: "FLOW_PAGES"; slides: SlideContent[] }
+  /** Two-pager table: one column more (at the end) or fewer (the one at `at`), 2 to 5. */
+  /** Two-pager: remove a block's side title so it runs full width, or bring it back. */
+  | { type: "TOGGLE_WIDE"; index: number; block: number }
+  | { type: "TABLE_COLUMN"; index: number; block: number; add: boolean; at?: number }
   | { type: "TOGGLE_CELL"; index: number; row: number; col: number }
   /** Generation done: a deck that ends without its closing slide gets the default one. */
   | { type: "ENSURE_CLOSING" }
@@ -699,7 +703,10 @@ function reduce(state: DeckState, action: DeckAction): DeckState {
         const items = block.items ?? [];
         if (items.length >= limits[1]) return state;
         const clone = structuredClone(slide);
-        (clone.stack![b].items ??= []).push(newPageItem(block.type));
+        const fresh = newPageItem(block.type);
+        // A table with its own columns takes a row of as many cells.
+        if (block.heads?.length) fresh.cells = tableHeads(block).map((_, j) => (j === 0 ? fresh.label : ""));
+        (clone.stack![b].items ??= []).push(fresh);
         const slides = [...state.slides];
         slides[action.index] = clone;
         return { ...state, ...remember(state), slides };
@@ -745,6 +752,33 @@ function reduce(state: DeckState, action: DeckAction): DeckState {
       if (stack.length <= 1) return state;
       const clone = structuredClone(slide);
       clone.stack!.splice(action.block, 1);
+      const slides = [...state.slides];
+      slides[action.index] = clone;
+      return { ...state, ...remember(state), slides };
+    }
+    case "TOGGLE_WIDE": {
+      const slide = state.slides[action.index];
+      if (!slide || !isPage(slide) || !slide.stack?.[action.block]) return state;
+      const clone = structuredClone(slide);
+      const b = clone.stack![action.block];
+      if (b.wide) delete b.wide;
+      else b.wide = true;
+      const slides = [...state.slides];
+      slides[action.index] = clone;
+      return { ...state, ...remember(state), slides };
+    }
+    case "TABLE_COLUMN": {
+      const slide = state.slides[action.index];
+      const block = slide && isPage(slide) ? slide.stack?.[action.block] : undefined;
+      if (!block || block.type !== "table") return state;
+      const heads = tableHeads(block);
+      if (action.add ? heads.length >= 5 : heads.length <= 2) return state;
+      const cut = Math.min(action.at ?? heads.length - 1, heads.length - 1);
+      const edit = (row: string[]) => (action.add ? [...row, ""] : row.filter((_, j) => j !== cut));
+      const clone = structuredClone(slide);
+      const b = clone.stack![action.block];
+      b.heads = action.add ? [...heads, `Column ${heads.length + 1}`] : edit(heads);
+      b.items = (b.items ?? []).map((it) => ({ ...it, cells: edit(tableCells(block, it)) }));
       const slides = [...state.slides];
       slides[action.index] = clone;
       return { ...state, ...remember(state), slides };

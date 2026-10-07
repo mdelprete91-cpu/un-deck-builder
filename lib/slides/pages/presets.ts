@@ -6,14 +6,14 @@ import type { PageBlock, PageBlockType, PageItem } from "./schema";
  */
 
 /** The block menu's names, in the order the menu lists them. */
-export const BLOCK_LABELS: Record<PageBlockType, string> = {
+/** Without "compare", dropped for the table on 7 Oct 2026. */
+export const BLOCK_LABELS: Record<Exclude<PageBlockType, "compare">, string> = {
   title: "Page title",
   heading: "Heading",
   section: "Text section",
   stats: "Stat cards",
   pillars: "Three pillars",
   figure: "Image or map",
-  compare: "Before / today table",
   asks: "Opportunities",
   panels: "Two panels",
   photos: "Photo cards",

@@ -19,7 +19,7 @@ import LogoMenu from "@/components/LogoMenu";
 import PartnerLogoModal from "@/components/PartnerLogoModal";
 import { apply, detectLang, LANG_LABELS, LANG_NAMES, plan, newEdits, remember, snapshot, textFields, uiStrings, type DeckLang, type Job, type Lang } from "@/lib/slides/i18n";
 import { undash } from "@/lib/slides/pages/schema";
-import { normalizePage, PAGE_BLOCK_LIMITS, type PageBlock, type PageBlockType } from "@/lib/slides/pages/schema";
+import { normalizePage, PAGE_BLOCK_LIMITS, RAIL_BLOCKS, tableHeads, type PageBlock, type PageBlockType } from "@/lib/slides/pages/schema";
 import { defaultContent, denseContent } from "@/lib/slides/defaults";
 import { familyOf } from "@/lib/slides/families";
 import { countFromBrief, languageOf, seriesFromBrief, uniformFromBrief, MIN_SLIDES_WITH_CHAPTERS, TIERS_REQUEST } from "@/lib/slides/brief";
@@ -1950,8 +1950,18 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
                       twoPager
                         ? (b) => {
                             const target = activePage?.stack?.[b];
-                            const limits = target ? PAGE_BLOCK_LIMITS[target.type] : null;
+                            // A text section grows by writing in it, not by rows (Mario, 7 Oct 2026).
+                            const limits = target && target.type !== "section" ? PAGE_BLOCK_LIMITS[target.type] : null;
                             return !!limits && (target?.items?.length ?? 0) < limits[1];
+                          }
+                        : null
+                    }
+                    canRemoveBlockItem={
+                      twoPager
+                        ? (b) => {
+                            const target = activePage?.stack?.[b];
+                            const limits = target && target.type !== "section" ? PAGE_BLOCK_LIMITS[target.type] : null;
+                            return !!limits && (target?.items?.length ?? 0) > Math.max(1, limits[0]);
                           }
                         : null
                     }
@@ -1963,6 +1973,25 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
                           }
                         : null
                     }
+                    canDeleteBlock={
+                      twoPager
+                        ? (b) => !(state.activeIndex === 0 && b === 0 && ["banner", "title"].includes(activePage?.stack?.[0]?.type ?? ""))
+                        : null
+                    }
+                    toneOf={twoPager ? (b) => (activePage?.stack?.[b]?.type === "callout" ? (activePage.stack[b].tone ?? "orange") : null) : null}
+                    onTone={
+                      twoPager ? (b, tone) => dispatch({ type: "EDIT_FIELD", index: state.activeIndex, path: `stack.${b}.tone`, value: tone }) : null
+                    }
+                    sideTitleOf={
+                      twoPager ? (b) => (activePage?.stack?.[b] && RAIL_BLOCKS.has(activePage.stack[b].type) ? !activePage.stack[b].wide : null) : null
+                    }
+                    onSideTitle={
+                      twoPager
+                        ? (b) => dispatch({ type: "TOGGLE_WIDE", index: state.activeIndex, block: b })
+                        : null
+                    }
+                    columnsOf={twoPager ? (b) => (activePage?.stack?.[b]?.type === "table" ? tableHeads(activePage.stack[b]).length : null) : null}
+                    onColumns={twoPager ? (b, add) => dispatch({ type: "TABLE_COLUMN", index: state.activeIndex, block: b, add }) : null}
                     onDeleteBlock={
                       twoPager
                         ? (b) => dispatch({ type: "DELETE_BLOCK", index: state.activeIndex, block: b })

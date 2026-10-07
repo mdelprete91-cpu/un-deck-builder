@@ -786,3 +786,8 @@ body {
   --rail-tint-2: #2b5970;
   --rail-card: #2a2a2e;
 }
+
+/* A page's rows have no ✕ and no dashed outline: the side bar adds and removes them. */
+.page-root [data-item]:hover:not(:has([data-item]:hover)) {
+  outline: none;
+}

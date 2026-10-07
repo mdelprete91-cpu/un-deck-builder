@@ -36,8 +36,35 @@ export const PAGE_BLOCK_TYPES = [
 ] as const;
 export type PageBlockType = (typeof PAGE_BLOCK_TYPES)[number];
 
-/** Blocks the AI may pick: all of them, steered by page-catalog.ts. */
-export const AI_BLOCK_TYPES = PAGE_BLOCK_TYPES;
+/**
+ * Blocks the AI may pick, steered by page-catalog.ts: all but "compare",
+ * dropped on 7 Oct 2026 for the table (normalizePage turns a saved one into
+ * a table).
+ */
+export const AI_BLOCK_TYPES = PAGE_BLOCK_TYPES.filter((t) => t !== "compare");
+
+/** Blocks with a side title, which can be removed so the block runs full width. */
+export const RAIL_BLOCKS: ReadonlySet<PageBlockType> = new Set(["section", "screens", "numbered", "table", "stats", "pillars", "photos", "contacts"]);
+
+/** A table's columns: its own heads, or the three fields it started with. */
+export function tableHeads(b: PageBlock): string[] {
+  return b.heads?.length ? b.heads : [b.heading ?? "", b.sub ?? "", b.lead ?? ""];
+}
+export function tableCells(b: PageBlock, it: PageItem): string[] {
+  const n = tableHeads(b).length;
+  const cells = it.cells ?? [it.label, it.body, it.extra];
+  return Array.from({ length: n }, (_, j) => cells[j] ?? "");
+}
+
+/** The colours a status banner can take (Mario, 7 Oct 2026): solid for the lead word, the tint behind it. */
+export const CALLOUT_TONES = {
+  orange: { solid: "#D14807", tint: "rgba(242, 106, 33, 0.12)" },
+  blue: { solid: "#0083C4", tint: "rgba(28, 171, 226, 0.12)" },
+  green: { solid: "#00833D", tint: "rgba(0, 166, 81, 0.12)" },
+  red: { solid: "#C8102E", tint: "rgba(226, 35, 26, 0.10)" },
+  grey: { solid: "#4D4D4D", tint: "rgba(0, 0, 0, 0.06)" },
+} as const;
+export type CalloutTone = keyof typeof CALLOUT_TONES;
 
 /**
  * One line inside a block's repeating array. Flat and shared by every block
@@ -61,6 +88,8 @@ export interface PageItem {
   /** photos: the card's photo. */
   image?: string;
   imagePos?: ImagePos;
+  /** table: every cell of the row, once the table has its own columns (heads). */
+  cells?: string[];
 }
 
 export interface PageBlock {
@@ -87,6 +116,12 @@ export interface PageBlock {
   accent?: number;
   /** split: the pill above the text ("Phase 1"). */
   tag?: string;
+  /** callout: the banner's colour (CALLOUT_TONES), orange when unset. */
+  tone?: CalloutTone;
+  /** table: the column heads, 2 to 5 (Mario, 7 Oct 2026). Unset: heading, sub, lead. */
+  heads?: string[];
+  /** No side title: the block runs the full width (any block with a side column). */
+  wide?: boolean;
 }
 
 /**
@@ -145,6 +180,7 @@ export const pageItemSchema = z.object({
   icon: z.string().optional(),
   image: z.string().optional(),
   imagePos: imagePosSchema.optional(),
+  cells: z.array(z.string()).max(5).optional(),
 });
 
 export const pageBlockSchema = z.object({
@@ -161,6 +197,9 @@ export const pageBlockSchema = z.object({
   map: z.string().optional(),
   accent: z.coerce.number().int().min(-1).max(5).optional(),
   tag: z.string().optional(),
+  tone: z.enum(["orange", "blue", "green", "red", "grey"]).optional().catch(undefined),
+  heads: z.array(z.string()).min(2).max(5).optional().catch(undefined),
+  wide: z.boolean().optional(),
 });
 
 /** The text fields each block draws, so the editor always has them to write to. */
@@ -272,6 +311,18 @@ export function normalizePage(stack: unknown): PageBlock[] | null {
     const parsed = pageBlockSchema.safeParse(raw);
     if (!parsed.success) continue;
     const block = parsed.data as PageBlock;
+    // The before / today table was dropped for the table (7 Oct 2026): a
+    // saved one opens as a table, its country written in the first column.
+    if (block.type === "compare") {
+      block.type = "table";
+      block.rail = block.heading ?? block.rail;
+      block.heads = ["", block.sub ?? "", block.lead ?? ""];
+      delete block.heading;
+      block.items = (block.items ?? []).slice(0, 8).map((it) => ({
+        ...it,
+        cells: [[it.group, it.label].filter(Boolean).join(", "), it.body, it.extra],
+      }));
+    }
     // The model names library photos by id ("photo"); the page stores the path.
     const r = raw as { photo?: unknown; items?: { photo?: unknown }[] };
     block.image ??= libraryPhoto(r.photo);
@@ -330,7 +381,7 @@ export function normalizePage(stack: unknown): PageBlock[] | null {
     }
     undashBlock(block);
     for (const k of ["rail", "heading", "sub", "lead"] as const) if (block[k]) block[k] = sentenceCase(block[k]!);
-    if (block.type !== "stats" && block.type !== "compare") block.items?.forEach((it) => (it.label = sentenceCase(it.label)));
+    if (block.type !== "stats" && block.type !== "table") block.items?.forEach((it) => (it.label = sentenceCase(it.label)));
     for (const f of BLOCK_FIELDS[block.type]) (block as unknown as Record<string, unknown>)[f] ??= "";
     if (block.type === "stats" || block.type === "panels") block.accent ??= -1;
     out.push(block);

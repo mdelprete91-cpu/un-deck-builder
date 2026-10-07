@@ -4,7 +4,7 @@ import { countryMapSrc, isCountryMap } from "../country-maps";
 import { DEFAULT_PHOTO } from "../library";
 import type { BrandTheme } from "../brand";
 import type { ImagePos } from "../schema";
-import type { PageBlock, PageBlockType, PageItem } from "./schema";
+import { CALLOUT_TONES, tableCells, tableHeads, type PageBlock, type PageBlockType, type PageItem } from "./schema";
 import { PALETTE, type Density, edP, firstBaseline, FONT, GRID, LS, pt, TYPE } from "./a4";
 
 /**
@@ -40,6 +40,11 @@ function railRow(left: string, right: string, extra = ""): string {
     `<div style="display:grid;grid-template-columns:${pt(GRID.label)} ${pt(GRID.body)};column-gap:${pt(GRID.gutter)};margin:0 ${pt(M)};${extra}">` +
     `<div style="min-width:0;">${left}</div><div style="min-width:0;">${right}</div></div>`
   );
+}
+
+/** A block's side column, or the full width when its side title was removed. */
+function side(b: PageBlock, left: string, right: string, extra = ""): string {
+  return b.wide ? full(right, extra) : railRow(left, right, extra);
 }
 
 /**
@@ -117,7 +122,7 @@ const section: BlockRender = (b, { path, d }) => {
       );
     })
     .join("");
-  return railRow(railLabel(b.rail, `${path}.rail`, d), body);
+  return side(b, railLabel(b.rail, `${path}.rail`, d), body);
 };
 
 /** A title inside the page, opening a new part: the page title's voice, smaller. */
@@ -129,12 +134,15 @@ const lede: BlockRender = (b, { path, d }) =>
   full(`<div ${edP(`${path}.body`)} style="${TYPE.body(d)}color:${PALETTE.ink};white-space:pre-line;">${esc(b.body ?? "")}</div>`);
 
 /** A bordered note on the state of things, its lead word in orange (Spectrum, Lunar: "Status:"). */
-const callout: BlockRender = (b, { path, d }) =>
-  full(
-    `<div style="box-sizing:border-box;border:1pt solid ${PALETTE.orangeBorder};border-radius:${pt(6)};padding:${pt(12)} ${pt(14)};${TYPE.body(d)}color:${PALETTE.ink};">` +
-      `<span ${edP(`${path}.lead`)} style="font-weight:700;color:${PALETTE.orange};">${esc(b.lead ?? "")}</span> ` +
+// A mini banner on a tint of its colour (Mario, 7 Oct 2026), orange unless picked.
+const callout: BlockRender = (b, { path, d }) => {
+  const tone = CALLOUT_TONES[b.tone ?? "orange"] ?? CALLOUT_TONES.orange;
+  return full(
+    `<div style="box-sizing:border-box;background:${tone.tint};border-radius:${pt(6)};padding:${pt(8)} ${pt(12)};${TYPE.body(d)}color:${PALETTE.ink};">` +
+      `<span ${edP(`${path}.lead`)} style="font-weight:700;color:${tone.solid};">${esc(b.lead ?? "")}</span> ` +
       `<span ${edP(`${path}.body`)} style="white-space:pre-line;">${esc(b.body ?? "")}</span></div>`,
   );
+};
 
 /** A framed panel: a pill and text on the left, a picture or map on the right (Songbird's Phase 1). */
 const split: BlockRender = (b, { path, d }) => {
@@ -163,7 +171,7 @@ const screens: BlockRender = (b, { path, d }) => {
   const arrow = `<svg viewBox="0 0 24 24" width="${pt(16)}" height="${pt(16)}" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="display:block;color:${ACCENT};">${ICON_LIBRARY["arrow-right"]}</svg>`;
   const arrows = `<div style="display:flex;flex-direction:column;justify-content:center;align-items:center;gap:${pt(14)};">${arrow}${arrow}${arrow}</div>`;
   const row = `<div style="display:grid;grid-template-columns:minmax(0,1fr) ${pt(28)} minmax(0,1.5fr);align-items:center;">${shot(0, a, false)}${arrows}${shot(1, c, true)}</div>`;
-  return b.rail ? railRow(railLabel(b.rail, `${path}.rail`, d), row) : full(row);
+  return b.rail && !b.wide ? railRow(railLabel(b.rail, `${path}.rail`, d), row) : full(row);
 };
 
 /** Numbered asks in accent circles, in the text column (Songbird's US/FCC ask). */
@@ -176,27 +184,32 @@ const numbered: BlockRender = (b, { path, d }) => {
         `<div ${edP(`${path}.items.${i}.body`)} style="${TYPE.body(d)}color:${PALETTE.ink};white-space:pre-line;">${esc(it.body)}</div></div>`,
     )
     .join("");
-  return railRow(railLabel(b.rail, `${path}.rail`, d), rows);
+  return side(b, railLabel(b.rail, `${path}.rail`, d), rows);
 };
 
 /** A three-column table with a grey header row, in the text column (Lunar). */
 const table: BlockRender = (b, { path, d }) => {
-  const cell = `padding:${pt(8)} ${pt(10)};font-family:${FONT.open};font-size:${pt(d.small + 0.5)};line-height:${pt(d.smallLh + 1.5)};${LS}color:${PALETTE.ink};`;
-  const grid = `display:grid;grid-template-columns:repeat(3,minmax(0,1fr));`;
+  // Two to five columns; a long cell wraps onto more lines (Mario, 7 Oct 2026).
+  const heads = tableHeads(b);
+  const own = !!b.heads?.length;
+  const cell = `padding:${pt(8)} ${pt(heads.length > 3 ? 8 : 10)};font-family:${FONT.open};font-size:${pt(d.small + 0.5)};line-height:${pt(d.smallLh + 1.5)};${LS}color:${PALETTE.ink};overflow-wrap:anywhere;white-space:pre-line;`;
+  const grid = `display:grid;grid-template-columns:repeat(${heads.length},minmax(0,1fr));`;
+  const headPath = (j: number) => (own ? `${path}.heads.${j}` : `${path}.${(["heading", "sub", "lead"] as const)[j]}`);
+  const cellPath = (i: number, j: number) => (own ? `${path}.items.${i}.cells.${j}` : `${path}.items.${i}.${(["label", "body", "extra"] as const)[j]}`);
   const head =
     `<div style="${grid}background:#F4F4F4;border-radius:${pt(4)} ${pt(4)} 0 0;">` +
-    (["heading", "sub", "lead"] as const).map((k) => `<div ${edP(`${path}.${k}`)} style="${cell}font-weight:600;">${esc(b[k] ?? "")}</div>`).join("") +
+    heads.map((h, j) => `<div ${edP(headPath(j))} style="${cell}font-weight:600;">${esc(h)}</div>`).join("") +
     `</div>`;
   const rows = (b.items ?? [])
     .map(
       (it, i) =>
         `<div ${item(`${path}.items.${i}`)} style="position:relative;${grid}border-bottom:0.5pt solid ${PALETTE.hairline};">` +
-        (["label", "body", "extra"] as const).map((k) => `<div ${edP(`${path}.items.${i}.${k}`)} style="${cell}">${esc(it[k])}</div>`).join("") +
+        tableCells(b, it).map((c, j) => `<div ${edP(cellPath(i, j))} style="${cell}">${esc(c)}</div>`).join("") +
         `</div>`,
     )
     .join("");
   const t = `<div style="border:0.5pt solid ${PALETTE.hairline};border-bottom:none;border-radius:${pt(4)};">${head}${rows}</div>`;
-  return railRow(railLabel(b.rail, `${path}.rail`, d), t);
+  return side(b, railLabel(b.rail, `${path}.rail`, d), t);
 };
 
 /** Figures in stroked cards, one accented (build.py `stat`). */
@@ -218,7 +231,8 @@ const stats: BlockRender = (b, { path }) => {
       );
     })
     .join("");
-  return railRow(
+  return side(
+    b,
     "",
     `<div style="display:grid;grid-template-columns:repeat(${cols},minmax(0,1fr));gap:${pt(GRID.cardGap)};">${cards}</div>`,
   );
@@ -253,14 +267,16 @@ const pillars: BlockRender = (b, { path, d }) => {
       );
     })
     .join("");
-  return railRow("", `<div style="display:grid;grid-template-columns:repeat(${Math.max(2, (b.items ?? []).length)},minmax(0,1fr));column-gap:${pt(5)};">${cols}</div>`);
+  return side(b, "", `<div style="display:grid;grid-template-columns:repeat(${Math.max(2, (b.items ?? []).length)},minmax(0,1fr));column-gap:${pt(5)};">${cols}</div>`);
 };
 
 /** Before / today, by group (investment.py `progress_table`). */
 const compare: BlockRender = (b, { path, d }) => {
-  const cell = `font-family:${FONT.open};font-size:9pt;line-height:12.5pt;${LS}`;
-  const row = (l: string, a: string, c: string, extra = "") =>
-    `<div style="display:grid;grid-template-columns:${pt(GRID.label)} minmax(0,1fr) minmax(0,1fr);column-gap:${pt(GRID.gutter)};${extra}">${l}${a}${c}</div>`;
+  // Drawn as the table block is (Mario, 7 Oct 2026: the column heads floated
+  // above the first group and its black rule was too heavy): one grey header
+  // row, a group as a light band across the table, hairlines between rows.
+  const cell = `padding:${pt(6)} ${pt(10)};font-family:${FONT.open};font-size:9pt;line-height:12.5pt;${LS}`;
+  const grid = `display:grid;grid-template-columns:${pt(GRID.label - 10)} minmax(0,1fr) minmax(0,1fr);`;
   const items = b.items ?? [];
   let lastGroup: string | undefined;
   const rows = items
@@ -269,32 +285,28 @@ const compare: BlockRender = (b, { path, d }) => {
       const g = (it.group ?? "").trim();
       const head =
         g && g !== lastGroup
-          ? `<div ${edP(`${p}.group`)} style="font-family:${FONT.open};font-weight:700;font-size:10pt;line-height:14pt;${LS}margin-top:${pt(i === 0 ? 4 : 14)};padding-bottom:${pt(5)};border-bottom:0.75pt solid ${PALETTE.ink};">${esc(g)}</div>`
+          ? `<div ${edP(`${p}.group`)} style="${cell}font-weight:700;background:${PALETTE.panel};border-bottom:0.5pt solid ${PALETTE.hairline};">${esc(g)}</div>`
           : "";
       lastGroup = g;
       return (
         head +
-        `<div ${item(p)} style="position:relative;">` +
-        row(
-          `<div ${edP(`${p}.label`)} style="${cell}color:${PALETTE.grey};">${esc(it.label)}</div>`,
-          `<div ${edP(`${p}.body`)} style="${cell}color:${PALETTE.ink};">${esc(it.body)}</div>`,
-          `<div ${edP(`${p}.extra`)} style="${cell}color:${PALETTE.ink};">${esc(it.extra)}</div>`,
-          `padding:${pt(4)} 0;border-bottom:0.5pt solid ${PALETTE.hairline};`,
-        ) +
+        `<div ${item(p)} style="position:relative;${grid}border-bottom:0.5pt solid ${PALETTE.hairline};">` +
+        `<div ${edP(`${p}.label`)} style="${cell}color:${PALETTE.grey};">${esc(it.label)}</div>` +
+        `<div ${edP(`${p}.body`)} style="${cell}color:${PALETTE.ink};">${esc(it.body)}</div>` +
+        `<div ${edP(`${p}.extra`)} style="${cell}color:${PALETTE.ink};">${esc(it.extra)}</div>` +
         `</div>`
       );
     })
     .join("");
-  const headStyle = `font-family:${FONT.open};font-weight:700;font-size:9pt;line-height:12.5pt;${LS}`;
+  const headRow =
+    `<div style="${grid}background:#F4F4F4;border-bottom:0.5pt solid ${PALETTE.hairline};">` +
+    `<div></div>` +
+    `<div ${edP(`${path}.sub`)} style="${cell}font-weight:600;color:${PALETTE.grey};">${esc(b.sub ?? "")}</div>` +
+    `<div ${edP(`${path}.lead`)} style="${cell}font-weight:600;color:${ACCENT};">${esc(b.lead ?? "")}</div>` +
+    `</div>`;
   return full(
     `<div ${edP(`${path}.heading`)} style="${TYPE.label}color:${ACCENT};">${esc(b.heading ?? "")}</div>` +
-      row(
-        `<div></div>`,
-        `<div ${edP(`${path}.sub`)} style="${headStyle}color:${PALETTE.grey};">${esc(b.sub ?? "")}</div>`,
-        `<div ${edP(`${path}.lead`)} style="${headStyle}color:${ACCENT};">${esc(b.lead ?? "")}</div>`,
-        `margin-top:${pt(d.para + 2)};`,
-      ) +
-      rows,
+      `<div style="margin-top:${pt(d.para + 2)};border:0.5pt solid ${PALETTE.hairline};border-bottom:none;border-radius:${pt(4)};overflow:hidden;">${headRow}${rows}</div>`,
   );
 };
 
@@ -324,7 +336,8 @@ const photos: BlockRender = (b, { path, d }) => {
         `</div></div>`,
     )
     .join("");
-  return railRow(
+  return side(
+    b,
     railLabel(b.rail, `${path}.rail`, d),
     `<div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:${pt(8)};">${cards}</div>`,
   );
@@ -374,7 +387,7 @@ const contacts: BlockRender = (b, { path, d }) => {
   const lead = b.lead ? `<div ${edP(`${path}.lead`)} style="${TYPE.body(d)}font-weight:700;color:${PALETTE.ink};">${esc(b.lead)}</div>` : "";
   return (
     `<div style="margin:0 ${pt(M)} ${pt(18)};height:0;border-top:0.75pt solid ${PALETTE.card};"></div>` +
-    railRow(railLabel(b.rail, `${path}.rail`, d), lead + people)
+    side(b, railLabel(b.rail, `${path}.rail`, d), lead + people)
   );
 };
 

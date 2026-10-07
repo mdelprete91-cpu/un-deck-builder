@@ -79,7 +79,7 @@ export default function AddBlockMenu({
   onPick: (type: PageBlockType) => void;
   onClose: () => void;
 }) {
-  const types = Object.keys(BLOCK_LABELS) as PageBlockType[];
+  const types = Object.keys(BLOCK_LABELS) as (keyof typeof BLOCK_LABELS)[];
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-scrim p-6" onClick={onClose}>
       <div

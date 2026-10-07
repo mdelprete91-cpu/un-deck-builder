@@ -4,7 +4,8 @@ import { mountAura } from "@/lib/slides/aura-live";
 import { lucideSvg } from "@/lib/slides/icons";
 import { measureFlow } from "@/lib/slides/pages/fit";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { GripVertical, ListPlus, Plus, Sparkles, Trash2 } from "lucide-react";
+import { BetweenVerticalEnd, Columns2, GripVertical, ListMinus, ListPlus, PanelLeftClose, PanelLeftOpen, Palette, Plus, Sparkles, Trash2 } from "lucide-react";
+import { CALLOUT_TONES, type CalloutTone } from "@/lib/slides/pages/schema";
 import Button from "@/components/Button";
 import { BLOCK_MIME } from "@/components/BlockRail";
 import { autofitAll, refitNode } from "@/lib/slides/autofit";
@@ -134,6 +135,19 @@ interface SlideFrameProps {
   /** Two-pager: whether a block can take one more item, and adding it. */
   canAddBlockItem?: ((block: number) => boolean) | null;
   onAddBlockItem?: ((block: number) => void) | null;
+  /** Two-pager: whether a block can lose an item (above its minimum). */
+  canRemoveBlockItem?: ((block: number) => boolean) | null;
+  /** Two-pager: whether a block may be removed (page 1's title may not). */
+  canDeleteBlock?: ((block: number) => boolean) | null;
+  /** Two-pager: a status banner's colour, and changing it (null: the block has none). */
+  toneOf?: ((block: number) => CalloutTone | null) | null;
+  onTone?: ((block: number, tone: CalloutTone) => void) | null;
+  /** Two-pager: whether a block shows its side title (null: it has no side column), and toggling it. */
+  sideTitleOf?: ((block: number) => boolean | null) | null;
+  onSideTitle?: ((block: number) => void) | null;
+  /** Two-pager table: its column count (null: not a table), and adding or removing the last one. */
+  columnsOf?: ((block: number) => number | null) | null;
+  onColumns?: ((block: number, add: boolean) => void) | null;
   /** Editor chrome is sized for the 1920 stage; a page needs the small set. */
   variant?: "slide" | "page";
   className?: string;
@@ -201,6 +215,14 @@ export default function SlideFrame({
   onEditWithAi,
   canAddBlockItem,
   onAddBlockItem,
+  canRemoveBlockItem,
+  canDeleteBlock,
+  toneOf,
+  onTone,
+  sideTitleOf,
+  onSideTitle,
+  columnsOf,
+  onColumns,
   size = { w: 1920, h: 1080 },
   variant = "slide",
   className,
@@ -225,6 +247,8 @@ export default function SlideFrame({
   const [drag, setDrag] = useState<{ from: number; gap: number } | null>(null);
   /** A block dragged in from the rail: the gap it would drop into. */
   const [incoming, setIncoming] = useState<number | null>(null);
+  /** The status banner's colour swatches, open beside the side bar. */
+  const [tones, setTones] = useState(false);
   const barTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   // A short grace period, so the mouse can travel from the block to the bar.
   const leaveBlock = () => {
@@ -404,7 +428,8 @@ export default function SlideFrame({
 
     // Per-element delete buttons (rebuilt on every wiring pass)
     stage.querySelectorAll(".item-delete").forEach((b) => b.remove());
-    if (onDeleteItemRef.current) {
+    // A page has no ✕ on its rows: the side bar removes them (Mario, 7 Oct 2026).
+    if (onDeleteItemRef.current && variant !== "page") {
       stage.querySelectorAll<HTMLElement>("[data-item]").forEach((node) => {
         // Refused here (the last point of a block, a block at its minimum):
         // no ✕, and no outline promising one.
@@ -879,7 +904,11 @@ export default function SlideFrame({
         const count = blockRects.length;
         const index = Math.min(drag?.from ?? hoverBlock ?? focusedBlock ?? 0, count - 1);
         const canItem = canAddBlockItem?.(index) ?? false;
-        const height = 46 * (canItem ? 5 : 4) + 12;
+        const canLess = canRemoveBlockItem?.(index) ?? false;
+        const tone = toneOf?.(index) ?? null;
+        const sideTitle = onSideTitle ? (sideTitleOf?.(index) ?? null) : null;
+        const cols = onColumns ? (columnsOf?.(index) ?? null) : null;
+        const height = 46 * (4 + (canItem ? 1 : 0) + (canLess ? 1 : 0) + (tone ? 1 : 0) + (sideTitle !== null ? 1 : 0) + (cols !== null ? 2 : 0)) + 12;
         const pageLeft = (box.w - size.w * scale) / 2;
         // The gap a pointer at this height drops into: 0 is above the first block.
         const gapAt = (y: number) => blockRects.filter((r) => r.top + r.height / 2 < y).length;
@@ -926,16 +955,93 @@ export default function SlideFrame({
                   aria-label="Add an item to this block"
                 />
               )}
+              {canLess && (
+                <Button
+                  iconOnly
+                  icon={ListMinus}
+                  // Keeps the caret's row: the button would otherwise take the focus.
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => {
+                    // The row the text cursor is in, else the last one.
+                    const at = (document.activeElement as HTMLElement | null)?.closest<HTMLElement>(`[data-block="${index}"] [data-item]`);
+                    const rows = stageRef.current?.querySelectorAll<HTMLElement>(`[data-block="${index}"] [data-item^="stack.${index}.items."]`);
+                    const path = at?.getAttribute("data-item") ?? (rows?.length ? rows[rows.length - 1].getAttribute("data-item") : null);
+                    if (path) onDeleteItemRef.current?.(path.replace(/^(stack\.\d+\.items\.\d+).*$/, "$1"));
+                  }}
+                  title="Remove an item: the one with the text cursor, or the last"
+                  aria-label="Remove an item from this block"
+                />
+              )}
+              {tone && onTone && (
+                <div className="relative">
+                  <Button
+                    iconOnly
+                    icon={Palette}
+                    onClick={() => setTones((v) => !v)}
+                    title="Colour of this banner"
+                    aria-label="Colour of this banner"
+                    aria-expanded={tones}
+                  />
+                  {tones && (
+                    <div className="pop-in absolute left-full top-1/2 ml-2 flex -translate-y-1/2 gap-1.5 rounded-full border border-hairline-light bg-surface p-1.5 shadow-float">
+                      {(Object.keys(CALLOUT_TONES) as CalloutTone[]).map((t) => (
+                        <button
+                          key={t}
+                          type="button"
+                          onClick={() => {
+                            onTone(index, t);
+                            setTones(false);
+                          }}
+                          title={t[0].toUpperCase() + t.slice(1)}
+                          aria-label={t}
+                          aria-pressed={t === tone}
+                          className={`size-7 rounded-full transition-transform duration-150 hover:scale-110 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-giga/30 ${t === tone ? "ring-2 ring-ink ring-offset-2 ring-offset-surface" : ""}`}
+                          style={{ background: CALLOUT_TONES[t].solid }}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+              {sideTitle !== null && (
+                <Button
+                  iconOnly
+                  icon={sideTitle ? PanelLeftClose : PanelLeftOpen}
+                  onClick={() => onSideTitle?.(index)}
+                  title={sideTitle ? "Remove the side title: the block runs the full width" : "Bring back the side title"}
+                  aria-label={sideTitle ? "Remove the side title" : "Bring back the side title"}
+                />
+              )}
+              {cols !== null && (
+                <>
+                  <Button
+                    iconOnly
+                    icon={BetweenVerticalEnd}
+                    disabled={cols >= 5}
+                    onClick={() => onColumns?.(index, true)}
+                    title={cols >= 5 ? "Five columns at most" : "Add a column"}
+                    aria-label="Add a column"
+                  />
+                  <Button
+                    iconOnly
+                    icon={Columns2}
+                    disabled={cols <= 2}
+                    onClick={() => onColumns?.(index, false)}
+                    title={cols <= 2 ? "Two columns at least" : "Remove the last column"}
+                    aria-label="Remove the last column"
+                  />
+                </>
+              )}
               <Button
                 variant="danger"
                 iconOnly
                 icon={Trash2}
-                disabled={count <= 1}
+                disabled={count <= 1 || canDeleteBlock?.(index) === false}
                 onClick={() => {
                   onDeleteBlock?.(index);
                   setHoverBlock(null);
                 }}
-                title="Remove this block"
+                title={canDeleteBlock?.(index) === false ? "The first page always opens with its title" : "Remove this block"}
                 aria-label="Remove this block"
               />
             </div>

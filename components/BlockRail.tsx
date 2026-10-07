@@ -198,7 +198,7 @@ const DRAW: Record<PageBlockType, React.ReactNode> = {
  * shows where it lands (SlideFrame); a click adds it after the selected block.
  */
 export default function BlockRail({ onAdd }: { onAdd: (type: PageBlockType) => void }) {
-  const types = Object.keys(BLOCK_LABELS) as PageBlockType[];
+  const types = Object.keys(BLOCK_LABELS) as (keyof typeof BLOCK_LABELS)[];
   return (
     <aside aria-label="Blocks" className="block-rail flex h-full flex-col">
       <p className="px-4 pb-2 pt-4 text-[13px] font-medium text-ink-muted">Blocks</p>

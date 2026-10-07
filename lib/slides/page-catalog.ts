@@ -53,12 +53,6 @@ export const PAGE_CATALOG: PageCatalogEntry[] = [
     fields: 'items(3: label(<=22 chars), body(<=210 chars), icon(a Lucide icon name, e.g. "map-pin", "handshake", "hand-coins", "school", "wifi", "heart-pulse", "shield-check", "chart-column"))',
   },
   {
-    type: "compare",
-    usage: "Progress before vs today, grouped by country or programme. Only when the brief gives both states",
-    fields:
-      'heading(<=60 chars, e.g. "Progress since 2023"), sub(first column head, e.g. "2023-2024"), lead(second column head, e.g. "Today"), items(2-9 rows: group(the country or programme, the same on consecutive rows), label(the area, <=22 chars), body(before, <=95 chars), extra(today, <=95 chars))',
-  },
-  {
     type: "asks",
     usage: "Opportunities or asks for a partner, each a labelled paragraph: what it is, then how the partner could help",
     fields: "heading(<=80 chars, e.g. \"Shaping the next phase together\"), items(2-4: label(<=40 chars), body(<=520 chars))",
@@ -134,7 +128,7 @@ export const ARCHETYPES = [
     name: "Donor or partner update",
     when: "Reporting to one partner what their support made possible, and what comes next",
     page1: "banner, section (the partner's investment), stats (4), section (results, one bold lead-in per country or programme)",
-    page2: "section (a flagship initiative), compare (before vs today, optional), asks (the next phase)",
+    page2: "section (a flagship initiative), table (before and today, optional), asks (the next phase)",
   },
   {
     id: "partnership",

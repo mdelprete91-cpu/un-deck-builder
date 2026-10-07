@@ -72,8 +72,8 @@ ${catalogLines}
 
 PAGE BUDGET. A page is a fixed sheet and text that does not fit is cut off, so plan it like a printed page:
 - Page 1 holds a banner, one stats row and about 2,300 characters of section text in total. Without stats, about 2,700.
-- Page 2 holds about 2,800 characters of text plus ONE visual block (figure, stats of 6, pillars, compare or photos), or about 3,600 characters with no visual block.
-- A compare row costs about 150 characters of budget, a pillar about 230.
+- Page 2 holds about 2,800 characters of text plus ONE visual block (figure, stats of 6, pillars, table or photos), or about 3,600 characters with no visual block.
+- A table row costs about 150 characters of budget, a pillar about 230.
 - Fill both pages: a two-pager that ends half-way down a page reads as unfinished. Write to the budget even from a short brief: a section is two or three full paragraphs, and what fills them is explanation, not new facts (how the work is done, why it matters for children and for the reader, what changes when it is in place, what the reader can do). Explaining is allowed; inventing a figure, a name, a date, a place or a result is not.
 - Every fact appears once in the piece: page 2 never restates a figure or a result already on page 1.
 - Plan the material across both pages before writing page 1: page 2 carries as much as page 1, so keep part of the material (how it works, the evidence, what comes next, the asks) for it instead of spending it all up front.

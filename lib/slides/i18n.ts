@@ -172,7 +172,9 @@ export function textFields(s: SlideContent): { path: string; text: string }[] {
       add(`stack.${i}.items.${j}.body`, it.body);
       add(`stack.${i}.items.${j}.extra`, it.extra);
       add(`stack.${i}.items.${j}.group`, it.group);
+      it.cells?.forEach((c, k) => add(`stack.${i}.items.${j}.cells.${k}`, c));
     });
+    b.heads?.forEach((h, k) => add(`stack.${i}.heads.${k}`, h));
   });
   return out;
 }
