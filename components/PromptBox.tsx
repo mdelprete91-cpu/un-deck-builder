@@ -1,6 +1,7 @@
 "use client";
 
-import { ArrowUp, Circle, CircleCheck, LoaderCircle, Plus } from "lucide-react";
+import { ArrowUp, LoaderCircle, Plus } from "lucide-react";
+import Switch from "@/components/Switch";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { ATTACHMENT_ACCEPT, type Attachment } from "@/lib/slides/attachments";
 import AttachmentsRow from "@/components/AttachmentsRow";
@@ -223,26 +224,17 @@ export default function PromptBox({
 
           <div className="flex items-center gap-1.5">
             {/* Chapters is a generation input: it shapes the next deck, never the
-                one on screen. As a pressed pill next to Generate it reads as
-                part of what the press sends. */}
-            {/* The glyph is the state: a ticked circle on, an empty one off. */}
+                one on screen, so it sits next to Generate. A switch, iOS-style
+                (Mario, 7 Oct 2026): green on, grey off. */}
             {!twoPager && (
-            <Button
-              variant={chapters ? "accent" : "ghost"}
-              icon={chapters ? CircleCheck : Circle}
-              data-tour="chapters"
-              role="switch"
-              aria-checked={chapters}
-              disabled={generating}
-              onClick={() => onChapters(!chapters)}
-              title={
-                chapters
-                  ? "Chapters on: agenda slide and section dividers"
-                  : "Chapters off: the deck runs straight through"
-              }
-            >
-              Chapters
-            </Button>
+              <Switch
+                checked={chapters}
+                onChange={onChapters}
+                label="Chapters"
+                disabled={generating}
+                data-tour="chapters"
+                title={chapters ? "Chapters on: agenda slide and section dividers" : "Chapters off: the deck runs straight through"}
+              />
             )}
 
             <Button

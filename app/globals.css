@@ -536,6 +536,58 @@ body {
   gap: calc(6px * var(--inv, 1));
 }
 
+/* The iOS-style switch (components/Switch.tsx). 36x22 track, 18px knob with
+   2px of air. The knob's travel and its stretch share one spring curve
+   without overshoot; held down, it widens toward the side it will move to. */
+.switch-track {
+  --switch-off: #e9e9ea;
+  position: relative;
+  width: 36px;
+  height: 22px;
+  flex: none;
+  border-radius: 999px;
+  background: var(--switch-off);
+  transition: background-color 250ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+.dark .switch-track {
+  --switch-off: #39393d;
+}
+.switch.is-on .switch-track {
+  background: #34c759;
+}
+.switch-knob {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  background: #ffffff;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15), 0 0 0 0.5px rgba(0, 0, 0, 0.04), 0 2px 1px rgba(0, 0, 0, 0.06);
+  transition:
+    left 260ms cubic-bezier(0.32, 0.72, 0, 1),
+    width 260ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+.switch.is-on .switch-knob {
+  left: 16px;
+}
+/* Held down, or on its way: the knob stretches by 6px. On, it grows to the
+   left so its right edge stays put. */
+.switch:active .switch-knob,
+.switch.is-travel .switch-knob {
+  width: 24px;
+}
+.switch.is-on:active .switch-knob,
+.switch.is-on.is-travel .switch-knob {
+  left: 10px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .switch-knob,
+  .switch-track {
+    transition: none;
+  }
+}
+
 /* "+ Logo" over the date of a two-pager's first page, shown on hover. */
 .page-root .logo-add {
   position: absolute;
