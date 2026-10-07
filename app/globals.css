@@ -599,7 +599,7 @@ body {
   position: absolute;
   right: 18pt;
   transform: translateY(-50%);
-  margin-top: 6pt;
+  margin-top: 24pt;
   display: flex;
   align-items: center;
   gap: calc(4px * var(--inv, 1));
@@ -646,8 +646,10 @@ body {
 
 /* Block selection and reordering on a page. A block's box spans the whole
    sheet and the content zone clips it, so a frame showed as a stray line or
-   lost its top edge (Mario, 7 Oct 2026). No frame and no hover: the block in
-   hand gets a light blue tint, on a layer inset to the 24pt margins. */
+   lost its top edge, and a tint on the selected block read as a background
+   (Mario, 7 Oct 2026). Nothing marks a selected block but the side bar
+   beside it; only the block being dragged is tinted, on a layer inset to
+   the 24pt margins. */
 .page-root [data-block]::after {
   content: "";
   position: absolute;
@@ -656,9 +658,6 @@ body {
   background: transparent;
   pointer-events: none;
   transition: background-color 0.15s;
-}
-.page-root [data-block].block-on::after {
-  background: rgba(1, 174, 239, 0.07);
 }
 
 /* On a page the content zone clips anything outside a block, so the text

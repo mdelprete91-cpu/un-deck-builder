@@ -236,11 +236,29 @@ function dividerIndexes(slides: Slide[]): number[] {
   return slides.flatMap((s, i) => (s.layoutId === "section-divider" ? [i] : []));
 }
 
+/**
+ * A two-pager's first page always opens with its title (Mario, 7 Oct 2026):
+ * a banner or a page title as its first block. One further down goes back to
+ * the top; a first page without one gets a page title. Later pages need none.
+ */
+function keepOpener(state: DeckState): DeckState {
+  const first = state.slides[0];
+  if (state.format !== "two-pager" || !first || !isPage(first)) return state;
+  const stack = first.stack ?? [];
+  const opens = (t: string) => t === "banner" || t === "title";
+  if (stack[0] && opens(stack[0].type)) return state;
+  const at = stack.findIndex((b) => opens(b.type));
+  const next = at > 0 ? [stack[at], ...stack.slice(0, at), ...stack.slice(at + 1)] : [defaultBlock("title"), ...stack];
+  const slides = [...state.slides];
+  slides[0] = { ...first, stack: next };
+  return { ...state, slides };
+}
+
 export function deckReducer(state: DeckState, action: DeckAction): DeckState {
   const next = reduce(state, action);
   if (next.slides !== state.slides) {
-    const synced = syncAgenda(next.slides);
-    if (synced !== next.slides) return { ...next, slides: synced };
+    const synced = keepOpener({ ...next, slides: syncAgenda(next.slides) });
+    if (synced.slides !== next.slides) return synced;
   }
   return next;
 }
