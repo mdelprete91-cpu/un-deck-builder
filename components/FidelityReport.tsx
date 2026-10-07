@@ -102,6 +102,13 @@ function slideRange(at: number[], unit: "Slide" | "Page" = "Slide"): string {
 
 const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
 
+/** Which fixed slide a structural source slide maps to, from its title, for the review's words. */
+function structureName(title: string): string {
+  if (/agenda|contents|sommario|índice|sommaire/i.test(title)) return "agenda";
+  if (/thank|grazie|gracias|merci|obrigad|contact/i.test(title)) return "closing slide";
+  return "chapter dividers";
+}
+
 /**
  * The review: a short summary of what the replica did to the source (how
  * many slides it became, what was split, what the app rebuilt, how much text
@@ -156,7 +163,10 @@ function FidelityReview({
   const byN = new Map<number, Entry[]>();
   for (const s of report.slides) byN.set(s.n, [...(byN.get(s.n) ?? []), s]);
   const lost = new Map<number, Leftover>();
-  for (const l of report.leftovers) if (l.reason === "failed" || l.reason === "ceiling") lost.set(l.n, l);
+  // Lines the plan leaves out of the agenda, divider and closing slides
+  // count as missing in the summary, so they get a row too (Mario, 7 Oct
+  // 2026: "5 missing, but I don't know what").
+  for (const l of report.leftovers) if (l.reason === "failed" || l.reason === "ceiling" || l.reason === "structure") lost.set(l.n, l);
   const ns = [...new Set([...byN.keys(), ...lost.keys()])].sort((x, y) => x - y);
 
   const piece = report.piece;
@@ -179,7 +189,8 @@ function FidelityReview({
     const putBack = entries.reduce((k, e) => k + (e.putBack ?? 0), 0);
     const notes: string[] = [];
     const left = lost.get(n);
-    if (left) notes.push(left.reason === "ceiling" ? "past the 40-slide limit" : "could not be rebuilt");
+    if (left?.reason === "structure") notes.push(`${plural(left.lines.length, "line")} left out of the deck's ${structureName(left.title)}`);
+    else if (left) notes.push(left.reason === "ceiling" ? "past the 40-slide limit" : "could not be rebuilt");
     if (at.length > 1 && !piece) notes.push(`text split over ${at.length} slides`);
     if (entries.some((e) => e.rebuilt)) notes.push("rebuilt by the app in a simpler layout");
     else if (putBack) notes.push(`${plural(putBack, "line")} put back by the app`);
@@ -195,15 +206,16 @@ function FidelityReview({
       notes,
       diffs,
       lostLines: left?.lines ?? [],
-      red: !!left || wrong > 0,
+      red: (!!left && left.reason !== "structure") || wrong > 0,
+      structure: left?.reason === "structure",
     };
   });
 
   const noted = rows.filter((r) => r.notes.length > 0);
-  const sourceCount = ns.length;
+  const sourceCount = rows.filter((r) => !r.structure || r.at.length).length;
   const split = piece ? 0 : rows.filter((r) => r.at.length > 1).length;
   const rebuilt = report.slides.filter((s) => s.rebuilt).length;
-  const notIn = rows.filter((r) => !r.at.length).length;
+  const notIn = rows.filter((r) => !r.at.length && !r.structure).length;
   const fromContent = rows.reduce((k, r) => k + r.at.length, 0);
   const summary: string[] = piece
     ? [`${plural(piece.sourcePages, "page")} of the source became a two-pager of ${plural(piece.pages, "A4 page")}, its text kept in the order it was written. The pages were set tighter where needed, never cut.`]
@@ -217,6 +229,9 @@ function FidelityReview({
       ? `Every figure${t.figures.total ? ` (${t.figures.total})` : ""} and every line of the source is in the ${piece ? "two-pager" : "deck"}, word for word.`
       : `${t.figures.ok} / ${t.figures.total} figures exact, ${pct(t.words.kept, t.words.total)}% of the words kept${t.reworded || t.missing ? `: ${[t.reworded && plural(t.reworded, "line") + " reworded", t.missing && `${t.missing} missing`].filter(Boolean).join(", ")}` : ""}.`,
   );
+  const structureLines = rows.filter((r) => r.structure).reduce((k, r) => k + r.lostLines.length, 0);
+  if (structureLines)
+    summary.push(`${plural(structureLines, "line")} of the source's agenda, chapter dividers or closing slide ${structureLines === 1 ? "is" : "are"} not in the deck, which has its own: they are listed below.`);
   if (notIn && !piece) summary.push(`${plural(notIn, "source slide")} ${notIn === 1 ? "is" : "are"} not in the deck.`);
   if (report.transcribed) summary.push("The source was read from page images: check the figures against the file.");
 
@@ -265,7 +280,9 @@ function FidelityReview({
                         <span className="tabular-nums text-ink-faint">{r.n}.</span> {r.title || "Untitled"}
                       </p>
                       <p className="text-[13px] leading-relaxed text-ink-muted">
-                        <span className={r.at.length ? "" : "text-status-red"}>{slideRange(r.at, piece ? "Page" : "Slide")}</span>
+                        <span className={r.at.length || r.structure ? "" : "text-status-red"}>
+                          {r.structure && !r.at.length ? "Agenda, divider or closing" : slideRange(r.at, piece ? "Page" : "Slide")}
+                        </span>
                         {r.layouts.length > 0 && ` · ${r.layouts.join(", ")}`}
                         {r.notes.length > 0 ? (
                           <span className={r.red ? "text-status-red" : ""}> · {r.notes.join(", ")}</span>
