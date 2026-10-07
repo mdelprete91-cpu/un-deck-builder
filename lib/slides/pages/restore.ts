@@ -132,53 +132,86 @@ export function isMastheadLine(line: string): boolean {
 }
 
 /**
- * A stat card with no figure ("Countries" / "engaged") takes the next source
- * figure the piece does not carry anywhere, in source order, and its words
- * go back together as the caption. A PDF reader can set a figure apart from
- * its caption ("02, 54" on a line of its own), and the model cannot pair them.
+ * Where a figure's caption is in the source: the rest of its own line
+ * ("2.6B People remain offline"), else the next line when it is a short
+ * caption. Null when the source does not pair it with anything: then the
+ * figure gets no card. Pairing a figure with any missing line in order is
+ * what wrote "44k+ / Spectrum Certificates" (7 Oct 2026).
  */
-export function fillStatFigures(pages: SlideContent[], unplaced: string[], captions: string[] = []): SlideContent[] {
-  const queue = [...unplaced];
-  if (!queue.length) return pages;
-  const filled = fillEmptyCards(pages, queue);
-  // Figures still unplaced, and short source lines missing from the piece
-  // ("Countries engaged"): paired in order into new cards, on the last stats
-  // block that has room. The model left the whole card out.
-  const caps = captions.filter((c) => tokens(c).length > 0 && tokens(c).length < 6 && !/\d/.test(c));
-  const n = Math.min(queue.length, caps.length);
-  if (!n) return filled;
-  for (let p = filled.length - 1; p >= 0; p--) {
-    const stack = filled[p].stack ?? [];
-    for (let b = stack.length - 1; b >= 0; b--) {
-      const block = stack[b];
-      if (block.type !== "stats") continue;
-      const room = 6 - (block.items?.length ?? 0);
-      if (room <= 0) continue;
-      const add = Array.from({ length: Math.min(n, room) }, (_, i): PageItem => ({ label: queue[i], body: caps[i], extra: "" }));
-      const out = structuredClone(filled);
-      out[p].stack![b].items = [...(block.items ?? []), ...add];
-      return out;
-    }
+export function captionFor(figure: string, source: string): string | null {
+  const lines = source.split("\n").map((l) => l.trim()).filter(Boolean);
+  const f = figure.trim();
+  for (let i = 0; i < lines.length; i++) {
+    const l = lines[i];
+    if (l !== f && !l.startsWith(`${f} `)) continue;
+    const rest = l.slice(f.length).trim();
+    if (rest && tokens(rest).length <= 12) return rest;
+    const next = lines[i + 1];
+    if (!rest && next && tokens(next).length > 0 && tokens(next).length <= 12 && !/^[\d.,]+[%kKmMbB+x]*$/.test(next)) return next;
   }
-  return filled;
+  return null;
 }
 
-/** The cards with no figure take the unplaced figures in order (consumes `queue`). */
-function fillEmptyCards(pages: SlideContent[], queue: string[]): SlideContent[] {
-  return pages.map((p) => ({
+/** The figure written just before a caption in the source, or null. */
+function figureFor(caption: string, source: string): string | null {
+  const lines = source.split("\n").map((l) => l.trim()).filter(Boolean);
+  const c = key(caption);
+  for (let i = 1; i < lines.length; i++) {
+    if (key(lines[i]) !== c) continue;
+    const prev = lines[i - 1];
+    if (/^[<>~≈]?[$€£]?[\d][\d.,–-]*\s?[%kKmMbB+x]*\+?$/.test(prev)) return prev;
+  }
+  return null;
+}
+
+/**
+ * Stat cards and the source's figures, paired only as the source pairs them:
+ * a card with no figure takes the figure printed just above its caption; a
+ * figure the piece left out gets a card with its own caption, on the last
+ * stats block with room. Anything the source does not pair stays out.
+ */
+export function fillStatFigures(pages: SlideContent[], unplaced: string[], _captions: string[] = [], source = ""): SlideContent[] {
+  if (!source) return pages;
+  const placed = new Set<string>();
+  let out = pages.map((p) => ({
     ...p,
     stack: (p.stack ?? []).map((b) =>
       b.type !== "stats"
         ? b
         : {
             ...b,
-            items: (b.items ?? []).map((it) => {
-              if (/\d/.test(it.label) || !queue.length) return it;
-              return { ...it, label: queue.shift()!, body: `${it.label} ${it.body}`.trim() };
-            }),
+            items: (b.items ?? [])
+              .map((it) => {
+                if (/\d/.test(it.label)) return it;
+                const cap = `${it.label} ${it.body}`.trim();
+                const fig = figureFor(cap, source);
+                if (!fig) return null;
+                placed.add(fig);
+                return { ...it, label: fig, body: cap };
+              })
+              .filter((it): it is PageItem => !!it),
           },
     ),
   }));
+  const add = unplaced
+    .filter((f) => !placed.has(f))
+    .map((f) => ({ f, cap: captionFor(f, source) }))
+    .filter((x): x is { f: string; cap: string } => !!x.cap)
+    .map(({ f, cap }): PageItem => ({ label: f, body: cap, extra: "" }));
+  if (!add.length) return out;
+  for (let p = out.length - 1; p >= 0; p--) {
+    const stack = out[p].stack ?? [];
+    for (let b = stack.length - 1; b >= 0; b--) {
+      const block = stack[b];
+      if (block.type !== "stats") continue;
+      const room = 6 - (block.items?.length ?? 0);
+      if (room <= 0) continue;
+      out = structuredClone(out);
+      out[p].stack![b].items = [...(block.items ?? []), ...add.slice(0, room)];
+      return out;
+    }
+  }
+  return out;
 }
 
 /**
@@ -226,8 +259,28 @@ const plain = (s: string) => s.toLowerCase().normalize("NFKD").replace(/[^\p{L}\
 export function shapeReplica(pages: SlideContent[], source: string): SlideContent[] {
   const src = ` ${plain(source)} `;
   const known = (s?: string) => !s?.trim() || src.includes(` ${plain(s)} `) || src.includes(plain(s));
+  // 0. A figure set as a title ("2.3M Schools") is a stat card: it joins the
+  // next stats block of the piece, or goes when there is none with room.
+  const isFigureTitle = (b: PageBlock) => (b.type === "title" || b.type === "heading") && /^[$€£]?\d[\d.,]*\s?[%kKmMbB+]*\+?\s+\S/.test(b.heading?.trim() ?? "");
+  let moved = pages.map((p) => ({ ...p, stack: (p.stack ?? []).map((b) => ({ ...b })) }));
+  moved.forEach((p, pi) => {
+    p.stack = p.stack.filter((b, bi) => {
+      if (!isFigureTitle(b)) return true;
+      const [, fig, cap] = /^(\S+)\s+(.+)$/.exec(b.heading!.trim())!;
+      for (let q = pi; q < moved.length; q++) {
+        const target = moved[q].stack.find((x, xi) => x.type === "stats" && (q > pi || xi > bi) && (x.items?.length ?? 0) < 6);
+        if (target) {
+          if (!(target.items ?? []).some((it) => it.label.trim() === fig)) target.items = [{ label: fig, body: cap, extra: "" }, ...(target.items ?? [])];
+          return false;
+        }
+      }
+      return false;
+    });
+  });
+  // A card with no figure is not a stat.
+  moved = moved.map((p) => ({ ...p, stack: p.stack.map((b) => (b.type === "stats" ? { ...b, items: (b.items ?? []).filter((it) => /\d/.test(it.label)) } : b)) }));
   // 1. Invented heads.
-  let out = pages.map((p, pi) => ({
+  let out = moved.map((p, pi) => ({
     ...p,
     stack: (p.stack ?? [])
       .filter((b, bi) => !((b.type === "title" || b.type === "heading") && !known(b.heading) && !(pi === 0 && bi === 0)))
@@ -275,4 +328,34 @@ export function shapeReplica(pages: SlideContent[], source: string): SlideConten
     if (cur.length) paged.push({ ...p, stack: cur });
   }
   return paged.filter((p) => (p.stack?.length ?? 0) > 0);
+}
+
+/** Blocks that give a page somewhere for the eye to land. */
+const ANCHORS = new Set(["banner", "stats", "photos", "figure", "split", "screens", "pillars", "panels"]);
+
+/**
+ * How a piece reads (Mario, 7 Oct 2026: the reference is far more dynamic).
+ * A page with no anchor block, three sections in a row, and blocks that do
+ * not follow the plan the model wrote first. Reported in Review, not fixed:
+ * a fix would mean writing text.
+ */
+export function checkRhythm(pages: SlideContent[], plan: { block: string; page: number }[] = []): string[] {
+  const notes: string[] = [];
+  pages.forEach((p, i) => {
+    const stack = p.stack ?? [];
+    if (stack.length && !stack.some((b) => ANCHORS.has(b.type)) && !stack.every((b) => b.cont || b.type === "panels"))
+      notes.push(`Page ${i + 1} is text only: no figures, photos or table to anchor it.`);
+    let run = 0;
+    for (const b of stack) {
+      // An opening paragraph with no label of its own (wide) is not part of a run.
+      run = b.type === "section" && !b.wide && b.rail?.trim() ? run + 1 : 0;
+      if (run === 3) notes.push(`Page ${i + 1} has three text sections in a row.`);
+    }
+  });
+  if (plan.length) {
+    const planned = plan.map((r) => r.block).join(" ");
+    const built = pages.flatMap((p) => (p.stack ?? []).filter((b) => !b.cont).map((b) => b.type)).join(" ");
+    if (planned !== built) notes.push(`The pages differ from the plan: planned ${plan.length} blocks (${planned}), built ${built.split(" ").length} (${built}).`);
+  }
+  return notes;
 }

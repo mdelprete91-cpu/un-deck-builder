@@ -568,6 +568,8 @@ export interface DeckFidelity {
   modelPass?: Totals;
   /** What the app restored (lib/slides/restore.ts): lines put back, slides rebuilt from the source, continuation slides added, added points removed. */
   restored?: { putBack: number; rebuilt: number; continued: number; trimmed: number };
+  /** A two-pager: the block plan the model wrote before its pages, and what reads badly (pages/restore.ts checkRhythm). */
+  layout?: { plan: { part: string; shape: string; block: string; why: string; page: number }[]; notes: string[] };
 }
 
 export interface Totals {

@@ -2,7 +2,7 @@ import { CATALOG } from "./catalog";
 import { MAX_SLIDES } from "./brief";
 import type { Attachment } from "@/lib/slides/attachments";
 import type { ResponseInputContent } from "openai/resources/responses/responses";
-import { ARCHETYPES, PAGE_CATALOG } from "./page-catalog";
+import { ARCHETYPES, catalogTable, PAGE_CATALOG } from "./page-catalog";
 import { UNICEF_VOICE } from "./brand-voice";
 import { AI_LAYOUT_IDS, type SlideContent } from "./schema";
 import { AI_BLOCK_TYPES } from "./pages/schema";
@@ -58,6 +58,7 @@ ${UNICEF_VOICE}`;
  */
 function buildPagePrompt(): string {
   const catalogLines = PAGE_CATALOG.map((c) => `- ${c.type}: ${c.usage}. Fields: ${c.fields}`).join("\n");
+  const spreadsheet = catalogTable();
   const archetypes = ARCHETYPES.map(
     (a) => `- ${a.id} (${a.name}): ${a.when}.\n  Page 1: ${a.page1}.\n  Page 2: ${a.page2}.`,
   ).join("\n");
@@ -67,7 +68,18 @@ FIRST pick the archetype that fits the brief and set "archetype". Follow its ord
 ARCHETYPES:
 ${archetypes}
 
-BLOCK CATALOG (type: when to use. fields with hard limits in characters):
+THE BLOCK SPREADSHEET. Before writing a word, read the material against this table: every part of the story has the block whose shape it has.
+${spreadsheet}
+
+PLAN FIRST. "plan" comes before "pages": one row per block of the piece, in order, page by page. For each row: "part" (the heading or the first words of the part of the material it carries, or the brief's topic), "shape" (what that part is, in the words of the spreadsheet: headline figures, two sides compared, places or settings, areas of work, asks, running text...), "block" (the block that tells it best), "why" (one short line: the signal you saw), "page" (1-based). Then write "pages" exactly as the plan says: the same blocks, in the same order, one block per plan row. Choose by the signals, not by habit: "section" only for real running text; figures go on stats, two side-by-side columns on panels, settings or places on photos, three parallel items on pillars, asks on numbered or asks.
+
+READABILITY (a reader with two minutes):
+- Every page has at least one anchor block (banner, stats, photos, figure, split, screens).
+- Never three "section" blocks in a row: break the run with the block the next part's shape calls for.
+- A "section" over about 900 characters is split under two labels, or its list becomes bullets.
+- Figures the material writes large are stats, never sentences in a section.
+
+BLOCK FIELDS (type: when to use. fields with hard limits in characters):
 ${catalogLines}
 
 PAGE BUDGET. A page is a fixed sheet and text that does not fit is cut off, so plan it like a printed page:
@@ -279,6 +291,7 @@ export function buildUserMessage(body: GenerateBody): string {
 const REPLICATE_PAGES = (n: number) =>
   `Rebuild the document below as a two-pager of exactly ${n} pages on the brand. Keep every line of its text and every figure exactly as written: its title becomes the banner, its headings become section labels, its paragraphs stay paragraphs, its lists stay bullets, a table stays rows. Never shorten, summarise, merge, reorder or reword, and never add a sentence the document does not have. A figure may also go on a stat card, but it stays in the text where the document writes it. On a stat card the figure is "label" and what it counts is "body", never one of them empty: when the document lists its figures and their captions apart (a row of figures, then a row of captions), pair them in order. Pick the archetype and the blocks whose shape matches the document. The page budget does not apply: use all the text the document has. Headings and labels are set in sentence case even when the document writes them in capitals (initial capital, the rest lower case, names of products, organisations, places and people as they are written). The document's own running header, footer and page numbers are not content. Write in the document's language.
 Keep the document's order: blocks follow it top to bottom, page after page, and a title band that opens one of its pages opens the same place here (a second banner when the document starts a new part with one).
+The plan comes from the document: one row for each of its parts, in its order, the shape read off the page (a row of large figures, two headed columns, cards with photos, three items with icons), and the block that has that shape.
 The document's PDF is attached when there is one: read its layout from the pages (what sits side by side, what is a card, a photo, a band of colour, a figure with its caption under it); take its words from the text below, exactly.
 Never invent a title, a heading or a side label: a part of the document with no label of its own gets an empty side label ("rail": ""). A page number ("01", "02") is never a figure. A figure written large over a caption is a stat card; its caption is the line under it, in the same order across the row.
 A banner (a title over a picture band) opens a part of the document and the top of a page: never in the middle of a page.
@@ -510,13 +523,42 @@ const PAGES_ARRAY = {
   },
 } as const;
 
+/**
+ * The block plan (Mario, 7 Oct 2026): written before the pages, so the
+ * model decides which block tells each part of the story before it writes
+ * any text. A row has "part", a page has "blocks": the route tells them apart.
+ */
+const PLAN_ARRAY = {
+  type: "array",
+  items: {
+    type: "object",
+    properties: {
+      part: { type: "string" },
+      shape: { type: "string" },
+      block: { type: "string", enum: [...AI_BLOCK_TYPES] },
+      why: { type: "string" },
+      page: { type: "integer" },
+    },
+    required: ["part", "shape", "block", "why", "page"],
+    additionalProperties: false,
+  },
+} as const;
+export interface PlanRow {
+  part: string;
+  shape: string;
+  block: string;
+  why: string;
+  page: number;
+}
+
 export const PAGES_OUTPUT_SCHEMA = {
   type: "object",
   properties: {
     archetype: { type: "string", enum: ARCHETYPES.map((a) => a.id) },
+    plan: PLAN_ARRAY,
     pages: PAGES_ARRAY,
   },
-  required: ["archetype", "pages"],
+  required: ["archetype", "plan", "pages"],
   additionalProperties: false,
 } as const;
 
@@ -535,9 +577,10 @@ export const ADD_PAGES_OUTPUT_SCHEMA = {
   properties: {
     insertAfter: { type: "integer" },
     archetype: PAGES_OUTPUT_SCHEMA.properties.archetype,
+    plan: PLAN_ARRAY,
     pages: PAGES_ARRAY,
   },
-  required: ["insertAfter", "archetype", "pages"],
+  required: ["insertAfter", "archetype", "plan", "pages"],
   additionalProperties: false,
 } as const;
 

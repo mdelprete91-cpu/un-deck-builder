@@ -3,6 +3,7 @@ import type { Slide } from "../schema";
 import { PX } from "./a4";
 import { renderPage } from "./render";
 import type { PageBlock } from "./schema";
+import { splitSentences } from "./blocks";
 
 /**
  * Does a page fit its sheet? Measured, not estimated (6 Oct 2026): the page
@@ -131,6 +132,15 @@ export async function pullForward(pages: Slide[], t: BrandTheme): Promise<Slide[
       if (-(await over(out[i], i)) < ROOM) break;
       const next = out[i + 1].stack!;
       const head = next[0];
+      // A comparison table comes up whole when a good part of the page is
+      // free, even if it overruns: flowOver then runs the rest back down,
+      // line by line (US partnerships replica, 7 Oct 2026: a page 3 with only
+      // its banner and intro, the table starting on page 4).
+      if (head?.type === "panels" && -(await over(out[i], i)) >= 180) {
+        out[i] = { ...out[i], stack: [...out[i].stack!, head] };
+        out[i + 1] = { ...out[i + 1], stack: next.slice(1) };
+        break;
+      }
       if (!head || next.length < 2 || head.type === "banner" || head.type === "title") break;
       const whole = { ...out[i], stack: [...out[i].stack!, head] };
       if ((await over(whole, i)) <= 0) {
@@ -247,6 +257,22 @@ function splitPanels(block: PageBlock, b: number, limit: number): { keep: PageBl
       return !!n && n.getBoundingClientRect().bottom > limit;
     });
     if (k < 0) k = lines.length;
+    // The line that crosses breaks between its sentences when its first ones fit.
+    if (k < lines.length && !/^#\s/.test(lines[k])) {
+      const marker = /^([-•~])\s/.exec(lines[k]);
+      const textOf = lines[k].replace(/^[-•~]\s/, "");
+      const parts = splitSentences(textOf);
+      const s = parts.findIndex((_, x) => {
+        const n = host!.querySelector<HTMLElement>(`[data-block="${b}"] [data-sent="${i}.${k}.${x}"]`);
+        return !!n && n.getBoundingClientRect().bottom > limit;
+      });
+      if (s >= 1) {
+        const head = (marker ? `${marker[1]} ` : "") + parts.slice(0, s).join(" ");
+        const tail = (marker ? "~ " : "") + parts.slice(s).join(" ");
+        lines.splice(k, 1, head, tail);
+        return { lines, k: k + 1 };
+      }
+    }
     // A subhead goes with what follows it.
     while (k > 0 && k < lines.length && /^#\s/.test(lines[k - 1])) k--;
     return { lines, k };

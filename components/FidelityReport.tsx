@@ -258,6 +258,39 @@ function FidelityReview({
             ))}
           </ul>
 
+          {report.layout && report.layout.plan.length > 0 && (
+            <>
+              <p className="mt-7 border-b border-hairline-light pb-2 text-sm font-medium text-ink">Layout plan</p>
+              {report.layout.notes.length > 0 && (
+                <ul className="mt-3 flex list-disc flex-col gap-1 pl-5 text-[13px] leading-relaxed text-status-red">
+                  {report.layout.notes.map((n) => (
+                    <li key={n}>{n}</li>
+                  ))}
+                </ul>
+              )}
+              <table className="mt-2 w-full text-left text-[13px] leading-relaxed">
+                <thead className="text-ink-faint">
+                  <tr>
+                    <th className="py-1.5 pr-3 font-normal">Page</th>
+                    <th className="py-1.5 pr-3 font-normal">Part of the story</th>
+                    <th className="py-1.5 pr-3 font-normal">Block</th>
+                    <th className="py-1.5 font-normal">Why</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {report.layout.plan.map((r, i) => (
+                    <tr key={i} className="border-t border-hairline-light align-top">
+                      <td className="py-1.5 pr-3 tabular-nums text-ink-faint">{r.page}</td>
+                      <td className="py-1.5 pr-3 text-ink">{r.part}</td>
+                      <td className="py-1.5 pr-3 font-medium text-ink">{r.block}</td>
+                      <td className="py-1.5 text-ink-muted">{r.why}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </>
+          )}
+
           <div className="mt-7 flex items-baseline justify-between gap-3 border-b border-hairline-light pb-2">
             <p className="text-sm font-medium text-ink">
               {piece ? (noted.length ? "What changed" : "Nothing changed") : all ? "Slide by slide" : noted.length ? "What changed, slide by slide" : "Nothing changed on any slide"}

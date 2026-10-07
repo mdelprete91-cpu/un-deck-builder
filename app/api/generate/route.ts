@@ -223,6 +223,12 @@ export async function POST(request: Request): Promise<Response> {
           if (event.type === "response.output_text.delta") {
             raw += event.delta;
             for (const slide of parser.feed(event.delta)) {
+              // A two-pager's block plan comes first; its rows have "part",
+              // its pages have "blocks". The rows go to the client as they are.
+              if (twoPager && slide && typeof slide === "object" && "part" in slide) {
+                send({ type: "plan", row: slide });
+                continue;
+              }
               // A replica keeps the source's words: the voice pass would turn
               // the source's own "synergies" into "shared gains". A two-pager
               // replica carries its document in `source`.

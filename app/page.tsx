@@ -8,10 +8,11 @@ import { ensureId, isChartLayout, isPage, normalizeSlide, overLimits, PRIMARY_AR
 import { renderSlide } from "@/lib/slides/layouts";
 import { A4_PX, pageDateNow } from "@/lib/slides/pages/a4";
 import { fitPage, flowOver, pullForward, type Resizer } from "@/lib/slides/pages/fit";
-import { dropStatEchoes, fillStatFigures, isMastheadLine, putBackLines, shapeReplica, unwrapLines } from "@/lib/slides/pages/restore";
+import { dropStatEchoes, fillStatFigures, isMastheadLine, putBackLines, checkRhythm, shapeReplica, unwrapLines } from "@/lib/slides/pages/restore";
 import { logoFor } from "@/lib/slides/pages/logos";
 import { fillPagePhotos } from "@/lib/slides/library";
 import BlockRail from "@/components/BlockRail";
+import type { PlanRow } from "@/lib/slides/prompt";
 import LanguageMenu from "@/components/LanguageMenu";
 import EditChoice from "@/components/EditChoice";
 import LogoMenu from "@/components/LogoMenu";
@@ -264,6 +265,8 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
       collect?: SlideContent[];
       /** The stream's closing event, for a caller that must know about truncation. */
       onDone?: (done: { truncated?: boolean }) => void;
+      /** Two-pagers: the block plan the model wrote before its pages. */
+      plan?: PlanRow[];
     },
   ): Promise<number> {
     abortRef.current?.abort();
@@ -346,6 +349,8 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
             }
             opts.collect?.push(content);
             received++;
+          } else if (event.type === "plan") {
+            if (event.row) opts.plan?.push(event.row as PlanRow);
           } else if (event.type === "meta") {
             meta = event;
           } else if (event.type === "done") {
@@ -716,8 +721,14 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
     // A new piece fills page one before page two (pullForward); a page
     // rewritten on its own keeps its blocks where they are.
     const filled = opts.dated && pages.length > 1 ? await pullForward(fillPagePhotos(pages) as Slide[], theme) : fillPagePhotos(pages);
+    // A page emptied by pullForward goes (from the end, so indexes hold).
+    const emptied: number[] = [];
     for (let i = 0; i < filled.length; i++) {
       const index = from + i;
+      if (!(filled[i].stack?.length ?? 0)) {
+        emptied.push(index);
+        continue;
+      }
       const page = { ...filled[i], id: `fit-${index}` } as Slide;
       if (opts.dated && index === 0 && !page.pageDate) page.pageDate = pageDateNow();
       // A replica keeps every word: its pages may only be set tighter.
@@ -726,6 +737,7 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
       void _id;
       dispatch({ type: "REPLACE_SLIDE", index, content });
     }
+    for (const index of emptied.reverse()) dispatch({ type: "DELETE", index });
   };
 
   /** `fallback`: a replica that could not run, said in the sidebar once the deck generated from the file as a source is in. */
@@ -1005,13 +1017,14 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
     const units = sourceUnits({ text }, ignore);
     const pass = async (repair?: string) => {
       const kept: SlideContent[] = [];
+      const plan: PlanRow[] = [];
       const received = await runGeneration(
         // The PDF goes with its text: the model reads the layout (what sits
         // side by side, a card, a photo) from the pages, the words from the text.
         { mode: "generate", brief, briefNotes, brandLabel: theme.label, format: "two-pager", count, source: text, attachments: file.kind === "pdf" ? [file] : [], repair },
-        { replace: true, collect: kept },
+        { replace: true, collect: kept, plan },
       );
-      return received ? { kept, r: compareSlide(1, title, units, kept) } : null;
+      return received ? { kept, plan, r: compareSlide(1, title, units, kept) } : null;
     };
     let best = await pass();
     if (!best) return;
@@ -1043,7 +1056,7 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
       w.source.split(/[\s,;]+/).find((t) => t.replace(/[,\s]/g, "").toLowerCase().includes(w.figure)) ?? w.figure;
     const check = compareSlide(1, title, units, best.kept);
     const unplaced = [...new Set(check.figures.wrong.filter((w) => !/^0\d$/.test(w.figure)).map(asWritten))];
-    const cleaned = fillStatFigures(dropStatEchoes(best.kept), unplaced, check.lines.missing);
+    const cleaned = fillStatFigures(dropStatEchoes(best.kept), unplaced, check.lines.missing, text);
     const { pages: restored, putBack } = putBackLines(cleaned, units.lines, compareSlide(1, title, units, cleaned).lines.missing);
     // The shape rules (restore.ts shapeReplica): no invented heads, one
     // comparison table, no page number as a figure, a banner opens a page.
@@ -1061,6 +1074,7 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
       repaired,
       restored: { putBack, rebuilt: 0, continued: 0, trimmed: 0 },
       piece: { pages: kept.length, sourcePages: Math.max(1, sources.length) },
+      layout: { plan: best.plan, notes: checkRhythm(kept, best.plan) },
     });
     onDeckArrived();
   };

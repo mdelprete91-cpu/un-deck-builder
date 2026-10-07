@@ -344,6 +344,11 @@ const photos: BlockRender = (b, { path, d }) => {
   );
 };
 
+/** A paragraph's sentences, split where one ends and the next begins with a capital. */
+export function splitSentences(t: string): string[] {
+  return t.split(/(?<=[.;!?])\s+(?=[A-Z“"(*])/).filter((x) => x.trim());
+}
+
 /**
  * Two columns compared, as on the US partnerships piece (Mario, 7 Oct 2026):
  * each under its own head, grey or a colour (the ask in orange by default,
@@ -371,18 +376,27 @@ const panels: BlockRender = (b, { path, d }) => {
       const grey = tone === "grey";
       const c = CALLOUT_TONES[tone as keyof typeof CALLOUT_TONES];
       const lines = it.body.split("\n").filter((l) => l.trim());
+      // Each sentence in its own span (data-sent), so a long paragraph can
+      // break between sentences at the bottom of a page (fit.ts splitPanels).
+      const sentences = (t: string, j: number) =>
+        splitSentences(t)
+          .map((x, k) => `<span data-sent="${i}.${j}.${k}">${inline(x)}${k < splitSentences(t).length - 1 ? " " : ""}</span>`)
+          .join("");
       const body = lines
         .map((l, j) => {
           const line = `data-line="${i}.${j}"`;
+          // "~ " carries on a bullet from the previous page: indented, no dot.
+          if (/^~\s/.test(l))
+            return `<div ${line} style="padding-left:${pt(12)};margin-top:${pt(j ? 4 : 2)};">${hide("~ ")}${sentences(l.replace(/^~\s/, ""), j)}</div>`;
           if (/^#\s/.test(l))
             return `<div ${line} style="font-weight:700;margin-top:${pt(j ? 12 : 2)};">${hide("# ")}${esc(l.replace(/^#\s/, ""))}</div>`;
           if (/^[-•]\s/.test(l))
             return (
               `<div ${line} style="position:relative;padding-left:${pt(12)};margin-top:${pt(4)};">` +
               `<span style="position:absolute;left:${pt(2)};top:${pt(d.lh / 2 - 1.5)};width:${pt(3)};height:${pt(3)};border-radius:50%;background:${PALETTE.ink};"></span>` +
-              `${hide("- ")}${inline(l.replace(/^[-•]\s/, ""))}</div>`
+              `${hide("- ")}${sentences(l.replace(/^[-•]\s/, ""), j)}</div>`
             );
-          return `<div ${line} style="margin-top:${pt(j ? 4 : 2)};">${inline(l)}</div>`;
+          return `<div ${line} style="margin-top:${pt(j ? 4 : 2)};">${sentences(l, j)}</div>`;
         })
         .join("");
       const head = b.cont
