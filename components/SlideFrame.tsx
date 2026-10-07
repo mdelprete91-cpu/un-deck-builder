@@ -92,6 +92,8 @@ interface SlideFrameProps {
    * for that slot; on a page every slot also gets its own upload button.
    */
   onPickImage?: ((path: string) => void) | null;
+  /** Two-pager, first page: open the programme-logo menu at this point on screen. */
+  onPickLogo?: ((at: { x: number; y: number }) => void) | null;
   /** High density: Enter / Backspace / Tab on points. */
   pointOps?: PointOps | null;
   /** High density: an item whose delete would be refused gets no ✕. */
@@ -177,6 +179,7 @@ export default function SlideFrame({
   onPickIcon,
   onUploadLogo,
   onPickImage,
+  onPickLogo,
   onChartClick,
   onAutofit,
   pointOps,
@@ -219,6 +222,29 @@ export default function SlideFrame({
     if (barTimer.current) clearTimeout(barTimer.current);
     barTimer.current = setTimeout(() => setHoverBlock(null), 300);
   };
+  // Move a block: the side bar goes with it, and it stays the selected one.
+  const moveBlock = (from: number, to: number) => {
+    if (!onMoveBlock || to < 0 || to >= blockRects.length || to === from) return;
+    pendingMove.current = { from, to, rects: blockRects };
+    setHoverBlock(to);
+    onFocusBlock?.(to);
+    onMoveBlock(from, to);
+  };
+  const grabBlock = (e: React.PointerEvent, index: number) => {
+    e.preventDefault();
+    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+    stageRef.current?.querySelector(`[data-block="${index}"]`)?.classList.add("block-dragging");
+    setDrag({ from: index, gap: index });
+  };
+  const releaseDrag = () => {
+    stageRef.current?.querySelectorAll(".block-dragging").forEach((n) => n.classList.remove("block-dragging"));
+    setDrag(null);
+  };
+  const dropBlock = () => {
+    if (!drag) return;
+    releaseDrag();
+    moveBlock(drag.from, drag.gap > drag.from ? drag.gap - 1 : drag.gap);
+  };
   const onEditRef = useRef(onEdit);
   onEditRef.current = onEdit;
   const onDeleteItemRef = useRef(onDeleteItem);
@@ -248,8 +274,8 @@ export default function SlideFrame({
   // The two-pager callbacks travel together in one ref: the wiring effect
   // must not re-run when a parent re-renders, and one ref is one lint waiver
   // rather than four.
-  const pageRef = useRef({ onPickImage, onFocusBlock, onMoveBlock, onDeleteBlock, onAddBlock, onChartClick });
-  pageRef.current = { onPickImage, onFocusBlock, onMoveBlock, onDeleteBlock, onAddBlock, onChartClick };
+  const pageRef = useRef({ onPickImage, onPickLogo, onFocusBlock, onMoveBlock, onDeleteBlock, onAddBlock, onChartClick });
+  pageRef.current = { onPickImage, onPickLogo, onFocusBlock, onMoveBlock, onDeleteBlock, onAddBlock, onChartClick };
 
   useLayoutEffect(() => {
     const el = containerRef.current;
@@ -615,6 +641,33 @@ export default function SlideFrame({
       });
     }
 
+    // The programme logo at the top right of a two-pager's first page: click
+    // the logo to change it, or "+ Logo" over the date to add one.
+    stage.querySelectorAll(".logo-add").forEach((b) => b.remove());
+    if (pageRef.current.onPickLogo && variant === "page") {
+      const open = (e: MouseEvent) => {
+        e.stopPropagation();
+        pageRef.current.onPickLogo?.({ x: e.clientX, y: e.clientY });
+      };
+      const logo = stage.querySelector<HTMLElement>("[data-page-logo]");
+      const date = stage.querySelector<HTMLElement>('[data-edit="pageDate"]');
+      if (logo) {
+        logo.style.cursor = "pointer";
+        logo.title = "Change or remove the programme logo";
+        logo.addEventListener("click", open);
+        cleanups.push(() => logo.removeEventListener("click", open));
+      } else if (date?.parentElement) {
+        const btn = document.createElement("button");
+        btn.className = "logo-add";
+        btn.type = "button";
+        btn.title = "Add a programme logo at the top right";
+        btn.innerHTML = `${lucideSvg("plus")}<span>Logo</span>`;
+        btn.style.top = date.style.top;
+        btn.addEventListener("click", open);
+        date.parentElement.appendChild(btn);
+      }
+    }
+
     // Photo slots: their own upload action, which is what makes a page with
     // several images workable (the toolbar action can only mean one of them).
     stage.querySelectorAll(".image-upload").forEach((b) => b.remove());
@@ -793,14 +846,6 @@ export default function SlideFrame({
         const canItem = canAddBlockItem?.(index) ?? false;
         const height = 46 * (canItem ? 5 : 4) + 12;
         const pageLeft = (box.w - size.w * scale) / 2;
-        // Move a block: the side bar goes with it, and it stays the selected one.
-        const move = (from: number, to: number) => {
-          if (to < 0 || to >= count || to === from) return;
-          pendingMove.current = { from, to, rects: blockRects };
-          setHoverBlock(to);
-          onFocusBlock?.(to);
-          onMoveBlock(from, to);
-        };
         // The gap a pointer at this height drops into: 0 is above the first block.
         const gapAt = (y: number) => blockRects.filter((r) => r.top + r.height / 2 < y).length;
         const gapY = (gap: number) =>
@@ -827,28 +872,14 @@ export default function SlideFrame({
                 title="Drag to move this block"
                 aria-label="Drag to move this block"
                 className="cursor-grab touch-none active:cursor-grabbing"
-                onPointerDown={(e) => {
-                  e.preventDefault();
-                  (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
-                  stageRef.current?.querySelector(`[data-block="${index}"]`)?.classList.add("block-dragging");
-                  setDrag({ from: index, gap: index });
-                }}
+                onPointerDown={(e) => grabBlock(e, index)}
                 onPointerMove={(e) => {
                   if (!drag) return;
                   const wrap = containerRef.current?.getBoundingClientRect();
                   if (wrap) setDrag({ from: drag.from, gap: gapAt(e.clientY - wrap.top) });
                 }}
-                onPointerUp={() => {
-                  if (!drag) return;
-                  stageRef.current?.querySelectorAll(".block-dragging").forEach((n) => n.classList.remove("block-dragging"));
-                  const to = drag.gap > drag.from ? drag.gap - 1 : drag.gap;
-                  setDrag(null);
-                  move(drag.from, to);
-                }}
-                onPointerCancel={() => {
-                  stageRef.current?.querySelectorAll(".block-dragging").forEach((n) => n.classList.remove("block-dragging"));
-                  setDrag(null);
-                }}
+                onPointerUp={dropBlock}
+                onPointerCancel={() => releaseDrag()}
               />
               <Button iconOnly icon={Plus} onClick={() => onAddBlock?.(index + 1)} title="Add a block below" aria-label="Add a block below" />
               {canItem && (

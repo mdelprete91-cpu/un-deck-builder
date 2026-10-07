@@ -9,10 +9,12 @@ import { renderSlide } from "@/lib/slides/layouts";
 import { A4_PX, pageDateNow } from "@/lib/slides/pages/a4";
 import { fitPage, type Resizer } from "@/lib/slides/pages/fit";
 import { dropStatEchoes, fillStatFigures, isMastheadLine, putBackLines } from "@/lib/slides/pages/restore";
+import { logoFor } from "@/lib/slides/pages/logos";
 import { fillPagePhotos } from "@/lib/slides/library";
 import AddBlockMenu from "@/components/AddBlockMenu";
 import LanguageMenu from "@/components/LanguageMenu";
 import EditChoice from "@/components/EditChoice";
+import LogoMenu from "@/components/LogoMenu";
 import { apply, detectLang, LANG_LABELS, LANG_NAMES, plan, newEdits, remember, snapshot, textFields, uiStrings, type DeckLang, type Job, type Lang } from "@/lib/slides/i18n";
 import { undash } from "@/lib/slides/pages/schema";
 import { normalizePage, PAGE_BLOCK_LIMITS, type PageBlock } from "@/lib/slides/pages/schema";
@@ -670,6 +672,18 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
 
 
   /**
+   * The programme logo a new two-pager opens with (Mario, 7 Oct 2026): an
+   * attached image whose file name says "logo", else the logo of a programme
+   * the brief or an attached file names (pages/logos.ts).
+   */
+  const pieceLogo = (brief: string, extra = ""): string | undefined => {
+    const img = attachments.find((a) => a.kind === "image" && /logo/i.test(a.name));
+    if (img && img.kind === "image") return `data:${img.mediaType};base64,${img.data}`;
+    const texts = attachments.map((a) => (a.kind === "text" ? a.text : a.name)).join(" ");
+    return logoFor(`${brief} ${extra} ${texts}`)?.src;
+  };
+
+  /**
    * The two-pager's fit pass (lib/slides/pages/fit.ts): each page is drawn
    * off-screen and measured, set tighter until it fits, and as a last step
    * its longest block is shortened by the model. `from` is the index of the
@@ -817,7 +831,10 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
         }
       }
     }
-    if (received > 0 && twoPager) await fitPages(kept, 0, { dated: true });
+    if (received > 0 && twoPager) {
+      const logo = pieceLogo(brief);
+      await fitPages(logo ? [{ ...kept[0], pageLogo: logo }, ...kept.slice(1)] : kept, 0, { dated: true });
+    }
     if (received > 0 && TIERS_REQUEST.test(brief)) dispatch({ type: "INSERT_TIERS" });
     if (received > 0) onDeckArrived();
     if (received > 0 && fallback) dispatch({ type: "GENERATION_ERROR", error: fallback });
@@ -1021,6 +1038,8 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
     const cleaned = fillStatFigures(dropStatEchoes(best.kept), unplaced, check.lines.missing);
     const { pages: kept, putBack } = putBackLines(cleaned, units.lines, compareSlide(1, title, units, cleaned).lines.missing);
     const r = compareSlide(1, title, units, kept);
+    const logo = pieceLogo(state.brief, text);
+    if (logo && kept[0]) kept[0] = { ...kept[0], pageLogo: logo };
     await fitPages(kept, 0, { dated: true, keepText: true });
     setFidelity({
       slides: [{ ...r, at: 0, layoutId: "a4-page", deckTitle: kept[0]?.stack?.[0]?.heading ?? title, parts: kept.length, putBack }],
@@ -1645,6 +1664,8 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
    * language being left (components/EditChoice.tsx).
    */
   const [pendingSwitch, setPendingSwitch] = useState<{ to: Lang; edits: ReturnType<typeof newEdits> } | null>(null);
+  /** Two-pager: the programme-logo menu, open at this point (components/LogoMenu.tsx). */
+  const [logoMenu, setLogoMenu] = useState<{ x: number; y: number } | null>(null);
   /** The deck is being translated into this language (switchLanguage). */
   const [translating, setTranslating] = useState<Lang | null>(null);
   /** Two-pager: where the block menu inserts, while it is open. */
@@ -1888,6 +1909,7 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
                     }
                     onAddBlock={twoPager ? (at) => setAddBlockAt(at) : null}
                     onEditWithAi={twoPager ? () => setAiModal(true) : null}
+                    onPickLogo={twoPager && state.activeIndex === 0 ? (at) => setLogoMenu(at) : null}
                     canAddBlockItem={
                       twoPager
                         ? (b) => {
@@ -1941,6 +1963,38 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
                           edits.filter((e) => e.slide === sl.id).reduce((acc, e) => setPath(acc, e.path, e.translation), sl),
                         );
                         void switchLanguage(to, { asked: true, slides: back });
+                      }}
+                    />
+                  )}
+                  {logoMenu && (
+                    <LogoMenu
+                      {...logoMenu}
+                      current={state.slides[0]?.pageLogo}
+                      onClose={() => setLogoMenu(null)}
+                      onPick={(src) => {
+                        dispatch({ type: "EDIT_FIELD", index: 0, path: "pageLogo", value: src });
+                        setLogoMenu(null);
+                      }}
+                      onRemove={() => {
+                        dispatch({ type: "EDIT_FIELD", index: 0, path: "pageLogo", value: "" });
+                        setLogoMenu(null);
+                      }}
+                      onUpload={async (file) => {
+                        setLogoMenu(null);
+                        try {
+                          // An SVG stays as it is; a photo is downscaled like any upload.
+                          const value = /svg/i.test(file.type)
+                            ? await new Promise<string>((res, rej) => {
+                                const r = new FileReader();
+                                r.onload = () => res(String(r.result));
+                                r.onerror = () => rej(r.error);
+                                r.readAsDataURL(file);
+                              })
+                            : await readAttachment(file).then((a) => (a.kind === "image" ? `data:${a.mediaType};base64,${a.data}` : ""));
+                          if (value) dispatch({ type: "EDIT_FIELD", index: 0, path: "pageLogo", value });
+                        } catch {
+                          dispatch({ type: "GENERATION_ERROR", error: "That image could not be read." });
+                        }
                       }}
                     />
                   )}

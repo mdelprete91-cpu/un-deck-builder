@@ -536,6 +536,31 @@ body {
   gap: calc(6px * var(--inv, 1));
 }
 
+/* "+ Logo" over the date of a two-pager's first page, shown on hover. */
+.page-root .logo-add {
+  position: absolute;
+  right: 18pt;
+  transform: translateY(-50%);
+  margin-top: 6pt;
+  display: flex;
+  align-items: center;
+  gap: calc(4px * var(--inv, 1));
+  padding: calc(4px * var(--inv, 1)) calc(10px * var(--inv, 1));
+  border-radius: 999px;
+  border: none;
+  background: rgba(22, 22, 22, 0.8);
+  color: #ffffff;
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: calc(12px * var(--inv, 1));
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s;
+  z-index: 6;
+}
+.page-root .logo-add svg { width: calc(12px * var(--inv, 1)); height: calc(12px * var(--inv, 1)); }
+.page-root:hover .logo-add { opacity: 1; }
+.page-root [data-page-logo]:hover { outline: 2px dashed rgba(39, 122, 255, 0.5); outline-offset: 4px; border-radius: 4px; }
+
 /* Photo slots: one upload action per image, because a page has several. */
 .slide-root .image-upload {
   position: absolute;
