@@ -15,7 +15,7 @@ export const BLOCK_LABELS: Record<Exclude<PageBlockType, "compare">, string> = {
   pillars: "Three pillars",
   figure: "Image or map",
   asks: "Opportunities",
-  panels: "Comparison",
+  panels: "Comparison table",
   photos: "Photo cards",
   banner: "Banner with title",
   contacts: "Contacts",
