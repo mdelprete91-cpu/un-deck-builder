@@ -138,6 +138,8 @@ export type DeckAction =
   | { type: "ADD_BLOCK"; index: number; at: number; blockType: PageBlockType }
   | { type: "DELETE_BLOCK"; index: number; block: number }
   | { type: "MOVE_BLOCK"; index: number; from: number; to: number }
+  /** Two-pager: pages after an overflow ran on to the next one (pages/fit.ts flowOver). Part of the edit that caused it, so no undo step of its own. */
+  | { type: "FLOW_PAGES"; slides: SlideContent[] }
   | { type: "TOGGLE_CELL"; index: number; row: number; col: number }
   /** Generation done: a deck that ends without its closing slide gets the default one. */
   | { type: "ENSURE_CLOSING" }
@@ -747,6 +749,8 @@ function reduce(state: DeckState, action: DeckAction): DeckState {
       slides[action.index] = clone;
       return { ...state, ...remember(state), slides };
     }
+    case "FLOW_PAGES":
+      return { ...state, slides: action.slides.map((s) => ("id" in s && s.id ? (s as Slide) : ensureId(s))) };
     case "MOVE_BLOCK": {
       const slide = state.slides[action.index];
       if (!slide || !isPage(slide)) return state;

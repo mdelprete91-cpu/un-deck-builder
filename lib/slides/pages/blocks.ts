@@ -157,7 +157,8 @@ const screens: BlockRender = (b, { path, d }) => {
   const shot = (i: number, it: PageItem | undefined, panel: boolean) =>
     `<div style="position:relative;min-width:0;${panel ? `background:#E3F4FC;border-radius:${pt(6)};padding:${pt(8)};` : ""}">` +
     `<div style="position:relative;height:${pt(panel ? 154 : 170)};border-radius:${pt(6)};overflow:hidden;${panel ? "" : `border:1pt solid ${PALETTE.card};box-sizing:border-box;`}">` +
-    photo(`${path}.items.${i}.image`, it?.image, SCREEN_PLACEHOLDER, it?.imagePos, 6) +
+    // A screenshot reads from its top left corner, where an app keeps its header.
+    photo(`${path}.items.${i}.image`, it?.image, SCREEN_PLACEHOLDER, it?.imagePos ?? { x: 0, y: 0, zoom: 1 }, 6) +
     `</div></div>`;
   const arrow = `<svg viewBox="0 0 24 24" width="${pt(16)}" height="${pt(16)}" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="display:block;color:${ACCENT};">${ICON_LIBRARY["arrow-right"]}</svg>`;
   const arrows = `<div style="display:flex;flex-direction:column;justify-content:center;align-items:center;gap:${pt(14)};">${arrow}${arrow}${arrow}</div>`;
@@ -170,7 +171,7 @@ const numbered: BlockRender = (b, { path, d }) => {
   const rows = (b.items ?? [])
     .map(
       (it, i) =>
-        `<div ${item(`${path}.items.${i}`)} style="position:relative;display:grid;grid-template-columns:${pt(22)} minmax(0,1fr);column-gap:${pt(14)};${i ? `margin-top:${pt(12)};` : ""}">` +
+        `<div ${item(`${path}.items.${i}`)} style="position:relative;display:grid;grid-template-columns:${pt(16)} minmax(0,1fr);column-gap:${pt(9)};${i ? `margin-top:${pt(12)};` : ""}">` +
         `<span style="width:${pt(16)};height:${pt(16)};margin-top:${pt((d.lh - 16) / 2)};border-radius:50%;background:${ACCENT};color:${PALETTE.white};font-family:${FONT.open};font-weight:600;font-size:8pt;line-height:${pt(16)};text-align:center;">${i + 1}</span>` +
         `<div ${edP(`${path}.items.${i}.body`)} style="${TYPE.body(d)}color:${PALETTE.ink};white-space:pre-line;">${esc(it.body)}</div></div>`,
     )
@@ -202,8 +203,9 @@ const table: BlockRender = (b, { path, d }) => {
 const stats: BlockRender = (b, { path }) => {
   const items = b.items ?? [];
   const n = items.length;
-  const cols = n === 4 ? 4 : n === 2 ? 2 : 3;
-  const dense = cols === 4;
+  // Never more than three in a row (Mario, 7 Oct 2026): four make two rows of two.
+  const cols = n === 4 || n === 2 ? 2 : 3;
+  const dense = false;
   const cards = items
     .map((it, i) => {
       const on = b.accent === i;

@@ -93,7 +93,7 @@ export default function LanguageMenu({
                   <span className="min-w-0 truncate">
                     {LANG_LABELS[l]}
                     {LANG_LABELS[l] !== LANG_NAMES[l] && <span className="ml-1.5 text-xs text-ink-muted">{LANG_NAMES[l]}</span>}
-                    {l === source && <span className="ml-1.5 text-xs text-ink-muted">· original</span>}
+                    {l === source && <span className="ml-1.5 text-xs font-semibold text-giga">· original</span>}
                   </span>
                   {l === current && <Check size={16} className="shrink-0 text-ink" aria-hidden />}
                 </button>

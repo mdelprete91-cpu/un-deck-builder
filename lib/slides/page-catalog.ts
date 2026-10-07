@@ -38,7 +38,7 @@ export const PAGE_CATALOG: PageCatalogEntry[] = [
   },
   {
     type: "stats",
-    usage: "Headline figures in cards: 3 or 4 in a row, or 6 as two rows of 3. Only figures the brief gives",
+    usage: "Headline figures in cards: 3 in a row, 4 as two rows of 2, or 6 as two rows of 3; never more than 3 in a row. Only figures the brief gives",
     fields:
       'items(3, 4 or 6: label(the figure with its unit, <=7 chars: "2.2B", "44k+", "30-50%", "€120k"), body(what it counts, <=55 chars)), accent(index of one card to set in orange, the most striking, or -1)',
   },
@@ -96,7 +96,7 @@ export const PAGE_CATALOG: PageCatalogEntry[] = [
   },
   {
     type: "screens",
-    usage: "Two screenshots of a product with arrows between them. Only when the brief is about a working tool; the images are placeholders the user replaces",
+    usage: "Two screenshots of a product with arrows between them. Always when the brief asks for screenshots or screens; otherwise when the piece is about a digital tool, prototype included. The images are placeholders the user replaces",
     fields: 'rail(<=28 chars, may be empty), items(exactly 2: label(""), body(""))',
   },
   {
@@ -107,7 +107,7 @@ export const PAGE_CATALOG: PageCatalogEntry[] = [
   {
     type: "table",
     usage: "A small comparison with a header row: category / now / next, or option / cost / effect",
-    fields: "rail(<=28 chars, may be empty), heading, sub, lead(the three column heads, <=20 chars each), items(1-8 rows: label, body, extra, each <=60 chars)",
+    fields: 'rail(<=28 chars, the table\'s title goes here, may be empty), heading(head of column 1), sub(head of column 2), lead(head of column 3): each a column name the rows fill, <=20 chars, never empty and never a title (e.g. "Phase", "Where and when", "Budget"); items(1-8 rows: label(column 1), body(column 2), extra(column 3), each <=60 chars)',
   },
   {
     type: "contacts",
@@ -147,8 +147,8 @@ export const ARCHETYPES = [
     id: "product",
     name: "Product or initiative brief",
     when: "Explaining a tool, a product or a pilot to a partner or a regulator: what it is, where it stands, what is asked (the Spectrum and Lunar pieces)",
-    page1: "title (the product and what it does), lede (optional), callout (its status), section (what it is), screens (when it is a working tool) or table",
-    page2: "section (the ask, numbered points), section (other contexts or uses), contacts",
+    page1: "title (the product and what it does), lede (optional), callout (its status), section (what it is), screens (two screenshots of the tool, prototype included; always when the brief asks for them)",
+    page2: "table (when the brief gives phases, options or costs), heading (opens the ask), numbered (the asks), section (other contexts or uses, optional), contacts",
   },
   {
     id: "programme-ask",

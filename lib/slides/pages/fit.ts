@@ -154,3 +154,55 @@ export async function pullForward(pages: Slide[], t: BrandTheme): Promise<Slide[
   }
   return out;
 }
+
+/** Blocks whose rows can run on to the next page; the rest move whole. */
+const SPLITS = new Set(["section", "table", "numbered", "compare", "asks", "contacts"]);
+
+/**
+ * A page that runs past its sheet carries on to the next one (Mario, 7 Oct
+ * 2026: "if the table goes on, continue it on the next page"), never a
+ * warning. Each page is drawn off-screen; at the first block that crosses
+ * the bottom, its rows from the first one that does not fit move to the top
+ * of the next page as the same block (a table keeps its header, a section
+ * runs on without its label); a block that cannot split, or whose first row
+ * does not fit, moves whole. No next page: one is added. Cascades to the end.
+ * A page's opening block never moves, so a page is never emptied.
+ * Returns null when every page already fits.
+ */
+export async function flowOver(pages: Slide[], t: BrandTheme): Promise<Slide[] | null> {
+  if (!host) await measurePage(pages[0], t, 0, pages.length);
+  const out = pages.map((p) => ({ ...p, stack: [...(p.stack ?? [])] }));
+  let changed = false;
+  for (let i = 0; i < out.length && i < 12; i++) {
+    host!.innerHTML = renderPage(out[i], t, { index: i, total: out.length });
+    await document.fonts.ready;
+    const zone = host!.querySelector<HTMLElement>("[data-page-zone]");
+    if (!zone || (measureFlow(host!) ?? 0) <= 1) continue;
+    const limit = zone.getBoundingClientRect().bottom + 1;
+    const blocks = [...host!.querySelectorAll<HTMLElement>("[data-page-flow] > [data-block]")];
+    const b = blocks.findIndex((n) => n.getBoundingClientRect().bottom > limit);
+    if (b < 0) continue;
+    const stack = out[i].stack;
+    const block = stack[b];
+    let carry: PageBlock[];
+    let keep: PageBlock[];
+    const rows = (block.items ?? []).map((_, k) => host!.querySelector<HTMLElement>(`[data-item="stack.${b}.items.${k}"]`));
+    const k = SPLITS.has(block.type) ? rows.findIndex((n) => !!n && n.getBoundingClientRect().bottom > limit) : -1;
+    if (k >= 1) {
+      keep = [...stack.slice(0, b), { ...block, items: block.items!.slice(0, k) }];
+      const rest: PageBlock = { ...block, items: block.items!.slice(k) };
+      // A section runs on under no label; a table keeps its column heads.
+      if (block.type === "section" || block.type === "numbered") rest.rail = "";
+      carry = [rest, ...stack.slice(b + 1)];
+    } else if (b >= 1) {
+      keep = stack.slice(0, b);
+      carry = stack.slice(b);
+    } else continue;
+    out[i] = { ...out[i], stack: keep };
+    if (i + 1 < out.length) out[i + 1] = { ...out[i + 1], stack: [...carry, ...(out[i + 1].stack ?? [])] };
+    else out.push({ id: "", layoutId: out[i].layoutId, footerLabel: out[i].footerLabel, stack: carry });
+    changed = true;
+  }
+  host!.innerHTML = "";
+  return changed ? out : null;
+}

@@ -7,7 +7,7 @@ import { deckReducer, initialDeckState, isDefaultName, readPath, setPath } from 
 import { ensureId, isChartLayout, isPage, normalizeSlide, overLimits, PRIMARY_ARRAY, type LayoutId, type Slide, type SlideContent } from "@/lib/slides/schema";
 import { renderSlide } from "@/lib/slides/layouts";
 import { A4_PX, pageDateNow } from "@/lib/slides/pages/a4";
-import { fitPage, pullForward, type Resizer } from "@/lib/slides/pages/fit";
+import { fitPage, flowOver, pullForward, type Resizer } from "@/lib/slides/pages/fit";
 import { dropStatEchoes, fillStatFigures, isMastheadLine, putBackLines } from "@/lib/slides/pages/restore";
 import { logoFor } from "@/lib/slides/pages/logos";
 import { fillPagePhotos } from "@/lib/slides/library";
@@ -1677,6 +1677,23 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
   const [logoMenu, setLogoMenu] = useState<{ x: number; y: number } | null>(null);
   /** The deck is being translated into this language (switchLanguage). */
   const [translating, setTranslating] = useState<Lang | null>(null);
+  // A page that runs past its sheet carries on to the next one (flowOver),
+  // a moment after the edit that made it long, never while text is typed.
+  const latestSlides = useRef(state.slides);
+  useEffect(() => {
+    latestSlides.current = state.slides;
+  }, [state.slides]);
+  useEffect(() => {
+    if (!twoPager || state.status === "generating" || fitting || translating) return;
+    const slides = state.slides;
+    const timer = setTimeout(async () => {
+      if ((document.activeElement as HTMLElement | null)?.isContentEditable) return;
+      const flowed = await flowOver(slides, theme);
+      // Measured on pages that have changed since: the next run has them.
+      if (flowed && latestSlides.current === slides) dispatch({ type: "FLOW_PAGES", slides: flowed });
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [twoPager, state.slides, state.status, fitting, translating, theme]);
   /** Two-pager: where the block menu inserts, while it is open. */
   const [addBlockAt, setAddBlockAt] = useState<number | null>(null);
   // The image picker knows which slot it was opened for: a page has several.
