@@ -7,6 +7,8 @@ import type { PageBlock, PageBlockType, PageItem } from "./schema";
 
 /** The block menu's names, in the order the menu lists them. */
 export const BLOCK_LABELS: Record<PageBlockType, string> = {
+  title: "Page title",
+  heading: "Heading",
   section: "Text section",
   stats: "Stat cards",
   pillars: "Three pillars",
@@ -16,8 +18,13 @@ export const BLOCK_LABELS: Record<PageBlockType, string> = {
   panels: "Two panels",
   photos: "Photo cards",
   banner: "Banner with title",
-  title: "Page title",
   contacts: "Contacts",
+  lede: "Intro paragraph",
+  callout: "Status note",
+  split: "Panel with picture",
+  screens: "Two screenshots",
+  numbered: "Numbered asks",
+  table: "Table",
 };
 
 const it = (label: string, body: string, extra = ""): PageItem => ({ label, body, extra });
@@ -39,6 +46,12 @@ export function newPageItem(type: PageBlockType): PageItem {
       return it("Title", "A short line");
     case "contacts":
       return it("Name Surname", "Role, team", "name@unicef.org");
+    case "numbered":
+      return it("", "What we ask, in a full sentence.");
+    case "table":
+      return it("Row", "Now", "Next");
+    case "screens":
+      return it("", "");
     default:
       return it("", "");
   }
@@ -91,7 +104,21 @@ const DEFAULTS: Record<PageBlockType, () => PageBlock> = {
     accent: 1,
     items: [it("What is running", "- A first point\n- A second point"), it("What we ask", "- A first ask\n- A second ask")],
   }),
-  contacts: () => ({ type: "contacts", rail: "Contact", items: [it("Name Surname", "Role, team", "name@unicef.org")] }),
+  contacts: () => ({ type: "contacts", rail: "Contact", lead: "", items: [it("Name Surname", "Role, team", "name@unicef.org")] }),
+  heading: () => ({ type: "heading", heading: "What comes next" }),
+  lede: () => ({ type: "lede", body: "One or two sentences that say what this piece is and why it matters now." }),
+  callout: () => ({ type: "callout", lead: "Status:", body: "Concept and prototype. No production software yet." }),
+  split: () => ({ type: "split", tag: "Phase 1", body: "What this phase covers, where and with whom, in two or three sentences." }),
+  screens: () => ({ type: "screens", rail: "", items: [it("", ""), it("", "")] }),
+  numbered: () => ({ type: "numbered", rail: "Our ask", items: [it("", "The first thing we ask, in a full sentence."), it("", "The second thing we ask.")] }),
+  table: () => ({
+    type: "table",
+    rail: "",
+    heading: "Category",
+    sub: "Current",
+    lead: "Future",
+    items: [it("Row", "Where it stands", "Where it goes"), it("Row", "Where it stands", "Where it goes")],
+  }),
 };
 
 export function defaultBlock(type: PageBlockType): PageBlock {

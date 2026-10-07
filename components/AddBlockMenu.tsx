@@ -1,6 +1,13 @@
 "use client";
 
 import {
+  AlignLeft,
+  Heading2,
+  BadgeInfo,
+  ListOrdered,
+  MonitorSmartphone,
+  PanelRight,
+  Sheet,
   BarChart3,
   Columns2,
   Contact,
@@ -30,6 +37,13 @@ const HINTS: Record<PageBlockType, string> = {
   banner: "A photo strip with the title over it",
   title: "A big title to open a page",
   contacts: "Names, roles and emails",
+  lede: "A full-width paragraph under the title",
+  heading: "A smaller title that opens a new part",
+  callout: "A bordered note on where things stand",
+  split: "A pill and text beside a picture or map",
+  screens: "Two product screenshots with arrows",
+  numbered: "Asks in numbered circles",
+  table: "Three columns with a header row",
 };
 
 const ICONS: Record<PageBlockType, LucideIcon> = {
@@ -44,6 +58,13 @@ const ICONS: Record<PageBlockType, LucideIcon> = {
   banner: Rows3,
   title: Type,
   contacts: Contact,
+  lede: AlignLeft,
+  heading: Heading2,
+  callout: BadgeInfo,
+  split: PanelRight,
+  screens: MonitorSmartphone,
+  numbered: ListOrdered,
+  table: Sheet,
 };
 
 /**

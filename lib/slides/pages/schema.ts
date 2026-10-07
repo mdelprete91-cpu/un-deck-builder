@@ -24,6 +24,15 @@ export const PAGE_BLOCK_TYPES = [
   "photos",
   "panels",
   "contacts",
+  // From the Spectrum, Lunar and Songbird pieces (Mario, 7 Oct 2026).
+  "lede",
+  "callout",
+  "split",
+  "screens",
+  "numbered",
+  "table",
+  // A smaller title inside a page, opening a new part (Mario, 7 Oct 2026).
+  "heading",
 ] as const;
 export type PageBlockType = (typeof PAGE_BLOCK_TYPES)[number];
 
@@ -37,8 +46,8 @@ export const AI_BLOCK_TYPES = PAGE_BLOCK_TYPES;
  * What each field means per block is written down in page-catalog.ts.
  */
 export interface PageItem {
-  /** section: a paragraph or a bullet. Ignored elsewhere. */
-  kind?: "para" | "bullet";
+  /** section: a paragraph, a bullet or a numbered point. Ignored elsewhere. */
+  kind?: "para" | "bullet" | "number";
   /** bold lead-in · stat value · column head · row label · contact name */
   label: string;
   /** the text itself · stat caption · first table cell · contact role */
@@ -76,6 +85,8 @@ export interface PageBlock {
   map?: string;
   /** stats: the highlighted card. panels: the column drawn as the ask. -1 = none. */
   accent?: number;
+  /** split: the pill above the text ("Phase 1"). */
+  tag?: string;
 }
 
 /**
@@ -94,6 +105,13 @@ export const PAGE_BLOCK_LIMITS: Record<PageBlockType, [number, number] | null> =
   photos: [2, 4],
   panels: [2, 2],
   contacts: [1, 4],
+  lede: null,
+  heading: null,
+  callout: null,
+  split: null,
+  screens: [2, 2],
+  numbered: [1, 6],
+  table: [1, 8],
 };
 
 /** A page that needs more than this is two pages. */
@@ -119,7 +137,7 @@ const imagePosSchema = z.object({
  * out.
  */
 export const pageItemSchema = z.object({
-  kind: z.enum(["para", "bullet"]).catch("para").optional(),
+  kind: z.enum(["para", "bullet", "number"]).catch("para").optional(),
   label: z.string().default(""),
   body: z.string().default(""),
   extra: z.string().default(""),
@@ -142,6 +160,7 @@ export const pageBlockSchema = z.object({
   imagePos: imagePosSchema.optional(),
   map: z.string().optional(),
   accent: z.coerce.number().int().min(-1).max(5).optional(),
+  tag: z.string().optional(),
 });
 
 /** The text fields each block draws, so the editor always has them to write to. */
@@ -156,7 +175,14 @@ const BLOCK_FIELDS: Record<PageBlockType, (keyof PageBlock)[]> = {
   asks: ["heading"],
   photos: ["rail"],
   panels: [],
-  contacts: ["rail"],
+  contacts: ["rail", "lead"],
+  lede: ["body"],
+  heading: ["heading"],
+  callout: ["lead", "body"],
+  split: ["tag", "body"],
+  screens: ["rail"],
+  numbered: ["rail"],
+  table: ["rail", "heading", "sub", "lead"],
 };
 
 /**
@@ -228,7 +254,7 @@ function undashBlock(b: PageBlock): void {
 
 /** True when the block carries nothing worth printing. */
 function isEmptyBlock(b: PageBlock): boolean {
-  if (b.image || b.map || b.type === "figure") return false;
+  if (b.image || b.map || b.type === "figure" || b.type === "screens" || b.type === "split") return false;
   if (b.items?.some((i) => i.label || i.body || i.extra || i.image)) return false;
   return !(b.heading || b.body || b.rail || b.sub || b.lead);
 }

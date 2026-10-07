@@ -1187,6 +1187,10 @@ same DOM walker with its own sheet (`A4_SHEET` in `pptx-native.ts`: 96px per inc
 exact line spacing in points). The HTML file is a scrolling A4 document
 (`export-page-html.ts`) and is still the save file.
 
+**Block rail** (`components/BlockRail.tsx`, Mario 7 Oct 2026): two-pagers only, a column beside the pages strip under the toolbar with every block as an SVG wireframe. Drag one onto the page (HTML5 DnD, `BLOCK_MIME`; SlideFrame's `onDropNewBlock` shows a 3px line at the gap and dispatches `ADD_BLOCK`), or click to add it after the selected block. Blocks from Spectrum, Lunar and Songbird: `lede`, `callout`, `split`, `screens`, `numbered`, `table`, plus `heading` (a smaller title inside a page). A new piece fills page 1 before page 2 (`pullForward` in pages/fit.ts: blocks, or a section's paragraphs, move up while they fit).
+
+**Block selection frame.** A block's box spans the whole sheet and the content zone clips it, so an outline showed as a stray line. The selected block gets a tint on a layer inset to the margins, no hover frame; text outlines on a page are drawn inset.
+
 **Editing.** A two-pager's only bar is the side bar beside the page (Edit with AI, drag grip, + block, + item, remove; DESIGN.md "Block toolbar"): + opens the block menu (`components/AddBlockMenu.tsx`) and
 inserts a block with placeholder copy below. Photos are addressed by path (`data-image`), icons by
 path (`data-icon-pick`).

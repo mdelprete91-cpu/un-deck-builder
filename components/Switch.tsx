@@ -32,7 +32,7 @@ export default function Switch({
       disabled={disabled}
       title={title}
       onClick={toggle}
-      className={`switch inline-flex h-9 shrink-0 items-center gap-2 rounded-full px-2.5 text-sm font-medium text-ink transition-colors duration-150 hover:bg-mist focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-giga/20 disabled:pointer-events-none disabled:opacity-40 ${
+      className={`switch inline-flex h-9 shrink-0 items-center gap-2 rounded-full px-2.5 text-sm font-medium text-ink focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-giga/20 disabled:pointer-events-none disabled:opacity-40 ${
         checked ? "is-on" : ""
       }`}
       {...rest}

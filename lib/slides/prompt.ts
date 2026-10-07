@@ -83,7 +83,8 @@ PHOTOS for banner, figure and photos items: set "photo" to the id of the library
 ${LIBRARY.map((l) => `- ${l.id}: ${l.description} Suits: ${l.useFor}.`).join("\n")}
 
 RULES:
-- Exactly two pages unless the user message says otherwise. Page 1 opens with "banner". Page 2 never opens with a banner.
+- Exactly two pages unless the user message says otherwise. Page 1 opens with "banner", or with "title" for a product or programme brief (the archetype says which). Page 2 never opens with a banner.
+- FILL PAGE 1 FIRST: page 1 runs to the bottom of the sheet before page 2 begins. Never end page 1 early with room left and start the next section on page 2: carry the material forward onto page 1, and let a long section or a list of asks continue on page 2 under the same label. Page 2 may end with room left; page 1 may not.
 - Every section's rail label is different from every other one in the piece. Labels are short and in sentence case ("The challenge", "Why it matters", "What we do", "Results", "What the evidence shows").
 - Never two "stats" blocks on one page. Stats only for figures the brief or the material gives, each with its unit; never a stat that restates a figure already shown in another stat.
 - A bold lead-in (an item's "label" in a section) names what the paragraph is about ("Namibia.", "Market shaping."); leave it empty on ordinary paragraphs.
@@ -457,7 +458,7 @@ export const ADD_OUTPUT_SCHEMA = {
 const PAGE_ITEM_SCHEMA = {
   type: "object",
   properties: {
-    kind: { type: "string", enum: ["para", "bullet"] },
+    kind: { type: "string", enum: ["para", "bullet", "number"] },
     group: { type: "string" },
     label: { type: "string" },
     body: { type: "string" },
@@ -482,9 +483,10 @@ export const PAGE_BLOCK_SCHEMA = {
     map: { type: "string" },
     photo: { type: "string" },
     accent: { type: "integer" },
+    tag: { type: "string" },
     items: { type: "array", items: PAGE_ITEM_SCHEMA },
   },
-  required: ["type", "rail", "heading", "highlight", "sub", "lead", "body", "map", "photo", "accent", "items"],
+  required: ["type", "rail", "heading", "highlight", "sub", "lead", "body", "map", "photo", "accent", "tag", "items"],
   additionalProperties: false,
 } as const;
 

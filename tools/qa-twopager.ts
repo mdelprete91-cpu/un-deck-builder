@@ -76,7 +76,7 @@ async function main() {
         const raw = await page.evaluate(() => localStorage.getItem("giga-deck:session"));
         const slides = (JSON.parse(raw ?? "{}").slides ?? []) as { stack?: Block[]; pageFit?: string }[];
         if (slides.length !== 2) problems.push(`${slides.length} pages`);
-        if (slides[0]?.stack?.[0]?.type !== "banner") problems.push("page 1 does not open with the banner");
+        if (!["banner", "title"].includes(slides[0]?.stack?.[0]?.type ?? "")) problems.push("page 1 does not open with a banner or a title");
         if (slides.slice(1).some((s) => s.stack?.[0]?.type === "banner")) problems.push("banner after page 1");
         const rails = slides.flatMap((s) => (s.stack ?? []).map((b) => b.rail?.trim().toLowerCase()).filter(Boolean));
         if (new Set(rails).size !== rails.length) problems.push(`repeated labels: ${rails.join(" / ")}`);

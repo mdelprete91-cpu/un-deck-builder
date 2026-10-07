@@ -104,6 +104,7 @@ export const TYPE = {
   stat: `font-family:${MANROPE};font-weight:500;font-size:24pt;line-height:30pt;${LS}`,
   banner: `font-family:${MANROPE};font-weight:500;font-size:24pt;line-height:30pt;${LS}`,
   title: `font-family:${MANROPE};font-weight:500;font-size:30pt;line-height:39pt;${LS}`,
+  heading: `font-family:${MANROPE};font-weight:500;font-size:18pt;line-height:24pt;${LS}`,
   footer: `font-family:${OPEN_SANS};font-weight:400;font-size:8pt;line-height:10pt;${LS}`,
   date: `font-family:${OPEN_SANS};font-weight:600;font-size:8pt;line-height:10pt;letter-spacing:.08em;text-transform:uppercase;`,
 } as const;

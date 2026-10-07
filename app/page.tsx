@@ -7,23 +7,24 @@ import { deckReducer, initialDeckState, isDefaultName, readPath, setPath } from 
 import { ensureId, isChartLayout, isPage, normalizeSlide, overLimits, PRIMARY_ARRAY, type LayoutId, type Slide, type SlideContent } from "@/lib/slides/schema";
 import { renderSlide } from "@/lib/slides/layouts";
 import { A4_PX, pageDateNow } from "@/lib/slides/pages/a4";
-import { fitPage, type Resizer } from "@/lib/slides/pages/fit";
+import { fitPage, pullForward, type Resizer } from "@/lib/slides/pages/fit";
 import { dropStatEchoes, fillStatFigures, isMastheadLine, putBackLines } from "@/lib/slides/pages/restore";
 import { logoFor } from "@/lib/slides/pages/logos";
 import { fillPagePhotos } from "@/lib/slides/library";
 import AddBlockMenu from "@/components/AddBlockMenu";
+import BlockRail from "@/components/BlockRail";
 import LanguageMenu from "@/components/LanguageMenu";
 import EditChoice from "@/components/EditChoice";
 import LogoMenu from "@/components/LogoMenu";
 import PartnerLogoModal from "@/components/PartnerLogoModal";
 import { apply, detectLang, LANG_LABELS, LANG_NAMES, plan, newEdits, remember, snapshot, textFields, uiStrings, type DeckLang, type Job, type Lang } from "@/lib/slides/i18n";
 import { undash } from "@/lib/slides/pages/schema";
-import { normalizePage, PAGE_BLOCK_LIMITS, type PageBlock } from "@/lib/slides/pages/schema";
+import { normalizePage, PAGE_BLOCK_LIMITS, type PageBlock, type PageBlockType } from "@/lib/slides/pages/schema";
 import { defaultContent, denseContent } from "@/lib/slides/defaults";
 import { familyOf } from "@/lib/slides/families";
 import { countFromBrief, languageOf, seriesFromBrief, uniformFromBrief, MIN_SLIDES_WITH_CHAPTERS, TIERS_REQUEST } from "@/lib/slides/brief";
 import { makeRhythm, stripInventedYear } from "@/lib/slides/rhythm";
-import { presetStack } from "@/lib/slides/pages/presets";
+import { BLOCK_LABELS, presetStack } from "@/lib/slides/pages/presets";
 import { clearSaved, openSession, saveDeck } from "@/lib/slides/storage";
 import { buildHtmlDeck, exportHtmlDeck } from "@/lib/slides/export-html";
 import Presenter from "@/components/Presenter";
@@ -712,7 +713,9 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
     const resize: Resizer = {
       shorten: async (block, chars) => normalizePage([(await call({ block: lightBlock(block), chars }))?.block])?.[0] ?? null,
     };
-    const filled = fillPagePhotos(pages);
+    // A new piece fills page one before page two (pullForward); a page
+    // rewritten on its own keeps its blocks where they are.
+    const filled = opts.dated && pages.length > 1 ? await pullForward(fillPagePhotos(pages) as Slide[], theme) : fillPagePhotos(pages);
     for (let i = 0; i < filled.length; i++) {
       const index = from + i;
       const page = { ...filled[i], id: `fit-${index}` } as Slide;
@@ -1881,7 +1884,8 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
                 onClose={() => setDataPanelOpen(false)}
               />
             )}
-            <div className="relative min-h-0 flex-1 p-6 pb-10" data-tour="canvas">
+            <div className="flex min-h-0 flex-1">
+            <div className="relative min-h-0 min-w-0 flex-1 p-6 pb-10" data-tour="canvas">
               {active && (
                 <>
                   <SlideFrame
@@ -1914,6 +1918,15 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
                         : null
                     }
                     onAddBlock={twoPager ? (at) => setAddBlockAt(at) : null}
+                    onDropNewBlock={
+                      twoPager && state.status !== "generating" && !fitting
+                        ? (type, at) => {
+                            if (!(type in BLOCK_LABELS)) return;
+                            dispatch({ type: "ADD_BLOCK", index: state.activeIndex, at, blockType: type as PageBlockType });
+                            setFocusedBlock(at);
+                          }
+                        : null
+                    }
                     onEditWithAi={twoPager ? () => setAiModal(true) : null}
                     onPickLogo={twoPager && state.activeIndex === 0 ? (at) => setLogoMenu(at) : null}
                     canAddBlockItem={
@@ -2079,6 +2092,18 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
                   )}
                 </>
               )}
+            </div>
+            {twoPager && active && isPage(active) && (
+              <div className="w-[168px] shrink-0 border-l border-hairline-light bg-canvas">
+                <BlockRail
+                  onAdd={(blockType) => {
+                    const at = Math.min(focusedBlock + 1, active.stack?.length ?? 0);
+                    dispatch({ type: "ADD_BLOCK", index: state.activeIndex, at, blockType });
+                    setFocusedBlock(at);
+                  }}
+                />
+              </div>
+            )}
             </div>
           </>
         )}

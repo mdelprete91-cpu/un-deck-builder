@@ -644,17 +644,30 @@ body {
   opacity: 1;
 }
 
-/* Block selection and reordering on a page. */
-.page-root [data-block] {
-  outline: 1px solid transparent;
-  outline-offset: 3px;
-  transition: outline-color 0.15s;
+/* Block selection and reordering on a page. A block's box spans the whole
+   sheet and the content zone clips it, so a frame showed as a stray line or
+   lost its top edge (Mario, 7 Oct 2026). No frame and no hover: the block in
+   hand gets a light blue tint, on a layer inset to the 24pt margins. */
+.page-root [data-block]::after {
+  content: "";
+  position: absolute;
+  inset: 0 18pt;
+  border-radius: 4pt;
+  background: transparent;
+  pointer-events: none;
+  transition: background-color 0.15s;
 }
-.page-root [data-block]:hover {
-  outline-color: rgba(1, 174, 239, 0.35);
+.page-root [data-block].block-on::after {
+  background: rgba(1, 174, 239, 0.07);
 }
-.page-root [data-block].block-on {
-  outline-color: rgba(1, 174, 239, 0.9);
+
+/* On a page the content zone clips anything outside a block, so the text
+   outlines are drawn inside the text instead of around it. */
+.page-root [data-edit]:hover {
+  box-shadow: inset 0 0 0 1.5px rgba(39, 122, 255, 0.35);
+}
+.page-root [data-edit]:focus {
+  box-shadow: inset 0 0 0 1.5px #277aff;
 }
 
 /* A page's icons are 18pt: the slide icons' 8px hover padding would eat
@@ -666,14 +679,12 @@ body {
 }
 
 /* A block being dragged, and the one that just landed after a move. */
-.page-root [data-block].block-dragging {
-  outline-color: rgba(39, 122, 255, 0.9);
+.page-root [data-block].block-dragging::after {
   background: rgba(39, 122, 255, 0.12);
 }
-.page-root [data-block].block-landed {
-  outline-color: rgba(39, 122, 255, 0.9);
-  background: rgba(39, 122, 255, 0.06);
-  transition: outline-color 0.6s, background-color 0.6s;
+.page-root [data-block].block-landed::after {
+  background: rgba(39, 122, 255, 0.08);
+  transition: background-color 0.6s;
 }
 
 /* A text runs in its own direction: an Arabic, Urdu or Persian line reads
@@ -758,3 +769,21 @@ body {
   }
 }
 
+
+/* The block rail's wireframes (components/BlockRail.tsx). */
+.block-rail {
+  --rail-ink: #9aa3ad;
+  --rail-soft: #d5dae0;
+  --rail-acc: #01aeef;
+  --rail-tint: #e3f4fc;
+  --rail-tint-2: #b9e3f7;
+  --rail-card: #ffffff;
+  --rail-orange: #f26a21;
+}
+.dark .block-rail {
+  --rail-ink: #8e8e93;
+  --rail-soft: #48484d;
+  --rail-tint: #1d3a4a;
+  --rail-tint-2: #2b5970;
+  --rail-card: #2a2a2e;
+}

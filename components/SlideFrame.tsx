@@ -6,6 +6,7 @@ import { measureFlow } from "@/lib/slides/pages/fit";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { GripVertical, ListPlus, Plus, Sparkles, Trash2 } from "lucide-react";
 import Button from "@/components/Button";
+import { BLOCK_MIME } from "@/components/BlockRail";
 import { autofitAll, refitNode } from "@/lib/slides/autofit";
 import type { ImagePos } from "@/lib/slides/schema";
 
@@ -126,6 +127,8 @@ interface SlideFrameProps {
   onDeleteBlock?: ((index: number) => void) | null;
   /** Two-pager: open the block menu to insert a block at this index. */
   onAddBlock?: ((at: number) => void) | null;
+  /** Two-pager: a block dragged in from the block rail (BlockRail), dropped at this index. */
+  onDropNewBlock?: ((type: string, at: number) => void) | null;
   /** Two-pager: the side bar's Edit with AI (the page has no bottom bar). */
   onEditWithAi?: (() => void) | null;
   /** Two-pager: whether a block can take one more item, and adding it. */
@@ -194,6 +197,7 @@ export default function SlideFrame({
   onMoveBlock,
   onDeleteBlock,
   onAddBlock,
+  onDropNewBlock,
   onEditWithAi,
   canAddBlockItem,
   onAddBlockItem,
@@ -219,6 +223,8 @@ export default function SlideFrame({
   const pendingMove = useRef<{ from: number; to: number; rects: { top: number; height: number }[] } | null>(null);
   /** Dragging a block by the grip: which one, and the gap it would drop into. */
   const [drag, setDrag] = useState<{ from: number; gap: number } | null>(null);
+  /** A block dragged in from the rail: the gap it would drop into. */
+  const [incoming, setIncoming] = useState<number | null>(null);
   const barTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   // A short grace period, so the mouse can travel from the block to the bar.
   const leaveBlock = () => {
@@ -819,6 +825,28 @@ export default function SlideFrame({
       ref={containerRef}
       data-hj-suppress
       className={`relative ${frameClassName ? "" : "overflow-hidden "}${className ?? ""}`}
+      onDragOver={(e) => {
+        if (!onDropNewBlock || !blockRects.length || !e.dataTransfer.types.includes(BLOCK_MIME)) return;
+        e.preventDefault();
+        e.dataTransfer.dropEffect = "copy";
+        const wrap = containerRef.current?.getBoundingClientRect();
+        if (!wrap) return;
+        const y = e.clientY - wrap.top;
+        const gap = blockRects.filter((r) => r.top + r.height / 2 < y).length;
+        if (gap !== incoming) setIncoming(gap);
+      }}
+      onDragLeave={(e) => {
+        if (!containerRef.current?.contains(e.relatedTarget as Node | null)) setIncoming(null);
+      }}
+      onDrop={(e) => {
+        const type = e.dataTransfer.getData(BLOCK_MIME);
+        if (!type || !onDropNewBlock) return;
+        e.preventDefault();
+        e.stopPropagation();
+        const at = incoming ?? blockRects.length;
+        setIncoming(null);
+        onDropNewBlock(type, at);
+      }}
     >
       <div
         className={`absolute overflow-hidden ${frameClassName ?? ""}`}
@@ -911,6 +939,13 @@ export default function SlideFrame({
                 aria-label="Remove this block"
               />
             </div>
+            {incoming != null && (
+              // Where a block from the rail will land.
+              <div
+                className="pointer-events-none absolute z-20 h-[3px] rounded-full bg-giga"
+                style={{ left: pageLeft + 24 * (4 / 3) * scale, width: (595 - 48) * (4 / 3) * scale, top: gapY(incoming) - 1.5 }}
+              />
+            )}
             {drag && drag.gap !== drag.from && drag.gap !== drag.from + 1 && (
               // Where the block will land: a line across the text width.
               <div

@@ -20,6 +20,9 @@ export interface BlockCtx {
 }
 export type BlockRender = (b: PageBlock, ctx: BlockCtx) => string;
 
+/** A neutral screen, for a screenshot slot not yet filled. */
+export const SCREEN_PLACEHOLDER = "/pages/screen-placeholder.svg";
+
 /** The dark data-viz strip of the Estonia pieces: the banner's default. */
 export const DEFAULT_BANNER = "/pages/banner-dataviz.jpg";
 
@@ -91,26 +94,108 @@ const title: BlockRender = (b, { path }) => {
 /** The workhorse: a labelled run of paragraphs and bullets (build.py `section`). */
 const section: BlockRender = (b, { path, d }) => {
   const items = b.items ?? [];
+  // A numbered point counts within its own run ("1. 2. 3." on Spectrum's asks).
+  let n = 0;
   const body = items
     .map((it, i) => {
       const p = `${path}.items.${i}`;
-      const gap = i === 0 ? "" : `margin-top:${pt(it.kind === "bullet" && items[i - 1]?.kind === "bullet" ? d.para / 2 : d.para)};`;
-      const bullet =
-        it.kind === "bullet"
-          ? `padding-left:${pt(12)};position:relative;`
-          : "";
-      const dot =
+      const listed = it.kind === "bullet" || it.kind === "number";
+      n = it.kind === "number" ? n + 1 : 0;
+      const tight = listed && items[i - 1]?.kind === it.kind;
+      const gap = i === 0 ? "" : `margin-top:${pt(tight ? d.para / 2 : d.para)};`;
+      const indent = it.kind === "number" ? 17 : it.kind === "bullet" ? 12 : 0;
+      const marker =
         it.kind === "bullet"
           ? `<span style="position:absolute;left:${pt(2)};top:${pt(d.lh / 2 - 1.5)};width:${pt(3)};height:${pt(3)};border-radius:50%;background:${PALETTE.ink};"></span>`
-          : "";
+          : it.kind === "number"
+            ? `<span style="position:absolute;left:0;top:0;width:${pt(14)};text-align:right;${TYPE.body(d)}color:${PALETTE.ink};">${n}.</span>`
+            : "";
       return (
         `<div ${item(p)} style="position:relative;${gap}">` +
-        leadPara(p, it, `${TYPE.body(d)}color:${PALETTE.ink};white-space:pre-line;${bullet}`).replace(/<\/div>$/, `${dot}</div>`) +
+        leadPara(p, it, `${TYPE.body(d)}color:${PALETTE.ink};white-space:pre-line;${indent ? `padding-left:${pt(indent)};position:relative;` : ""}`).replace(/<\/div>$/, `${marker}</div>`) +
         `</div>`
       );
     })
     .join("");
   return railRow(railLabel(b.rail, `${path}.rail`, d), body);
+};
+
+/** A title inside the page, opening a new part: the page title's voice, smaller. */
+const heading: BlockRender = (b, { path }) =>
+  full(`<div ${edP(`${path}.heading`)} style="${TYPE.heading}color:${PALETTE.ink};white-space:pre-line;">${esc(b.heading ?? "")}</div>`);
+
+/** The paragraph under a page title, across the full width (Lunar). */
+const lede: BlockRender = (b, { path, d }) =>
+  full(`<div ${edP(`${path}.body`)} style="${TYPE.body(d)}color:${PALETTE.ink};white-space:pre-line;">${esc(b.body ?? "")}</div>`);
+
+/** A bordered note on the state of things, its lead word in orange (Spectrum, Lunar: "Status:"). */
+const callout: BlockRender = (b, { path, d }) =>
+  full(
+    `<div style="box-sizing:border-box;border:1pt solid ${PALETTE.orangeBorder};border-radius:${pt(6)};padding:${pt(12)} ${pt(14)};${TYPE.body(d)}color:${PALETTE.ink};">` +
+      `<span ${edP(`${path}.lead`)} style="font-weight:700;color:${PALETTE.orange};">${esc(b.lead ?? "")}</span> ` +
+      `<span ${edP(`${path}.body`)} style="white-space:pre-line;">${esc(b.body ?? "")}</span></div>`,
+  );
+
+/** A framed panel: a pill and text on the left, a picture or map on the right (Songbird's Phase 1). */
+const split: BlockRender = (b, { path, d }) => {
+  const isMap = isCountryMap(b.map);
+  const pic = isMap
+    ? `<div style="position:absolute;inset:0;background:#1C1C1C;"><img src="${countryMapSrc(b.map!)}" data-image="${path}.image" alt="" style="width:100%;height:100%;object-fit:contain;display:block;"></div>`
+    : photo(`${path}.image`, b.image, DEFAULT_PHOTO, b.imagePos);
+  return full(
+    `<div style="display:grid;grid-template-columns:${pt(193)} minmax(0,1fr);min-height:${pt(209)};box-sizing:border-box;border:1pt solid ${PALETTE.card};border-radius:${pt(6)};overflow:hidden;">` +
+      `<div style="padding:${pt(12)} ${pt(12)} ${pt(14)};">` +
+      `<span ${edP(`${path}.tag`)} style="display:inline-block;padding:${pt(3)} ${pt(10)};border-radius:999px;background:${ACCENT};color:${PALETTE.white};font-family:${FONT.open};font-weight:600;font-size:9pt;line-height:13pt;">${esc(b.tag ?? "")}</span>` +
+      `<div ${edP(`${path}.body`)} style="${TYPE.body(d)}color:${PALETTE.ink};margin-top:${pt(12)};white-space:pre-line;">${esc(b.body ?? "")}</div></div>` +
+      `<div style="position:relative;background:#EDF4FC;">${pic}</div></div>`,
+  );
+};
+
+/** Two screenshots with arrows between them, the second on a tinted panel (Spectrum, Lunar). */
+const screens: BlockRender = (b, { path, d }) => {
+  const [a, c] = b.items ?? [];
+  const shot = (i: number, it: PageItem | undefined, panel: boolean) =>
+    `<div style="position:relative;min-width:0;${panel ? `background:#E3F4FC;border-radius:${pt(6)};padding:${pt(8)};` : ""}">` +
+    `<div style="position:relative;height:${pt(panel ? 154 : 170)};border-radius:${pt(6)};overflow:hidden;${panel ? "" : `border:1pt solid ${PALETTE.card};box-sizing:border-box;`}">` +
+    photo(`${path}.items.${i}.image`, it?.image, SCREEN_PLACEHOLDER, it?.imagePos, 6) +
+    `</div></div>`;
+  const arrow = `<svg viewBox="0 0 24 24" width="${pt(16)}" height="${pt(16)}" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="display:block;color:${ACCENT};">${ICON_LIBRARY["arrow-right"]}</svg>`;
+  const arrows = `<div style="display:flex;flex-direction:column;justify-content:center;align-items:center;gap:${pt(14)};">${arrow}${arrow}${arrow}</div>`;
+  const row = `<div style="display:grid;grid-template-columns:minmax(0,1fr) ${pt(28)} minmax(0,1.5fr);align-items:center;">${shot(0, a, false)}${arrows}${shot(1, c, true)}</div>`;
+  return b.rail ? railRow(railLabel(b.rail, `${path}.rail`, d), row) : full(row);
+};
+
+/** Numbered asks in accent circles, in the text column (Songbird's US/FCC ask). */
+const numbered: BlockRender = (b, { path, d }) => {
+  const rows = (b.items ?? [])
+    .map(
+      (it, i) =>
+        `<div ${item(`${path}.items.${i}`)} style="position:relative;display:grid;grid-template-columns:${pt(22)} minmax(0,1fr);column-gap:${pt(14)};${i ? `margin-top:${pt(12)};` : ""}">` +
+        `<span style="width:${pt(16)};height:${pt(16)};margin-top:${pt((d.lh - 16) / 2)};border-radius:50%;background:${ACCENT};color:${PALETTE.white};font-family:${FONT.open};font-weight:600;font-size:8pt;line-height:${pt(16)};text-align:center;">${i + 1}</span>` +
+        `<div ${edP(`${path}.items.${i}.body`)} style="${TYPE.body(d)}color:${PALETTE.ink};white-space:pre-line;">${esc(it.body)}</div></div>`,
+    )
+    .join("");
+  return railRow(railLabel(b.rail, `${path}.rail`, d), rows);
+};
+
+/** A three-column table with a grey header row, in the text column (Lunar). */
+const table: BlockRender = (b, { path, d }) => {
+  const cell = `padding:${pt(8)} ${pt(10)};font-family:${FONT.open};font-size:${pt(d.small + 0.5)};line-height:${pt(d.smallLh + 1.5)};${LS}color:${PALETTE.ink};`;
+  const grid = `display:grid;grid-template-columns:repeat(3,minmax(0,1fr));`;
+  const head =
+    `<div style="${grid}background:#F4F4F4;border-radius:${pt(4)} ${pt(4)} 0 0;">` +
+    (["heading", "sub", "lead"] as const).map((k) => `<div ${edP(`${path}.${k}`)} style="${cell}font-weight:600;">${esc(b[k] ?? "")}</div>`).join("") +
+    `</div>`;
+  const rows = (b.items ?? [])
+    .map(
+      (it, i) =>
+        `<div ${item(`${path}.items.${i}`)} style="position:relative;${grid}border-bottom:0.5pt solid ${PALETTE.hairline};">` +
+        (["label", "body", "extra"] as const).map((k) => `<div ${edP(`${path}.items.${i}.${k}`)} style="${cell}">${esc(it[k])}</div>`).join("") +
+        `</div>`,
+    )
+    .join("");
+  const t = `<div style="border:0.5pt solid ${PALETTE.hairline};border-bottom:none;border-radius:${pt(4)};">${head}${rows}</div>`;
+  return railRow(railLabel(b.rail, `${path}.rail`, d), t);
 };
 
 /** Figures in stroked cards, one accented (build.py `stat`). */
@@ -274,27 +359,27 @@ const panels: BlockRender = (b, { path, d }) => {
 
 /** Who to write to, under a hairline, last on the last page. */
 const contacts: BlockRender = (b, { path, d }) => {
+  // One person a row, as on Spectrum: "Name / role", the address under it.
   const people = (b.items ?? [])
     .map(
       (it, i) =>
-        `<div ${item(`${path}.items.${i}`)} style="position:relative;">` +
-        `<div ${edP(`${path}.items.${i}.label`)} style="${TYPE.head(d)}color:${PALETTE.ink};">${esc(it.label)}</div>` +
-        `<div ${edP(`${path}.items.${i}.body`)} style="${TYPE.small(d)}color:${PALETTE.ink};">${esc(it.body)}</div>` +
-        `<div ${edP(`${path}.items.${i}.extra`)} style="${TYPE.small(d)}color:${ACCENT};">${esc(it.extra)}</div></div>`,
+        `<div ${item(`${path}.items.${i}`)} style="position:relative;${i || b.lead ? `margin-top:${pt(12)};` : ""}${TYPE.body(d)}color:${PALETTE.ink};">` +
+        `<span ${edP(`${path}.items.${i}.label`)} style="font-weight:700;">${esc(it.label)}</span> / ` +
+        `<span ${edP(`${path}.items.${i}.body`)}>${esc(it.body)}</span>` +
+        `<div ${edP(`${path}.items.${i}.extra`)} style="color:${PALETTE.ink};text-decoration:underline;text-underline-offset:2pt;">${esc(it.extra)}</div></div>`,
     )
     .join("");
+  const lead = b.lead ? `<div ${edP(`${path}.lead`)} style="${TYPE.body(d)}font-weight:700;color:${PALETTE.ink};">${esc(b.lead)}</div>` : "";
   return (
-    `<div style="margin:0 ${pt(M)} ${pt(14)};height:0;border-top:0.75pt solid ${PALETTE.ink};"></div>` +
-    railRow(
-      railLabel(b.rail, `${path}.rail`, d),
-      `<div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:${pt(10)} ${pt(12)};">${people}</div>`,
-    )
+    `<div style="margin:0 ${pt(M)} ${pt(18)};height:0;border-top:0.75pt solid ${PALETTE.card};"></div>` +
+    railRow(railLabel(b.rail, `${path}.rail`, d), lead + people)
   );
 };
 
 export const BLOCKS: Record<PageBlockType, BlockRender> = {
   banner,
   title,
+  heading,
   section,
   stats,
   figure,
@@ -304,6 +389,12 @@ export const BLOCKS: Record<PageBlockType, BlockRender> = {
   photos,
   panels,
   contacts,
+  lede,
+  callout,
+  split,
+  screens,
+  numbered,
+  table,
 };
 
 /**
@@ -312,8 +403,12 @@ export const BLOCKS: Record<PageBlockType, BlockRender> = {
  * banner or title is followed by a little more air.
  */
 export function spaceBefore(prev: PageBlockType, next: PageBlockType, d: Density): number {
+  // The intro paragraph sits under its title, as on Lunar.
+  if (next === "lede") return Math.round(d.gap * 0.45);
   if (next === "stats" || next === "pillars") return Math.round(d.gap * 0.75);
   if (prev === "banner") return d.gap + 4;
   if (prev === "title") return d.gap - 4;
+  // What a heading opens sits under it.
+  if (prev === "heading") return Math.round(d.gap * 0.5);
   return d.gap;
 }

@@ -34,7 +34,7 @@ export const PAGE_CATALOG: PageCatalogEntry[] = [
     type: "section",
     usage: "The workhorse: a labelled section of running text. Most of a two-pager is sections",
     fields:
-      'rail(the section label, <=28 chars, sentence case, e.g. "The challenge", "What we do"), items(1-5: kind "para"|"bullet", label(bold lead-in such as a country or programme name followed by a full stop, <=24 chars, usually empty), body(a paragraph, <=480 chars; a bullet <=160 chars))',
+      'rail(the section label, <=28 chars, sentence case, e.g. "The challenge", "What we do"), items(1-8: kind "para"|"bullet"|"number" (a numbered list when the order matters), label(bold lead-in such as a country or programme name followed by a full stop, <=24 chars, usually empty), body(a paragraph, <=480 chars; a bullet <=160 chars))',
   },
   {
     type: "stats",
@@ -75,9 +75,44 @@ export const PAGE_CATALOG: PageCatalogEntry[] = [
     fields: "rail(<=28 chars), items(2 or 4: label(<=28 chars), body(<=60 chars))",
   },
   {
+    type: "heading",
+    usage: "A title inside a page that opens a new part of it (e.g. \"The ask\" before the asks); never at the top of page 1",
+    fields: "heading(<=50 chars)",
+  },
+  {
+    type: "lede",
+    usage: "A full-width paragraph right under a page title, saying what the piece is (with a title, not after a banner)",
+    fields: "body(<=320 chars)",
+  },
+  {
+    type: "callout",
+    usage: "A bordered note on the state of a product or project (concept, prototype, pilot, no live service), right under the title",
+    fields: 'lead(the label with its colon, e.g. "Status:"), body(<=320 chars)',
+  },
+  {
+    type: "split",
+    usage: "A framed panel: a short pill and a paragraph on the left, a picture or a country map on the right. For a phase, a region or a site",
+    fields: 'tag(the pill, <=16 chars, e.g. "Phase 1"), body(<=300 chars), map(a country name when the panel is about one country, else ""), photo',
+  },
+  {
+    type: "screens",
+    usage: "Two screenshots of a product with arrows between them. Only when the brief is about a working tool; the images are placeholders the user replaces",
+    fields: 'rail(<=28 chars, may be empty), items(exactly 2: label(""), body(""))',
+  },
+  {
+    type: "numbered",
+    usage: "Asks or next steps, each a full sentence in a numbered circle. The block for what the reader is asked to do",
+    fields: "rail(<=28 chars), items(1-6: body(<=220 chars))",
+  },
+  {
+    type: "table",
+    usage: "A small comparison with a header row: category / now / next, or option / cost / effect",
+    fields: "rail(<=28 chars, may be empty), heading, sub, lead(the three column heads, <=20 chars each), items(1-8 rows: label, body, extra, each <=60 chars)",
+  },
+  {
     type: "contacts",
     usage: "Who to write to. Last block of the last page, and only if the brief names people",
-    fields: "rail(\"Contact\"), items(1-4: label(name), body(role, team), extra(email address))",
+    fields: "rail(\"Contact\"), lead(one bold sentence before the names, e.g. what kind of partners are sought, may be empty), items(1-4: label(name), body(role, team), extra(email address))",
   },
 ];
 
@@ -111,9 +146,16 @@ export const ARCHETYPES = [
   {
     id: "product",
     name: "Product or initiative brief",
-    when: "Explaining a tool, a product or a pilot: what it is, how it works, where it stands",
-    page1: "banner, section (what it is), section (the problem it solves), stats (3), pillars (how it works)",
-    page2: "section (where it stands), figure or photos (optional), section (what's next), asks or panels, contacts (optional)",
+    when: "Explaining a tool, a product or a pilot to a partner or a regulator: what it is, where it stands, what is asked (the Spectrum and Lunar pieces)",
+    page1: "title (the product and what it does), lede (optional), callout (its status), section (what it is), screens (when it is a working tool) or table",
+    page2: "section (the ask, numbered points), section (other contexts or uses), contacts",
+  },
+  {
+    id: "programme-ask",
+    name: "Programme brief with an ask",
+    when: "A programme or project presented to a funder or a regulator, with a phase and concrete asks (the Songbird piece)",
+    page1: "title (the programme and its promise), section (what it is, with bullets for its principles), split (the current phase and its map or picture), numbered (the asks)",
+    page2: "numbered (the asks, continued) or sections, contacts (optional)",
   },
 ] as const;
 export type ArchetypeId = (typeof ARCHETYPES)[number]["id"];
