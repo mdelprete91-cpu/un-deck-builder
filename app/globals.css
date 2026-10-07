@@ -733,6 +733,21 @@ body {
   body * {
     visibility: hidden;
   }
+  /* Hidden is not enough: the app still took its width, so the sheet came
+     out wider than A4 and Chrome shrank the pages to ~70% (7 Oct 2026). On
+     paper only the print root and its ancestors exist, and those ancestors
+     stop being the app's fixed-size flex boxes. */
+  body *:not(#print-root):not(:has(#print-root)):not(#print-root *) {
+    display: none !important;
+  }
+  body *:has(#print-root) {
+    display: block !important;
+    position: static !important;
+    overflow: visible !important;
+    width: auto !important;
+    height: auto !important;
+    min-width: 0 !important;
+  }
   #print-root {
     display: block;
     position: absolute;

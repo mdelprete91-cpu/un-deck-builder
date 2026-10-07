@@ -889,7 +889,9 @@ export default function SlideFrame({
           height: size.h * scale,
           left: (box.w - size.w * scale) / 2,
           top: (box.h - size.h * scale) / 2,
-          visibility: scale > 0 ? "visible" : "hidden",
+          // Never "visible" inline: it would beat the print sheet's hidden body and
+          // print the editor's frame beside the pages, shrinking them (7 Oct 2026).
+          visibility: scale > 0 ? undefined : "hidden",
         }}
       >
         <div
