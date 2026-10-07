@@ -385,6 +385,8 @@ const panels: BlockRender = (b, { path, d }) => {
       const body = lines
         .map((l, j) => {
           const line = `data-line="${i}.${j}"`;
+          // "~~ " carries on a paragraph from the previous page.
+          if (/^~~\s/.test(l)) return `<div ${line} style="margin-top:${pt(j ? 4 : 2)};">${hide("~~ ")}${sentences(l.replace(/^~~\s/, ""), j)}</div>`;
           // "~ " carries on a bullet from the previous page: indented, no dot.
           if (/^~\s/.test(l))
             return `<div ${line} style="padding-left:${pt(12)};margin-top:${pt(j ? 4 : 2)};">${hide("~ ")}${sentences(l.replace(/^~\s/, ""), j)}</div>`;

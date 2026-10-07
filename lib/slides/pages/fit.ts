@@ -179,9 +179,24 @@ const SPLITS = new Set(["section", "table", "numbered", "compare", "asks", "cont
  * A page's opening block never moves, so a page is never emptied.
  * Returns null when every page already fits.
  */
-export async function flowOver(pages: Slide[], t: BrandTheme): Promise<Slide[] | null> {
-  const flowed = await flowOnce(pages, t);
-  if (!flowed || flowed.length <= pages.length) return flowed;
+export async function flowOver(input: Slide[], t: BrandTheme): Promise<Slide[] | null> {
+  // A comparison table is one table however many pages it spans (Mario,
+  // 7 Oct 2026): its continuations are joined back into it first, then the
+  // whole of it is broken again only where pages end. Without this, a piece
+  // pulled up or edited could hold two halves on one page with a gap.
+  const pages = joinPanels(input);
+  // Same content, same pages: ids differ on pages a flow added, so they never count.
+  const sameAs = (a: Slide[]) => JSON.stringify(a.map((p) => [p.stack, p.pageFit ?? "regular"])) === JSON.stringify(input.map((p) => [p.stack, p.pageFit ?? "regular"]));
+  // A page keeps the id of the page in its place, so the flow settles.
+  const keepIds = (a: Slide[] | null) => a?.map((p, i) => ({ ...p, id: input[i]?.id ?? p.id }));
+  const result = keepIds(await flowOver2(pages, input, t));
+  return result && !sameAs(result) ? result : null;
+}
+
+async function flowOver2(pages: Slide[], input: Slide[], t: BrandTheme): Promise<Slide[] | null> {
+  const joined = JSON.stringify(pages) !== JSON.stringify(input);
+  const flowed = (await flowOnce(pages, t)) ?? (joined ? pages : null);
+  if (!flowed || flowed.length <= input.length) return flowed;
   // It took a page more. When that page holds only a few lines, the part
   // it continues is set compact instead, from the page that overflowed on,
   // and runs again (US partnerships piece, 7 Oct 2026: a fifth page with
@@ -199,6 +214,40 @@ export async function flowOver(pages: Slide[], t: BrandTheme): Promise<Slide[] |
   const again = await flowOnce(tighter, t);
   const result = again ?? tighter;
   return result.length < flowed.length ? result : flowed;
+}
+
+/**
+ * Every continuation of a comparison table back into the table it continues:
+ * the next block on the same page, or the first block of the next page when
+ * the table ends its page. A bullet carried over ("~ ") rejoins its line.
+ * Pages left empty go.
+ */
+export function joinPanels(pages: Slide[]): Slide[] {
+  const out = pages.map((p) => ({ ...p, stack: (p.stack ?? []).map((b): PageBlock => ({ ...b, items: b.items?.map((it) => ({ ...it })) })) }));
+  let base: PageBlock | null = null;
+  for (const p of out) {
+    const kept: PageBlock[] = [];
+    p.stack.forEach((b, i) => {
+      // Right after the table: the next block on its page, or anything at the
+      // top of the next page before another block comes.
+      const follows = base && b.type === "panels" && b.cont && (kept.length ? kept[kept.length - 1] === base : true);
+      if (follows && base) {
+        base.items = base.items!.map((it, c) => {
+          const add = (b.items?.[c]?.body ?? "").split("\n").filter((l) => l.trim());
+          const lines = it.body.split("\n").filter((l) => l.trim());
+          if (/^~~? /.test(add[0] ?? "") && lines.length) lines[lines.length - 1] = `${lines[lines.length - 1]} ${add.shift()!.replace(/^~~? /, "")}`;
+          return { ...it, body: [...lines, ...add].join("\n") };
+        });
+        return;
+      }
+      kept.push(b);
+      base = b.type === "panels" && !b.cont ? b : null;
+    });
+    p.stack = kept;
+    // The table ends its page only if it is the page's last block.
+    if (kept.length && kept[kept.length - 1] !== base) base = null;
+  }
+  return out.filter((p, i) => i === 0 || p.stack.length > 0);
 }
 
 async function flowOnce(pages: Slide[], t: BrandTheme): Promise<Slide[] | null> {
@@ -248,7 +297,9 @@ async function flowOnce(pages: Slide[], t: BrandTheme): Promise<Slide[] | null> 
 }
 
 /** Where a two-column block breaks at the bottom of the page, or null when no line fits. */
-function splitPanels(block: PageBlock, b: number, limit: number): { keep: PageBlock; rest: PageBlock } | null {
+function splitPanels(block: PageBlock, b: number, pageLimit: number): { keep: PageBlock; rest: PageBlock } | null {
+  // The column's own bottom padding (12pt) has to fit on the page too.
+  const limit = pageLimit - 14 * PX;
   const items = block.items ?? [];
   const cut = items.map((it, i) => {
     const lines = it.body.split("\n").filter((l) => l.trim());
@@ -268,7 +319,8 @@ function splitPanels(block: PageBlock, b: number, limit: number): { keep: PageBl
       });
       if (s >= 1) {
         const head = (marker ? `${marker[1]} ` : "") + parts.slice(0, s).join(" ");
-        const tail = (marker ? "~ " : "") + parts.slice(s).join(" ");
+        // Marked as a continuation, so joinPanels can put the line back whole.
+        const tail = (marker ? "~ " : "~~ ") + parts.slice(s).join(" ");
         lines.splice(k, 1, head, tail);
         return { lines, k: k + 1 };
       }
