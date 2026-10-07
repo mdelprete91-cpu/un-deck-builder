@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, ChevronDown, Languages, Search } from "lucide-react";
+import { Check, Languages, Search } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import Button from "@/components/Button";
 import { LANG_LABELS, LANG_NAMES, LANGS, type Lang } from "@/lib/slides/i18n";
@@ -52,9 +52,8 @@ export default function LanguageMenu({
   return (
     <div className="relative">
       <Button
-        variant="secondary"
+        variant="ghost"
         icon={Languages}
-        iconRight={ChevronDown}
         onClick={() => (open ? close() : setOpen(true))}
         disabled={busy}
         title="Language of the whole deck"
@@ -66,7 +65,7 @@ export default function LanguageMenu({
       {open && (
         <>
           <div className="fixed inset-0 z-10" onClick={close} />
-          <div role="menu" className="pop-in absolute right-0 z-20 mt-1.5 flex w-72 flex-col rounded-2xl bg-surface p-1.5 shadow-menu">
+          <div role="menu" className="pop-in absolute left-0 z-20 mt-1.5 flex w-72 flex-col rounded-2xl bg-surface p-1.5 shadow-menu">
             <label className="mb-1 flex h-9 items-center gap-2 rounded-[10px] bg-mist px-2.5">
               <Search size={14} className="shrink-0 text-ink-muted" aria-hidden />
               <input

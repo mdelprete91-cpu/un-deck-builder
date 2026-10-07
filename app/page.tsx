@@ -2450,20 +2450,19 @@ function Toolbar({
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [exportOpen]);
-  // The name on the left, every control on the right. Undo and redo are one
-  // pair: same pill, same stroke. Disabled only changes the ink, not the
-  // shape, so the two never look like different controls.
+  // The name on the left with what edits it: undo and redo as quiet icons
+  // and the language, after a hairline (Mario, 7 Oct 2026, from the redesign
+  // prototype). The file actions on the right.
   return (
     <div className="flex items-center gap-3 border-b border-hairline bg-surface px-4 py-2.5">
       <DeckName name={name} onRename={onRename} />
-      <div className="ml-auto flex shrink-0 items-center gap-2" data-tour="download">
+      <div className="flex shrink-0 items-center gap-0.5">
+        <span className="mr-2 h-5 w-px bg-hairline" aria-hidden />
+        <Button variant="ghost" iconOnly icon={Undo2} onClick={onUndo} disabled={!canUndo} title="Undo (Cmd+Z)" aria-label="Undo" />
+        <Button variant="ghost" iconOnly icon={Redo2} onClick={onRedo} disabled={!canRedo} title="Redo (Cmd+Shift+Z)" aria-label="Redo" />
         {languageMenu}
-        <Button variant="secondary" icon={Undo2} onClick={onUndo} disabled={!canUndo} title="Undo (Cmd+Z)">
-          Undo
-        </Button>
-        <Button variant="secondary" icon={Redo2} onClick={onRedo} disabled={!canRedo} title="Redo (Cmd+Shift+Z)">
-          Redo
-        </Button>
+      </div>
+      <div className="ml-auto flex shrink-0 items-center gap-2" data-tour="download">
         <Button
           variant="secondary"
           icon={Upload}

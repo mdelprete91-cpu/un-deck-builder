@@ -382,11 +382,39 @@ body {
   outline: none;
   cursor: text;
 }
+/* The element being edited (Mario, 7 Oct 2026, from the redesign
+   prototype): a cyan frame a little off the text with two square handles,
+   so it is clear which element is in hand. Cyan reads on the blue slides
+   and on white alike. Sizes undo the stage's zoom (--inv). */
 .slide-root [data-edit]:hover {
-  box-shadow: 0 0 0 2px rgba(39, 122, 255, 0.35);
+  outline: calc(1px * var(--inv, 1)) solid rgba(92, 196, 240, 0.6);
+  outline-offset: calc(6px * var(--inv, 1));
 }
 .slide-root [data-edit]:focus {
-  box-shadow: 0 0 0 2px #277aff;
+  outline: calc(2px * var(--inv, 1)) solid #5cc4f0;
+  outline-offset: calc(6px * var(--inv, 1));
+}
+.slide-root [data-edit]:focus:not([style*="position:absolute"]):not([style*="position: absolute"]) {
+  position: relative;
+}
+.slide-root [data-edit]:focus::before,
+.slide-root [data-edit]:focus::after {
+  content: "";
+  position: absolute;
+  width: calc(9px * var(--inv, 1));
+  height: calc(9px * var(--inv, 1));
+  background: #ffffff;
+  box-shadow: 0 0 0 calc(1.5px * var(--inv, 1)) #5cc4f0;
+  border-radius: calc(2px * var(--inv, 1));
+  pointer-events: none;
+}
+.slide-root [data-edit]:focus::before {
+  left: calc(-11px * var(--inv, 1));
+  top: calc(-11px * var(--inv, 1));
+}
+.slide-root [data-edit]:focus::after {
+  right: calc(-11px * var(--inv, 1));
+  bottom: calc(-11px * var(--inv, 1));
 }
 /* Items nest on the dense layouts (a row and its figures, a group and its
    policies): only the innermost hovered one shows its outline and its ✕. */
@@ -662,6 +690,16 @@ body {
 
 /* On a page the content zone clips anything outside a block, so the text
    outlines are drawn inside the text instead of around it. */
+/* A page clips anything outside its blocks: no outer frame or handles there,
+   the outline is drawn inside the text (below). */
+.page-root [data-edit]:hover,
+.page-root [data-edit]:focus {
+  outline: none;
+}
+.page-root [data-edit]:focus::before,
+.page-root [data-edit]:focus::after {
+  content: none;
+}
 .page-root [data-edit]:hover {
   box-shadow: inset 0 0 0 1.5px rgba(39, 122, 255, 0.35);
 }

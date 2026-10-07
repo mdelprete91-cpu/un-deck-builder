@@ -237,7 +237,7 @@ export default function ThumbStrip({
         </Button>
       </div>
     <div
-      className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto p-3"
+      className="flex min-h-0 flex-1 flex-col gap-2.5 overflow-y-auto py-3 pl-2 pr-3"
       onDragOver={(e) => {
         // Allow dropping in the empty space after the last thumbnail
         if (dragIndexRef.current != null) {
@@ -247,9 +247,19 @@ export default function ThumbStrip({
       }}
       onDrop={handleDrop}
     >
-      {slides.map((slide, i) => (
+      {slides.map((slide, i) => {
+        // Chapters head their slides in the strip, as in the outline (Mario,
+        // 7 Oct 2026, from the redesign prototype): "01 Progress".
+        const chapter = slide.layoutId === "section-divider" ? slides.slice(0, i + 1).filter((s) => s.layoutId === "section-divider").length : 0;
+        const on = i === activeIndex;
+        return (
+        <div key={slide.id} className="shrink-0">
+          {chapter > 0 && (
+            <p className="mb-1.5 mt-2 truncate pl-1 text-xs text-ink-faint">
+              {String(chapter).padStart(2, "0")} {slide.title || "Chapter"}
+            </p>
+          )}
         <div
-          key={slide.id}
           draggable
           onDragStart={(e) => {
             setDragIndex(i);
@@ -270,43 +280,48 @@ export default function ThumbStrip({
             e.stopPropagation();
             handleDrop();
           }}
-          className={`group relative shrink-0 cursor-grab overflow-hidden rounded-lg border transition-colors duration-150 active:cursor-grabbing ${
-            i === activeIndex ? "border-ink" : "border-hairline hover:border-ink/30"
-          } ${dragIndex === i ? "opacity-40" : ""} ${
-            dropAt === i ? "border-t-4 !border-t-giga" : ""
-          } ${dropAt === i + 1 && i === slides.length - 1 ? "border-b-4 !border-b-giga" : ""}`}
+          // The number beside the slide, never over it; the slide itself
+          // carries the active ring (Mario, 7 Oct 2026, from the prototype).
+          className={`group grid cursor-grab grid-cols-[18px_minmax(0,1fr)] items-start gap-2 active:cursor-grabbing ${dragIndex === i ? "opacity-40" : ""}`}
           onClick={() => dispatch({ type: "SET_ACTIVE", index: i })}
+          title={LAYOUTS[slide.layoutId]?.label ?? slide.layoutId}
         >
-          <div className="pointer-events-none">
-            <SlideFrame
-              html={renderSlide(slide, theme, { index: i, total: slides.length })}
-              size={twoPager ? A4_PX : undefined}
-              className={`${twoPager ? "aspect-[595/842]" : "aspect-video"} w-full`}
-            />
-          </div>
-          <div className="absolute left-1 top-1 rounded-md bg-surface/90 px-1.5 py-0.5 text-[10px] font-medium text-ink shadow-stripe">
-            {i + 1} · {LAYOUTS[slide.layoutId]?.label ?? slide.layoutId}
-          </div>
-          <div className="absolute bottom-1 right-1 hidden gap-1 group-hover:flex">
-            <ThumbButton
-              icon={Copy}
-              title="Duplicate"
-              onClick={(e) => {
-                e.stopPropagation();
-                dispatch({ type: "DUPLICATE", index: i });
-              }}
-            />
-            <ThumbButton
-              icon={X}
-              title="Delete"
-              onClick={(e) => {
-                e.stopPropagation();
-                dispatch({ type: "DELETE", index: i });
-              }}
-            />
+          <span className={`pt-0.5 text-right text-xs tabular-nums ${on ? "font-medium text-giga" : "text-ink-faint"}`}>{i + 1}</span>
+          <div
+            className={`relative overflow-hidden rounded-md transition-shadow duration-150 ${
+              on ? "shadow-[0_0_0_2px_var(--color-giga)]" : "shadow-[0_0_0_1px_var(--color-hairline)] group-hover:shadow-[0_0_0_1px_var(--color-ink-faint)]"
+            } ${dropAt === i ? "border-t-4 border-t-giga" : ""} ${dropAt === i + 1 && i === slides.length - 1 ? "border-b-4 border-b-giga" : ""}`}
+          >
+            <div className="pointer-events-none">
+              <SlideFrame
+                html={renderSlide(slide, theme, { index: i, total: slides.length })}
+                size={twoPager ? A4_PX : undefined}
+                className={`${twoPager ? "aspect-[595/842]" : "aspect-video"} w-full`}
+              />
+            </div>
+            <div className="absolute bottom-1 right-1 hidden gap-1 group-hover:flex">
+              <ThumbButton
+                icon={Copy}
+                title="Duplicate"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  dispatch({ type: "DUPLICATE", index: i });
+                }}
+              />
+              <ThumbButton
+                icon={X}
+                title="Delete"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  dispatch({ type: "DELETE", index: i });
+                }}
+              />
+            </div>
           </div>
         </div>
-      ))}
+        </div>
+        );
+      })}
     </div>
 
       {layoutsOpen && !twoPager && (
