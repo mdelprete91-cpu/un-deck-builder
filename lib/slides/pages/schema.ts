@@ -66,6 +66,13 @@ export const CALLOUT_TONES = {
 } as const;
 export type CalloutTone = keyof typeof CALLOUT_TONES;
 
+/** A panels column's colour: the explicit one, else orange for the ask column, else grey. */
+export function panelTone(b: PageBlock, i: number): CalloutTone {
+  const t = b.tones?.[i];
+  if (t && t in CALLOUT_TONES) return t as CalloutTone;
+  return b.accent === i ? "orange" : "grey";
+}
+
 /**
  * One line inside a block's repeating array. Flat and shared by every block
  * type, like SlideContent: a discriminated union becomes a JSON-Schema
@@ -122,6 +129,10 @@ export interface PageBlock {
   heads?: string[];
   /** No side title: the block runs the full width (any block with a side column). */
   wide?: boolean;
+  /** panels: each column's colour (CALLOUT_TONES or "grey"); unset: grey, and orange for the ask (accent). */
+  tones?: string[];
+  /** panels: a continuation on the next page, drawn without its column heads. */
+  cont?: boolean;
 }
 
 /**
@@ -200,6 +211,8 @@ export const pageBlockSchema = z.object({
   tone: z.enum(["orange", "blue", "green", "red", "grey"]).optional().catch(undefined),
   heads: z.array(z.string()).min(2).max(5).optional().catch(undefined),
   wide: z.boolean().optional(),
+  tones: z.array(z.string()).max(2).optional(),
+  cont: z.boolean().optional(),
 });
 
 /** The text fields each block draws, so the editor always has them to write to. */

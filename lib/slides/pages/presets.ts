@@ -15,7 +15,7 @@ export const BLOCK_LABELS: Record<Exclude<PageBlockType, "compare">, string> = {
   pillars: "Three pillars",
   figure: "Image or map",
   asks: "Opportunities",
-  panels: "Two panels",
+  panels: "Comparison",
   photos: "Photo cards",
   banner: "Banner with title",
   contacts: "Contacts",
@@ -102,7 +102,10 @@ const DEFAULTS: Record<PageBlockType, () => PageBlock> = {
   panels: () => ({
     type: "panels",
     accent: 1,
-    items: [it("What is running", "- A first point\n- A second point"), it("What we ask", "- A first ask\n- A second ask")],
+    items: [
+      it("What is running", "# A partner\nWhat they give and what it has made possible.\n- A first result\n- A second result"),
+      it("What we ask", "# An area\n- **A company**: what we ask of them\n- **Another**: what we ask of them"),
+    ],
   }),
   contacts: () => ({ type: "contacts", rail: "Contact", lead: "", items: [it("Name Surname", "Role, team", "name@unicef.org")] }),
   heading: () => ({ type: "heading", heading: "What comes next" }),

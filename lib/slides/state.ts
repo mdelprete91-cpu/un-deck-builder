@@ -6,7 +6,7 @@ import { MAX_PARTNERS, partnerSlug } from "./partners";
 import { applyChapterPlan, ensureAgenda, type ChapterPlan } from "./chapters";
 import type { ChartSource } from "./chart-import";
 import { fillPhotos } from "./library";
-import { MAX_BLOCKS_PER_PAGE, PAGE_BLOCK_LIMITS, type PageBlockType, tableCells, tableHeads } from "./pages/schema";
+import { MAX_BLOCKS_PER_PAGE, PAGE_BLOCK_LIMITS, type PageBlockType, tableCells, tableHeads, CALLOUT_TONES, panelTone, type CalloutTone } from "./pages/schema";
 import { defaultBlock, newPageItem } from "./pages/presets";
 import { newItem, defaultContent } from "./defaults";
 import { tierDefaultGrid } from "./layouts/tables";
@@ -141,6 +141,8 @@ export type DeckAction =
   /** Two-pager: pages after an overflow ran on to the next one (pages/fit.ts flowOver). Part of the edit that caused it, so no undo step of its own. */
   | { type: "FLOW_PAGES"; slides: SlideContent[] }
   /** Two-pager table: one column more (at the end) or fewer (the one at `at`), 2 to 5. */
+  /** Two-pager: a status note's colour (slot 0), or one column's of two panels. */
+  | { type: "SET_TONE"; index: number; block: number; slot: number; tone: string }
   /** Two-pager: remove a block's side title so it runs full width, or bring it back. */
   | { type: "TOGGLE_WIDE"; index: number; block: number }
   | { type: "TABLE_COLUMN"; index: number; block: number; add: boolean; at?: number }
@@ -752,6 +754,22 @@ function reduce(state: DeckState, action: DeckAction): DeckState {
       if (stack.length <= 1) return state;
       const clone = structuredClone(slide);
       clone.stack!.splice(action.block, 1);
+      const slides = [...state.slides];
+      slides[action.index] = clone;
+      return { ...state, ...remember(state), slides };
+    }
+    case "SET_TONE": {
+      const slide = state.slides[action.index];
+      const target = slide && isPage(slide) ? slide.stack?.[action.block] : undefined;
+      if (!target) return state;
+      const clone = structuredClone(slide);
+      const b = clone.stack![action.block];
+      if (b.type === "callout" && action.tone in CALLOUT_TONES) b.tone = action.tone as CalloutTone;
+      else if (b.type === "panels") {
+        const tones = [panelTone(b, 0), panelTone(b, 1)] as string[];
+        tones[action.slot] = action.tone;
+        b.tones = tones;
+      } else return state;
       const slides = [...state.slides];
       slides[action.index] = clone;
       return { ...state, ...remember(state), slides };

@@ -145,8 +145,9 @@ interface SlideFrameProps {
   /** Two-pager: whether a block may be removed (page 1's title may not). */
   canDeleteBlock?: ((block: number) => boolean) | null;
   /** Two-pager: a status banner's colour, and changing it (null: the block has none). */
-  toneOf?: ((block: number) => CalloutTone | null) | null;
-  onTone?: ((block: number, tone: CalloutTone) => void) | null;
+  /** Each colour slot of the block (one for a status note, one per column for two panels), null when it has none. */
+  toneOf?: ((block: number) => string[] | null) | null;
+  onTone?: ((block: number, tone: string, slot: number) => void) | null;
   /** Two-pager: whether a block shows its side title (null: it has no side column), and toggling it. */
   sideTitleOf?: ((block: number) => boolean | null) | null;
   onSideTitle?: ((block: number) => void) | null;
@@ -1029,25 +1030,29 @@ export default function SlideFrame({
                     icon={Palette}
                     onClick={() => setTones((v) => !v)}
                     data-tip-side="right" data-tip="Colour"
-                    aria-label="Colour of this banner"
+                    aria-label="Colour"
                     aria-expanded={tones}
                   />
                   {tones && (
-                    <div className="pop-in absolute left-full top-1/2 ml-2 flex -translate-y-1/2 gap-1.5 rounded-full border border-hairline-light bg-surface p-1.5 shadow-float">
-                      {(Object.keys(CALLOUT_TONES) as CalloutTone[]).map((t) => (
-                        <button
-                          key={t}
-                          type="button"
-                          onClick={() => {
-                            onTone(index, t);
-                            setTones(false);
-                          }}
-                          title={t[0].toUpperCase() + t.slice(1)}
-                          aria-label={t}
-                          aria-pressed={t === tone}
-                          className={`size-7 rounded-full transition-transform duration-150 hover:scale-110 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-giga/30 ${t === tone ? "ring-2 ring-ink ring-offset-2 ring-offset-surface" : ""}`}
-                          style={{ background: CALLOUT_TONES[t].solid }}
-                        />
+                    <div className="pop-in absolute left-full top-1/2 ml-2 flex -translate-y-1/2 flex-col gap-1.5 rounded-3xl border border-hairline-light bg-surface p-1.5 shadow-float">
+                      {tone.map((current, slot) => (
+                        <div key={slot} className="flex items-center gap-1.5">
+                          {tone.length > 1 && <span className="w-9 pl-1 text-xs text-ink-muted">{slot === 0 ? "Left" : "Right"}</span>}
+                          {(tone.length > 1 ? ["grey", ...Object.keys(CALLOUT_TONES)] : Object.keys(CALLOUT_TONES)).map((t) => (
+                            <button
+                              key={t}
+                              type="button"
+                              onClick={() => {
+                                onTone(index, t, slot);
+                                if (tone.length === 1) setTones(false);
+                              }}
+                              aria-label={`${tone.length > 1 ? (slot === 0 ? "Left" : "Right") + " " : ""}${t}`}
+                              aria-pressed={t === current}
+                              className={`size-7 rounded-full transition-transform duration-150 hover:scale-110 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-giga/30 ${t === current ? "ring-2 ring-ink ring-offset-2 ring-offset-surface" : ""} ${t === "grey" ? "border border-hairline" : ""}`}
+                              style={{ background: t === "grey" ? "#EFF2F5" : CALLOUT_TONES[t as CalloutTone].solid }}
+                            />
+                          ))}
+                        </div>
                       ))}
                     </div>
                   )}

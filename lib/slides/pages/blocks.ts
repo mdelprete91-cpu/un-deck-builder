@@ -4,7 +4,7 @@ import { countryMapSrc, isCountryMap } from "../country-maps";
 import { DEFAULT_PHOTO } from "../library";
 import type { BrandTheme } from "../brand";
 import type { ImagePos } from "../schema";
-import { CALLOUT_TONES, tableCells, tableHeads, type PageBlock, type PageBlockType, type PageItem } from "./schema";
+import { CALLOUT_TONES, panelTone, tableCells, tableHeads, type PageBlock, type PageBlockType, type PageItem } from "./schema";
 import { PALETTE, type Density, edP, firstBaseline, FONT, GRID, LS, pt, TYPE } from "./a4";
 
 /**
@@ -347,24 +347,54 @@ const photos: BlockRender = (b, { path, d }) => {
  * Two headed columns side by side, the ask in orange (template frames 7/8).
  * A body line that starts with "- " is a bullet.
  */
+/**
+ * Two columns compared, as on the US partnerships piece (Mario, 7 Oct 2026):
+ * each under its own head, grey or a colour (the ask in orange by default,
+ * any of CALLOUT_TONES picked in the side bar). A column is written in lines:
+ * "# " a bold subhead, "- " a bullet, "**Name**: text" a bold lead, the rest
+ * paragraphs. The markers stay in the text, drawn at size 0, so an edit read
+ * back with innerText keeps them. A long block runs on to the next page as a
+ * continuation without its heads (flowOver splits it by line, data-line).
+ */
 const panels: BlockRender = (b, { path, d }) => {
+  // Zero size and zero line height: in the text, never in the layout.
+  const hide = (m: string) => `<span style="font-size:0;line-height:0;">${esc(m)}</span>`;
+  // **bold** anywhere in a line.
+  const inline = (t: string) =>
+    t
+      .split(/(\*\*[^*]+\*\*)/)
+      .map((part) => {
+        const m = /^\*\*([^*]+)\*\*$/.exec(part);
+        return m ? `${hide("**")}<strong style="font-weight:700;">${esc(m[1])}</strong>${hide("**")}` : esc(part);
+      })
+      .join("");
   const cols = (b.items ?? [])
     .map((it, i) => {
-      const on = b.accent === i;
+      const tone = panelTone(b, i);
+      const grey = tone === "grey";
+      const c = CALLOUT_TONES[tone as keyof typeof CALLOUT_TONES];
       const lines = it.body.split("\n").filter((l) => l.trim());
-      const anyBullet = lines.some((l) => /^[-•]\s/.test(l));
-      const body = anyBullet
-        ? lines
-            .map((l) => {
-              const isB = /^[-•]\s/.test(l);
-              return `<div style="position:relative;${isB ? `padding-left:${pt(11)};` : ""}margin-top:${pt(4)};">${isB ? `<span style="position:absolute;left:${pt(1)};top:${pt(d.lh / 2 - 1.5)};width:${pt(3)};height:${pt(3)};border-radius:50%;background:${PALETTE.ink};"></span>` : ""}${esc(l.replace(/^[-•]\s/, ""))}</div>`;
-            })
-            .join("")
-        : esc(it.body);
+      const body = lines
+        .map((l, j) => {
+          const line = `data-line="${i}.${j}"`;
+          if (/^#\s/.test(l))
+            return `<div ${line} style="font-weight:700;margin-top:${pt(j ? 12 : 2)};">${hide("# ")}${esc(l.replace(/^#\s/, ""))}</div>`;
+          if (/^[-•]\s/.test(l))
+            return (
+              `<div ${line} style="position:relative;padding-left:${pt(12)};margin-top:${pt(4)};">` +
+              `<span style="position:absolute;left:${pt(2)};top:${pt(d.lh / 2 - 1.5)};width:${pt(3)};height:${pt(3)};border-radius:50%;background:${PALETTE.ink};"></span>` +
+              `${hide("- ")}${inline(l.replace(/^[-•]\s/, ""))}</div>`
+            );
+          return `<div ${line} style="margin-top:${pt(j ? 4 : 2)};">${inline(l)}</div>`;
+        })
+        .join("");
+      const head = b.cont
+        ? ""
+        : `<div ${edP(`${path}.items.${i}.label`)} style="${TYPE.head(d)}padding:${pt(8)} ${pt(12)};background:${grey ? PALETTE.panel : c.solid};color:${grey ? PALETTE.ink : PALETTE.white};">${esc(it.label)}</div>`;
       return (
-        `<div ${item(`${path}.items.${i}`)} style="position:relative;border-radius:${pt(6)};overflow:hidden;background:${on ? PALETTE.orangeTint : PALETTE.white};border:1pt solid ${on ? PALETTE.orangeBorder : PALETTE.card};">` +
-        `<div ${edP(`${path}.items.${i}.label`)} style="${TYPE.head(d)}padding:${pt(8)} ${pt(12)};background:${on ? PALETTE.orange : PALETTE.panel};color:${on ? PALETTE.white : PALETTE.ink};">${esc(it.label)}</div>` +
-        `<div ${edP(`${path}.items.${i}.body`)} style="${TYPE.body(d)}color:${PALETTE.ink};padding:${pt(6)} ${pt(12)} ${pt(12)};white-space:pre-line;">${body}</div>` +
+        `<div ${item(`${path}.items.${i}`)} style="position:relative;display:flex;flex-direction:column;border-radius:${pt(b.cont ? 0 : 6)} ${pt(b.cont ? 0 : 6)} ${pt(6)} ${pt(6)};overflow:hidden;background:${grey ? PALETTE.white : c.tint};">` +
+        head +
+        `<div ${edP(`${path}.items.${i}.body`)} style="flex:1;${TYPE.body(d)}color:${PALETTE.ink};padding:${pt(b.cont ? 4 : 8)} ${pt(12)} ${pt(12)};">${body}</div>` +
         `</div>`
       );
     })

@@ -18,7 +18,7 @@ import LogoMenu from "@/components/LogoMenu";
 import PartnerLogoModal from "@/components/PartnerLogoModal";
 import { apply, detectLang, LANG_LABELS, LANG_NAMES, plan, newEdits, remember, snapshot, textFields, uiStrings, type DeckLang, type Job, type Lang } from "@/lib/slides/i18n";
 import { undash } from "@/lib/slides/pages/schema";
-import { normalizePage, PAGE_BLOCK_LIMITS, RAIL_BLOCKS, tableHeads, type PageBlock, type PageBlockType } from "@/lib/slides/pages/schema";
+import { normalizePage, PAGE_BLOCK_LIMITS, RAIL_BLOCKS, panelTone, tableHeads, type PageBlock, type PageBlockType } from "@/lib/slides/pages/schema";
 import { defaultContent, denseContent } from "@/lib/slides/defaults";
 import { familyOf } from "@/lib/slides/families";
 import { countFromBrief, languageOf, seriesFromBrief, uniformFromBrief, MIN_SLIDES_WITH_CHAPTERS, TIERS_REQUEST } from "@/lib/slides/brief";
@@ -2004,10 +2004,17 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
                         ? (b) => !(state.activeIndex === 0 && b === 0 && ["banner", "title"].includes(activePage?.stack?.[0]?.type ?? ""))
                         : null
                     }
-                    toneOf={twoPager ? (b) => (activePage?.stack?.[b]?.type === "callout" ? (activePage.stack[b].tone ?? "orange") : null) : null}
-                    onTone={
-                      twoPager ? (b, tone) => dispatch({ type: "EDIT_FIELD", index: state.activeIndex, path: `stack.${b}.tone`, value: tone }) : null
+                    toneOf={
+                      twoPager
+                        ? (b) => {
+                            const t = activePage?.stack?.[b];
+                            if (t?.type === "callout") return [t.tone ?? "orange"];
+                            if (t?.type === "panels") return [panelTone(t, 0), panelTone(t, 1)];
+                            return null;
+                          }
+                        : null
                     }
+                    onTone={twoPager ? (b, tone, slot) => dispatch({ type: "SET_TONE", index: state.activeIndex, block: b, slot, tone }) : null}
                     sideTitleOf={
                       twoPager ? (b) => (activePage?.stack?.[b] && RAIL_BLOCKS.has(activePage.stack[b].type) ? !activePage.stack[b].wide : null) : null
                     }

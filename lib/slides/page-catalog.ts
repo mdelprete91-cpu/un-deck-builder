@@ -59,9 +59,9 @@ export const PAGE_CATALOG: PageCatalogEntry[] = [
   },
   {
     type: "panels",
-    usage: "Two headed columns: what is running vs what is asked for (the second one is the ask)",
+    usage: "Two headed columns compared side by side: what is running vs what is asked for, partners now vs partners wanted, before vs after (the US partnerships piece). Can be long: it runs on to the next page by itself",
     fields:
-      'items(exactly 2: label(column head, <=35 chars), body(lines, each bullet on its own line starting with "- ", <=600 chars)), accent(1 when the second column is the ask, else -1)',
+      'items(exactly 2: label(column head, <=40 chars), body(lines: "# Subhead" for a bold subhead, "- " for a bullet, "**Name**: text" for a bold name leading a line or bullet, otherwise a paragraph; <=1800 chars)), accent(1 when the second column is the ask, drawn in orange, else -1)',
   },
   {
     type: "photos",

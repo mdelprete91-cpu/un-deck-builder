@@ -188,7 +188,14 @@ export async function flowOver(pages: Slide[], t: BrandTheme): Promise<Slide[] |
     let keep: PageBlock[];
     const rows = (block.items ?? []).map((_, k) => host!.querySelector<HTMLElement>(`[data-item="stack.${b}.items.${k}"]`));
     const k = SPLITS.has(block.type) ? rows.findIndex((n) => !!n && n.getBoundingClientRect().bottom > limit) : -1;
-    if (k >= 1) {
+    // Two columns compared run on by line: each column keeps the lines that
+    // fit (a subhead never stays alone at the bottom), the rest continue on
+    // the next page under no heads.
+    const panelSplit = block.type === "panels" ? splitPanels(block, b, limit) : null;
+    if (panelSplit) {
+      keep = [...stack.slice(0, b), panelSplit.keep];
+      carry = [panelSplit.rest, ...stack.slice(b + 1)];
+    } else if (k >= 1) {
       keep = [...stack.slice(0, b), { ...block, items: block.items!.slice(0, k) }];
       const rest: PageBlock = { ...block, items: block.items!.slice(k) };
       // A section runs on under no label; a table keeps its column heads.
@@ -205,4 +212,25 @@ export async function flowOver(pages: Slide[], t: BrandTheme): Promise<Slide[] |
   }
   host!.innerHTML = "";
   return changed ? out : null;
+}
+
+/** Where a two-column block breaks at the bottom of the page, or null when no line fits. */
+function splitPanels(block: PageBlock, b: number, limit: number): { keep: PageBlock; rest: PageBlock } | null {
+  const items = block.items ?? [];
+  const cut = items.map((it, i) => {
+    const lines = it.body.split("\n").filter((l) => l.trim());
+    let k = lines.findIndex((_, j) => {
+      const n = host!.querySelector<HTMLElement>(`[data-block="${b}"] [data-line="${i}.${j}"]`);
+      return !!n && n.getBoundingClientRect().bottom > limit;
+    });
+    if (k < 0) k = lines.length;
+    // A subhead goes with what follows it.
+    while (k > 0 && k < lines.length && /^#\s/.test(lines[k - 1])) k--;
+    return { lines, k };
+  });
+  if (cut.every((c) => c.k >= c.lines.length) || cut.every((c) => c.k === 0)) return null;
+  return {
+    keep: { ...block, items: items.map((it, i) => ({ ...it, body: cut[i].lines.slice(0, cut[i].k).join("\n") })) },
+    rest: { ...block, cont: true, items: items.map((it, i) => ({ ...it, body: cut[i].lines.slice(cut[i].k).join("\n") })) },
+  };
 }
