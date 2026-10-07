@@ -111,7 +111,7 @@ export default function Sidebar({
             disabled={generating}
             options={[
               { value: "slides", label: "Slides", hint: "A 16:9 deck to present" },
-              { value: "two-pager", label: "Two-pager", hint: "Two A4 pages, made to be printed" },
+              { value: "two-pager", label: "Two-pager", hint: "Two A4 pages, made to be printed", badge: "beta" },
             ]}
             onChange={(format) => {
               // The formats do not mix: switching with content starts a new document.

@@ -9,6 +9,8 @@ export interface SelectOption<T extends string> {
   label: string;
   /** Shown under the label in the menu, muted. */
   hint?: string;
+  /** A small pill after the label, e.g. "beta". */
+  badge?: string;
   disabled?: boolean;
 }
 
@@ -80,6 +82,7 @@ export default function Select<T extends string>({
         className="max-w-full"
       >
         <span className="truncate">{current?.label ?? value}</span>
+        {current?.badge && <BetaPill text={current.badge} />}
       </Button>
 
       {open && (
@@ -128,7 +131,10 @@ export default function Select<T extends string>({
                 } ${selected ? "bg-mist" : ""}`}
               >
                 <span className="min-w-0">
-                  <span className="block truncate">{o.label}</span>
+                  <span className="flex items-center gap-1.5 truncate">
+                    {o.label}
+                    {o.badge && <BetaPill text={o.badge} />}
+                  </span>
                   {o.hint && <span className="block text-xs text-ink-muted">{o.hint}</span>}
                 </span>
                 {selected && (
@@ -140,5 +146,14 @@ export default function Select<T extends string>({
         </div>
       )}
     </div>
+  );
+}
+
+/** A light blue pill: a cyan tint behind blue text (Mario, 7 Oct 2026: two-pager "beta"). */
+function BetaPill({ text }: { text: string }) {
+  return (
+    <span className="inline-flex h-[18px] shrink-0 items-center rounded-full bg-[#1cabe2]/15 px-1.5 text-[11px] font-medium leading-none text-[#1c8fd9] dark:bg-[#1cabe2]/20 dark:text-[#5cc4f0]">
+      {text}
+    </span>
   );
 }
