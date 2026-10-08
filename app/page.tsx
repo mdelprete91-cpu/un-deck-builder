@@ -2338,13 +2338,6 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
             aria-live="polite"
           >
             <div className={`gen-veil absolute inset-0 ${state.slides.length > 0 ? "is-on" : ""}`} />
-            {/* The slide (or page) being made: a blank skeleton with a faint
-                sweep, there until the first one lands (Mario, 8 Oct 2026). */}
-            {state.slides.length === 0 && (
-              <div className="gen-skeleton-box">
-                <div className={`gen-skeleton ${twoPager ? "is-page" : ""}`} />
-              </div>
-            )}
             <div className="relative flex flex-col items-center">
               <div ref={genPillRef} className="gen-spinner" style={{ "--dx": `${spinner.dx}px`, "--dy": `${spinner.dy}px` } as React.CSSProperties}>
                 <GlassFan spinning />

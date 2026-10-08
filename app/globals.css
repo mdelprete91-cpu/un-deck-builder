@@ -1094,46 +1094,6 @@ body {
   16.667% { opacity: 1; }
   33.333%, 100% { opacity: 0; }
 }
-/* The generation stage (Mario, 8 Oct 2026, from a reference): the fan
-   shrinks into a small wheel of six cards, centred on a blank
-   skeleton of the slide being made. The skeleton fades in with a sweep of
-   light so faint it only says "working". */
-.gen-skeleton-box {
-  position: absolute;
-  inset: 24px 24px 40px;
-  display: grid;
-  place-items: center;
-  container-type: size;
-  pointer-events: none;
-}
-.gen-skeleton {
-  position: relative;
-  width: min(100cqw, 100cqh * 16 / 9);
-  aspect-ratio: 16 / 9;
-  border-radius: 12px;
-  overflow: hidden;
-  background: color-mix(in srgb, var(--color-ink) 4%, var(--color-surface));
-  animation: gen-skeleton-in 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
-}
-.gen-skeleton.is-page {
-  width: min(100cqw, 100cqh / 1.414);
-  aspect-ratio: 1 / 1.414;
-}
-.gen-skeleton::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  /* Wide and faint: a slow drift of light, not a scanner. */
-  background: linear-gradient(100deg, transparent 15%, color-mix(in srgb, var(--color-ink) 1.6%, transparent) 50%, transparent 85%);
-  translate: -100% 0;
-  animation: gen-sweep 5s cubic-bezier(0.45, 0, 0.55, 1) 0.6s infinite;
-}
-@keyframes gen-skeleton-in {
-  from { opacity: 0; scale: 0.98; }
-}
-@keyframes gen-sweep {
-  to { translate: 100% 0; }
-}
 
 .gen-spinner {
   position: relative;
@@ -1184,8 +1144,6 @@ body {
   .glass-spin { animation: none; }
   .glass-spin .glass-card::before { animation: none; }
   .glass-spin .glass-card-0::before { opacity: 1; }
-  .gen-skeleton { animation: none; }
-  .gen-skeleton::after { animation: none; display: none; }
 }
 
 
