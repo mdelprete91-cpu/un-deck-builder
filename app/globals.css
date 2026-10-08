@@ -987,7 +987,6 @@ body {
 .glass-fan.glass-spin {
   width: 220px;
   height: 220px;
-  will-change: transform;
 }
 .glass-spin .glass-card {
   animation: glass-gather 0.6s cubic-bezier(0.22, 1, 0.36, 1) var(--d, 0s) forwards;
@@ -999,15 +998,15 @@ body {
    gradient card is painted first and the glass ones over it refract its
    colour, as in the fan. --o is each card's opacity. */
 .glass-spin .glass-card { --t: 40deg; }
-.glass-spin .glass-card-0 { --a: 0deg; --o: 1; --d: 0s; }
-.glass-spin .glass-card-1 { --a: 60deg; --o: 0.8; --d: 0.04s; }
-.glass-spin .glass-card-2 { --a: 180deg; --o: 0.9; --d: 0.08s; }
-.glass-spin .glass-card-3 { --a: 240deg; --o: 1; --d: 0.12s; }
+.glass-spin .glass-card-0 { --a: 0deg; --o: 1; --d: 0s; --p: 0; }
+.glass-spin .glass-card-1 { --a: 60deg; --o: 1; --d: 0.04s; --p: 1; }
+.glass-spin .glass-card-2 { --a: 180deg; --o: 1; --d: 0.08s; --p: 3; }
+.glass-spin .glass-card-3 { --a: 240deg; --o: 1; --d: 0.12s; --p: 4; }
 /* The two new cards start hidden under the slot before theirs and slide
    out to 120deg and 300deg on the same curve and time as the gather, so
    they seem to fan out of their neighbours rather than appear. */
-.glass-spin .glass-card-4 { --a: 120deg; --from: 60deg; --o: 0.85; }
-.glass-spin .glass-card-5 { --a: 300deg; --from: 240deg; --o: 0.95; }
+.glass-spin .glass-card-4 { --a: 120deg; --from: 60deg; --o: 1; --p: 2; }
+.glass-spin .glass-card-5 { --a: 300deg; --from: 240deg; --o: 1; --p: 5; }
 .glass-spin .glass-card-x {
   animation: glass-split 0.6s cubic-bezier(0.22, 1, 0.36, 1) 0.05s both;
 }
@@ -1030,31 +1029,45 @@ body {
     transform: rotate(var(--a)) translateY(-46px) rotate(calc(90deg + var(--t))) scale(0.44);
   }
 }
-/* In the fan every glass card sits over some of the gradient and picks up
-   its colour; in the wheel most of them sit over nothing and go pale next
-   to the gradient card (Mario, 8 Oct 2026). A faint wash of the same
-   gradient inside each glass card, faded in as they gather, evens the
-   weight and keeps the sheen and edges of the glass on top. */
-.glass-spin .glass-card:not(.glass-card-0)::before {
+/* The wheel does not turn: the colour does (Mario, 8 Oct 2026). All six
+   cards are glass, each with the gradient inside at a faint --wash, and
+   the full gradient with its glow passes from card to card clockwise, one
+   at a time, fading out behind like a trail. The gradient card of the fan
+   becomes glass in the wheel with the light already on it, so the swap
+   does not show. --p is the card's place round the wheel. */
+.glass-spin .glass-card-0 {
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.34) 0%, rgba(255, 255, 255, 0.08) 38%, rgba(255, 255, 255, 0) 55%, rgba(255, 255, 255, 0.1) 100%),
+    rgba(103, 133, 255, 0.18);
+}
+.dark .glass-spin .glass-card-0 {
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.28) 0%, rgba(255, 255, 255, 0.06) 38%, rgba(255, 255, 255, 0) 55%, rgba(255, 255, 255, 0.08) 100%),
+    rgba(103, 133, 255, 0.22);
+}
+.glass-spin .glass-card::before {
   content: "";
   position: absolute;
   inset: 0;
   border-radius: inherit;
   background: linear-gradient(0deg, #2040ff, #35ffbb);
-  opacity: 0;
+  box-shadow: 0 0 26px 2px rgba(40, 140, 255, 0.5);
+  opacity: var(--wash, 0.3);
   pointer-events: none;
-  animation: glass-wash 0.6s cubic-bezier(0.22, 1, 0.36, 1) 0.1s forwards;
+  animation: glass-light 2.4s cubic-bezier(0.45, 0, 0.55, 1) calc(var(--p) * 0.4s - 2.4s) infinite;
 }
-@keyframes glass-wash {
-  to { opacity: var(--wash, 0.3); }
+@keyframes glass-light {
+  0%, 6% { opacity: 1; }
+  42%, 86% { opacity: var(--wash, 0.3); }
+  100% { opacity: 1; }
 }
-.dark .glass-spin .glass-card:not(.glass-card-0)::before { --wash: 0.34; }
+.dark .glass-spin .glass-card::before { --wash: 0.34; }
 /* Spline's liquid glass, as far as CSS goes (Mario, 8 Oct 2026): a thick
    pane with a bright bevelled rim, a soft inner glow for depth, a thin
    cyan and magenta fringe on opposite edges for the chromatic aberration,
    a stronger refraction of what is behind, and a specular highlight in
    the top corner on top of the colour wash. */
-.glass-spin .glass-card:not(.glass-card-0) {
+.glass-spin .glass-card {
   -webkit-backdrop-filter: blur(10px) saturate(1.9) brightness(1.12) contrast(1.05);
   backdrop-filter: blur(10px) saturate(1.9) brightness(1.12) contrast(1.05);
   box-shadow:
@@ -1065,7 +1078,7 @@ body {
     inset 0 0 16px rgba(255, 255, 255, 0.3),
     0 10px 24px -12px rgba(20, 40, 160, 0.45);
 }
-.dark .glass-spin .glass-card:not(.glass-card-0) {
+.dark .glass-spin .glass-card {
   box-shadow:
     inset 1.5px 1.5px 0 rgba(255, 255, 255, 0.6),
     inset -1px -1px 0 rgba(255, 255, 255, 0.18),
@@ -1074,7 +1087,7 @@ body {
     inset 0 0 16px rgba(255, 255, 255, 0.16),
     0 12px 26px -12px rgba(0, 0, 0, 0.65);
 }
-.glass-spin .glass-card:not(.glass-card-0)::after {
+.glass-spin .glass-card::after {
   content: "";
   position: absolute;
   inset: 0;
@@ -1084,21 +1097,7 @@ body {
     linear-gradient(135deg, rgba(255, 255, 255, 0) 55%, rgba(255, 255, 255, 0.14) 100%);
   pointer-events: none;
 }
-/* One smooth turn: a quadratic ease-in over 60deg in 0.8s ends at 150deg/s,
-   the speed of the linear 2.4s turn that follows, so there is no step. */
-.glass-spin {
-  animation:
-    glass-turn-in 0.8s cubic-bezier(0.11, 0, 0.5, 0) both,
-    glass-turn 2.4s linear 0.8s infinite;
-}
-@keyframes glass-turn-in {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(60deg); }
-}
-@keyframes glass-turn {
-  from { transform: rotate(60deg); }
-  to { transform: rotate(420deg); }
-}
+
 .gen-spinner {
   animation: gen-travel 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
@@ -1144,7 +1143,7 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .glass-spin .glass-card, .gen-spinner, .gen-label { animation-duration: 0.01ms; animation-delay: 0s; }
   .glass-spin { animation: none; }
-  .glass-spin .glass-card:not(.glass-card-0)::before { animation-duration: 0.01ms; animation-delay: 0s; }
+  .glass-spin .glass-card::before { animation: none; }
 }
 
 
