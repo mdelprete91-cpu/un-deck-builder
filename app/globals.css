@@ -1177,15 +1177,20 @@ body {
    (Mario, 8 Oct 2026: check the contrast). No lift there, a deeper tint,
    a defined blue hairline and a firmer shadow, so the card holds its shape
    and the colour stays saturated. */
-:root:not(.dark) .glass-fan.glass-spin .glass-card-3 {
-  background:
-    linear-gradient(135deg, rgba(255, 255, 255, 0.4) 0%, rgba(255, 255, 255, 0.1) 38%, rgba(255, 255, 255, 0) 55%, rgba(255, 255, 255, 0.12) 100%),
-    rgba(90, 120, 255, 0.16);
-  box-shadow:
-    inset 0 0 0 1px rgba(32, 64, 255, 0.22),
-    inset 1px 1px 0 rgba(255, 255, 255, 0.7),
-    0 14px 30px -14px rgba(20, 40, 160, 0.55);
-  --lift: 1;
+:root:not(.dark) .glass-fan.glass-spin .glass-card-3 { --lift: 1; }
+/* The light-mode tint and hairline come in with the crossfade, on a layer,
+   so at the click the front card is still exactly the fan's (nothing it
+   shows is covered up at once). */
+:root:not(.dark) .glass-fan.glass-spin .glass-card-3::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: rgba(90, 120, 255, 0.1);
+  box-shadow: inset 0 0 0 1px rgba(32, 64, 255, 0.22);
+  opacity: 0;
+  pointer-events: none;
+  animation: glass-light-in 1.2s cubic-bezier(0.37, 0, 0.63, 1) 0.5s forwards;
 }
 @keyframes glass-front {
   from {
@@ -1263,7 +1268,7 @@ body {
   .glass-spin .glass-light::before, .glass-spin .glass-light::after, .glass-spin .glass-light-white, .glass-spin .glass-light-mint { animation: none; }
   .glass-fan.glass-spin .glass-card-3::after { animation: none; opacity: 1; }
   .glass-fan.glass-spin .glass-card-3 { animation: glass-close 0.01ms both, glass-front 0.01ms both; }
-  .dark .glass-fan.glass-spin .glass-card-3::before { animation: none; opacity: 1; }
+  .glass-fan.glass-spin .glass-card-3::before { animation: none; opacity: 1; }
 }
 
 
