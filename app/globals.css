@@ -1040,11 +1040,11 @@ body {
 @keyframes glass-split {
   0% {
     opacity: 0;
-    transform: rotate(var(--from)) translateY(-19px) rotate(calc(90deg + var(--t))) scale(0.15);
+    transform: rotate(var(--from)) translateY(-15px) rotate(calc(90deg + var(--t))) scale(0.15);
   }
   100% {
     opacity: var(--o);
-    transform: rotate(var(--a)) translateY(-19px) rotate(calc(90deg + var(--t))) scale(0.15);
+    transform: rotate(var(--a)) translateY(-15px) rotate(calc(90deg + var(--t))) scale(0.15);
   }
 }
 @keyframes glass-gather {
@@ -1053,7 +1053,7 @@ body {
   }
   to {
     opacity: var(--o);
-    transform: rotate(var(--a)) translateY(-19px) rotate(calc(90deg + var(--t))) scale(0.15);
+    transform: rotate(var(--a)) translateY(-15px) rotate(calc(90deg + var(--t))) scale(0.15);
   }
 }
 /* The wheel does not turn: the colour does (Mario, 8 Oct 2026). All six
