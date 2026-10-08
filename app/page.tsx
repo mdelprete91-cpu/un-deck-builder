@@ -280,6 +280,7 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
     // A new deck is written in its brief's language, which becomes its original
     // (a replica's is its document's: read off the deck at the first switch).
     const briefLang = opts.replace && !body.source && typeof body.brief === "string" ? detectLang(body.brief, languageOf(body.brief)) : undefined;
+    startSpinner();
     dispatch({ type: "GENERATION_START", replace: opts.replace, source: briefLang });
     const rhythm = opts.rhythm ? makeRhythm(opts.rhythm) : null;
     // Before the first slide of a fresh deck lands, the "Generating…" pill's
@@ -927,6 +928,7 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
     abortRef.current?.abort();
     const controller = new AbortController();
     abortRef.current = controller;
+    startSpinner();
     dispatch({ type: "GENERATION_START", replace: true });
     let sourceSlides: ReturnType<typeof slidesFromTranscript> = [];
     try {
@@ -1750,6 +1752,37 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
   /** Two-pager: the fit pass is measuring and resizing the pages (lib/slides/pages/fit.ts). */
   const [fitting, setFitting] = useState(false);
   /**
+   * The generation spinner (Mario, 8 Oct 2026): the glass fan gathered into a
+   * turning pinwheel over the stage, in place of the "Generating" pill. On
+   * from the first call of a generation until it and the page fitting are
+   * done; `from` is where it starts (the empty stage's fan) relative to the
+   * stage's centre, so it glides from there.
+   */
+  const [spinner, setSpinner] = useState<{ dx: number; dy: number; leaving: boolean } | null>(null);
+  const emptyFanRef = useRef<HTMLDivElement>(null);
+  const stageAreaRef = useRef<HTMLDivElement>(null);
+  const startSpinner = () => {
+    setSpinner((cur) => {
+      if (cur && !cur.leaving) return cur;
+      const fan = emptyFanRef.current?.getBoundingClientRect();
+      const area = stageAreaRef.current?.getBoundingClientRect();
+      if (!fan || !area) return { dx: 0, dy: 0, leaving: false };
+      return { dx: fan.left + fan.width / 2 - (area.left + area.width / 2), dy: fan.top + fan.height / 2 - (area.top + area.height / 2), leaving: false };
+    });
+  };
+  // Off once the generation and its fitting are over: a short wait so the
+  // gap between two passes of a replica does not flicker, then it leaves.
+  useEffect(() => {
+    if (!spinner || spinner.leaving || state.status === "generating" || fitting) return;
+    const t = setTimeout(() => setSpinner((cur) => (cur ? { ...cur, leaving: true } : cur)), 450);
+    return () => clearTimeout(t);
+  }, [spinner, state.status, fitting]);
+  useEffect(() => {
+    if (!spinner?.leaving) return;
+    const t = setTimeout(() => setSpinner(null), 520);
+    return () => clearTimeout(t);
+  }, [spinner?.leaving]);
+  /**
    * A switch waiting on the question about the texts changed by hand in the
    * language being left (components/EditChoice.tsx).
    */
@@ -1928,48 +1961,12 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
             }
           }}
         />
-        {state.slides.length === 0 && state.status === "generating" ? (
-          // The empty stage turning into the spinner (Mario, 8 Oct 2026): the
-          // same layout, so the fan stays where it was; its cards gather into
-          // a turning pinwheel while the words fade out and "Generating…"
-          // fades in. The first slide flies in from the spinner's place.
-          <>
-            <EmptyToolbar onOpenDeckFile={openDeckFilePicker} />
-            <div className="relative flex flex-1 flex-col items-center justify-center gap-4 pb-[10vh]" aria-busy aria-live="polite">
-              <div ref={genPillRef} className="mb-12">
-                <GlassFan spinning />
-              </div>
-              <div className="relative flex flex-col items-center gap-4">
-                <h1 aria-hidden className="gen-text-out text-[26px] font-medium tracking-tight text-ink">
-                  {twoPager ? "What goes on the two pages?" : "What are we presenting today?"}
-                </h1>
-                <p aria-hidden className="gen-text-out -mt-1.5 max-w-md text-balance text-center text-sm leading-relaxed text-ink-muted">
-                  {twoPager
-                    ? "Tell us on the left, or attach a document. Your A4 pages land here, ready to edit and print."
-                    : "Tell us on the left, or attach a document. Your slides land here, ready to edit."}
-                </p>
-                <div className="gen-text-in absolute left-1/2 top-0 flex w-[min(560px,calc(100vw-48px))] -translate-x-1/2 flex-col items-center gap-4">
-                  <p className="text-[15px] font-medium text-ink-muted">Generating…</p>
-                  {twoPager && livePlan && livePlan.length > 0 && (
-                    // The plan as it arrives: which block tells which part, page by page.
-                    <ol className="flex w-full flex-col gap-1 text-[13px] leading-snug">
-                      {livePlan.slice(-8).map((r, i) => (
-                        <li key={`${livePlan.length - Math.min(8, livePlan.length) + i}`} className="float-in grid grid-cols-[52px_120px_minmax(0,1fr)] gap-3 text-ink-muted">
-                          <span className="tabular-nums text-ink-faint">Page {r.page}</span>
-                          <span className="font-medium text-ink">{BLOCK_LABELS[r.block as keyof typeof BLOCK_LABELS] ?? r.block}</span>
-                          <span className="truncate">{r.part.replace(/\s*[—–]\s*/g, ", ")}</span>
-                        </li>
-                      ))}
-                    </ol>
-                  )}
-                </div>
-              </div>
-            </div>
-          </>
-        ) : state.slides.length === 0 ? (
+        {state.slides.length === 0 ? (
           <>
             <EmptyToolbar onOpenDeckFile={openDeckFilePicker} />
             <EmptyState
+            fanRef={emptyFanRef}
+            leaving={!!spinner}
             twoPager={twoPager}
             previous={previous}
             onRestorePrevious={onRestorePrevious}
@@ -2239,7 +2236,8 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
                       landing slide and the aurora never restarts. */}
                   {/* A two-pager's actions live in the side bar beside the page
                       (SlideFrame): the bottom pill only says it is busy. */}
-                  {(!twoPager || state.status === "generating" || fitting || translating) && (
+                  {/* While the glass spinner runs it is the busy sign: no "Generating" pill. */}
+                  {(!twoPager || translating || (fitting && !spinner)) && (!spinner || translating) && (
                   <SlideActions
                     key={state.status === "generating" ? "generating" : active.id}
                     busy={state.status === "generating" || fitting || !!translating}
@@ -2294,6 +2292,42 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
             )}
             </div>
           </>
+        )}
+        {/* The generation spinner over the stage (Mario, 8 Oct 2026). It starts
+            where the empty stage's fan was and glides to the centre while the
+            cards gather; slides that land meanwhile stay blurred under it. */}
+        <div ref={stageAreaRef} aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 top-[57px]" />
+        {spinner && (
+          <div
+            className={`gen-overlay absolute inset-x-0 bottom-0 top-[57px] z-30 flex flex-col items-center justify-center ${spinner.leaving ? "is-leaving" : ""}`}
+            aria-busy={!spinner.leaving}
+            aria-live="polite"
+          >
+            <div className={`gen-veil absolute inset-0 ${state.slides.length > 0 ? "is-on" : ""}`} />
+            <div className="relative flex flex-col items-center">
+              <div ref={genPillRef} className="gen-spinner" style={{ "--dx": `${spinner.dx}px`, "--dy": `${spinner.dy}px` } as React.CSSProperties}>
+                <GlassFan spinning />
+              </div>
+              {/* Hung under the wheel, out of the flow: the wheel alone is centred, so it lands exactly where it was aimed. */}
+              <div className="absolute left-1/2 top-full flex w-[min(560px,calc(100vw-48px))] -translate-x-1/2 justify-center">
+              <div className="gen-label mt-4 flex w-full flex-col items-center gap-4">
+                <p className="text-[15px] font-medium text-ink">{state.slides.length > 0 && fitting ? "Fitting the pages…" : "Generating…"}</p>
+                {twoPager && livePlan && livePlan.length > 0 && state.slides.length === 0 && (
+                  // The plan as it arrives: which block tells which part, page by page.
+                  <ol className="flex w-full flex-col gap-1 text-[13px] leading-snug">
+                    {livePlan.slice(-8).map((r, i) => (
+                      <li key={`${livePlan.length - Math.min(8, livePlan.length) + i}`} className="float-in grid grid-cols-[52px_120px_minmax(0,1fr)] gap-3 text-ink-muted">
+                        <span className="tabular-nums text-ink-faint">Page {r.page}</span>
+                        <span className="font-medium text-ink">{BLOCK_LABELS[r.block as keyof typeof BLOCK_LABELS] ?? r.block}</span>
+                        <span className="truncate">{r.part.replace(/\s*[—–]\s*/g, ", ")}</span>
+                      </li>
+                    ))}
+                  </ol>
+                )}
+              </div>
+              </div>
+            </div>
+          </div>
         )}
       </main>
 
@@ -2428,11 +2462,17 @@ function EmptyToolbar({ onOpenDeckFile }: { onOpenDeckFile: () => void }) {
 }
 
 function EmptyState({
+  fanRef,
+  leaving,
   twoPager,
   previous,
   onRestorePrevious,
   onDismissPrevious,
 }: {
+  /** The fan, measured when the spinner takes it over. */
+  fanRef: React.RefObject<HTMLDivElement | null>;
+  /** A generation started: the words fade, the spinner holds the fan's place. */
+  leaving: boolean;
   twoPager: boolean;
   previous: Partial<DeckState> | null;
   onRestorePrevious: () => void;
@@ -2449,13 +2489,13 @@ function EmptyState({
     <div className="relative flex flex-1 flex-col items-center justify-center gap-4 pb-[10vh]">
       {
         <>
-          <div className="empty-in mb-12">
+          <div ref={fanRef} className="empty-in mb-12" style={leaving ? { visibility: "hidden" } : undefined}>
             <GlassFan />
           </div>
-          <h1 className="empty-in text-[26px] font-medium tracking-tight text-ink" style={{ "--i": 1 } as React.CSSProperties}>
+          <h1 className={`${leaving ? "gen-text-out" : "empty-in"} text-[26px] font-medium tracking-tight text-ink`} style={{ "--i": 1 } as React.CSSProperties}>
             {twoPager ? "What goes on the two pages?" : "What are we presenting today?"}
           </h1>
-          <p className="empty-in -mt-1.5 max-w-md text-balance text-center text-sm leading-relaxed text-ink-muted" style={{ "--i": 2 } as React.CSSProperties}>
+          <p className={`${leaving ? "gen-text-out" : "empty-in"} -mt-1.5 max-w-md text-balance text-center text-sm leading-relaxed text-ink-muted`} style={{ "--i": 2 } as React.CSSProperties}>
             {twoPager
               ? "Tell us on the left, or attach a document. Your A4 pages land here, ready to edit and print."
               : "Tell us on the left, or attach a document. Your slides land here, ready to edit."}

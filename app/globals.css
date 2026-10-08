@@ -970,46 +970,96 @@ body {
   .glass-card { animation: none; }
 }
 
-/* The generation spinner (GlassFan spinning, Mario 8 Oct 2026). Each card
-   travels from the fan's resting pose to its quarter of a pinwheel, a step
-   behind the one before, then the whole wheel turns. The words of the empty
-   stage fade out as "Generating…" fades in. */
+/* The generation spinner (GlassFan spinning over .gen-overlay, Mario
+   8 Oct 2026), after a Revolut card pinwheel: each card points out from the
+   centre, long side along the radius, leaving a hole in the middle, with a
+   small pinwheel tilt.
+   - Gather: each card travels from the fan's resting pose to its spoke in
+     0.9s on an expo ease-out, a beat after the one before.
+   - Turn: the wheel starts slowly and reaches its cruise speed with no step:
+     a quadratic ease-in over 90deg in 1.5s ends at 120deg/s, which is the
+     speed of the linear 3s turn that follows.
+   - Travel: the overlay's spinner starts on the empty stage's fan and
+     glides to the stage's centre (--dx, --dy) on the same curve as the
+     gather, so the two read as one movement. */
+/* The wheel's box is square and as wide as the wheel, so the label under it
+   clears the lowest card. Cards stay centred in it. */
+.glass-fan.glass-spin {
+  width: 250px;
+  height: 250px;
+}
 .glass-spin .glass-card {
   animation: glass-gather 0.9s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
-.glass-spin .glass-card-0 { --a: 270deg; animation-delay: 0s; }
-.glass-spin .glass-card-1 { --a: 0deg; animation-delay: 0.06s; }
-.glass-spin .glass-card-2 { --a: 90deg; animation-delay: 0.12s; }
-.glass-spin .glass-card-3 { --a: 180deg; animation-delay: 0.18s; }
+.glass-spin .glass-card-0 { --a: 0deg; animation-delay: 0s; }
+.glass-spin .glass-card-1 { --a: 90deg; animation-delay: 0.05s; }
+.glass-spin .glass-card-2 { --a: 180deg; animation-delay: 0.1s; }
+.glass-spin .glass-card-3 { --a: 270deg; animation-delay: 0.15s; }
 @keyframes glass-gather {
   from {
     transform: translate(calc(var(--x) * 0.7 * var(--s) * 1px), calc(var(--y) * 0.7 * var(--s) * 1px)) rotate(calc(var(--r) * 0.7 * 1deg));
   }
   to {
-    transform: rotate(var(--a)) translateY(-44px) scale(0.6);
+    transform: rotate(var(--a)) translate(10px, -72px) rotate(78deg) scale(0.66);
   }
 }
 .glass-spin {
-  animation: glass-turn 2.6s linear 0.9s infinite;
+  animation:
+    glass-turn-in 1.5s cubic-bezier(0.11, 0, 0.5, 0) 0.15s both,
+    glass-turn 3s linear 1.65s infinite;
+}
+@keyframes glass-turn-in {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(90deg); }
 }
 @keyframes glass-turn {
-  to { transform: rotate(360deg); }
+  from { transform: rotate(90deg); }
+  to { transform: rotate(450deg); }
+}
+.gen-spinner {
+  animation: gen-travel 0.9s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+@keyframes gen-travel {
+  from { transform: translate(var(--dx, 0), var(--dy, 0)); }
+  to { transform: none; }
+}
+.gen-label {
+  animation: gen-label-in 0.5s cubic-bezier(0.16, 1, 0.3, 1) 0.45s both;
+}
+@keyframes gen-label-in {
+  from { opacity: 0; transform: translateY(6px); }
+}
+/* Slides that land under the spinner stay out of focus until it is done. */
+.gen-veil {
+  opacity: 0;
+  background: color-mix(in srgb, var(--color-surface) 58%, transparent);
+  -webkit-backdrop-filter: blur(14px) saturate(1.1);
+  backdrop-filter: blur(14px) saturate(1.1);
+  transition: opacity 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.gen-veil.is-on {
+  opacity: 1;
+  pointer-events: auto;
 }
 .gen-text-out {
-  animation: gen-text-out 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: gen-text-out 0.45s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 @keyframes gen-text-out {
-  to { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 0; transform: translateY(-6px); }
 }
-.gen-text-in {
+/* Leaving: the wheel shrinks and fades, the veil clears behind it. */
+.gen-overlay.is-leaving .gen-spinner,
+.gen-overlay.is-leaving .gen-label {
+  animation: none;
+  transition: opacity 0.4s cubic-bezier(0.16, 1, 0.3, 1), transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
   opacity: 0;
-  animation: gen-text-in 0.5s cubic-bezier(0.16, 1, 0.3, 1) 0.35s forwards;
+  transform: scale(0.85);
 }
-@keyframes gen-text-in {
-  from { opacity: 0; transform: translate(-50%, 6px); }
-  to { opacity: 1; transform: translate(-50%, 0); }
+.gen-overlay.is-leaving .gen-veil {
+  opacity: 0;
 }
 @media (prefers-reduced-motion: reduce) {
-  .glass-spin .glass-card { animation-duration: 0.01ms; }
+  .glass-spin .glass-card, .gen-spinner, .gen-label { animation-duration: 0.01ms; animation-delay: 0s; }
   .glass-spin { animation: none; }
 }
+
