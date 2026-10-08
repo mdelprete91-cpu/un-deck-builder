@@ -940,6 +940,33 @@ body {
 .glass-card-1 { --x: -42; --y: 10; --r: -3.8; animation-delay: -0.12s; }
 .glass-card-2 { --x: 42; --y: 10; --r: 3.8; animation-delay: -0.24s; }
 .glass-card-3 { --x: 120; --y: 32; --r: 11; animation-delay: -0.36s; }
+/* Hover, one card at a time (Mario, 8 Oct 2026): the card under the
+   pointer lifts 10px, as if drawn up out of the deck. No snap either way:
+   it rises over 0.45s, soft at the start and quick after, and on the way back it waits a
+   beat, sinks a little past its place and floats back up into it. `translate` sits on top of the breathing
+   `transform`, so the two never fight. */
+.glass-fan:not(.glass-spin) .glass-card {
+  /* Float back: eases off, sinks about 3px past its place, then rises
+     into it, like a card settling on air. linear() draws the curve. */
+  transition: translate 1.5s
+    linear(0, 0.04 5%, 0.15 15%, 0.35 25%, 0.6 35%, 0.88 45%, 1.06 52%, 1.2 60%, 1.28 68%, 1.26 75%, 1.16 82%, 1.05 89%, 0.99 95%, 1)
+    0.08s;
+}
+@media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+  .glass-fan:not(.glass-spin) .glass-card:hover {
+    translate: 0 -10px;
+    transition: translate 0.45s cubic-bezier(0.33, 0, 0.2, 1);
+  }
+  /* The lifted card keeps the pointer: a strip under it, as tall as the
+     lift, so its bottom edge cannot slip out from under the pointer and
+     bounce the card up and down. */
+  .glass-fan:not(.glass-spin) .glass-card::after {
+    content: "";
+    position: absolute;
+    inset: 100% 0 auto;
+    height: 12px;
+  }
+}
 /* Glass at this size needs more than a tint (Mario, 8 Oct 2026: "the glass
    got lost"): frosting, a diagonal sheen like light across the surface, a
    bright top-left edge and a darker lower one, so each card reads as a
