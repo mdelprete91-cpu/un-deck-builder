@@ -1033,13 +1033,15 @@ body {
 .glass-spin .glass-card {
   animation:
     glass-gather 0.45s cubic-bezier(0.65, 0, 0.35, 1) var(--d, 0s) both,
-    glass-trail 3s cubic-bezier(0.37, 0, 0.63, 1) calc(0.45s + (var(--p) - 1) * 0.5s) infinite;
+    glass-trail 3s cubic-bezier(0.37, 0, 0.63, 1) calc(0.45s + (var(--p) - 1) * 0.5s) infinite,
+    glass-beat 3s linear calc(0.45s + (var(--p) - 1) * 0.5s) infinite;
 }
 /* The fifth bar comes out once the fourth is nearly in place. */
 .glass-spin .glass-card-x {
   animation:
     glass-split 0.3s cubic-bezier(0.65, 0, 0.35, 1) 0.22s both,
-    glass-trail 3s cubic-bezier(0.37, 0, 0.63, 1) calc(0.45s + (var(--p) - 1) * 0.5s) infinite;
+    glass-trail 3s cubic-bezier(0.37, 0, 0.63, 1) calc(0.45s + (var(--p) - 1) * 0.5s) infinite,
+    glass-beat 3s linear calc(0.45s + (var(--p) - 1) * 0.5s) infinite;
 }
 @keyframes glass-gather {
   from {
@@ -1082,6 +1084,7 @@ body {
   inset: 0;
   border-radius: inherit;
   background: linear-gradient(0deg, #2040ff, #35ffbb);
+  box-shadow: 0 0 14px 1px rgba(53, 170, 255, 0.55);
   opacity: 0;
   pointer-events: none;
   animation: glass-head 3s cubic-bezier(0.37, 0, 0.63, 1) calc(0.45s + (var(--p) - 1) * 0.5s) infinite backwards;
@@ -1094,9 +1097,19 @@ body {
    the fan's gradient card at its peak (a half-slot head start), so the
    colour the empty state shows is the light that then runs along the bars. */
 @keyframes glass-head {
-  0% { opacity: 0; }
-  16.667% { opacity: 1; }
-  33.333%, 100% { opacity: 0; }
+  0% { opacity: 0; animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1); }
+  10% { opacity: 1; }
+  16.667% { opacity: 1; animation-timing-function: cubic-bezier(0.55, 0, 0.75, 0.4); }
+  36% { opacity: 0; }
+  100% { opacity: 0; }
+}
+/* The beat on the bar itself: it swells a little as the light lands and
+   settles back, like a pulse (scale is its own property, so it adds to the
+   bar's transform). */
+@keyframes glass-beat {
+  0% { scale: 1; animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1); }
+  10% { scale: 1.06 1.14; animation-timing-function: cubic-bezier(0.45, 0, 0.55, 1); }
+  30%, 100% { scale: 1; }
 }
 /* The gradient card leads: it lands lit and holds the light until the bars
    are in place (0.45s), then lets it go and fades like any tail bar; from
@@ -1105,7 +1118,8 @@ body {
   animation:
     glass-gather 0.45s cubic-bezier(0.65, 0, 0.35, 1) 0s both,
     glass-lead-trail 2.95s cubic-bezier(0.37, 0, 0.63, 1) forwards,
-    glass-trail 3s cubic-bezier(0.37, 0, 0.63, 1) 2.95s infinite;
+    glass-trail 3s cubic-bezier(0.37, 0, 0.63, 1) 2.95s infinite,
+    glass-beat 3s linear 2.95s infinite;
 }
 .glass-spin .glass-card-0::before {
   opacity: 1;
