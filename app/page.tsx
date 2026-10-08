@@ -1929,31 +1929,43 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
           }}
         />
         {state.slides.length === 0 && state.status === "generating" ? (
-          // The slide bar's pill, centred on the empty stage with the aurora
-          // behind it; when the first slide lands it travels to the bar's
-          // place and becomes it (`.gen-pill` and the smart-bar view
-          // transition in globals.css).
-          <div className="relative min-h-0 flex-1" aria-busy aria-live="polite">
-            <div className="absolute inset-0 flex items-center justify-center">
-              <div ref={genPillRef} className="gen-pill rounded-full shadow-float">
-                <div className="rounded-full border border-hairline-light bg-surface p-2.5">
-                  <GeneratingLabel />
+          // The empty stage turning into the spinner (Mario, 8 Oct 2026): the
+          // same layout, so the fan stays where it was; its cards gather into
+          // a turning pinwheel while the words fade out and "Generating…"
+          // fades in. The first slide flies in from the spinner's place.
+          <>
+            <EmptyToolbar onOpenDeckFile={openDeckFilePicker} />
+            <div className="relative flex flex-1 flex-col items-center justify-center gap-4 pb-[10vh]" aria-busy aria-live="polite">
+              <div ref={genPillRef} className="mb-12">
+                <GlassFan spinning />
+              </div>
+              <div className="relative flex flex-col items-center gap-4">
+                <h1 aria-hidden className="gen-text-out text-[26px] font-medium tracking-tight text-ink">
+                  {twoPager ? "What goes on the two pages?" : "What are we presenting today?"}
+                </h1>
+                <p aria-hidden className="gen-text-out -mt-1.5 max-w-md text-balance text-center text-sm leading-relaxed text-ink-muted">
+                  {twoPager
+                    ? "Tell us on the left, or attach a document. Your A4 pages land here, ready to edit and print."
+                    : "Tell us on the left, or attach a document. Your slides land here, ready to edit."}
+                </p>
+                <div className="gen-text-in absolute left-1/2 top-0 flex w-[min(560px,calc(100vw-48px))] -translate-x-1/2 flex-col items-center gap-4">
+                  <p className="text-[15px] font-medium text-ink-muted">Generating…</p>
+                  {twoPager && livePlan && livePlan.length > 0 && (
+                    // The plan as it arrives: which block tells which part, page by page.
+                    <ol className="flex w-full flex-col gap-1 text-[13px] leading-snug">
+                      {livePlan.slice(-8).map((r, i) => (
+                        <li key={`${livePlan.length - Math.min(8, livePlan.length) + i}`} className="float-in grid grid-cols-[52px_120px_minmax(0,1fr)] gap-3 text-ink-muted">
+                          <span className="tabular-nums text-ink-faint">Page {r.page}</span>
+                          <span className="font-medium text-ink">{BLOCK_LABELS[r.block as keyof typeof BLOCK_LABELS] ?? r.block}</span>
+                          <span className="truncate">{r.part.replace(/\s*[—–]\s*/g, ", ")}</span>
+                        </li>
+                      ))}
+                    </ol>
+                  )}
                 </div>
               </div>
             </div>
-            {twoPager && livePlan && livePlan.length > 0 && (
-              // The plan as it arrives: which block tells which part, page by page.
-              <ol className="absolute left-1/2 top-[calc(50%+44px)] flex w-[min(560px,calc(100%-48px))] -translate-x-1/2 flex-col gap-1 text-[13px] leading-snug">
-                {livePlan.slice(-8).map((r, i) => (
-                  <li key={`${livePlan.length - Math.min(8, livePlan.length) + i}`} className="float-in grid grid-cols-[52px_120px_minmax(0,1fr)] gap-3 text-ink-muted">
-                    <span className="tabular-nums text-ink-faint">Page {r.page}</span>
-                    <span className="font-medium text-ink">{BLOCK_LABELS[r.block as keyof typeof BLOCK_LABELS] ?? r.block}</span>
-                    <span className="truncate">{r.part.replace(/\s*[—–]\s*/g, ", ")}</span>
-                  </li>
-                ))}
-              </ol>
-            )}
-          </div>
+          </>
         ) : state.slides.length === 0 ? (
           <>
             <EmptyToolbar onOpenDeckFile={openDeckFilePicker} />

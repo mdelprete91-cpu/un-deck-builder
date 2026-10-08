@@ -8,9 +8,14 @@
  */
 const CARDS = 4;
 
-export default function GlassFan() {
+/**
+ * `spinning`: the generation's spinner (Mario, 8 Oct 2026). From the fan's
+ * resting pose the cards gather into a pinwheel, one at each quarter, and
+ * the whole turns until the first slide lands.
+ */
+export default function GlassFan({ spinning = false }: { spinning?: boolean }) {
   return (
-    <div aria-hidden className="glass-fan">
+    <div aria-hidden className={`glass-fan${spinning ? " glass-spin" : ""}`}>
       {Array.from({ length: CARDS }, (_, k) => (
         <span key={k} className={`glass-card glass-card-${k}`} />
       ))}

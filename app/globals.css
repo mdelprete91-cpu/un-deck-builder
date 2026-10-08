@@ -969,3 +969,47 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .glass-card { animation: none; }
 }
+
+/* The generation spinner (GlassFan spinning, Mario 8 Oct 2026). Each card
+   travels from the fan's resting pose to its quarter of a pinwheel, a step
+   behind the one before, then the whole wheel turns. The words of the empty
+   stage fade out as "Generating…" fades in. */
+.glass-spin .glass-card {
+  animation: glass-gather 0.9s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+.glass-spin .glass-card-0 { --a: 270deg; animation-delay: 0s; }
+.glass-spin .glass-card-1 { --a: 0deg; animation-delay: 0.06s; }
+.glass-spin .glass-card-2 { --a: 90deg; animation-delay: 0.12s; }
+.glass-spin .glass-card-3 { --a: 180deg; animation-delay: 0.18s; }
+@keyframes glass-gather {
+  from {
+    transform: translate(calc(var(--x) * 0.7 * var(--s) * 1px), calc(var(--y) * 0.7 * var(--s) * 1px)) rotate(calc(var(--r) * 0.7 * 1deg));
+  }
+  to {
+    transform: rotate(var(--a)) translateY(-44px) scale(0.6);
+  }
+}
+.glass-spin {
+  animation: glass-turn 2.6s linear 0.9s infinite;
+}
+@keyframes glass-turn {
+  to { transform: rotate(360deg); }
+}
+.gen-text-out {
+  animation: gen-text-out 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+@keyframes gen-text-out {
+  to { opacity: 0; transform: translateY(-4px); }
+}
+.gen-text-in {
+  opacity: 0;
+  animation: gen-text-in 0.5s cubic-bezier(0.16, 1, 0.3, 1) 0.35s forwards;
+}
+@keyframes gen-text-in {
+  from { opacity: 0; transform: translate(-50%, 6px); }
+  to { opacity: 1; transform: translate(-50%, 0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .glass-spin .glass-card { animation-duration: 0.01ms; }
+  .glass-spin { animation: none; }
+}
