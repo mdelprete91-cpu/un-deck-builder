@@ -990,7 +990,7 @@ body {
   will-change: transform;
 }
 .glass-spin .glass-card {
-  animation: glass-gather 0.9s cubic-bezier(0.16, 1, 0.3, 1) var(--d, 0s) forwards;
+  animation: glass-gather 1.3s cubic-bezier(0.45, 0, 0.2, 1) var(--d, 0s) forwards;
 }
 /* Six spokes (Mario, 8 Oct 2026): the fan's four cards gather into the wheel
    and, on the way, two more split off from their neighbours, so four become
@@ -1003,21 +1003,22 @@ body {
 .glass-spin .glass-card-1 { --a: 60deg; --o: 0.8; --d: 0.04s; }
 .glass-spin .glass-card-2 { --a: 180deg; --o: 0.9; --d: 0.08s; }
 .glass-spin .glass-card-3 { --a: 240deg; --o: 1; --d: 0.12s; }
-/* The two new cards start stacked on the slot before theirs, small and
-   clear, and slide out to 120deg and 300deg as the others gather. */
+/* The two new cards start hidden under the slot before theirs and slide
+   out to 120deg and 300deg on the same curve and time as the gather, so
+   they seem to fan out of their neighbours rather than appear. */
 .glass-spin .glass-card-4 { --a: 120deg; --from: 60deg; --o: 0.85; }
 .glass-spin .glass-card-5 { --a: 300deg; --from: 240deg; --o: 0.95; }
 .glass-spin .glass-card-x {
-  animation: glass-split 0.9s cubic-bezier(0.16, 1, 0.3, 1) 0.18s both;
+  animation: glass-split 1.3s cubic-bezier(0.45, 0, 0.2, 1) 0.06s both;
 }
 @keyframes glass-split {
-  from {
+  0% {
     opacity: 0;
-    transform: rotate(var(--from)) translateY(-42px) rotate(calc(90deg + var(--t))) scale(0.4);
+    transform: rotate(var(--from)) translateY(-50px) rotate(calc(90deg + var(--t))) scale(0.54);
   }
-  to {
+  100% {
     opacity: var(--o);
-    transform: rotate(var(--a)) translateY(-42px) rotate(calc(90deg + var(--t))) scale(0.54);
+    transform: rotate(var(--a)) translateY(-50px) rotate(calc(90deg + var(--t))) scale(0.54);
   }
 }
 @keyframes glass-gather {
@@ -1026,26 +1027,26 @@ body {
   }
   to {
     opacity: var(--o);
-    transform: rotate(var(--a)) translateY(-42px) rotate(calc(90deg + var(--t))) scale(0.54);
+    transform: rotate(var(--a)) translateY(-50px) rotate(calc(90deg + var(--t))) scale(0.54);
   }
 }
-/* One smooth turn: a quadratic ease-in over 90deg in 1.2s ends at 150deg/s,
+/* One smooth turn: a quadratic ease-in over 120deg in 1.6s ends at 150deg/s,
    the speed of the linear 2.4s turn that follows, so there is no step. */
 .glass-spin {
   animation:
-    glass-turn-in 1.2s cubic-bezier(0.11, 0, 0.5, 0) 0.1s both,
-    glass-turn 2.4s linear 1.3s infinite;
+    glass-turn-in 1.6s cubic-bezier(0.11, 0, 0.5, 0) 0.1s both,
+    glass-turn 2.4s linear 1.7s infinite;
 }
 @keyframes glass-turn-in {
   from { transform: rotate(0deg); }
-  to { transform: rotate(90deg); }
+  to { transform: rotate(120deg); }
 }
 @keyframes glass-turn {
-  from { transform: rotate(90deg); }
-  to { transform: rotate(450deg); }
+  from { transform: rotate(120deg); }
+  to { transform: rotate(480deg); }
 }
 .gen-spinner {
-  animation: gen-travel 0.9s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation: gen-travel 1.3s cubic-bezier(0.45, 0, 0.2, 1) both;
 }
 @keyframes gen-travel {
   from { transform: translate(var(--dx, 0), var(--dy, 0)); }
