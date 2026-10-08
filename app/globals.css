@@ -985,8 +985,8 @@ body {
 /* The wheel's box is square and as wide as the wheel, so the label under it
    clears the lowest card. Cards stay centred in it. */
 .glass-fan.glass-spin {
-  width: 200px;
-  height: 200px;
+  width: 240px;
+  height: 240px;
   will-change: transform;
 }
 .glass-spin .glass-card {
@@ -1009,7 +1009,7 @@ body {
   }
   to {
     opacity: var(--o);
-    transform: rotate(var(--a)) translateY(-60px) rotate(90deg) scale(0.42);
+    transform: rotate(var(--a)) translateY(-78px) rotate(90deg) scale(0.42);
   }
 }
 /* The new spokes: glass, grown out of the centre into the gaps. */
@@ -1031,7 +1031,7 @@ body {
   }
   to {
     opacity: var(--o);
-    transform: rotate(var(--a)) translateY(-60px) rotate(90deg) scale(0.42);
+    transform: rotate(var(--a)) translateY(-78px) rotate(90deg) scale(0.42);
   }
 }
 /* One smooth turn: a quadratic ease-in over 90deg in 1.2s ends at 150deg/s,
