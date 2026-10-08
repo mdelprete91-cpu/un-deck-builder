@@ -1015,23 +1015,23 @@ body {
   width: 84px;
   height: 84px;
 }
-/* Once in place the wheel turns and breathes (Mario, 8 Oct 2026): the
-   cards drift out from the centre and back, 1.2s each way, while the whole
-   goes round, so they part and overlap again as it spins. The breath starts
+/* Once in place the wheel turns and breathes (Mario, 8 Oct 2026): like a
+   breath, the cards drift out from the centre for 2s, hold a moment and
+   drift back for 2s, while the whole goes slowly round. The breath starts
    from the gathered pose, so there is no step. */
 .glass-spin .glass-card {
   animation:
     glass-gather 0.6s cubic-bezier(0.22, 1, 0.36, 1) var(--d, 0s) forwards,
-    glass-breathe 1.2s cubic-bezier(0.37, 0, 0.63, 1) 0.75s infinite alternate;
+    glass-breathe 4.4s cubic-bezier(0.37, 0, 0.63, 1) 0.75s infinite;
 }
 @keyframes glass-breathe {
-  from {
+  0%, 100% {
     opacity: var(--o);
     transform: rotate(var(--a)) translateY(-15px) rotate(calc(90deg + var(--t))) scale(0.15);
   }
-  to {
+  45%, 55% {
     opacity: var(--o);
-    transform: rotate(var(--a)) translateY(-23px) rotate(calc(90deg + var(--t))) scale(0.15);
+    transform: rotate(var(--a)) translateY(-22px) rotate(calc(90deg + var(--t))) scale(0.15);
   }
 }
 /* Six spokes (Mario, 8 Oct 2026): the fan's four cards gather into the wheel
@@ -1053,7 +1053,7 @@ body {
 .glass-spin .glass-card-x {
   animation:
     glass-split 0.6s cubic-bezier(0.22, 1, 0.36, 1) 0.05s both,
-    glass-breathe 1.2s cubic-bezier(0.37, 0, 0.63, 1) 0.75s infinite alternate;
+    glass-breathe 4.4s cubic-bezier(0.37, 0, 0.63, 1) 0.75s infinite;
 }
 @keyframes glass-split {
   0% {
@@ -1078,12 +1078,12 @@ body {
    card stays where it is and the rest are the fan's glass. No light moves
    from card to card. */
 
-/* The turn: a quadratic ease-in over 60deg in 0.8s ends at 150deg/s, the
-   speed of the linear 2.4s turn that follows, so there is no step. */
+/* The turn, slow: a quadratic ease-in over 60deg in 1.6s ends at 75deg/s,
+   the speed of the linear 4.8s turn that follows, so there is no step. */
 .glass-spin {
   animation:
-    glass-turn-in 0.8s cubic-bezier(0.11, 0, 0.5, 0) both,
-    glass-turn 2.4s linear 0.8s infinite;
+    glass-turn-in 1.6s cubic-bezier(0.11, 0, 0.5, 0) both,
+    glass-turn 4.8s linear 1.6s infinite;
 }
 @keyframes glass-turn-in {
   from { transform: rotate(0deg); }
