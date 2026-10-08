@@ -1015,7 +1015,7 @@ body {
   height: calc(180px * var(--s));
 }
 .glass-fan.glass-spin .glass-card {
-  animation: glass-close 0.7s cubic-bezier(0.4, 0, 0.2, 1) var(--d, 0s) both;
+  animation: glass-close 1s linear var(--d, 0s) both;
 }
 .glass-spin .glass-card-0 { --d: 0s; }
 .glass-spin .glass-card-1 { --d: 0.03s; }
@@ -1027,14 +1027,21 @@ body {
 .glass-fan.glass-spin .glass-card-1,
 .glass-fan.glass-spin .glass-card-2 {
   animation:
-    glass-close 0.7s cubic-bezier(0.4, 0, 0.2, 1) var(--d, 0s) both,
-    glass-under 1.2s cubic-bezier(0.37, 0, 0.63, 1) 0.2s forwards;
+    glass-close 1s linear var(--d, 0s) both,
+    glass-under 1.2s cubic-bezier(0.37, 0, 0.63, 1) 0.5s forwards;
 }
+/* Hop, then close (Mario, 8 Oct 2026): the fan first jumps up a little and
+   opens to 100% (it rests at 70%), then closes into one card. */
 @keyframes glass-close {
-  from {
+  0% {
     transform: translate(calc(var(--x) * 0.7 * var(--s) * 1px), calc(var(--y) * 0.7 * var(--s) * 1px)) rotate(calc(var(--r) * 0.7 * 1deg));
+    animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
   }
-  to { transform: none; }
+  30% {
+    transform: translate(calc(var(--x) * var(--s) * 1px), calc((var(--y) * var(--s) - 10) * 1px)) rotate(calc(var(--r) * 1deg));
+    animation-timing-function: cubic-bezier(0.45, 0, 0.25, 1);
+  }
+  100% { transform: none; }
 }
 @keyframes glass-under {
   to { opacity: 0; }
@@ -1050,7 +1057,7 @@ body {
   border-radius: calc(30px * var(--s));
   overflow: hidden;
   opacity: 0;
-  animation: glass-light-in 1.2s cubic-bezier(0.37, 0, 0.63, 1) 0.2s forwards;
+  animation: glass-light-in 1.2s cubic-bezier(0.37, 0, 0.63, 1) 0.5s forwards;
 }
 /* Organic colour (Mario, 8 Oct 2026): two soft pieces of the fan's
    gradient wandering behind the glass on their own
@@ -1115,7 +1122,7 @@ body {
   opacity: 0;
   pointer-events: none;
   animation:
-    glass-light-in 1.2s cubic-bezier(0.37, 0, 0.63, 1) 0.2s forwards,
+    glass-light-in 1.2s cubic-bezier(0.37, 0, 0.63, 1) 0.5s forwards,
     glass-blob-w 11s cubic-bezier(0.45, 0, 0.55, 1) infinite;
 }
 @keyframes glass-blob-w {
@@ -1143,8 +1150,8 @@ body {
    front card never jumps in brightness. */
 .glass-fan.glass-spin .glass-card-3 {
   animation:
-    glass-close 0.7s cubic-bezier(0.4, 0, 0.2, 1) var(--d, 0s) both,
-    glass-front 1.2s cubic-bezier(0.37, 0, 0.63, 1) 0.2s both;
+    glass-close 1s linear var(--d, 0s) both,
+    glass-front 1.2s cubic-bezier(0.37, 0, 0.63, 1) 0.5s both;
 }
 @keyframes glass-front {
   from {
@@ -1164,15 +1171,15 @@ body {
   background: rgba(170, 190, 255, 0.1);
   opacity: 0;
   pointer-events: none;
-  animation: glass-light-in 1.2s cubic-bezier(0.37, 0, 0.63, 1) 0.2s forwards;
+  animation: glass-light-in 1.2s cubic-bezier(0.37, 0, 0.63, 1) 0.5s forwards;
 }
 @keyframes glass-light-in {
   to { opacity: 1; }
 }
 .gen-spinner {
   position: relative;
-  /* With the cards, from the first frame: one movement, not close-then-move. */
-  animation: gen-travel 0.7s cubic-bezier(0.4, 0, 0.2, 1) both;
+  /* With the closing, after the hop: one movement, not close-then-move. */
+  animation: gen-travel 0.7s cubic-bezier(0.45, 0, 0.25, 1) 0.3s both;
 }
 @keyframes gen-travel {
   from { transform: translate(var(--dx, 0), var(--dy, 0)); }
