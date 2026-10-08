@@ -1035,7 +1035,7 @@ body {
    to the gradient card (Mario, 8 Oct 2026). A faint wash of the same
    gradient inside each glass card, faded in as they gather, evens the
    weight and keeps the sheen and edges of the glass on top. */
-.glass-spin .glass-card:not(.glass-card-0)::after {
+.glass-spin .glass-card:not(.glass-card-0)::before {
   content: "";
   position: absolute;
   inset: 0;
@@ -1048,7 +1048,42 @@ body {
 @keyframes glass-wash {
   to { opacity: var(--wash, 0.3); }
 }
-.dark .glass-spin .glass-card:not(.glass-card-0)::after { --wash: 0.34; }
+.dark .glass-spin .glass-card:not(.glass-card-0)::before { --wash: 0.34; }
+/* Spline's liquid glass, as far as CSS goes (Mario, 8 Oct 2026): a thick
+   pane with a bright bevelled rim, a soft inner glow for depth, a thin
+   cyan and magenta fringe on opposite edges for the chromatic aberration,
+   a stronger refraction of what is behind, and a specular highlight in
+   the top corner on top of the colour wash. */
+.glass-spin .glass-card:not(.glass-card-0) {
+  -webkit-backdrop-filter: blur(10px) saturate(1.9) brightness(1.12) contrast(1.05);
+  backdrop-filter: blur(10px) saturate(1.9) brightness(1.12) contrast(1.05);
+  box-shadow:
+    inset 1.5px 1.5px 0 rgba(255, 255, 255, 0.8),
+    inset -1px -1px 0 rgba(255, 255, 255, 0.3),
+    inset 2.5px 0 1px -0.5px rgba(70, 255, 225, 0.45),
+    inset -2.5px 0 1px -0.5px rgba(255, 90, 210, 0.3),
+    inset 0 0 16px rgba(255, 255, 255, 0.3),
+    0 10px 24px -12px rgba(20, 40, 160, 0.45);
+}
+.dark .glass-spin .glass-card:not(.glass-card-0) {
+  box-shadow:
+    inset 1.5px 1.5px 0 rgba(255, 255, 255, 0.6),
+    inset -1px -1px 0 rgba(255, 255, 255, 0.18),
+    inset 2.5px 0 1px -0.5px rgba(70, 255, 225, 0.4),
+    inset -2.5px 0 1px -0.5px rgba(255, 90, 210, 0.28),
+    inset 0 0 16px rgba(255, 255, 255, 0.16),
+    0 12px 26px -12px rgba(0, 0, 0, 0.65);
+}
+.glass-spin .glass-card:not(.glass-card-0)::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background:
+    radial-gradient(90% 70% at 18% 8%, rgba(255, 255, 255, 0.55), rgba(255, 255, 255, 0) 55%),
+    linear-gradient(135deg, rgba(255, 255, 255, 0) 55%, rgba(255, 255, 255, 0.14) 100%);
+  pointer-events: none;
+}
 /* One smooth turn: a quadratic ease-in over 60deg in 0.8s ends at 150deg/s,
    the speed of the linear 2.4s turn that follows, so there is no step. */
 .glass-spin {
@@ -1109,7 +1144,7 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .glass-spin .glass-card, .gen-spinner, .gen-label { animation-duration: 0.01ms; animation-delay: 0s; }
   .glass-spin { animation: none; }
-  .glass-spin .glass-card:not(.glass-card-0)::after { animation-duration: 0.01ms; animation-delay: 0s; }
+  .glass-spin .glass-card:not(.glass-card-0)::before { animation-duration: 0.01ms; animation-delay: 0s; }
 }
 
 
