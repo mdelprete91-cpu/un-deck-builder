@@ -1772,6 +1772,17 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
     process.env.NODE_ENV === "development" && typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("veil") : null,
   );
   const emptyFanRef = useRef<HTMLDivElement>(null);
+  // The pill's small card sits left of the pill's centre: the travel starts
+  // with the card on the fan, so measure that offset before the first paint.
+  useLayoutEffect(() => {
+    const pill = genPillRef.current;
+    const card = pill?.querySelector<HTMLElement>(".gen-mini");
+    if (!spinner || spinner.leaving || !pill || !card) return;
+    const p = pill.getBoundingClientRect();
+    const c = card.getBoundingClientRect();
+    pill.style.setProperty("--ox", `${c.left + c.width / 2 - (p.left + p.width / 2)}px`);
+    pill.style.setProperty("--oy", `${c.top + c.height / 2 - (p.top + p.height / 2)}px`);
+  }, [spinner]);
   const stageAreaRef = useRef<HTMLDivElement>(null);
   const startSpinner = () => {
     // Where each card of the breathing fan is right now, so the loader takes
@@ -2365,13 +2376,18 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
                 className="gen-spinner"
                 style={{ "--dx": `${spinner.dx}px`, "--dy": `${spinner.dy}px`, ...Object.fromEntries((spinner.from ?? []).filter((t) => t && t !== "none").map((t, k) => [`--f${k}`, t])) } as React.CSSProperties}
               >
-                <GlassFan spinning />
+                {/* The loader is a pill (Mario, 8 Oct 2026, from a wireframe): the
+                    fan closes and shrinks into a small glass card on its left,
+                    the word beside it, readable over any slide. */}
+                <span aria-hidden className="gen-pill-bg" />
+                <span className="gen-mini">
+                  <GlassFan spinning />
+                </span>
+                <span className="gen-pill-label">{state.slides.length > 0 && fitting ? "Fitting the pages…" : "Generating…"}</span>
               </div>
               {/* Hung under the wheel, out of the flow: the wheel alone is centred, so it lands exactly where it was aimed. */}
               <div className="absolute left-1/2 top-full flex w-[min(560px,calc(100vw-48px))] -translate-x-1/2 justify-center">
               <div className="gen-label mt-4 flex w-full flex-col items-center gap-4">
-                {/* A quiet word under the wheel (Mario, 8 Oct 2026). */}
-                <p className="text-[13px] font-semibold text-ink">{state.slides.length > 0 && fitting ? "Fitting the pages…" : "Generating…"}</p>
                 {twoPager && livePlan && livePlan.length > 0 && state.slides.length === 0 && (
                   // The plan as it arrives: which block tells which part, page by page.
                   <ol className="flex w-full flex-col gap-1 text-[13px] leading-snug">

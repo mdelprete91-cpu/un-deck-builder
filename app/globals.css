@@ -1028,7 +1028,8 @@ body {
 .glass-fan.glass-spin .glass-card-2 {
   animation:
     glass-close 1s linear var(--d, 0s) both,
-    glass-under 1.2s cubic-bezier(0.37, 0, 0.63, 1) 0.5s forwards;
+    glass-under 0.6s cubic-bezier(0.37, 0, 0.63, 1) 0.4s forwards,
+    glass-orb 0.7s cubic-bezier(0.45, 0, 0.25, 1) 0.3s both;
 }
 /* Hop, then close (Mario, 8 Oct 2026): the fan first jumps up a little and
    opens to 100% (it rests at 70%), then closes into one card. */
@@ -1058,7 +1059,9 @@ body {
   border-radius: calc(30px * var(--s));
   overflow: hidden;
   opacity: 0;
-  animation: glass-light-in 1.2s cubic-bezier(0.37, 0, 0.63, 1) 0.5s forwards;
+  animation:
+    glass-light-in 1.2s cubic-bezier(0.37, 0, 0.63, 1) 0.5s forwards,
+    glass-orb 0.7s cubic-bezier(0.45, 0, 0.25, 1) 0.3s both;
 }
 /* Organic colour (Mario, 8 Oct 2026): two soft pieces of the fan's
    gradient wandering behind the glass on their own
@@ -1171,7 +1174,8 @@ body {
 .glass-fan.glass-spin .glass-card-3 {
   animation:
     glass-close 1s linear var(--d, 0s) both,
-    glass-front 1.2s cubic-bezier(0.37, 0, 0.63, 1) 0.5s both;
+    glass-front 1.2s cubic-bezier(0.37, 0, 0.63, 1) 0.5s both,
+    glass-orb 0.7s cubic-bezier(0.45, 0, 0.25, 1) 0.3s both;
 }
 /* Light mode: on a white stage the pale glass and lifted colour wash out
    (Mario, 8 Oct 2026: check the contrast). No lift there, a deeper tint,
@@ -1231,8 +1235,77 @@ body {
   from, to { opacity: 1; }
 }
 @keyframes gen-travel {
-  from { transform: translate(var(--dx, 0), var(--dy, 0)); }
+  /* From the fan's place, measured to the small card (--ox, --oy). */
+  from { transform: translate(calc(var(--dx, 0px) - var(--ox, 0px)), calc(var(--dy, 0px) - var(--oy, 0px))); }
   to { transform: none; }
+}
+/* The pill: a dark rounded bar behind the small card and the word, coming
+   in as the fan settles into the card. */
+.gen-spinner {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 26px 16px 18px;
+}
+.gen-pill-bg {
+  position: absolute;
+  inset: 0;
+  border-radius: 999px;
+  background: var(--color-surface);
+  box-shadow: inset 0 0 0 1px var(--color-hairline-light), 0 14px 34px -14px rgba(13, 13, 13, 0.35);
+  opacity: 0;
+  scale: 0.94;
+  animation: gen-pill-in 0.5s cubic-bezier(0.22, 1, 0.36, 1) 0.7s forwards;
+}
+.dark .gen-pill-bg {
+  background: #191919;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06), 0 16px 36px -14px rgba(0, 0, 0, 0.7);
+}
+@keyframes gen-pill-in {
+  to { opacity: 1; scale: 1; }
+}
+/* The small card's slot: the fan, closed, shrinks into it. */
+.gen-mini {
+  position: relative;
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+}
+.gen-mini > .glass-fan {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  margin: -45px 0 0 -75px;
+  animation: gen-mini 0.7s cubic-bezier(0.45, 0, 0.25, 1) 0.3s both;
+}
+/* The front card and its light round off into a sphere as they shrink
+   into the pill (Mario, 8 Oct 2026). */
+@keyframes glass-orb {
+  from {
+    width: calc(300px * var(--s));
+    height: calc(180px * var(--s));
+    margin: calc(-90px * var(--s)) 0 0 calc(-150px * var(--s));
+    border-radius: calc(30px * var(--s));
+  }
+  to {
+    width: calc(180px * var(--s));
+    height: calc(180px * var(--s));
+    margin: calc(-90px * var(--s)) 0 0 calc(-90px * var(--s));
+    border-radius: 50%;
+  }
+}
+@keyframes gen-mini {
+  from { scale: 1; }
+  to { scale: 0.4; }
+}
+.gen-pill-label {
+  position: relative;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--color-ink);
+  white-space: nowrap;
+  opacity: 0;
+  animation: gen-pill-in 0.45s cubic-bezier(0.22, 1, 0.36, 1) 0.85s forwards;
 }
 .gen-label {
   animation: gen-label-in 0.5s cubic-bezier(0.16, 1, 0.3, 1) 0.45s both;
@@ -1241,11 +1314,10 @@ body {
   from { opacity: 0; transform: translateY(6px); }
 }
 /* Slides that land under the spinner stay out of focus until it is done. */
+/* With the pill (readable over anything) the slides under it stay as they
+   are; the trial looks below remain for local comparison (?veil=). */
 .gen-veil {
   opacity: 0;
-  background: color-mix(in srgb, var(--color-surface) 58%, transparent);
-  -webkit-backdrop-filter: blur(14px) saturate(1.1);
-  backdrop-filter: blur(14px) saturate(1.1);
   transition: opacity 0.5s cubic-bezier(0.16, 1, 0.3, 1);
 }
 .gen-veil.is-on {
@@ -1278,7 +1350,7 @@ body {
   opacity: 0;
 }
 @media (prefers-reduced-motion: reduce) {
-  .gen-spinner, .gen-label { animation-duration: 0.01ms; animation-delay: 0s; }
+  .gen-spinner, .gen-label, .gen-pill-bg, .gen-pill-label, .gen-mini > .glass-fan { animation-duration: 0.01ms; animation-delay: 0s; }
   .glass-fan.glass-spin .glass-card { animation: glass-close 0.01ms both; }
   .glass-fan.glass-spin .glass-card-0, .glass-fan.glass-spin .glass-card-1, .glass-fan.glass-spin .glass-card-2 { animation: glass-close 0.01ms both, glass-under 0.01ms forwards; }
   .glass-spin .glass-light { animation: none; opacity: 1; }
