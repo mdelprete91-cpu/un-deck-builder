@@ -1040,11 +1040,11 @@ body {
 @keyframes glass-split {
   0% {
     opacity: 0;
-    transform: rotate(var(--from)) translateY(-25px) rotate(calc(90deg + var(--t))) scale(0.15);
+    transform: rotate(var(--from)) translateY(-19px) rotate(calc(90deg + var(--t))) scale(0.15);
   }
   100% {
     opacity: var(--o);
-    transform: rotate(var(--a)) translateY(-25px) rotate(calc(90deg + var(--t))) scale(0.15);
+    transform: rotate(var(--a)) translateY(-19px) rotate(calc(90deg + var(--t))) scale(0.15);
   }
 }
 @keyframes glass-gather {
@@ -1053,11 +1053,11 @@ body {
   }
   to {
     opacity: var(--o);
-    transform: rotate(var(--a)) translateY(-25px) rotate(calc(90deg + var(--t))) scale(0.15);
+    transform: rotate(var(--a)) translateY(-19px) rotate(calc(90deg + var(--t))) scale(0.15);
   }
 }
 /* The wheel does not turn: the colour does (Mario, 8 Oct 2026). All six
-   cards are glass, each with the gradient inside at a faint --wash, and
+   cards are clear glass (--wash 0: no tint of their own), and
    the full gradient with its glow passes from card to card clockwise, one
    at a time, fading out behind like a trail. The gradient card of the fan
    becomes glass in the wheel with the light already on it, so the swap
@@ -1078,16 +1078,16 @@ body {
   inset: 0;
   border-radius: inherit;
   background: linear-gradient(0deg, #2040ff, #35ffbb);
-  opacity: var(--wash, 0.22);
+  opacity: var(--wash, 0);
   pointer-events: none;
   animation: glass-light 2.4s cubic-bezier(0.45, 0, 0.55, 1) calc(var(--p) * 0.4s - 2.4s) infinite;
 }
 @keyframes glass-light {
   0%, 6% { opacity: 1; }
-  42%, 86% { opacity: var(--wash, 0.22); }
+  42%, 86% { opacity: var(--wash, 0); }
   100% { opacity: 1; }
 }
-.dark .glass-spin .glass-card::before { --wash: 0.28; }
+.dark .glass-spin .glass-card::before { --wash: 0; }
 /* Spline's liquid glass, as far as CSS goes (Mario, 8 Oct 2026): a thick
    pane with a bright bevelled rim, a soft inner glow for depth, a thin
    cyan and magenta fringe on opposite edges for the chromatic aberration,
