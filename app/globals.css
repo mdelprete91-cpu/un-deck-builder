@@ -1045,7 +1045,8 @@ body {
 }
 .glass-spin .glass-card {
   animation:
-    glass-fold 0.45s cubic-bezier(0.22, 1, 0.36, 1) both,
+    glass-fold 0.7s cubic-bezier(0.4, 0, 0.2, 1) 0.3s both,
+    glass-dissolve 0.4s cubic-bezier(0.33, 1, 0.68, 1),
     glass-trail 3s cubic-bezier(0.37, 0, 0.63, 1) calc(1s + (var(--p) - 1) * 0.5s) infinite,
     glass-beat 3s linear calc(1s + (var(--p) - 1) * 0.5s) infinite;
 }
@@ -1083,10 +1084,9 @@ body {
     height: calc(180px * var(--s));
     margin: calc(-90px * var(--s)) 0 0 calc(-150px * var(--s));
     border-radius: calc(30px * var(--s));
-    opacity: 1;
+    opacity: 0;
     transform: translate(calc(var(--x) * 0.7 * var(--s) * 1px), calc(var(--y) * 0.7 * var(--s) * 1px)) rotate(calc(var(--r) * 0.7 * 1deg));
   }
-  20% { opacity: 0; }
   to {
     width: 8px;
     height: 64px;
@@ -1096,13 +1096,20 @@ body {
     transform: translateX(var(--bx));
   }
 }
+/* The glass cards leave gracefully (Mario, 8 Oct 2026): they sink a few
+   pixels, shrink a hair and blur out over 0.4s, so they melt away rather
+   than cut, at the same time as the gradient card's hop. */
+@keyframes glass-dissolve {
+  0% { opacity: 1; translate: 0 0; scale: 1; filter: blur(0); }
+  100% { opacity: 0; translate: 0 8px; scale: 0.96; filter: blur(6px); }
+}
 /* The gradient card's hop at the click (Mario, 8 Oct 2026): it jumps up
    first, still a card; as it comes down the move to the bar takes over
    (from 0.3s, 0.7s), one fluid motion: hop, then travel. `translate` is its own property, so it rides on top of
    the gather's transform. */
 @keyframes glass-hop {
-  0% { translate: 0 0; animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1); }
-  40% { translate: 0 -10px; animation-timing-function: cubic-bezier(0.45, 0, 0.55, 1); }
+  0% { translate: 0 0; animation-timing-function: cubic-bezier(0.33, 1, 0.68, 1); }
+  45% { translate: 0 -8px; animation-timing-function: cubic-bezier(0.37, 0, 0.63, 1); }
   100% { translate: 0 0; }
 }
 @keyframes glass-split {
@@ -1160,8 +1167,8 @@ body {
    its second round it runs on the common schedule. */
 .glass-spin .glass-card-0 {
   animation:
-    glass-hop 0.4s both,
-    glass-gather 0.7s cubic-bezier(0.4, 0, 0.2, 1) 0.3s both,
+    glass-hop 0.55s both,
+    glass-gather 0.7s cubic-bezier(0.4, 0, 0.2, 1) 0.35s both,
     glass-lead-trail 3.5s cubic-bezier(0.37, 0, 0.63, 1) forwards,
     glass-trail 3s cubic-bezier(0.37, 0, 0.63, 1) 3.5s infinite,
     glass-beat 3s linear 3.5s infinite;
@@ -1196,7 +1203,7 @@ body {
 
 .gen-spinner {
   position: relative;
-  animation: gen-travel 0.7s cubic-bezier(0.4, 0, 0.2, 1) 0.3s both;
+  animation: gen-travel 0.7s cubic-bezier(0.4, 0, 0.2, 1) 0.35s both;
 }
 @keyframes gen-travel {
   from { transform: translate(var(--dx, 0), var(--dy, 0)); }
@@ -1241,6 +1248,7 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .gen-spinner, .gen-label { animation-duration: 0.01ms; animation-delay: 0s; }
   .glass-spin .glass-card, .glass-spin .glass-card-x { animation: glass-fold 0.01ms both; }
+  .glass-spin .glass-card-0 { opacity: 1; }
   .glass-spin { animation: none; }
   .glass-spin .glass-card::before, .glass-spin .glass-card-0::before { animation: none; }
   .glass-spin .glass-card-0::before { opacity: 1; }
