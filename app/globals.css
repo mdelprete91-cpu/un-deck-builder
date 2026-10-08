@@ -940,24 +940,15 @@ body {
 .glass-card-1 { --x: -42; --y: 10; --r: -3.8; animation-delay: -0.12s; }
 .glass-card-2 { --x: 42; --y: 10; --r: 3.8; animation-delay: -0.24s; }
 .glass-card-3 { --x: 120; --y: 32; --r: 11; animation-delay: -0.36s; }
-/* Hover (GlassFan's follow): `translate` and `rotate` sit on top of the
-   breathing `transform`, so the two never fight. Each card has a depth;
-   the pointer moves the front cards more than the back, and the hover
-   opens the fan a little wider. Eased out so the cards trail the pointer
-   softly and settle back when it leaves. */
+/* Hover, one card at a time (Mario, 8 Oct 2026): the card under the
+   pointer slides down a few pixels, as if drawn out of the deck, and goes
+   back when the pointer moves on. `translate` sits on top of the breathing
+   `transform`, so the two never fight. */
 .glass-fan:not(.glass-spin) .glass-card {
-  translate:
-    calc((var(--mx, 0) * var(--depth) + var(--h, 0) * var(--x) * 0.07) * 1px)
-    calc((var(--my, 0) * var(--depth) * 0.6 - var(--h, 0) * 2) * 1px);
-  rotate: calc(var(--mx, 0) * var(--depth) * 0.25deg);
-  transition: translate 0.6s cubic-bezier(0.16, 1, 0.3, 1), rotate 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: translate 0.35s cubic-bezier(0.16, 1, 0.3, 1);
 }
-.glass-card-0 { --depth: 3; }
-.glass-card-1 { --depth: 6; }
-.glass-card-2 { --depth: 9; }
-.glass-card-3 { --depth: 12; }
-@media (prefers-reduced-motion: reduce), (hover: none) {
-  .glass-fan:not(.glass-spin) .glass-card { translate: none; rotate: none; }
+@media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+  .glass-fan:not(.glass-spin) .glass-card:hover { translate: 0 8px; }
 }
 /* Glass at this size needs more than a tint (Mario, 8 Oct 2026: "the glass
    got lost"): frosting, a diagonal sheen like light across the surface, a
