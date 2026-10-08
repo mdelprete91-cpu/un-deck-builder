@@ -1098,12 +1098,15 @@ body {
   background: linear-gradient(0deg, #2040ff, #35ffbb);
   opacity: var(--wash, 0);
   pointer-events: none;
-  animation: glass-light 2.4s cubic-bezier(0.45, 0, 0.55, 1) calc(var(--p) * 0.4s - 2.4s) infinite;
+  /* A slow wave rather than one lit card (Mario, 8 Oct 2026): each card
+     warms from glass to full colour and cools back over 4.8s on a sine
+     curve, a sixth of a cycle after the card before it, so the colour
+     flows round the wheel with two or three cards lit at once. */
+  animation: glass-light 4.8s cubic-bezier(0.37, 0, 0.63, 1) calc(var(--p) * 0.8s - 4.8s) infinite;
 }
 @keyframes glass-light {
-  0%, 6% { opacity: 1; }
-  42%, 86% { opacity: var(--wash, 0); }
-  100% { opacity: 1; }
+  0%, 100% { opacity: 0.9; }
+  50% { opacity: var(--wash, 0); }
 }
 .dark .glass-spin .glass-card::before { --wash: 0; }
 /* Spline's liquid glass, as far as CSS goes (Mario, 8 Oct 2026): a thick
