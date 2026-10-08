@@ -996,19 +996,20 @@ body {
    each quarter, overlapping at the centre into a cross. The gradient card
    is painted first, so the three glass cards over it refract its colour,
    as they do in the fan. --o is each card's opacity. Each card sits turned
-   40deg on itself, still, not animated, so the four read as the arms of a
-   swirl (Mario, 8 Oct 2026). */
-.glass-spin .glass-card-0 { --a: 0deg; --o: 1; --d: 0s; }
-.glass-spin .glass-card-1 { --a: 90deg; --o: 0.8; --d: 0.04s; }
-.glass-spin .glass-card-2 { --a: 180deg; --o: 0.9; --d: 0.08s; }
-.glass-spin .glass-card-3 { --a: 270deg; --o: 1; --d: 0.12s; }
+   on itself by its own --t, still, not animated. The turns differ, so no
+   two cards are square to each other and the four read as a whirl, not a
+   pinwheel (Mario, 8 Oct 2026). */
+.glass-spin .glass-card-0 { --t: 40deg; --a: 0deg; --o: 1; --d: 0s; }
+.glass-spin .glass-card-1 { --t: 15deg; --a: 90deg; --o: 0.8; --d: 0.04s; }
+.glass-spin .glass-card-2 { --t: 58deg; --a: 180deg; --o: 0.9; --d: 0.08s; }
+.glass-spin .glass-card-3 { --t: 26deg; --a: 270deg; --o: 1; --d: 0.12s; }
 @keyframes glass-gather {
   from {
     transform: translate(calc(var(--x) * 0.7 * var(--s) * 1px), calc(var(--y) * 0.7 * var(--s) * 1px)) rotate(calc(var(--r) * 0.7 * 1deg));
   }
   to {
     opacity: var(--o);
-    transform: rotate(var(--a)) translateY(-42px) rotate(130deg) scale(0.54);
+    transform: rotate(var(--a)) translateY(-42px) rotate(calc(90deg + var(--t))) scale(0.54);
   }
 }
 /* One smooth turn: a quadratic ease-in over 90deg in 1.2s ends at 150deg/s,
