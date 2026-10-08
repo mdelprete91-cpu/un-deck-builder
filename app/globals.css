@@ -1006,9 +1006,8 @@ body {
      meet, the cards under the front one fade and the moving light fades in
      behind it, a crossfade from the fan's colour to the loader's. The cards keep the empty state's look
      throughout; closed, only the front glass card is left.
-   - Light: the fan's gradient behind the glass card, clipped to its shape,
-     its colours moving organically (two wandering blobs, below), seen
-     through the frosted glass. */
+   - Light: the fan's gradient card drifting behind the front card, which
+     refracts it like glass (below). */
 .glass-fan.glass-spin {
   width: calc(300px * var(--s));
   height: calc(180px * var(--s));
@@ -1051,25 +1050,35 @@ body {
   opacity: 0;
   animation: glass-light-in 0.8s cubic-bezier(0.37, 0, 0.63, 1) 0.5s forwards;
 }
-/* A warp, not blobs (Mario, 8 Oct 2026): a wide swirl of the fan's
-   gradient with a clear gap in it turns slowly behind the glass, bent by a
-   noise displacement (the #glass-warp SVG filter in GlassFan), so the
-   colour streams and folds like light refracted through glass, and the gap
-   sweeps a transparent zone across the card. */
+/* Glass refraction (Mario, 8 Oct 2026): behind the card, the fan's
+   gradient card drifts slowly; the front card bends it near its rim and
+   splits the colours a little there (the #glass-refract filter in
+   GlassFan), while its middle stays clear and shows the colour as it is,
+   like a pane of real glass over a moving light. */
 .glass-spin .glass-light::before {
   content: "";
   position: absolute;
-  left: 50%;
-  top: 50%;
-  width: 260%;
-  aspect-ratio: 1;
-  translate: -50% -50%;
-  background: conic-gradient(from 0deg, #2040ff, #35ffbb 18%, rgba(53, 255, 187, 0) 32%, rgba(32, 64, 255, 0) 52%, #2040ff 66%, #2bb6ff 80%, #35ffbb 90%, #2040ff);
-  filter: url(#glass-warp) blur(6px);
-  animation: glass-warp-turn 9s linear infinite;
+  top: 0;
+  bottom: 0;
+  left: 8%;
+  width: 70%;
+  border-radius: inherit;
+  background: linear-gradient(0deg, #2040ff, #35ffbb);
+  /* Soft edges: light, not a shape, under the glass. */
+  filter: blur(10px);
+  animation: glass-drift 4.8s cubic-bezier(0.45, 0, 0.55, 1) infinite alternate;
 }
-@keyframes glass-warp-turn {
-  to { rotate: 360deg; }
+@keyframes glass-drift {
+  from { translate: -18% 0; rotate: -4deg; }
+  to { translate: 40% 0; rotate: 4deg; }
+}
+/* The front card in the loader: the fan's glass, nearly clear, refracting. */
+.glass-fan.glass-spin .glass-card-3 {
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.22) 0%, rgba(255, 255, 255, 0.04) 38%, rgba(255, 255, 255, 0) 55%, rgba(255, 255, 255, 0.08) 100%),
+    rgba(255, 255, 255, 0.03);
+  -webkit-backdrop-filter: blur(1px) saturate(1.4);
+  backdrop-filter: url(#glass-refract) saturate(1.4);
 }
 @keyframes glass-light-in {
   to { opacity: 1; }
