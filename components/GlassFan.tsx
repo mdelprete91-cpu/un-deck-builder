@@ -12,8 +12,9 @@ const CARDS = 4;
 
 /**
  * `spinning`: the generation's spinner (Mario, 8 Oct 2026). From the fan's
- * resting pose the four cards gather into a wheel and two more split off
- * on the way, six spokes, and the whole turns until the first slide lands.
+ * resting pose the four cards narrow into upright bars and a fifth slides
+ * out from under the last; a light runs along them until the first slide
+ * lands.
  */
 export default function GlassFan({ spinning = false }: { spinning?: boolean }) {
   return (
@@ -21,8 +22,8 @@ export default function GlassFan({ spinning = false }: { spinning?: boolean }) {
       {Array.from({ length: CARDS }, (_, k) => (
         <Fragment key={k}>
           <span className={`glass-card glass-card-${k}`} />
-          {/* The spinner's two extra cards, over the gradient card and under the rest. */}
-          {spinning && k === 0 && [4, 5].map((x) => <span key={x} className={`glass-card glass-card-x glass-card-${x}`} />)}
+          {/* The spinner's fifth bar, slid out from under the last card. */}
+          {spinning && k === CARDS - 1 && <span className="glass-card glass-card-x glass-card-4" />}
         </Fragment>
       ))}
     </div>
