@@ -1000,9 +1000,9 @@ body {
 /* The generation spinner (GlassFan spinning over .gen-overlay, Mario
    8 Oct 2026, from a reference): the fan's cards narrow into a row of five
    upright bars, and a light runs along them, left to right.
-   - Gather: in 0.45s on an ease-out (it answers the click at once), the
-     gradient card narrows into the first bar and the glass cards fold into
-     it, fading (glass-fold),
+   - Gather: the glass cards are gone at the click; the gradient card hops,
+     then from 0.3s narrows into the first bar over 0.7s (glass-hop, then
+     glass-gather), the whole spinner travelling on the same 0.7s,
      narrowing and turning upright on the way; a fifth bar slides out from
      under the last one. Size and corners animate with the move, so the bars
      land with round corners, not squashed ones.
@@ -1046,15 +1046,15 @@ body {
 .glass-spin .glass-card {
   animation:
     glass-fold 0.45s cubic-bezier(0.22, 1, 0.36, 1) both,
-    glass-trail 3s cubic-bezier(0.37, 0, 0.63, 1) calc(0.45s + (var(--p) - 1) * 0.5s) infinite,
-    glass-beat 3s linear calc(0.45s + (var(--p) - 1) * 0.5s) infinite;
+    glass-trail 3s cubic-bezier(0.37, 0, 0.63, 1) calc(1s + (var(--p) - 1) * 0.5s) infinite,
+    glass-beat 3s linear calc(1s + (var(--p) - 1) * 0.5s) infinite;
 }
 /* The fifth bar comes out once the fourth is nearly in place. */
 .glass-spin .glass-card-x {
   animation:
     glass-split 0.3s cubic-bezier(0.65, 0, 0.35, 1) 0.22s both,
-    glass-trail 3s cubic-bezier(0.37, 0, 0.63, 1) calc(0.45s + (var(--p) - 1) * 0.5s) infinite,
-    glass-beat 3s linear calc(0.45s + (var(--p) - 1) * 0.5s) infinite;
+    glass-trail 3s cubic-bezier(0.37, 0, 0.63, 1) calc(1s + (var(--p) - 1) * 0.5s) infinite,
+    glass-beat 3s linear calc(1s + (var(--p) - 1) * 0.5s) infinite;
 }
 @keyframes glass-gather {
   from {
@@ -1097,13 +1097,12 @@ body {
   }
 }
 /* The gradient card's hop at the click (Mario, 8 Oct 2026): it jumps up
-   first, still a card, and comes down as it narrows into the bar, a touch
-   past its place, then settles. `translate` is its own property, so it rides on top of
+   first, still a card; as it comes down the move to the bar takes over
+   (from 0.3s, 0.7s), one fluid motion: hop, then travel. `translate` is its own property, so it rides on top of
    the gather's transform. */
 @keyframes glass-hop {
   0% { translate: 0 0; animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1); }
-  35% { translate: 0 -10px; animation-timing-function: cubic-bezier(0.55, 0, 0.75, 0.4); }
-  70% { translate: 0 2px; animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1); }
+  40% { translate: 0 -10px; animation-timing-function: cubic-bezier(0.45, 0, 0.55, 1); }
   100% { translate: 0 0; }
 }
 @keyframes glass-split {
@@ -1132,7 +1131,7 @@ body {
   background: linear-gradient(0deg, #2040ff, #35ffbb);
   opacity: 0;
   pointer-events: none;
-  animation: glass-head 3s cubic-bezier(0.37, 0, 0.63, 1) calc(0.45s + (var(--p) - 1) * 0.5s) infinite backwards;
+  animation: glass-head 3s cubic-bezier(0.37, 0, 0.63, 1) calc(1s + (var(--p) - 1) * 0.5s) infinite backwards;
 }
 /* One pulse per bar: up for 0.5s, down for 0.5s, on sine curves, the
    gradient filling the glass and leaving it. The next bar starts as this
@@ -1157,29 +1156,29 @@ body {
   30%, 100% { scale: 1; }
 }
 /* The gradient card leads: it lands lit and holds the light until the bars
-   are in place (0.45s), then lets it go and fades like any tail bar; from
+   are in place (1s), then lets it go and fades like any tail bar; from
    its second round it runs on the common schedule. */
 .glass-spin .glass-card-0 {
   animation:
-    glass-hop 0.42s both,
-    glass-gather 0.45s cubic-bezier(0.22, 1, 0.36, 1) 0.08s both,
-    glass-lead-trail 2.95s cubic-bezier(0.37, 0, 0.63, 1) forwards,
-    glass-trail 3s cubic-bezier(0.37, 0, 0.63, 1) 2.95s infinite,
-    glass-beat 3s linear 2.95s infinite;
+    glass-hop 0.4s both,
+    glass-gather 0.7s cubic-bezier(0.4, 0, 0.2, 1) 0.3s both,
+    glass-lead-trail 3.5s cubic-bezier(0.37, 0, 0.63, 1) forwards,
+    glass-trail 3s cubic-bezier(0.37, 0, 0.63, 1) 3.5s infinite,
+    glass-beat 3s linear 3.5s infinite;
 }
 .glass-spin .glass-card-0::before {
   opacity: 1;
   animation:
-    glass-lead-head 0.95s cubic-bezier(0.37, 0, 0.63, 1) forwards,
-    glass-head 3s cubic-bezier(0.37, 0, 0.63, 1) 2.95s infinite;
+    glass-lead-head 1.5s cubic-bezier(0.37, 0, 0.63, 1) forwards,
+    glass-head 3s cubic-bezier(0.37, 0, 0.63, 1) 3.5s infinite;
 }
 @keyframes glass-lead-trail {
   0% { opacity: 1; }
-  15.254% { opacity: 1; animation-timing-function: linear; }
+  28.571% { opacity: 1; animation-timing-function: linear; }
   100% { opacity: 0; }
 }
 @keyframes glass-lead-head {
-  0%, 47.4% { opacity: 1; }
+  0%, 66.667% { opacity: 1; }
   100% { opacity: 0; }
 }
 /* The bars exist only behind the light (Mario, 8 Oct 2026): a bar appears
@@ -1197,7 +1196,7 @@ body {
 
 .gen-spinner {
   position: relative;
-  animation: gen-travel 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: gen-travel 0.7s cubic-bezier(0.4, 0, 0.2, 1) 0.3s both;
 }
 @keyframes gen-travel {
   from { transform: translate(var(--dx, 0), var(--dy, 0)); }
