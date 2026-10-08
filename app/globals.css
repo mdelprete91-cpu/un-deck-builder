@@ -1005,9 +1005,9 @@ body {
      stage's centre on the same curve. The cards keep the empty state's look
      throughout. Once closed, the cards under the front one fade out, so one
      glass card is left.
-   - Light: a soft blob of the fan's gradient, clipped to the card, drifts
-     side to side behind it on a slow sine, 2.4s each way; the frosted glass
-     turns it into a glow moving inside the card. */
+   - Light: the fan's gradient card, clipped to the glass card's shape,
+     slides side to side behind it on a slow sine, 2.4s each way, so the
+     glass shows the same colours as on the empty state, moving. */
 .glass-fan.glass-spin {
   width: calc(300px * var(--s));
   height: calc(180px * var(--s));
@@ -1050,24 +1050,21 @@ body {
   animation: glass-light-in 0.6s cubic-bezier(0.37, 0, 0.63, 1) 0.45s forwards;
 }
 .glass-spin .glass-light::before {
+  /* The fan's gradient card itself, sliding behind the glass. */
   content: "";
   position: absolute;
-  top: -20%;
-  left: 0;
-  width: 60%;
-  height: 140%;
-  border-radius: 50%;
-  background: radial-gradient(closest-side, #35ffbb 0%, #2bb6ff 45%, #2040ff 75%, rgba(32, 64, 255, 0) 100%);
-  filter: blur(8px);
-  translate: -40% 0;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(0deg, #2040ff, #35ffbb);
+  translate: -62% 0;
   animation: glass-light-drift 2.4s cubic-bezier(0.37, 0, 0.63, 1) 0.45s infinite alternate;
 }
 @keyframes glass-light-in {
   to { opacity: 1; }
 }
 @keyframes glass-light-drift {
-  from { translate: -40% 0; }
-  to { translate: 106% 0; }
+  from { translate: -62% 0; }
+  to { translate: 62% 0; }
 }
 .gen-spinner {
   position: relative;
@@ -1118,7 +1115,7 @@ body {
   .glass-fan.glass-spin .glass-card, .glass-fan.glass-spin .glass-card-0, .glass-fan.glass-spin .glass-card-1, .glass-fan.glass-spin .glass-card-2 { animation: glass-close 0.01ms both, glass-under 0.01ms forwards; }
   .glass-fan.glass-spin .glass-card-3 { animation: glass-close 0.01ms both; }
   .glass-spin .glass-light { animation: none; opacity: 1; }
-  .glass-spin .glass-light::before { animation: none; translate: 33% 0; }
+  .glass-spin .glass-light::before { animation: none; translate: -30% 0; }
 }
 
 
