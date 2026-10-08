@@ -1031,7 +1031,7 @@ body {
   }
   45%, 55% {
     opacity: var(--o);
-    transform: rotate(var(--a)) translateY(-22px) rotate(calc(90deg + var(--t))) scale(0.15);
+    transform: rotate(var(--a)) translateY(-29px) rotate(calc(90deg + var(--t))) scale(0.15);
   }
 }
 /* Six spokes (Mario, 8 Oct 2026): the fan's four cards gather into the wheel
