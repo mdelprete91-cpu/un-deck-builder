@@ -20,8 +20,12 @@ export default function GlassFan({ spinning = false }: { spinning?: boolean }) {
     <div aria-hidden className={`glass-fan${spinning ? " glass-spin" : ""}`}>
       {Array.from({ length: CARDS }, (_, k) => (
         <Fragment key={k}>
-          {/* The loader's light, behind the front card only. */}
-          {spinning && k === CARDS - 1 && <span className="glass-light" />}
+          {/* The loader's light, under the three glass cards, as the gradient card is in the fan. */}
+          {spinning && k === 1 && (
+            <span className="glass-light">
+              <span className="glass-light-white" />
+            </span>
+          )}
           <span className={`glass-card glass-card-${k}`} />
         </Fragment>
       ))}

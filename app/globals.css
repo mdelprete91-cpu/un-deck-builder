@@ -1003,8 +1003,7 @@ body {
    - Close: the four cards slide together, straightening, into one place in
      0.6s, a beat apart, back card first; the whole spinner travels to the
      stage's centre on the same curve. The cards keep the empty state's look
-     throughout. Once closed, the cards under the front one fade out, so one
-     glass card is left.
+     throughout; closed, the three glass cards read as one.
    - Light: the fan's gradient behind the glass card, clipped to its shape,
      its colours moving organically (two wandering blobs, below), seen
      through the frosted glass. */
@@ -1019,10 +1018,10 @@ body {
 .glass-spin .glass-card-1 { --d: 0.03s; }
 .glass-spin .glass-card-2 { --d: 0.06s; }
 .glass-spin .glass-card-3 { --d: 0.09s; }
-/* Under the front card: gone once the deck is closed. */
-.glass-fan.glass-spin .glass-card-0,
-.glass-fan.glass-spin .glass-card-1,
-.glass-fan.glass-spin .glass-card-2 {
+/* The gradient card gives way to the light once the deck is closed. The
+   three glass cards stay, stacked into one: their frosting compounds over
+   the colour as in the fan, which is what makes it glow (Mario, 8 Oct 2026). */
+.glass-fan.glass-spin .glass-card-0 {
   animation:
     glass-close 0.6s cubic-bezier(0.4, 0, 0.2, 1) var(--d, 0s) both,
     glass-under 0.5s cubic-bezier(0.37, 0, 0.63, 1) 0.5s forwards;
@@ -1059,22 +1058,62 @@ body {
 .glass-spin .glass-light::after {
   content: "";
   position: absolute;
-  width: 90%;
-  height: 130%;
+  width: 110%;
+  height: 150%;
   border-radius: 50%;
-  filter: blur(12px);
+  filter: blur(20px);
 }
 .glass-spin .glass-light::before {
   left: -20%;
   top: -10%;
-  background: radial-gradient(closest-side, #35ffbb, rgba(53, 255, 187, 0));
+  background: radial-gradient(closest-side, rgba(53, 255, 187, 0.9), rgba(53, 255, 187, 0.35) 55%, rgba(53, 255, 187, 0));
   animation: glass-blob-a 6.4s cubic-bezier(0.45, 0, 0.55, 1) infinite;
 }
 .glass-spin .glass-light::after {
   left: 30%;
   top: -20%;
-  background: radial-gradient(closest-side, #2040ff, rgba(32, 64, 255, 0));
+  background: radial-gradient(closest-side, rgba(32, 64, 255, 0.9), rgba(32, 64, 255, 0.35) 55%, rgba(32, 64, 255, 0));
   animation: glass-blob-b 8.2s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+}
+/* A third, white, smaller and quicker (5.2s), a sheen drifting through the
+   colour (Mario, 8 Oct 2026: a little white). */
+.glass-spin .glass-light-white {
+  position: absolute;
+  left: 20%;
+  top: 0;
+  width: 60%;
+  height: 90%;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, rgba(255, 255, 255, 1), rgba(255, 255, 255, 0.45) 55%, rgba(255, 255, 255, 0));
+  filter: blur(14px);
+  z-index: 1;
+  animation: glass-blob-w 5.2s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+}
+/* And a glow on the glass itself: a soft white bloom drifting over the
+   front card on the white sheen's loop, lightened in (screen), clipped to
+   the card (Mario, 8 Oct 2026: more white, like a glow). */
+.glass-fan.glass-spin .glass-card-3 { overflow: hidden; }
+.glass-fan.glass-spin .glass-card-3::after {
+  content: "";
+  position: absolute;
+  left: 10%;
+  top: -10%;
+  width: 70%;
+  height: 110%;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, rgba(255, 255, 255, 0.75), rgba(255, 255, 255, 0.25) 55%, rgba(255, 255, 255, 0));
+  filter: blur(14px);
+  mix-blend-mode: screen;
+  opacity: 0;
+  pointer-events: none;
+  animation:
+    glass-light-in 0.6s cubic-bezier(0.37, 0, 0.63, 1) 0.45s forwards,
+    glass-blob-w 5.2s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+}
+@keyframes glass-blob-w {
+  0%, 100% { translate: 0 0; scale: 1; }
+  33% { translate: 55% 30%; scale: 0.85; }
+  66% { translate: -45% 20%; scale: 1.1; }
 }
 @keyframes glass-blob-a {
   0%, 100% { translate: 0 0; scale: 1; }
@@ -1137,10 +1176,11 @@ body {
 }
 @media (prefers-reduced-motion: reduce) {
   .gen-spinner, .gen-label { animation-duration: 0.01ms; animation-delay: 0s; }
-  .glass-fan.glass-spin .glass-card, .glass-fan.glass-spin .glass-card-0, .glass-fan.glass-spin .glass-card-1, .glass-fan.glass-spin .glass-card-2 { animation: glass-close 0.01ms both, glass-under 0.01ms forwards; }
-  .glass-fan.glass-spin .glass-card-3 { animation: glass-close 0.01ms both; }
+  .glass-fan.glass-spin .glass-card { animation: glass-close 0.01ms both; }
+  .glass-fan.glass-spin .glass-card-0 { animation: glass-close 0.01ms both, glass-under 0.01ms forwards; }
   .glass-spin .glass-light { animation: none; opacity: 1; }
-  .glass-spin .glass-light::before, .glass-spin .glass-light::after { animation: none; }
+  .glass-spin .glass-light::before, .glass-spin .glass-light::after, .glass-spin .glass-light-white { animation: none; }
+  .glass-fan.glass-spin .glass-card-3::after { animation: none; opacity: 1; }
 }
 
 
