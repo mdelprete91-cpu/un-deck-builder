@@ -1029,19 +1029,19 @@ body {
      a faint glint on the right edge, the fan's tint behind, and the fan's
      frosting. Highlights on two sides only, so no frame around it. */
   background:
-    radial-gradient(120% 22% at 50% 0%, rgba(255, 255, 255, 0.45), rgba(255, 255, 255, 0) 100%),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.34) 0%, rgba(255, 255, 255, 0.08) 40%, rgba(255, 255, 255, 0) 65%, rgba(255, 255, 255, 0.16) 100%),
+    radial-gradient(120% 22% at 50% 0%, rgba(255, 255, 255, 0.22), rgba(255, 255, 255, 0) 100%),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.18) 0%, rgba(255, 255, 255, 0.04) 40%, rgba(255, 255, 255, 0) 65%, rgba(255, 255, 255, 0.08) 100%),
     rgba(103, 133, 255, 0.2);
   -webkit-backdrop-filter: blur(6px) saturate(1.7) brightness(1.08);
   backdrop-filter: blur(6px) saturate(1.7) brightness(1.08);
-  box-shadow: inset 1px 0 0 rgba(255, 255, 255, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.45);
+  box-shadow: inset 1px 0 0 rgba(255, 255, 255, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.22);
 }
 .dark .glass-spin .glass-card-0, .dark .glass-spin .glass-card-1, .dark .glass-spin .glass-card-2, .dark .glass-spin .glass-card-3, .dark .glass-spin .glass-card-x {
   background:
-    radial-gradient(120% 22% at 50% 0%, rgba(255, 255, 255, 0.32), rgba(255, 255, 255, 0) 100%),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.26) 0%, rgba(255, 255, 255, 0.06) 40%, rgba(255, 255, 255, 0) 65%, rgba(255, 255, 255, 0.12) 100%),
+    radial-gradient(120% 22% at 50% 0%, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0) 100%),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.13) 0%, rgba(255, 255, 255, 0.03) 40%, rgba(255, 255, 255, 0) 65%, rgba(255, 255, 255, 0.06) 100%),
     rgba(103, 133, 255, 0.24);
-  box-shadow: inset 1px 0 0 rgba(255, 255, 255, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.35);
+  box-shadow: inset 1px 0 0 rgba(255, 255, 255, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.17);
 }
 .glass-spin .glass-card {
   animation:
@@ -1073,11 +1073,11 @@ body {
     transform: translateX(var(--bx));
   }
 }
-/* The glass cards fold into the gradient card (Mario, 8 Oct 2026: a
-   cleaner transition): they narrow onto its bar and fade out on the way,
-   gone by two thirds of the move, so the fan reads as collapsing into one
-   lit bar. Once invisible they step to their own places, ready for the
-   light. */
+/* At the click the glass cards are gone at once (Mario, 8 Oct 2026),
+   faded out in the first 0.09s while they start to narrow, and the
+   gradient card alone becomes the first bar, with a little hop as it
+   lands. Out of sight the glass cards reach their own places, ready for
+   the light. */
 @keyframes glass-fold {
   from {
     width: calc(300px * var(--s));
@@ -1087,14 +1087,7 @@ body {
     opacity: 1;
     transform: translate(calc(var(--x) * 0.7 * var(--s) * 1px), calc(var(--y) * 0.7 * var(--s) * 1px)) rotate(calc(var(--r) * 0.7 * 1deg));
   }
-  65% {
-    width: 8px;
-    height: 64px;
-    margin: -32px 0 0 -4px;
-    border-radius: 4px;
-    opacity: 0;
-    transform: translateX(-40px);
-  }
+  20% { opacity: 0; }
   to {
     width: 8px;
     height: 64px;
@@ -1103,6 +1096,15 @@ body {
     opacity: 0;
     transform: translateX(var(--bx));
   }
+}
+/* The gradient card's hop as it lands: up, a touch past its place on the
+   way down, settle. `translate` is its own property, so it rides on top of
+   the gather's transform. */
+@keyframes glass-hop {
+  0% { translate: 0 0; animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1); }
+  35% { translate: 0 -10px; animation-timing-function: cubic-bezier(0.55, 0, 0.75, 0.4); }
+  70% { translate: 0 2px; animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1); }
+  100% { translate: 0 0; }
 }
 @keyframes glass-split {
   from {
@@ -1160,6 +1162,7 @@ body {
 .glass-spin .glass-card-0 {
   animation:
     glass-gather 0.45s cubic-bezier(0.22, 1, 0.36, 1) 0s both,
+    glass-hop 0.5s 0.3s both,
     glass-lead-trail 2.95s cubic-bezier(0.37, 0, 0.63, 1) forwards,
     glass-trail 3s cubic-bezier(0.37, 0, 0.63, 1) 2.95s infinite,
     glass-beat 3s linear 2.95s infinite;
