@@ -1003,8 +1003,10 @@ body {
    - Close: the four cards slide together, straightening, into one place in
      0.7s, a beat apart, back card first, while the whole spinner travels to
      the stage's centre on the same curve and time: one movement. As they
-     meet, the cards under the front one fade and the moving light fades in
-     behind it, a crossfade from the fan's colour to the loader's. The cards keep the empty state's look
+     meet, the moving light fades in behind the front card (from 0.25s) and
+     the cards beneath fade slowly after it (1.6s from 0.6s), a long
+     crossfade from the fan's colour to the loader's: the card never
+     darkens in one step. The cards keep the empty state's look
      throughout; closed, only the front glass card is left.
    - Light: soft pieces of the fan's gradient and a white sheen wandering
      behind the front card, at least 30% of it left clear (below). */
@@ -1026,7 +1028,7 @@ body {
 .glass-fan.glass-spin .glass-card-2 {
   animation:
     glass-close 0.7s cubic-bezier(0.4, 0, 0.2, 1) var(--d, 0s) both,
-    glass-under 0.7s cubic-bezier(0.37, 0, 0.63, 1) 0.55s forwards;
+    glass-under 1.6s cubic-bezier(0.37, 0, 0.63, 1) 0.6s forwards;
 }
 @keyframes glass-close {
   from {
@@ -1048,7 +1050,7 @@ body {
   border-radius: calc(30px * var(--s));
   overflow: hidden;
   opacity: 0;
-  animation: glass-light-in 0.8s cubic-bezier(0.37, 0, 0.63, 1) 0.5s forwards;
+  animation: glass-light-in 0.7s cubic-bezier(0.37, 0, 0.63, 1) 0.25s forwards;
 }
 /* Organic colour (Mario, 8 Oct 2026): two soft pieces of the fan's
    gradient wandering behind the glass on their own
@@ -1072,14 +1074,14 @@ body {
   top: -15%;
   width: 65%;
   height: 120%;
-  animation: glass-blob-a 6.4s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+  animation: glass-blob-a 13s cubic-bezier(0.45, 0, 0.55, 1) infinite;
 }
 .glass-spin .glass-light::after {
   left: 35%;
   top: -5%;
   width: 45%;
   height: 100%;
-  animation: glass-blob-b 8.2s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+  animation: glass-blob-b 16s cubic-bezier(0.45, 0, 0.55, 1) infinite;
 }
 /* A third, white, smaller and quicker (5.2s), a sheen drifting through the
    colour (Mario, 8 Oct 2026: a little white). */
@@ -1093,7 +1095,7 @@ body {
   background: radial-gradient(closest-side, rgba(255, 255, 255, 1), rgba(255, 255, 255, 0.45) 55%, rgba(255, 255, 255, 0));
   filter: blur(14px);
   z-index: 1;
-  animation: glass-blob-w 5.2s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+  animation: glass-blob-w 11s cubic-bezier(0.45, 0, 0.55, 1) infinite;
 }
 /* And a glow on the glass itself: a soft white bloom drifting over the
    front card on the white sheen's loop, lightened in (screen), clipped to
@@ -1113,8 +1115,8 @@ body {
   opacity: 0;
   pointer-events: none;
   animation:
-    glass-light-in 0.6s cubic-bezier(0.37, 0, 0.63, 1) 0.45s forwards,
-    glass-blob-w 5.2s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+    glass-light-in 1.4s cubic-bezier(0.37, 0, 0.63, 1) 0.6s forwards,
+    glass-blob-w 11s cubic-bezier(0.45, 0, 0.55, 1) infinite;
 }
 @keyframes glass-blob-w {
   0%, 100% { translate: 0 0; scale: 1; }
