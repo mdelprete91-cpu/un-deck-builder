@@ -941,17 +941,26 @@ body {
 .glass-card-2 { --x: 42; --y: 10; --r: 3.8; animation-delay: -0.24s; }
 .glass-card-3 { --x: 120; --y: 32; --r: 11; animation-delay: -0.36s; }
 /* Hover, one card at a time (Mario, 8 Oct 2026): the card under the
-   pointer lifts 10px, as if drawn up out of the deck. The way back is the
-   slow one: the card waits a beat and settles into the fan over 1.2s, so it
-   never snaps back in. `translate` sits on top of the breathing
+   pointer lifts 10px, as if drawn up out of the deck. No snap either way:
+   it rises on a sine ease-in-out over 0.7s, and on the way back it waits a
+   beat and settles into the fan over 1.1s on the same curve. `translate` sits on top of the breathing
    `transform`, so the two never fight. */
 .glass-fan:not(.glass-spin) .glass-card {
-  transition: translate 1.2s cubic-bezier(0.45, 0, 0.25, 1) 0.08s;
+  transition: translate 1.1s cubic-bezier(0.37, 0, 0.63, 1) 0.08s;
 }
 @media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
   .glass-fan:not(.glass-spin) .glass-card:hover {
     translate: 0 -10px;
-    transition: translate 0.6s cubic-bezier(0.33, 1, 0.68, 1);
+    transition: translate 0.7s cubic-bezier(0.37, 0, 0.63, 1);
+  }
+  /* The lifted card keeps the pointer: a strip under it, as tall as the
+     lift, so its bottom edge cannot slip out from under the pointer and
+     bounce the card up and down. */
+  .glass-fan:not(.glass-spin) .glass-card::after {
+    content: "";
+    position: absolute;
+    inset: 100% 0 auto;
+    height: 12px;
   }
 }
 /* Glass at this size needs more than a tint (Mario, 8 Oct 2026: "the glass
