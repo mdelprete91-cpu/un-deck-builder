@@ -1084,7 +1084,6 @@ body {
   inset: 0;
   border-radius: inherit;
   background: linear-gradient(0deg, #2040ff, #35ffbb);
-  box-shadow: 0 0 14px 1px rgba(53, 170, 255, 0.55);
   opacity: 0;
   pointer-events: none;
   animation: glass-head 3s cubic-bezier(0.37, 0, 0.63, 1) calc(0.45s + (var(--p) - 1) * 0.5s) infinite backwards;
