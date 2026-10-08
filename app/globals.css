@@ -1005,9 +1005,9 @@ body {
      stage's centre on the same curve. The cards keep the empty state's look
      throughout. Once closed, the cards under the front one fade out, so one
      glass card is left.
-   - Light: the fan's gradient card, clipped to the glass card's shape,
-     slides side to side behind it on a slow sine, 2.4s each way, so the
-     glass shows the same colours as on the empty state, moving. */
+   - Light: the fan's gradient behind the glass card, clipped to its shape,
+     its colours moving organically (two wandering blobs, below), seen
+     through the frosted glass. */
 .glass-fan.glass-spin {
   width: calc(300px * var(--s));
   height: calc(180px * var(--s));
@@ -1049,22 +1049,48 @@ body {
   opacity: 0;
   animation: glass-light-in 0.6s cubic-bezier(0.37, 0, 0.63, 1) 0.45s forwards;
 }
-.glass-spin .glass-light::before {
-  /* The fan's gradient card itself, sliding behind the glass. */
+/* Organic colour (Mario, 8 Oct 2026): the fan's gradient as the base, and
+   two soft blobs, one mint, one blue, wandering across it on their own
+   loops of different lengths (6.4s and 8.2s), so the colours mix and
+   shift without ever repeating the same picture or showing an edge. */
+.glass-spin .glass-light {
+  background: linear-gradient(0deg, #2040ff, #35ffbb);
+}
+.glass-spin .glass-light::before,
+.glass-spin .glass-light::after {
   content: "";
   position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  background: linear-gradient(0deg, #2040ff, #35ffbb);
-  translate: -62% 0;
-  animation: glass-light-drift 2.4s cubic-bezier(0.37, 0, 0.63, 1) 0.45s infinite alternate;
+  width: 90%;
+  height: 130%;
+  border-radius: 50%;
+  filter: blur(12px);
+}
+.glass-spin .glass-light::before {
+  left: -20%;
+  top: -10%;
+  background: radial-gradient(closest-side, #35ffbb, rgba(53, 255, 187, 0));
+  animation: glass-blob-a 6.4s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+}
+.glass-spin .glass-light::after {
+  left: 30%;
+  top: -20%;
+  background: radial-gradient(closest-side, #2040ff, rgba(32, 64, 255, 0));
+  animation: glass-blob-b 8.2s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+}
+@keyframes glass-blob-a {
+  0%, 100% { translate: 0 0; scale: 1; }
+  25% { translate: 45% 25%; scale: 1.15; }
+  50% { translate: 70% -15%; scale: 0.9; }
+  75% { translate: 20% 30%; scale: 1.05; }
+}
+@keyframes glass-blob-b {
+  0%, 100% { translate: 0 0; scale: 1; }
+  30% { translate: -50% 30%; scale: 0.9; }
+  60% { translate: -15% 45%; scale: 1.2; }
+  80% { translate: 20% 10%; scale: 1; }
 }
 @keyframes glass-light-in {
   to { opacity: 1; }
-}
-@keyframes glass-light-drift {
-  from { translate: -62% 0; }
-  to { translate: 62% 0; }
 }
 .gen-spinner {
   position: relative;
@@ -1115,7 +1141,7 @@ body {
   .glass-fan.glass-spin .glass-card, .glass-fan.glass-spin .glass-card-0, .glass-fan.glass-spin .glass-card-1, .glass-fan.glass-spin .glass-card-2 { animation: glass-close 0.01ms both, glass-under 0.01ms forwards; }
   .glass-fan.glass-spin .glass-card-3 { animation: glass-close 0.01ms both; }
   .glass-spin .glass-light { animation: none; opacity: 1; }
-  .glass-spin .glass-light::before { animation: none; translate: -30% 0; }
+  .glass-spin .glass-light::before, .glass-spin .glass-light::after { animation: none; }
 }
 
 
