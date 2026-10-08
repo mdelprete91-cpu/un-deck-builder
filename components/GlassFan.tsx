@@ -19,6 +19,8 @@ export default function GlassFan({ spinning = false }: { spinning?: boolean }) {
       {Array.from({ length: CARDS }, (_, k) => (
         <span key={k} className={`glass-card glass-card-${k}`} />
       ))}
+      {/* The spinner's other four spokes, grown from the centre between the fan's cards. */}
+      {spinning && Array.from({ length: 4 }, (_, k) => <span key={`x${k}`} className={`glass-card glass-card-x glass-card-${k + 4}`} />)}
     </div>
   );
 }

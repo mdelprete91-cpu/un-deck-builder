@@ -985,28 +985,61 @@ body {
 /* The wheel's box is square and as wide as the wheel, so the label under it
    clears the lowest card. Cards stay centred in it. */
 .glass-fan.glass-spin {
-  width: 250px;
-  height: 250px;
+  width: 200px;
+  height: 200px;
+  will-change: transform;
 }
 .glass-spin .glass-card {
   animation: glass-gather 0.9s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
-.glass-spin .glass-card-0 { --a: 0deg; animation-delay: 0s; }
-.glass-spin .glass-card-1 { --a: 90deg; animation-delay: 0.05s; }
-.glass-spin .glass-card-2 { --a: 180deg; animation-delay: 0.1s; }
-.glass-spin .glass-card-3 { --a: 270deg; animation-delay: 0.15s; }
+/* Eight spokes, like an activity indicator (Mario, 8 Oct 2026): every card
+   points at the centre, evenly spaced, and fades around the circle from the
+   lead (the gradient card) like a trail. --o is each spoke's opacity. */
+.glass-spin .glass-card-0 { --a: 0deg; --o: 1; animation-delay: 0s; }
+.glass-spin .glass-card-1 { --a: 90deg; --o: 0.22; animation-delay: 0.04s; }
+.glass-spin .glass-card-2 { --a: 180deg; --o: 0.42; animation-delay: 0.08s; }
+.glass-spin .glass-card-3 { --a: 270deg; --o: 0.68; animation-delay: 0.12s; }
+.glass-spin .glass-card-4 { --a: 45deg; --o: 0.14; }
+.glass-spin .glass-card-5 { --a: 135deg; --o: 0.3; }
+.glass-spin .glass-card-6 { --a: 225deg; --o: 0.54; }
+.glass-spin .glass-card-7 { --a: 315deg; --o: 0.84; }
 @keyframes glass-gather {
   from {
     transform: translate(calc(var(--x) * 0.7 * var(--s) * 1px), calc(var(--y) * 0.7 * var(--s) * 1px)) rotate(calc(var(--r) * 0.7 * 1deg));
   }
   to {
-    transform: rotate(var(--a)) translate(10px, -72px) rotate(78deg) scale(0.66);
+    opacity: var(--o);
+    transform: rotate(var(--a)) translateY(-60px) rotate(90deg) scale(0.42);
   }
 }
+/* The new spokes: glass, grown out of the centre into the gaps. */
+.glass-card-x {
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.34) 0%, rgba(255, 255, 255, 0.08) 38%, rgba(255, 255, 255, 0) 55%, rgba(255, 255, 255, 0.1) 100%),
+    rgba(103, 133, 255, 0.22);
+  -webkit-backdrop-filter: blur(6px) saturate(1.7) brightness(1.08);
+  backdrop-filter: blur(6px) saturate(1.7) brightness(1.08);
+  box-shadow: inset 1px 1px 0 rgba(255, 255, 255, 0.55), inset 0 0 0 1px rgba(255, 255, 255, 0.18);
+}
+.glass-spin .glass-card-x {
+  animation: glass-grow 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.18s both;
+}
+@keyframes glass-grow {
+  from {
+    opacity: 0;
+    transform: rotate(var(--a)) translateY(-20px) rotate(90deg) scale(0.12);
+  }
+  to {
+    opacity: var(--o);
+    transform: rotate(var(--a)) translateY(-60px) rotate(90deg) scale(0.42);
+  }
+}
+/* One smooth turn: a quadratic ease-in over 90deg in 1.2s ends at 150deg/s,
+   the speed of the linear 2.4s turn that follows, so there is no step. */
 .glass-spin {
   animation:
-    glass-turn-in 1.5s cubic-bezier(0.11, 0, 0.5, 0) 0.15s both,
-    glass-turn 3s linear 1.65s infinite;
+    glass-turn-in 1.2s cubic-bezier(0.11, 0, 0.5, 0) 0.1s both,
+    glass-turn 2.4s linear 1.3s infinite;
 }
 @keyframes glass-turn-in {
   from { transform: rotate(0deg); }
@@ -1063,3 +1096,21 @@ body {
   .glass-spin { animation: none; }
 }
 
+/* In the spinner every spoke takes the gradient, faded in while the cards
+   gather (no jump), so the opacity trail reads as in an activity indicator:
+   one colour, from full at the lead to faint behind it. */
+.glass-spin .glass-card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(0deg, #2040ff, #35ffbb);
+  opacity: 0;
+  animation: glass-tint 0.9s cubic-bezier(0.16, 1, 0.3, 1) 0.1s forwards;
+}
+@keyframes glass-tint {
+  to { opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .glass-spin .glass-card::after { animation-duration: 0.01ms; animation-delay: 0s; }
+}
