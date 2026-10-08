@@ -1030,6 +1030,25 @@ body {
     transform: rotate(var(--a)) translateY(-50px) rotate(calc(90deg + var(--t))) scale(0.54);
   }
 }
+/* In the fan every glass card sits over some of the gradient and picks up
+   its colour; in the wheel most of them sit over nothing and go pale next
+   to the gradient card (Mario, 8 Oct 2026). A faint wash of the same
+   gradient inside each glass card, faded in as they gather, evens the
+   weight and keeps the sheen and edges of the glass on top. */
+.glass-spin .glass-card:not(.glass-card-0)::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(0deg, #2040ff, #35ffbb);
+  opacity: 0;
+  pointer-events: none;
+  animation: glass-wash 0.6s cubic-bezier(0.22, 1, 0.36, 1) 0.1s forwards;
+}
+@keyframes glass-wash {
+  to { opacity: var(--wash, 0.3); }
+}
+.dark .glass-spin .glass-card:not(.glass-card-0)::after { --wash: 0.34; }
 /* One smooth turn: a quadratic ease-in over 60deg in 0.8s ends at 150deg/s,
    the speed of the linear 2.4s turn that follows, so there is no step. */
 .glass-spin {
@@ -1090,6 +1109,7 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .glass-spin .glass-card, .gen-spinner, .gen-label { animation-duration: 0.01ms; animation-delay: 0s; }
   .glass-spin { animation: none; }
+  .glass-spin .glass-card:not(.glass-card-0)::after { animation-duration: 0.01ms; animation-delay: 0s; }
 }
 
 
