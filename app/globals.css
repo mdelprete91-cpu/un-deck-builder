@@ -998,10 +998,10 @@ body {
    as they do in the fan. --o is each card's opacity, --t a small tilt of
    its own, all the same way, so the cross reads as a pinwheel caught
    mid-turn rather than a plus sign. */
-.glass-spin .glass-card-0 { --t: 20deg; --a: 0deg; --o: 1; animation-delay: 0s; }
-.glass-spin .glass-card-1 { --t: 16deg; --a: 90deg; --o: 0.8; animation-delay: 0.04s; }
-.glass-spin .glass-card-2 { --t: 22deg; --a: 180deg; --o: 0.9; animation-delay: 0.08s; }
-.glass-spin .glass-card-3 { --t: 18deg; --a: 270deg; --o: 1; animation-delay: 0.12s; }
+.glass-spin .glass-card-0 { --t: 40deg; --a: 0deg; --o: 1; animation-delay: 0s; }
+.glass-spin .glass-card-1 { --t: 40deg; --a: 90deg; --o: 0.8; animation-delay: 0.04s; }
+.glass-spin .glass-card-2 { --t: 40deg; --a: 180deg; --o: 0.9; animation-delay: 0.08s; }
+.glass-spin .glass-card-3 { --t: 40deg; --a: 270deg; --o: 1; animation-delay: 0.12s; }
 @keyframes glass-gather {
   from {
     transform: translate(calc(var(--x) * 0.7 * var(--s) * 1px), calc(var(--y) * 0.7 * var(--s) * 1px)) rotate(calc(var(--r) * 0.7 * 1deg));
