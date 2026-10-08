@@ -993,37 +993,20 @@ body {
   animation: glass-gather 0.9s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 /* Four spokes, the fan's own cards and no more (Mario, 8 Oct 2026): one at
-   each quarter, pointing at the centre. The lead keeps its gradient, the
-   other three stay glass and fade behind it like a trail. --o is each
-   card's opacity. Same layout as the "Generating spinner" frame in Spline. */
+   each quarter, overlapping at the centre into a cross. The gradient card
+   is painted first, so the three glass cards over it refract its colour,
+   as they do in the fan. --o is each card's opacity. */
 .glass-spin .glass-card-0 { --a: 0deg; --o: 1; animation-delay: 0s; }
-.glass-spin .glass-card-1 { --a: 90deg; --o: 0.5; animation-delay: 0.04s; }
-.glass-spin .glass-card-2 { --a: 180deg; --o: 0.7; animation-delay: 0.08s; }
-.glass-spin .glass-card-3 { --a: 270deg; --o: 0.9; animation-delay: 0.12s; }
-/* Glass needs colour behind it: in the fan the cards overlap the gradient
-   one, in the wheel they don't. A soft light under the wheel, brightest
-   under the lead and turning with it, gives the three glass cards something
-   to refract (Mario, 8 Oct 2026: "si perde il glass effect"). */
-.glass-spin::before {
-  content: "";
-  position: absolute;
-  inset: 34px;
-  border-radius: 50%;
-  background: conic-gradient(from -45deg, #35ffbb 0deg, #2040ff 90deg, rgba(32, 64, 255, 0.35) 200deg, rgba(53, 255, 187, 0.5) 300deg, #35ffbb 360deg);
-  filter: blur(16px);
-  opacity: 0;
-  animation: glass-tint-in 0.9s cubic-bezier(0.16, 1, 0.3, 1) 0.2s forwards;
-}
-@keyframes glass-tint-in {
-  to { opacity: 0.7; }
-}
+.glass-spin .glass-card-1 { --a: 90deg; --o: 0.8; animation-delay: 0.04s; }
+.glass-spin .glass-card-2 { --a: 180deg; --o: 0.9; animation-delay: 0.08s; }
+.glass-spin .glass-card-3 { --a: 270deg; --o: 1; animation-delay: 0.12s; }
 @keyframes glass-gather {
   from {
     transform: translate(calc(var(--x) * 0.7 * var(--s) * 1px), calc(var(--y) * 0.7 * var(--s) * 1px)) rotate(calc(var(--r) * 0.7 * 1deg));
   }
   to {
     opacity: var(--o);
-    transform: rotate(var(--a)) translateY(-52px) rotate(90deg) scale(0.42);
+    transform: rotate(var(--a)) translateY(-28px) rotate(90deg) scale(0.54);
   }
 }
 /* One smooth turn: a quadratic ease-in over 90deg in 1.2s ends at 150deg/s,
@@ -1086,7 +1069,6 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .glass-spin .glass-card, .gen-spinner, .gen-label { animation-duration: 0.01ms; animation-delay: 0s; }
   .glass-spin { animation: none; }
-  .glass-spin::before { animation-duration: 0.01ms; animation-delay: 0s; }
 }
 
 
