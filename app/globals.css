@@ -996,13 +996,13 @@ body {
    each quarter, overlapping at the centre into a cross. The gradient card
    is painted first, so the three glass cards over it refract its colour,
    as they do in the fan. --o is each card's opacity. Each card sits turned
-   on itself by its own --t, still, not animated. The turns differ, so no
-   two cards are square to each other and the four read as a whirl, not a
-   pinwheel (Mario, 8 Oct 2026). */
+   on itself by --t, still, not animated, so that each card lies 45deg past
+   the one before: one even step all round, like the fan, and no two cards
+   square to each other (Mario, 8 Oct 2026). */
 .glass-spin .glass-card-0 { --t: 40deg; --a: 0deg; --o: 1; --d: 0s; }
-.glass-spin .glass-card-1 { --t: 15deg; --a: 90deg; --o: 0.8; --d: 0.04s; }
-.glass-spin .glass-card-2 { --t: 58deg; --a: 180deg; --o: 0.9; --d: 0.08s; }
-.glass-spin .glass-card-3 { --t: 26deg; --a: 270deg; --o: 1; --d: 0.12s; }
+.glass-spin .glass-card-1 { --t: -5deg; --a: 90deg; --o: 0.8; --d: 0.04s; }
+.glass-spin .glass-card-2 { --t: -50deg; --a: 180deg; --o: 0.9; --d: 0.08s; }
+.glass-spin .glass-card-3 { --t: -95deg; --a: 270deg; --o: 1; --d: 0.12s; }
 @keyframes glass-gather {
   from {
     transform: translate(calc(var(--x) * 0.7 * var(--s) * 1px), calc(var(--y) * 0.7 * var(--s) * 1px)) rotate(calc(var(--r) * 0.7 * 1deg));
