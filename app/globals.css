@@ -1031,11 +1031,15 @@ body {
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.16);
 }
 .glass-spin .glass-card {
-  animation: glass-gather 0.45s cubic-bezier(0.65, 0, 0.35, 1) var(--d, 0s) both;
+  animation:
+    glass-gather 0.45s cubic-bezier(0.65, 0, 0.35, 1) var(--d, 0s) both,
+    glass-trail 3s cubic-bezier(0.37, 0, 0.63, 1) calc((var(--p) - 1) * 0.5s) infinite backwards;
 }
 /* The fifth bar comes out once the fourth is nearly in place. */
 .glass-spin .glass-card-x {
-  animation: glass-split 0.3s cubic-bezier(0.65, 0, 0.35, 1) 0.22s both;
+  animation:
+    glass-split 0.3s cubic-bezier(0.65, 0, 0.35, 1) 0.22s both,
+    glass-trail 3s cubic-bezier(0.37, 0, 0.63, 1) calc((var(--p) - 1) * 0.5s) infinite backwards;
 }
 @keyframes glass-gather {
   from {
@@ -1093,6 +1097,15 @@ body {
   0% { opacity: 0; }
   16.667% { opacity: 1; }
   33.333%, 100% { opacity: 0; }
+}
+/* The tail: once the light has passed, a bar fades almost away, and it
+   comes back just before the light reaches it again, so the light always
+   lands on a visible bar. Full at the start of its round, which is how the
+   bars arrive from the fan, so nothing jumps. */
+@keyframes glass-trail {
+  0%, 16.667% { opacity: 1; }
+  50%, 83.333% { opacity: 0.08; }
+  100% { opacity: 1; }
 }
 
 .gen-spinner {
