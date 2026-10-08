@@ -944,7 +944,7 @@ body {
    got lost"): frosting, a diagonal sheen like light across the surface, a
    bright top-left edge and a darker lower one, so each card reads as a
    pane with thickness over the gradient behind it. */
-.glass-card-1, .glass-card-2, .glass-card-3 {
+.glass-card-1, .glass-card-2, .glass-card-3, .glass-card-x {
   background:
     linear-gradient(135deg, rgba(255, 255, 255, 0.34) 0%, rgba(255, 255, 255, 0.08) 38%, rgba(255, 255, 255, 0) 55%, rgba(255, 255, 255, 0.1) 100%),
     rgba(103, 133, 255, 0.18);
@@ -956,7 +956,7 @@ body {
     inset 0 0 0 1px rgba(255, 255, 255, 0.18),
     0 8px 20px -10px rgba(20, 40, 160, 0.45);
 }
-.dark .glass-card-1, .dark .glass-card-2, .dark .glass-card-3 {
+.dark .glass-card-1, .dark .glass-card-2, .dark .glass-card-3, .dark .glass-card-x {
   background:
     linear-gradient(135deg, rgba(255, 255, 255, 0.28) 0%, rgba(255, 255, 255, 0.06) 38%, rgba(255, 255, 255, 0) 55%, rgba(255, 255, 255, 0.08) 100%),
     rgba(103, 133, 255, 0.22);
@@ -992,17 +992,34 @@ body {
 .glass-spin .glass-card {
   animation: glass-gather 0.9s cubic-bezier(0.16, 1, 0.3, 1) var(--d, 0s) forwards;
 }
-/* Four spokes, the fan's own cards and no more (Mario, 8 Oct 2026): one at
-   each quarter, overlapping at the centre into a cross. The gradient card
-   is painted first, so the three glass cards over it refract its colour,
-   as they do in the fan. --o is each card's opacity. Each card sits turned
-   on itself by --t, still, not animated, so that each card lies 45deg past
-   the one before: one even step all round, like the fan, and no two cards
-   square to each other (Mario, 8 Oct 2026). */
-.glass-spin .glass-card-0 { --t: 40deg; --a: 0deg; --o: 1; --d: 0s; }
-.glass-spin .glass-card-1 { --t: -5deg; --a: 90deg; --o: 0.8; --d: 0.04s; }
-.glass-spin .glass-card-2 { --t: -50deg; --a: 180deg; --o: 0.9; --d: 0.08s; }
-.glass-spin .glass-card-3 { --t: -95deg; --a: 270deg; --o: 1; --d: 0.12s; }
+/* Six spokes (Mario, 8 Oct 2026): the fan's four cards gather into the wheel
+   and, on the way, two more split off from their neighbours, so four become
+   six exactly while the empty state turns into the spinner. Every card sits
+   turned on itself by the same --t, still, so the wheel stays regular. The
+   gradient card is painted first and the glass ones over it refract its
+   colour, as in the fan. --o is each card's opacity. */
+.glass-spin .glass-card { --t: 40deg; }
+.glass-spin .glass-card-0 { --a: 0deg; --o: 1; --d: 0s; }
+.glass-spin .glass-card-1 { --a: 60deg; --o: 0.8; --d: 0.04s; }
+.glass-spin .glass-card-2 { --a: 180deg; --o: 0.9; --d: 0.08s; }
+.glass-spin .glass-card-3 { --a: 240deg; --o: 1; --d: 0.12s; }
+/* The two new cards start stacked on the slot before theirs, small and
+   clear, and slide out to 120deg and 300deg as the others gather. */
+.glass-spin .glass-card-4 { --a: 120deg; --from: 60deg; --o: 0.85; }
+.glass-spin .glass-card-5 { --a: 300deg; --from: 240deg; --o: 0.95; }
+.glass-spin .glass-card-x {
+  animation: glass-split 0.9s cubic-bezier(0.16, 1, 0.3, 1) 0.18s both;
+}
+@keyframes glass-split {
+  from {
+    opacity: 0;
+    transform: rotate(var(--from)) translateY(-42px) rotate(calc(90deg + var(--t))) scale(0.4);
+  }
+  to {
+    opacity: var(--o);
+    transform: rotate(var(--a)) translateY(-42px) rotate(calc(90deg + var(--t))) scale(0.54);
+  }
+}
 @keyframes glass-gather {
   from {
     transform: translate(calc(var(--x) * 0.7 * var(--s) * 1px), calc(var(--y) * 0.7 * var(--s) * 1px)) rotate(calc(var(--r) * 0.7 * 1deg));

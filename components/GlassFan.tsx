@@ -1,3 +1,5 @@
+import { Fragment } from "react";
+
 /**
  * The empty stage's picture (Mario, 8 Oct 2026): "Stackable glass" from
  * Spline, made a deck of slides and drawn in CSS, so it needs no runtime and
@@ -10,14 +12,18 @@ const CARDS = 4;
 
 /**
  * `spinning`: the generation's spinner (Mario, 8 Oct 2026). From the fan's
- * resting pose the same four cards gather into a wheel, one at each quarter,
- * and the whole turns until the first slide lands.
+ * resting pose the four cards gather into a wheel and two more split off
+ * on the way, six spokes, and the whole turns until the first slide lands.
  */
 export default function GlassFan({ spinning = false }: { spinning?: boolean }) {
   return (
     <div aria-hidden className={`glass-fan${spinning ? " glass-spin" : ""}`}>
       {Array.from({ length: CARDS }, (_, k) => (
-        <span key={k} className={`glass-card glass-card-${k}`} />
+        <Fragment key={k}>
+          <span className={`glass-card glass-card-${k}`} />
+          {/* The spinner's two extra cards, over the gradient card and under the rest. */}
+          {spinning && k === 0 && [4, 5].map((x) => <span key={x} className={`glass-card glass-card-x glass-card-${x}`} />)}
+        </Fragment>
       ))}
     </div>
   );
