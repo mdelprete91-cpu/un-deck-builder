@@ -1014,11 +1014,11 @@ body {
 @keyframes glass-split {
   0% {
     opacity: 0;
-    transform: rotate(var(--from)) translateY(-50px) rotate(calc(90deg + var(--t))) scale(0.54);
+    transform: rotate(var(--from)) translateY(-46px) rotate(calc(90deg + var(--t))) scale(0.44);
   }
   100% {
     opacity: var(--o);
-    transform: rotate(var(--a)) translateY(-50px) rotate(calc(90deg + var(--t))) scale(0.54);
+    transform: rotate(var(--a)) translateY(-46px) rotate(calc(90deg + var(--t))) scale(0.44);
   }
 }
 @keyframes glass-gather {
@@ -1027,7 +1027,7 @@ body {
   }
   to {
     opacity: var(--o);
-    transform: rotate(var(--a)) translateY(-50px) rotate(calc(90deg + var(--t))) scale(0.54);
+    transform: rotate(var(--a)) translateY(-46px) rotate(calc(90deg + var(--t))) scale(0.44);
   }
 }
 /* In the fan every glass card sits over some of the gradient and picks up
