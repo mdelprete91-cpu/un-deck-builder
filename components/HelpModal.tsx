@@ -22,8 +22,8 @@ import editChapters from "@/public/help/edit.chapters.json";
  * accent. A click on a moment plays from there, in either video.
  */
 const VIDEOS = [
-  { id: "create", title: "Create a deck", chapters: createChapters, duration: 97 },
-  { id: "edit", title: "Edit your slides", chapters: editChapters, duration: 69 },
+  { id: "create", title: "Create a deck", chapters: createChapters, duration: 99 },
+  { id: "edit", title: "Edit your slides", chapters: editChapters, duration: 75 },
 ] as const;
 type VideoId = (typeof VIDEOS)[number]["id"];
 
