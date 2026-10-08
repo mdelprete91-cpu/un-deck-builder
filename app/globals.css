@@ -1021,14 +1021,14 @@ body {
 .glass-spin .glass-card-3 { --bx: 20px; --d: 0.12s; --p: 3; }
 .glass-spin .glass-card-4 { --bx: 40px; --from: 20px; --p: 4; }
 /* Every bar is the fan's glass (the shared .glass-card-1..3 rule, card 0
-   included): tint and sheen, no backdrop blur at this size, a hairline edge. */
+   included): tint and sheen, no backdrop blur at this size, no edge. */
 .glass-spin .glass-card-0, .glass-spin .glass-card-1, .glass-spin .glass-card-2, .glass-spin .glass-card-3, .glass-spin .glass-card-x {
   -webkit-backdrop-filter: none;
   backdrop-filter: none;
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.22);
+  box-shadow: none;
 }
 .dark .glass-spin .glass-card-0, .dark .glass-spin .glass-card-1, .dark .glass-spin .glass-card-2, .dark .glass-spin .glass-card-3, .dark .glass-spin .glass-card-x {
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.16);
+  box-shadow: none;
 }
 .glass-spin .glass-card {
   animation:
