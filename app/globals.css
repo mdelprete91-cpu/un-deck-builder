@@ -1012,8 +1012,8 @@ body {
 /* The wheel's box is square and as wide as the wheel, so the label under it
    clears the lowest card. Cards stay centred in it. */
 .glass-fan.glass-spin {
-  width: 220px;
-  height: 220px;
+  width: 84px;
+  height: 84px;
 }
 .glass-spin .glass-card {
   animation: glass-gather 0.6s cubic-bezier(0.22, 1, 0.36, 1) var(--d, 0s) forwards;
@@ -1040,11 +1040,11 @@ body {
 @keyframes glass-split {
   0% {
     opacity: 0;
-    transform: rotate(var(--from)) translateY(-46px) rotate(calc(90deg + var(--t))) scale(0.44);
+    transform: rotate(var(--from)) translateY(-25px) rotate(calc(90deg + var(--t))) scale(0.15);
   }
   100% {
     opacity: var(--o);
-    transform: rotate(var(--a)) translateY(-46px) rotate(calc(90deg + var(--t))) scale(0.44);
+    transform: rotate(var(--a)) translateY(-25px) rotate(calc(90deg + var(--t))) scale(0.15);
   }
 }
 @keyframes glass-gather {
@@ -1053,7 +1053,7 @@ body {
   }
   to {
     opacity: var(--o);
-    transform: rotate(var(--a)) translateY(-46px) rotate(calc(90deg + var(--t))) scale(0.44);
+    transform: rotate(var(--a)) translateY(-25px) rotate(calc(90deg + var(--t))) scale(0.15);
   }
 }
 /* The wheel does not turn: the colour does (Mario, 8 Oct 2026). All six
@@ -1078,17 +1078,16 @@ body {
   inset: 0;
   border-radius: inherit;
   background: linear-gradient(0deg, #2040ff, #35ffbb);
-  box-shadow: 0 0 26px 2px rgba(40, 140, 255, 0.5);
-  opacity: var(--wash, 0.3);
+  opacity: var(--wash, 0.22);
   pointer-events: none;
   animation: glass-light 2.4s cubic-bezier(0.45, 0, 0.55, 1) calc(var(--p) * 0.4s - 2.4s) infinite;
 }
 @keyframes glass-light {
   0%, 6% { opacity: 1; }
-  42%, 86% { opacity: var(--wash, 0.3); }
+  42%, 86% { opacity: var(--wash, 0.22); }
   100% { opacity: 1; }
 }
-.dark .glass-spin .glass-card::before { --wash: 0.34; }
+.dark .glass-spin .glass-card::before { --wash: 0.28; }
 /* Spline's liquid glass, as far as CSS goes (Mario, 8 Oct 2026): a thick
    pane with a bright bevelled rim, a soft inner glow for depth, a thin
    cyan and magenta fringe on opposite edges for the chromatic aberration,
@@ -1125,7 +1124,48 @@ body {
   pointer-events: none;
 }
 
+/* The generation stage (Mario, 8 Oct 2026, from a reference): the fan
+   shrinks into a small wheel of six cards, centred on a blank
+   skeleton of the slide being made. The skeleton fades in with a sweep of
+   light so faint it only says "working". */
+.gen-skeleton-box {
+  position: absolute;
+  inset: 24px 24px 40px;
+  display: grid;
+  place-items: center;
+  container-type: size;
+  pointer-events: none;
+}
+.gen-skeleton {
+  position: relative;
+  width: min(100cqw, 100cqh * 16 / 9);
+  aspect-ratio: 16 / 9;
+  border-radius: 12px;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--color-ink) 4%, var(--color-surface));
+  animation: gen-skeleton-in 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.gen-skeleton.is-page {
+  width: min(100cqw, 100cqh / 1.414);
+  aspect-ratio: 1 / 1.414;
+}
+.gen-skeleton::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(100deg, transparent 30%, color-mix(in srgb, var(--color-ink) 3%, transparent) 50%, transparent 70%);
+  translate: -100% 0;
+  animation: gen-sweep 2.6s cubic-bezier(0.45, 0, 0.55, 1) 0.6s infinite;
+}
+@keyframes gen-skeleton-in {
+  from { opacity: 0; scale: 0.98; }
+}
+@keyframes gen-sweep {
+  to { translate: 100% 0; }
+}
+
 .gen-spinner {
+  position: relative;
   animation: gen-travel 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 @keyframes gen-travel {
@@ -1170,6 +1210,8 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .glass-spin .glass-card, .gen-spinner, .gen-label { animation-duration: 0.01ms; animation-delay: 0s; }
   .glass-spin { animation: none; }
+  .gen-skeleton { animation: none; }
+  .gen-skeleton::after { animation: none; display: none; }
   .glass-spin .glass-card::before { animation: none; }
 }
 

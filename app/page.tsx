@@ -2333,11 +2333,18 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
         <div ref={stageAreaRef} aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 top-[57px]" />
         {spinner && (
           <div
-            className={`gen-overlay absolute inset-x-0 bottom-0 top-[57px] z-30 flex flex-col items-center justify-center ${spinner.leaving ? "is-leaving" : ""}`}
+            className={`gen-overlay absolute inset-x-0 bottom-0 top-[57px] z-30 flex flex-col items-center justify-center px-6 pb-10 pt-6 ${spinner.leaving ? "is-leaving" : ""}`}
             aria-busy={!spinner.leaving}
             aria-live="polite"
           >
             <div className={`gen-veil absolute inset-0 ${state.slides.length > 0 ? "is-on" : ""}`} />
+            {/* The slide (or page) being made: a blank skeleton with a faint
+                sweep, there until the first one lands (Mario, 8 Oct 2026). */}
+            {state.slides.length === 0 && (
+              <div className="gen-skeleton-box">
+                <div className={`gen-skeleton ${twoPager ? "is-page" : ""}`} />
+              </div>
+            )}
             <div className="relative flex flex-col items-center">
               <div ref={genPillRef} className="gen-spinner" style={{ "--dx": `${spinner.dx}px`, "--dy": `${spinner.dy}px` } as React.CSSProperties}>
                 <GlassFan spinning />
