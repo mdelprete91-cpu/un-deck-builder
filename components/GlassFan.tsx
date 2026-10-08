@@ -10,8 +10,8 @@ const CARDS = 4;
 
 /**
  * `spinning`: the generation's spinner (Mario, 8 Oct 2026). From the fan's
- * resting pose the cards gather into a pinwheel, one at each quarter, and
- * the whole turns until the first slide lands.
+ * resting pose the same four cards gather into a wheel, one at each quarter,
+ * and the whole turns until the first slide lands.
  */
 export default function GlassFan({ spinning = false }: { spinning?: boolean }) {
   return (
@@ -19,8 +19,6 @@ export default function GlassFan({ spinning = false }: { spinning?: boolean }) {
       {Array.from({ length: CARDS }, (_, k) => (
         <span key={k} className={`glass-card glass-card-${k}`} />
       ))}
-      {/* The spinner's other four spokes, grown from the centre between the fan's cards. */}
-      {spinning && Array.from({ length: 4 }, (_, k) => <span key={`x${k}`} className={`glass-card glass-card-x glass-card-${k + 4}`} />)}
     </div>
   );
 }
