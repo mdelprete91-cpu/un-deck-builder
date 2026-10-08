@@ -304,7 +304,7 @@ const edit: Record<string, Act> = {
     await point(p, '[data-tour="canvas"] [data-item] >> nth=1');
     await p.locator('[data-tour="canvas"] [data-item]').nth(1).hover();
     await sleep(500);
-    await click(p, '[data-tour="canvas"] .item-delete >> nth=0');
+    await click(p, 'button[aria-label="Delete element"]');
     await sleep(700);
     await click(p, 'button:has-text("Undo")');
   },

@@ -871,7 +871,10 @@ export default function SlideFrame({
       const top = Math.max(st.top + 3, r.top - pad);
       const right = Math.min(st.right - 3, r.right + pad);
       const bottom = Math.min(st.bottom - 3, r.bottom + pad);
-      return { left: left - w.left, top: top - w.top, width: right - left, height: bottom - top };
+      // Screen pixels to the overlay's own: they differ under a transformed
+      // ancestor (the help videos' camera zoom).
+      const z = w.width / wrap.offsetWidth || 1;
+      return { left: (left - w.left) / z, top: (top - w.top) / z, width: (right - left) / z, height: (bottom - top) / z };
     };
     const pad = variant === "page" ? 3 : 6;
     const place = () => {
@@ -933,7 +936,8 @@ export default function SlideFrame({
       const right = Math.min(st.right - 2, r.right + pad);
       const bottom = Math.min(st.bottom - 2, r.bottom + pad);
       const path = node.getAttribute("data-item")!;
-      setHoverItem((h) => (h && h.path === path ? h : { path, left: left - w.left, top: top - w.top, width: right - left, height: bottom - top }));
+      const z = w.width / wrap.offsetWidth || 1;
+      setHoverItem((h) => (h && h.path === path ? h : { path, left: (left - w.left) / z, top: (top - w.top) / z, width: (right - left) / z, height: (bottom - top) / z }));
     };
     const hide = () => {
       if (itemTimer.current) clearTimeout(itemTimer.current);
