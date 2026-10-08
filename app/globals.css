@@ -1062,21 +1062,21 @@ body {
   /* The fan's own gradient card, its edges melted (Mario, 8 Oct 2026: this
      palette): under the stacked glass it reads as the fan's cyan to blue. */
   background: linear-gradient(0deg, #2040ff, #35ffbb);
-  -webkit-mask-image: radial-gradient(closest-side, #000 45%, transparent 100%);
-  mask-image: radial-gradient(closest-side, #000 45%, transparent 100%);
+  -webkit-mask-image: radial-gradient(closest-side, #000 40%, transparent 100%);
+  mask-image: radial-gradient(closest-side, #000 40%, transparent 100%);
 }
 .glass-spin .glass-light::before {
   left: -15%;
-  top: -25%;
-  width: 95%;
-  height: 150%;
+  top: -15%;
+  width: 65%;
+  height: 120%;
   animation: glass-blob-a 6.4s cubic-bezier(0.45, 0, 0.55, 1) infinite;
 }
 .glass-spin .glass-light::after {
-  left: 25%;
-  top: -15%;
-  width: 70%;
-  height: 130%;
+  left: 35%;
+  top: -5%;
+  width: 45%;
+  height: 100%;
   animation: glass-blob-b 8.2s cubic-bezier(0.45, 0, 0.55, 1) infinite;
 }
 /* A third, white, smaller and quicker (5.2s), a sheen drifting through the
