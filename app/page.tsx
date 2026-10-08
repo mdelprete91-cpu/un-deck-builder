@@ -2352,8 +2352,8 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
               {/* Hung under the wheel, out of the flow: the wheel alone is centred, so it lands exactly where it was aimed. */}
               <div className="absolute left-1/2 top-full flex w-[min(560px,calc(100vw-48px))] -translate-x-1/2 justify-center">
               <div className="gen-label mt-4 flex w-full flex-col items-center gap-4">
-                {/* No label: the wheel says it (Mario, 8 Oct 2026); screen readers get it here. */}
-                <p className="sr-only">{state.slides.length > 0 && fitting ? "Fitting the pages…" : "Generating…"}</p>
+                {/* A quiet word under the wheel (Mario, 8 Oct 2026). */}
+                <p className="text-[13px] text-ink-muted">{state.slides.length > 0 && fitting ? "Fitting the pages…" : "Generating…"}</p>
                 {twoPager && livePlan && livePlan.length > 0 && state.slides.length === 0 && (
                   // The plan as it arrives: which block tells which part, page by page.
                   <ol className="flex w-full flex-col gap-1 text-[13px] leading-snug">
