@@ -904,13 +904,15 @@ body {
 
 /* The glass fan on the empty stage (components/GlassFan.tsx), from the
    Spline "Stackable glass" file: cards 300x180 at 0.75, radius 30. Each card
-   holds 70% of its fanned pose at rest and eases to 100% and back
-   (Spline: 1.2s hold, 2.6s in-out-sine, pingpong). */
+   swings between 70% and 100% of its fanned pose, without pause. */
 .glass-fan {
-  --s: 0.75;
+  /* Half the Spline size: the open fan is about two thirds of the headline's
+     width, so picture and words read as one block (Mario, 8 Oct 2026). The
+     box hugs the cards; the fan's lower corners may reach a little past it. */
+  --s: 0.5;
   position: relative;
-  width: calc(560px * var(--s));
-  height: calc(300px * var(--s));
+  width: calc(600px * var(--s));
+  height: calc(220px * var(--s));
 }
 .glass-card {
   position: absolute;
@@ -921,32 +923,48 @@ body {
   margin: calc(-90px * var(--s)) 0 0 calc(-150px * var(--s));
   border-radius: calc(30px * var(--s));
   transform: translate(calc(var(--x) * 0.7 * var(--s) * 1px), calc(var(--y) * 0.7 * var(--s) * 1px)) rotate(calc(var(--r) * 0.7 * 1deg));
-  animation: glass-fan 3.8s cubic-bezier(0.37, 0, 0.63, 1) infinite alternate;
+  /* Continuous: no hold at either end, the same sine ease both ways, so the
+     fan never stops (Mario, 8 Oct 2026: open, close, stop read as jerky). */
+  animation: glass-fan 3.2s cubic-bezier(0.37, 0, 0.63, 1) infinite alternate;
   will-change: transform;
 }
 @keyframes glass-fan {
-  0%, 32% {
+  0% {
     transform: translate(calc(var(--x) * 0.7 * var(--s) * 1px), calc(var(--y) * 0.7 * var(--s) * 1px)) rotate(calc(var(--r) * 0.7 * 1deg));
   }
   100% {
     transform: translate(calc(var(--x) * var(--s) * 1px), calc(var(--y) * var(--s) * 1px)) rotate(calc(var(--r) * 1deg));
   }
 }
-.glass-card-0 { --x: -120; --y: 32; --r: -11; background: linear-gradient(0deg, #2040ff, #35ffbb); }
-.glass-card-1 { --x: -42; --y: 10; --r: -3.8; animation-delay: 0.09s; }
-.glass-card-2 { --x: 42; --y: 10; --r: 3.8; animation-delay: 0.18s; }
-.glass-card-3 { --x: 120; --y: 32; --r: 11; animation-delay: 0.27s; }
+.glass-card-0 { --x: -120; --y: 32; --r: -11; animation-delay: 0s; background: linear-gradient(0deg, #2040ff, #35ffbb); }
+.glass-card-1 { --x: -42; --y: 10; --r: -3.8; animation-delay: -0.12s; }
+.glass-card-2 { --x: 42; --y: 10; --r: 3.8; animation-delay: -0.24s; }
+.glass-card-3 { --x: 120; --y: 32; --r: 11; animation-delay: -0.36s; }
+/* Glass at this size needs more than a tint (Mario, 8 Oct 2026: "the glass
+   got lost"): frosting, a diagonal sheen like light across the surface, a
+   bright top-left edge and a darker lower one, so each card reads as a
+   pane with thickness over the gradient behind it. */
 .glass-card-1, .glass-card-2, .glass-card-3 {
-  background: rgba(103, 133, 255, 0.2);
-  -webkit-backdrop-filter: blur(3px) saturate(1.5) brightness(1.06);
-  backdrop-filter: blur(3px) saturate(1.5) brightness(1.06);
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.34) 0%, rgba(255, 255, 255, 0.08) 38%, rgba(255, 255, 255, 0) 55%, rgba(255, 255, 255, 0.1) 100%),
+    rgba(103, 133, 255, 0.18);
+  -webkit-backdrop-filter: blur(6px) saturate(1.7) brightness(1.08);
+  backdrop-filter: blur(6px) saturate(1.7) brightness(1.08);
   box-shadow:
-    inset 0 1px 2px rgba(0, 0, 0, 0.1),
-    inset 1px -1px 2px rgba(255, 255, 255, 0.4),
-    inset 0 0 0 1px rgba(255, 255, 255, 0.28);
+    inset 1px 1px 0 rgba(255, 255, 255, 0.55),
+    inset -1px -1px 0 rgba(30, 50, 140, 0.25),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.18),
+    0 8px 20px -10px rgba(20, 40, 160, 0.45);
 }
 .dark .glass-card-1, .dark .glass-card-2, .dark .glass-card-3 {
-  background: rgba(103, 133, 255, 0.24);
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.28) 0%, rgba(255, 255, 255, 0.06) 38%, rgba(255, 255, 255, 0) 55%, rgba(255, 255, 255, 0.08) 100%),
+    rgba(103, 133, 255, 0.22);
+  box-shadow:
+    inset 1px 1px 0 rgba(255, 255, 255, 0.45),
+    inset -1px -1px 0 rgba(0, 0, 0, 0.3),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.14),
+    0 10px 24px -10px rgba(0, 0, 0, 0.6);
 }
 @media (prefers-reduced-motion: reduce) {
   .glass-card { animation: none; }
