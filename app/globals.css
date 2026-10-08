@@ -1218,7 +1218,17 @@ body {
 .gen-spinner {
   position: relative;
   /* With the closing, after the hop: one movement, not close-then-move. */
-  animation: gen-travel 0.7s cubic-bezier(0.45, 0, 0.25, 1) 0.3s both;
+  /* The no-op opacity animation makes the spinner a backdrop root, as the
+     empty state's fan is (its .empty-in entrance holds an opacity
+     animation): the glass then sees only the other cards, as in the fan,
+     and keeps the fan's transparency instead of frosting the stage
+     (Mario, 8 Oct 2026: the transparency vanished at the click). */
+  animation:
+    gen-travel 0.7s cubic-bezier(0.45, 0, 0.25, 1) 0.3s both,
+    gen-hold 1s both;
+}
+@keyframes gen-hold {
+  from, to { opacity: 1; }
 }
 @keyframes gen-travel {
   from { transform: translate(var(--dx, 0), var(--dy, 0)); }
