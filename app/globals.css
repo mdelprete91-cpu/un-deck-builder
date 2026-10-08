@@ -971,7 +971,7 @@ body {
    got lost"): frosting, a diagonal sheen like light across the surface, a
    bright top-left edge and a darker lower one, so each card reads as a
    pane with thickness over the gradient behind it. */
-.glass-card-1, .glass-card-2, .glass-card-3, .glass-card-x {
+.glass-card-1, .glass-card-2, .glass-card-3, .glass-card-x, .glass-spin .glass-card-0 {
   background:
     linear-gradient(135deg, rgba(255, 255, 255, 0.34) 0%, rgba(255, 255, 255, 0.08) 38%, rgba(255, 255, 255, 0) 55%, rgba(255, 255, 255, 0.1) 100%),
     rgba(103, 133, 255, 0.18);
@@ -983,7 +983,7 @@ body {
     inset 0 0 0 1px rgba(255, 255, 255, 0.18),
     0 8px 20px -10px rgba(20, 40, 160, 0.45);
 }
-.dark .glass-card-1, .dark .glass-card-2, .dark .glass-card-3, .dark .glass-card-x {
+.dark .glass-card-1, .dark .glass-card-2, .dark .glass-card-3, .dark .glass-card-x, .dark .glass-spin .glass-card-0 {
   background:
     linear-gradient(135deg, rgba(255, 255, 255, 0.28) 0%, rgba(255, 255, 255, 0.06) 38%, rgba(255, 255, 255, 0) 55%, rgba(255, 255, 255, 0.08) 100%),
     rgba(103, 133, 255, 0.22);
@@ -1079,17 +1079,8 @@ body {
    the full gradient with its glow passes from card to card clockwise, one
    at a time, fading out behind like a trail. The gradient card of the fan
    becomes glass in the wheel with the light already on it, so the swap
-   does not show. --p is the card's place round the wheel. */
-.glass-spin .glass-card-0 {
-  background:
-    linear-gradient(135deg, rgba(255, 255, 255, 0.34) 0%, rgba(255, 255, 255, 0.08) 38%, rgba(255, 255, 255, 0) 55%, rgba(255, 255, 255, 0.1) 100%),
-    rgba(103, 133, 255, 0.18);
-}
-.dark .glass-spin .glass-card-0 {
-  background:
-    linear-gradient(135deg, rgba(255, 255, 255, 0.28) 0%, rgba(255, 255, 255, 0.06) 38%, rgba(255, 255, 255, 0) 55%, rgba(255, 255, 255, 0.08) 100%),
-    rgba(103, 133, 255, 0.22);
-}
+   does not show. The glass is the fan's own (the shared .glass-card-1..3
+   rule): same tint, sheen, edges and frosting as on the empty state. --p is the card's place round the wheel. */
 .glass-spin .glass-card::before {
   content: "";
   position: absolute;
@@ -1109,41 +1100,6 @@ body {
   50% { opacity: var(--wash, 0); }
 }
 .dark .glass-spin .glass-card::before { --wash: 0; }
-/* Spline's liquid glass, as far as CSS goes (Mario, 8 Oct 2026): a thick
-   pane with a bright bevelled rim, a soft inner glow for depth, a thin
-   cyan and magenta fringe on opposite edges for the chromatic aberration,
-   a stronger refraction of what is behind, and a specular highlight in
-   the top corner on top of the colour wash. */
-.glass-spin .glass-card {
-  -webkit-backdrop-filter: blur(10px) saturate(1.9) brightness(1.12) contrast(1.05);
-  backdrop-filter: blur(10px) saturate(1.9) brightness(1.12) contrast(1.05);
-  box-shadow:
-    inset 1.5px 1.5px 0 rgba(255, 255, 255, 0.8),
-    inset -1px -1px 0 rgba(255, 255, 255, 0.3),
-    inset 2.5px 0 1px -0.5px rgba(70, 255, 225, 0.45),
-    inset -2.5px 0 1px -0.5px rgba(255, 90, 210, 0.3),
-    inset 0 0 16px rgba(255, 255, 255, 0.3),
-    0 10px 24px -12px rgba(20, 40, 160, 0.45);
-}
-.dark .glass-spin .glass-card {
-  box-shadow:
-    inset 1.5px 1.5px 0 rgba(255, 255, 255, 0.6),
-    inset -1px -1px 0 rgba(255, 255, 255, 0.18),
-    inset 2.5px 0 1px -0.5px rgba(70, 255, 225, 0.4),
-    inset -2.5px 0 1px -0.5px rgba(255, 90, 210, 0.28),
-    inset 0 0 16px rgba(255, 255, 255, 0.16),
-    0 12px 26px -12px rgba(0, 0, 0, 0.65);
-}
-.glass-spin .glass-card::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  background:
-    radial-gradient(90% 70% at 18% 8%, rgba(255, 255, 255, 0.55), rgba(255, 255, 255, 0) 55%),
-    linear-gradient(135deg, rgba(255, 255, 255, 0) 55%, rgba(255, 255, 255, 0.14) 100%);
-  pointer-events: none;
-}
 
 /* The turn: a quadratic ease-in over 60deg in 0.8s ends at 150deg/s, the
    speed of the linear 2.4s turn that follows, so there is no step. */
