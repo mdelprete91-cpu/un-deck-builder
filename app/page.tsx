@@ -2437,7 +2437,7 @@ function EmptyState({
     <div className="relative flex flex-1 flex-col items-center justify-center gap-4 pb-[10vh]">
       {
         <>
-          <div className="empty-in mb-8">
+          <div className="empty-in mb-12">
             <GlassFan />
           </div>
           <h1 className="empty-in text-[26px] font-medium tracking-tight text-ink" style={{ "--i": 1 } as React.CSSProperties}>
