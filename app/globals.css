@@ -1015,7 +1015,7 @@ body {
   width: 92px;
   height: 64px;
 }
-.glass-spin .glass-card-0 { --bx: -40px; --d: 0s; --p: 0; }
+.glass-spin .glass-card-0 { --bx: -40px; --d: 0s; --p: 0; --go: 1; }
 .glass-spin .glass-card-1 { --bx: -20px; --d: 0.04s; --p: 1; }
 .glass-spin .glass-card-2 { --bx: 0px; --d: 0.08s; --p: 2; }
 .glass-spin .glass-card-3 { --bx: 20px; --d: 0.12s; --p: 3; }
@@ -1033,13 +1033,13 @@ body {
 .glass-spin .glass-card {
   animation:
     glass-gather 0.45s cubic-bezier(0.65, 0, 0.35, 1) var(--d, 0s) both,
-    glass-trail 3s cubic-bezier(0.37, 0, 0.63, 1) calc((var(--p) - 1) * 0.5s) infinite backwards;
+    glass-trail 3s cubic-bezier(0.37, 0, 0.63, 1) calc(0.45s + (var(--p) - 1) * 0.5s) infinite;
 }
 /* The fifth bar comes out once the fourth is nearly in place. */
 .glass-spin .glass-card-x {
   animation:
     glass-split 0.3s cubic-bezier(0.65, 0, 0.35, 1) 0.22s both,
-    glass-trail 3s cubic-bezier(0.37, 0, 0.63, 1) calc((var(--p) - 1) * 0.5s) infinite backwards;
+    glass-trail 3s cubic-bezier(0.37, 0, 0.63, 1) calc(0.45s + (var(--p) - 1) * 0.5s) infinite;
 }
 @keyframes glass-gather {
   from {
@@ -1054,7 +1054,7 @@ body {
     height: 64px;
     margin: -32px 0 0 -4px;
     border-radius: 4px;
-    opacity: 1;
+    opacity: var(--go, 0);
     transform: translateX(var(--bx));
   }
 }
@@ -1072,7 +1072,7 @@ body {
     height: 64px;
     margin: -32px 0 0 -4px;
     border-radius: 4px;
-    opacity: 1;
+    opacity: 0;
     transform: translateX(var(--bx));
   }
 }
@@ -1084,7 +1084,7 @@ body {
   background: linear-gradient(0deg, #2040ff, #35ffbb);
   opacity: 0;
   pointer-events: none;
-  animation: glass-head 3s cubic-bezier(0.37, 0, 0.63, 1) calc((var(--p) - 1) * 0.5s) infinite backwards;
+  animation: glass-head 3s cubic-bezier(0.37, 0, 0.63, 1) calc(0.45s + (var(--p) - 1) * 0.5s) infinite backwards;
 }
 /* One pulse per bar: up for 0.5s, down for 0.5s, on sine curves, the
    gradient filling the glass and leaving it. The next bar starts as this
@@ -1098,16 +1098,43 @@ body {
   16.667% { opacity: 1; }
   33.333%, 100% { opacity: 0; }
 }
-/* The tail: behind the light a bar fades, a third gone one bar back and
-   almost gone two bars back; then it comes back while the light is still
-   far, so the bars ahead of the light are always there (Mario, 8 Oct 2026).
-   Full at the start of its round, which is how the bars arrive from the
-   fan, so nothing jumps. */
+/* The gradient card leads: it lands lit and holds the light until the bars
+   are in place (0.45s), then lets it go and fades like any tail bar; from
+   its second round it runs on the common schedule. */
+.glass-spin .glass-card-0 {
+  animation:
+    glass-gather 0.45s cubic-bezier(0.65, 0, 0.35, 1) 0s both,
+    glass-lead-trail 1.95s cubic-bezier(0.37, 0, 0.63, 1) forwards,
+    glass-trail 3s cubic-bezier(0.37, 0, 0.63, 1) 2.95s infinite;
+}
+.glass-spin .glass-card-0::before {
+  opacity: 1;
+  animation:
+    glass-lead-head 0.95s cubic-bezier(0.37, 0, 0.63, 1) forwards,
+    glass-head 3s cubic-bezier(0.37, 0, 0.63, 1) 2.95s infinite;
+}
+@keyframes glass-lead-trail {
+  0%, 23% { opacity: 1; }
+  48.7% { opacity: 0.55; }
+  74.4% { opacity: 0.2; }
+  100% { opacity: 0; }
+}
+@keyframes glass-lead-head {
+  0%, 47.4% { opacity: 1; }
+  100% { opacity: 0; }
+}
+/* The bars exist only behind the light (Mario, 8 Oct 2026): a bar appears
+   as the light reaches it, and after it has passed it stays as glass and
+   fades away over the next two bars. Ahead of the light there is nothing.
+   On the way from the fan the glass cards fade out as they narrow and only
+   the gradient card lands, lit: the light starts there, at 0.45s, and the
+   bars come one by one behind it. */
 @keyframes glass-trail {
-  0%, 16.667% { opacity: 1; }
-  33.333% { opacity: 0.35; }
-  50%, 58% { opacity: 0.05; }
-  75%, 100% { opacity: 1; }
+  0% { opacity: 0; }
+  16.667% { opacity: 1; }
+  33.333% { opacity: 0.55; }
+  50% { opacity: 0.2; }
+  66.667%, 100% { opacity: 0; }
 }
 
 .gen-spinner {
@@ -1157,8 +1184,9 @@ body {
   .gen-spinner, .gen-label { animation-duration: 0.01ms; animation-delay: 0s; }
   .glass-spin .glass-card, .glass-spin .glass-card-x { animation: glass-gather 0.01ms both; }
   .glass-spin { animation: none; }
-  .glass-spin .glass-card::before { animation: none; }
+  .glass-spin .glass-card::before, .glass-spin .glass-card-0::before { animation: none; }
   .glass-spin .glass-card-0::before { opacity: 1; }
+  .glass-spin .glass-card-0 { animation: glass-gather 0.01ms both; }
 }
 
 
