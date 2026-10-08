@@ -943,10 +943,14 @@ body {
 /* Hover, one card at a time (Mario, 8 Oct 2026): the card under the
    pointer lifts 10px, as if drawn up out of the deck. No snap either way:
    it rises on a sine ease-in-out over 0.7s, and on the way back it waits a
-   beat and settles into the fan over 1.1s on the same curve. `translate` sits on top of the breathing
+   beat, sinks a little past its place and floats back up into it. `translate` sits on top of the breathing
    `transform`, so the two never fight. */
 .glass-fan:not(.glass-spin) .glass-card {
-  transition: translate 1.1s cubic-bezier(0.37, 0, 0.63, 1) 0.08s;
+  /* Float back: eases off, sinks about 3px past its place, then rises
+     into it, like a card settling on air. linear() draws the curve. */
+  transition: translate 1.5s
+    linear(0, 0.04 5%, 0.15 15%, 0.35 25%, 0.6 35%, 0.88 45%, 1.06 52%, 1.2 60%, 1.28 68%, 1.26 75%, 1.16 82%, 1.05 89%, 0.99 95%, 1)
+    0.08s;
 }
 @media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
   .glass-fan:not(.glass-spin) .glass-card:hover {
