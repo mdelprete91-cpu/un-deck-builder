@@ -1000,8 +1000,9 @@ body {
 /* The generation spinner (GlassFan spinning over .gen-overlay, Mario
    8 Oct 2026, from a reference): the fan's cards narrow into a row of five
    upright bars, and a light runs along them, left to right.
-   - Gather: each card goes from its place in the fan to its bar in 0.45s on
-     an ease-in-out (a morph on screen, not an entrance),
+   - Gather: in 0.45s on an ease-out (it answers the click at once), the
+     gradient card narrows into the first bar and the glass cards fold into
+     it, fading (glass-fold),
      narrowing and turning upright on the way; a fifth bar slides out from
      under the last one. Size and corners animate with the move, so the bars
      land with round corners, not squashed ones.
@@ -1044,7 +1045,7 @@ body {
 }
 .glass-spin .glass-card {
   animation:
-    glass-gather 0.45s cubic-bezier(0.65, 0, 0.35, 1) var(--d, 0s) both,
+    glass-fold 0.45s cubic-bezier(0.22, 1, 0.36, 1) var(--d, 0s) both,
     glass-trail 3s cubic-bezier(0.37, 0, 0.63, 1) calc(0.45s + (var(--p) - 1) * 0.5s) infinite,
     glass-beat 3s linear calc(0.45s + (var(--p) - 1) * 0.5s) infinite;
 }
@@ -1069,6 +1070,37 @@ body {
     margin: -32px 0 0 -4px;
     border-radius: 4px;
     opacity: var(--go, 0);
+    transform: translateX(var(--bx));
+  }
+}
+/* The glass cards fold into the gradient card (Mario, 8 Oct 2026: a
+   cleaner transition): they narrow onto its bar and fade out on the way,
+   gone by two thirds of the move, so the fan reads as collapsing into one
+   lit bar. Once invisible they step to their own places, ready for the
+   light. */
+@keyframes glass-fold {
+  from {
+    width: calc(300px * var(--s));
+    height: calc(180px * var(--s));
+    margin: calc(-90px * var(--s)) 0 0 calc(-150px * var(--s));
+    border-radius: calc(30px * var(--s));
+    opacity: 1;
+    transform: translate(calc(var(--x) * 0.7 * var(--s) * 1px), calc(var(--y) * 0.7 * var(--s) * 1px)) rotate(calc(var(--r) * 0.7 * 1deg));
+  }
+  65% {
+    width: 8px;
+    height: 64px;
+    margin: -32px 0 0 -4px;
+    border-radius: 4px;
+    opacity: 0;
+    transform: translateX(-40px);
+  }
+  to {
+    width: 8px;
+    height: 64px;
+    margin: -32px 0 0 -4px;
+    border-radius: 4px;
+    opacity: 0;
     transform: translateX(var(--bx));
   }
 }
@@ -1127,7 +1159,7 @@ body {
    its second round it runs on the common schedule. */
 .glass-spin .glass-card-0 {
   animation:
-    glass-gather 0.45s cubic-bezier(0.65, 0, 0.35, 1) 0s both,
+    glass-gather 0.45s cubic-bezier(0.22, 1, 0.36, 1) 0s both,
     glass-lead-trail 2.95s cubic-bezier(0.37, 0, 0.63, 1) forwards,
     glass-trail 3s cubic-bezier(0.37, 0, 0.63, 1) 2.95s infinite,
     glass-beat 3s linear 2.95s infinite;
@@ -1162,7 +1194,7 @@ body {
 
 .gen-spinner {
   position: relative;
-  animation: gen-travel 0.45s cubic-bezier(0.65, 0, 0.35, 1) both;
+  animation: gen-travel 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 @keyframes gen-travel {
   from { transform: translate(var(--dx, 0), var(--dy, 0)); }
@@ -1187,7 +1219,8 @@ body {
   pointer-events: auto;
 }
 .gen-text-out {
-  animation: gen-text-out 0.45s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  /* Out of the way before the cards cross it. */
+  animation: gen-text-out 0.22s cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
 @keyframes gen-text-out {
   to { opacity: 0; transform: translateY(-6px); }
@@ -1205,7 +1238,7 @@ body {
 }
 @media (prefers-reduced-motion: reduce) {
   .gen-spinner, .gen-label { animation-duration: 0.01ms; animation-delay: 0s; }
-  .glass-spin .glass-card, .glass-spin .glass-card-x { animation: glass-gather 0.01ms both; }
+  .glass-spin .glass-card, .glass-spin .glass-card-x { animation: glass-fold 0.01ms both; }
   .glass-spin { animation: none; }
   .glass-spin .glass-card::before, .glass-spin .glass-card-0::before { animation: none; }
   .glass-spin .glass-card-0::before { opacity: 1; }
