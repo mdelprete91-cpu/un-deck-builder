@@ -1764,18 +1764,21 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
    * done; `from` is where it starts (the empty stage's fan) relative to the
    * stage's centre, so it glides from there.
    */
-  const [spinner, setSpinner] = useState<{ dx: number; dy: number; leaving: boolean } | null>(null);
+  const [spinner, setSpinner] = useState<{ dx: number; dy: number; leaving: boolean; from?: string[] } | null>(null);
   /** Local "test" prompt: the spinner's entrance, turn and exit, over and over, with no generation. */
   const [spinnerDemo, setSpinnerDemo] = useState(false);
   const emptyFanRef = useRef<HTMLDivElement>(null);
   const stageAreaRef = useRef<HTMLDivElement>(null);
   const startSpinner = () => {
+    // Where each card of the breathing fan is right now, so the loader takes
+    // over from that exact pose instead of snapping to the resting one.
+    const from = [...(emptyFanRef.current?.querySelectorAll<HTMLElement>(".glass-card") ?? [])].map((c) => getComputedStyle(c).transform);
     setSpinner((cur) => {
       if (cur && !cur.leaving) return cur;
       const fan = emptyFanRef.current?.getBoundingClientRect();
       const area = stageAreaRef.current?.getBoundingClientRect();
       if (!fan || !area) return { dx: 0, dy: 0, leaving: false };
-      return { dx: fan.left + fan.width / 2 - (area.left + area.width / 2), dy: fan.top + fan.height / 2 - (area.top + area.height / 2), leaving: false };
+      return { dx: fan.left + fan.width / 2 - (area.left + area.width / 2), dy: fan.top + fan.height / 2 - (area.top + area.height / 2), leaving: false, from };
     });
   };
   // The "test" loop: in, turn for 5s, out, 1.6s of empty stage, again. Esc
@@ -2333,13 +2336,17 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
         <div ref={stageAreaRef} aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 top-[57px]" />
         {spinner && (
           <div
-            className={`gen-overlay absolute inset-x-0 bottom-0 top-[57px] z-30 flex flex-col items-center justify-center px-6 pb-10 pt-6 ${spinner.leaving ? "is-leaving" : ""}`}
+            className={`gen-overlay absolute inset-x-0 bottom-0 top-[57px] z-30 flex flex-col items-center justify-center ${spinner.leaving ? "is-leaving" : ""}`}
             aria-busy={!spinner.leaving}
             aria-live="polite"
           >
             <div className={`gen-veil absolute inset-0 ${state.slides.length > 0 ? "is-on" : ""}`} />
             <div className="relative flex flex-col items-center">
-              <div ref={genPillRef} className="gen-spinner" style={{ "--dx": `${spinner.dx}px`, "--dy": `${spinner.dy}px` } as React.CSSProperties}>
+              <div
+                ref={genPillRef}
+                className="gen-spinner"
+                style={{ "--dx": `${spinner.dx}px`, "--dy": `${spinner.dy}px`, ...Object.fromEntries((spinner.from ?? []).filter((t) => t && t !== "none").map((t, k) => [`--f${k}`, t])) } as React.CSSProperties}
+              >
                 <GlassFan spinning />
               </div>
               {/* Hung under the wheel, out of the flow: the wheel alone is centred, so it lands exactly where it was aimed. */}

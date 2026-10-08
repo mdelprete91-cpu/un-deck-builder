@@ -23,6 +23,7 @@ export default function GlassFan({ spinning = false }: { spinning?: boolean }) {
           {/* The loader's light, behind the front card only. */}
           {spinning && k === CARDS - 1 && (
             <span className="glass-light">
+              <span className="glass-light-mint" />
               <span className="glass-light-white" />
             </span>
           )}
