@@ -1082,17 +1082,17 @@ body {
   top: -22%;
   width: 85%;
   height: 140%;
-  animation: glass-blob-a 13s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+  animation: glass-blob-a 6.5s cubic-bezier(0.45, 0, 0.55, 1) infinite;
 }
 .glass-spin .glass-light::after {
   left: 32%;
   top: -12%;
   width: 66%;
   height: 125%;
-  animation: glass-blob-b 16s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+  animation: glass-blob-b 8s cubic-bezier(0.45, 0, 0.55, 1) infinite;
 }
 /* The fan's mint, as it shows on the gradient card's top edge (Mario,
-   8 Oct 2026): a soft green-mint patch wandering on its own 14s loop,
+   8 Oct 2026): a soft green-mint patch wandering on its own 7s loop,
    pushed greener than #35ffbb so the glass does not turn it cyan. */
 .glass-spin .glass-light-mint {
   position: absolute;
@@ -1103,7 +1103,7 @@ body {
   border-radius: 50%;
   background: radial-gradient(closest-side, rgba(70, 245, 170, 0.95), rgba(70, 245, 170, 0.45) 55%, rgba(70, 245, 170, 0));
   filter: blur(12px);
-  animation: glass-blob-m 14s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+  animation: glass-blob-m 7s cubic-bezier(0.45, 0, 0.55, 1) infinite;
 }
 @keyframes glass-blob-m {
   0%, 100% { translate: 0 0; scale: 1; }
@@ -1122,7 +1122,7 @@ body {
   background: radial-gradient(closest-side, rgba(255, 255, 255, 0.7), rgba(255, 255, 255, 0.25) 55%, rgba(255, 255, 255, 0));
   filter: blur(14px);
   z-index: 1;
-  animation: glass-blob-w 11s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+  animation: glass-blob-w 5.5s cubic-bezier(0.45, 0, 0.55, 1) infinite;
 }
 /* And a glow on the glass itself: a soft white bloom drifting over the
    front card on the white sheen's loop, lightened in (screen), clipped to
@@ -1143,7 +1143,7 @@ body {
   pointer-events: none;
   animation:
     glass-light-in 1.2s cubic-bezier(0.37, 0, 0.63, 1) 0.5s forwards,
-    glass-blob-w 11s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+    glass-blob-w 5.5s cubic-bezier(0.45, 0, 0.55, 1) infinite;
 }
 @keyframes glass-blob-w {
   0%, 100% { translate: 0 0; scale: 1; }
