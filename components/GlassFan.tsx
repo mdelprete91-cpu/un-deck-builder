@@ -9,13 +9,28 @@
 const CARDS = 4;
 
 /**
- * `spinning`: the generation's spinner (Mario, 8 Oct 2026). From the fan's
- * resting pose the same four cards gather into a wheel, one at each quarter,
- * and the whole turns until the first slide lands.
+ * `spinning`: the generation's spinner (Mario, 8 Oct 2026), made first in
+ * Spline ("Card spinner"). Twelve glass cards round a ring; the fan's
+ * gradient card is the lead and passes from slot to slot, each slot it
+ * leaves fading back to glass.
  */
+const SLOTS = 12;
+
 export default function GlassFan({ spinning = false }: { spinning?: boolean }) {
+  if (spinning) {
+    return (
+      <div aria-hidden className="card-spin">
+        {Array.from({ length: SLOTS }, (_, k) => (
+          <span key={k} className="card-spin-slot" style={{ "--k": k } as React.CSSProperties}>
+            <span className="card-spin-lit" />
+            <span className="card-spin-glass" />
+          </span>
+        ))}
+      </div>
+    );
+  }
   return (
-    <div aria-hidden className={`glass-fan${spinning ? " glass-spin" : ""}`}>
+    <div aria-hidden className="glass-fan">
       {Array.from({ length: CARDS }, (_, k) => (
         <span key={k} className={`glass-card glass-card-${k}`} />
       ))}

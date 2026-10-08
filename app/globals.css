@@ -971,74 +971,70 @@ body {
 }
 
 /* The generation spinner (GlassFan spinning over .gen-overlay, Mario
-   8 Oct 2026), after a Revolut card pinwheel: each card points out from the
-   centre, long side along the radius, leaving a hole in the middle, with a
-   small pinwheel tilt.
-   - Gather: each card travels from the fan's resting pose to its spoke in
-     0.9s on an expo ease-out, a beat after the one before.
-   - Turn: the wheel starts slowly and reaches its cruise speed with no step:
-     a quadratic ease-in over 90deg in 1.5s ends at 120deg/s, which is the
-     speed of the linear 3s turn that follows.
+   8 Oct 2026), built first in Spline ("Card spinner"): twelve glass cards
+   round a circle, each pointing at the centre. The lead is the fan's
+   gradient card: it lights one slot after another, and the slot it leaves
+   goes back to plain glass, so a coloured trail runs round the ring.
+   - Each slot is a gradient card under a glass card. The glass blurs and
+     tints what is under it, so a lit slot reads as coloured glass.
+   - One lap is 1.2s: a slot lights in 0.12s and fades in 0.64s, each slot
+     0.1s after the one before. Negative delays start the ring mid-lap, so
+     the trail is whole from the first frame.
    - Travel: the overlay's spinner starts on the empty stage's fan and
-     glides to the stage's centre (--dx, --dy) on the same curve as the
-     gather, so the two read as one movement. */
-/* The wheel's box is square and as wide as the wheel, so the label under it
-   clears the lowest card. Cards stay centred in it. */
-.glass-fan.glass-spin {
-  width: 220px;
-  height: 220px;
-  will-change: transform;
+     glides to the stage's centre (--dx, --dy) while it fades in. */
+.card-spin {
+  position: relative;
+  width: 150px;
+  height: 150px;
+  animation: card-spin-in 0.7s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
-/* Once gathered, every card also turns on itself, 40deg and back, one
-   after the other, so while the wheel goes round the cards churn like a
-   whirl of paper rather than sitting still as a pinwheel (Mario, 8 Oct
-   2026). The twist starts from the gathered pose, so there is no step. */
-.glass-spin .glass-card {
-  animation:
-    glass-gather 0.9s cubic-bezier(0.16, 1, 0.3, 1) var(--d, 0s) forwards,
-    glass-twist 1.4s cubic-bezier(0.37, 0, 0.63, 1) calc(0.9s + var(--k) * 0.35s) infinite alternate;
+@keyframes card-spin-in {
+  from { opacity: 0; transform: scale(0.8) rotate(-30deg); }
 }
-@keyframes glass-twist {
-  from {
-    opacity: var(--o);
-    transform: rotate(var(--a)) translateY(-28px) rotate(90deg) scale(0.54);
-  }
-  to {
-    opacity: var(--o);
-    transform: rotate(var(--a)) translateY(-28px) rotate(130deg) scale(0.54);
-  }
+.card-spin-slot {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 21px;
+  height: 36px;
+  margin: -18px 0 0 -10.5px;
+  transform: rotate(calc(var(--k) * 30deg)) translateY(-56px);
 }
-/* Four spokes, the fan's own cards and no more (Mario, 8 Oct 2026): one at
-   each quarter, overlapping at the centre into a cross. The gradient card
-   is painted first, so the three glass cards over it refract its colour,
-   as they do in the fan. --o is each card's opacity. */
-.glass-spin .glass-card-0 { --k: 0; --a: 0deg; --o: 1; --d: 0s; }
-.glass-spin .glass-card-1 { --k: 1; --a: 90deg; --o: 0.8; --d: 0.04s; }
-.glass-spin .glass-card-2 { --k: 2; --a: 180deg; --o: 0.9; --d: 0.08s; }
-.glass-spin .glass-card-3 { --k: 3; --a: 270deg; --o: 1; --d: 0.12s; }
-@keyframes glass-gather {
-  from {
-    transform: translate(calc(var(--x) * 0.7 * var(--s) * 1px), calc(var(--y) * 0.7 * var(--s) * 1px)) rotate(calc(var(--r) * 0.7 * 1deg));
-  }
-  to {
-    opacity: var(--o);
-    transform: rotate(var(--a)) translateY(-28px) rotate(90deg) scale(0.54);
-  }
+.card-spin-lit,
+.card-spin-glass {
+  position: absolute;
+  inset: 0;
+  border-radius: 7px;
 }
-/* One smooth turn: a quadratic ease-in over 90deg in 1.2s ends at 150deg/s,
-   the speed of the linear 2.4s turn that follows, so there is no step. */
-.glass-spin {
-  animation:
-    glass-turn-in 1.2s cubic-bezier(0.11, 0, 0.5, 0) 0.1s both,
-    glass-turn 2.4s linear 1.3s infinite;
+.card-spin-lit {
+  background: linear-gradient(0deg, #2040ff, #35ffbb);
+  opacity: 0;
+  animation: card-spin-lead 1.2s linear calc(var(--k) * 0.1s - 1.2s) infinite;
 }
-@keyframes glass-turn-in {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(90deg); }
+@keyframes card-spin-lead {
+  0% { opacity: 0; animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1); }
+  10% { opacity: 1; animation-timing-function: cubic-bezier(0.33, 0, 0.67, 1); }
+  63%, 100% { opacity: 0; }
 }
-@keyframes glass-turn {
-  from { transform: rotate(90deg); }
-  to { transform: rotate(450deg); }
+.card-spin-glass {
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.3) 0%, rgba(255, 255, 255, 0.06) 40%, rgba(255, 255, 255, 0) 60%, rgba(255, 255, 255, 0.08) 100%),
+    rgba(103, 133, 255, 0.14);
+  -webkit-backdrop-filter: blur(4px) saturate(1.7) brightness(1.08);
+  backdrop-filter: blur(4px) saturate(1.7) brightness(1.08);
+  box-shadow:
+    inset 1px 1px 0 rgba(255, 255, 255, 0.5),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.16),
+    0 6px 14px -8px rgba(20, 40, 160, 0.4);
+}
+.dark .card-spin-glass {
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.24) 0%, rgba(255, 255, 255, 0.05) 40%, rgba(255, 255, 255, 0) 60%, rgba(255, 255, 255, 0.06) 100%),
+    rgba(103, 133, 255, 0.16);
+  box-shadow:
+    inset 1px 1px 0 rgba(255, 255, 255, 0.4),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.12),
+    0 8px 18px -8px rgba(0, 0, 0, 0.55);
 }
 .gen-spinner {
   animation: gen-travel 0.9s cubic-bezier(0.16, 1, 0.3, 1) both;
@@ -1083,9 +1079,9 @@ body {
   opacity: 0;
 }
 @media (prefers-reduced-motion: reduce) {
-  .glass-spin .glass-card, .gen-spinner, .gen-label { animation-duration: 0.01ms; animation-delay: 0s; }
-  .glass-spin { animation: none; }
-  .glass-spin .glass-card { animation: glass-gather 0.01ms forwards; }
+  .card-spin, .gen-spinner, .gen-label { animation-duration: 0.01ms; animation-delay: 0s; }
+  /* Still: the lead lit, the slot behind it fading. */
+  .card-spin-lit { animation: none; opacity: calc(max(0, 1 - (12 - var(--k)) / 3)); }
 }
 
 
