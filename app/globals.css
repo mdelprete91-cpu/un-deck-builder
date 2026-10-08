@@ -1000,14 +1000,14 @@ body {
 /* The generation spinner (GlassFan spinning over .gen-overlay, Mario
    8 Oct 2026, from a reference): the fan's cards narrow into a row of five
    upright bars, and a light runs along them, left to right.
-   - Gather: each card goes from its place in the fan to its bar in 0.6s,
+   - Gather: each card goes from its place in the fan to its bar in 0.7s on
+     an ease-in-out (a morph on screen, not an entrance),
      narrowing and turning upright on the way; a fifth bar slides out from
      under the last one. Size and corners animate with the move, so the bars
      land with round corners, not squashed ones.
-   - Head: the bar the light is on fills with the fan's gradient, turns back
-     to clear glass, then fades out as the light moves on, and comes back
-     just before the light reaches it again. A bar every 0.5s, 2.5s a round,
-     on sine curves, so the whole runs slowly and evenly.
+   - Pulse: the bars rest as clear glass; one at a time, left to right, a
+     bar fills with the fan's gradient and lets it go, like a light passing
+     along them (see glass-head below).
    - Travel: the overlay's spinner starts on the empty stage's fan and
      glides to the stage's centre (--dx, --dy) on the same curve as the
      gather, so the two read as one movement. */
@@ -1031,14 +1031,11 @@ body {
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.16);
 }
 .glass-spin .glass-card {
-  animation:
-    glass-gather 0.6s cubic-bezier(0.22, 1, 0.36, 1) var(--d, 0s) both,
-    glass-trail 2.5s cubic-bezier(0.37, 0, 0.63, 1) calc(0.6s + var(--p) * 0.5s) infinite;
+  animation: glass-gather 0.7s cubic-bezier(0.65, 0, 0.35, 1) var(--d, 0s) both;
 }
+/* The fifth bar comes out once the fourth is nearly in place. */
 .glass-spin .glass-card-x {
-  animation:
-    glass-split 0.6s cubic-bezier(0.22, 1, 0.36, 1) 0.05s both,
-    glass-trail 2.5s cubic-bezier(0.37, 0, 0.63, 1) calc(0.6s + var(--p) * 0.5s) infinite;
+  animation: glass-split 0.45s cubic-bezier(0.65, 0, 0.35, 1) 0.35s both;
 }
 @keyframes glass-gather {
   from {
@@ -1083,18 +1080,19 @@ body {
   background: linear-gradient(0deg, #2040ff, #35ffbb);
   opacity: 0;
   pointer-events: none;
-  animation: glass-head 2.5s cubic-bezier(0.37, 0, 0.63, 1) calc(0.6s + var(--p) * 0.5s) infinite;
+  animation: glass-head 3s cubic-bezier(0.37, 0, 0.63, 1) calc((var(--p) - 1) * 0.5s) infinite backwards;
 }
-/* The fan's gradient card keeps its colour until the light first leaves it. */
-.glass-spin .glass-card-0::before { opacity: 1; }
+/* One pulse per bar: up for 0.5s, down for 0.5s, on sine curves, the
+   gradient filling the glass and leaving it. The next bar starts as this
+   one peaks, so the light hands over smoothly; the round is 3s, a slot
+   longer than the five pulses, so the last bar is dark again before the
+   first lights up: the light is never in two places at once. It starts on
+   the fan's gradient card at its peak (a half-slot head start), so the
+   colour the empty state shows is the light that then runs along the bars. */
 @keyframes glass-head {
-  0%, 10% { opacity: 1; }
-  40%, 100% { opacity: 0; }
-}
-@keyframes glass-trail {
-  0% { opacity: 1; }
-  70%, 86% { opacity: 0.08; }
-  100% { opacity: 1; }
+  0% { opacity: 0; }
+  16.667% { opacity: 1; }
+  33.333%, 100% { opacity: 0; }
 }
 /* The generation stage (Mario, 8 Oct 2026, from a reference): the fan
    shrinks into a small wheel of six cards, centred on a blank
@@ -1139,7 +1137,7 @@ body {
 
 .gen-spinner {
   position: relative;
-  animation: gen-travel 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: gen-travel 0.7s cubic-bezier(0.65, 0, 0.35, 1) both;
 }
 @keyframes gen-travel {
   from { transform: translate(var(--dx, 0), var(--dy, 0)); }
@@ -1185,6 +1183,7 @@ body {
   .glass-spin .glass-card, .glass-spin .glass-card-x { animation: glass-gather 0.01ms both; }
   .glass-spin { animation: none; }
   .glass-spin .glass-card::before { animation: none; }
+  .glass-spin .glass-card-0::before { opacity: 1; }
   .gen-skeleton { animation: none; }
   .gen-skeleton::after { animation: none; display: none; }
 }
