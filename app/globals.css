@@ -944,7 +944,7 @@ body {
    got lost"): frosting, a diagonal sheen like light across the surface, a
    bright top-left edge and a darker lower one, so each card reads as a
    pane with thickness over the gradient behind it. */
-.glass-card-1, .glass-card-2, .glass-card-3, .glass-card-x {
+.glass-card-1, .glass-card-2, .glass-card-3 {
   background:
     linear-gradient(135deg, rgba(255, 255, 255, 0.34) 0%, rgba(255, 255, 255, 0.08) 38%, rgba(255, 255, 255, 0) 55%, rgba(255, 255, 255, 0.1) 100%),
     rgba(103, 133, 255, 0.18);
@@ -956,7 +956,7 @@ body {
     inset 0 0 0 1px rgba(255, 255, 255, 0.18),
     0 8px 20px -10px rgba(20, 40, 160, 0.45);
 }
-.dark .glass-card-1, .dark .glass-card-2, .dark .glass-card-3, .dark .glass-card-x {
+.dark .glass-card-1, .dark .glass-card-2, .dark .glass-card-3 {
   background:
     linear-gradient(135deg, rgba(255, 255, 255, 0.28) 0%, rgba(255, 255, 255, 0.06) 38%, rgba(255, 255, 255, 0) 55%, rgba(255, 255, 255, 0.08) 100%),
     rgba(103, 133, 255, 0.22);
@@ -1003,28 +1003,6 @@ body {
 @keyframes glass-gather {
   from {
     transform: translate(calc(var(--x) * 0.7 * var(--s) * 1px), calc(var(--y) * 0.7 * var(--s) * 1px)) rotate(calc(var(--r) * 0.7 * 1deg));
-  }
-  to {
-    opacity: var(--o);
-    transform: rotate(var(--a)) translateY(-28px) rotate(90deg) scale(0.54);
-  }
-}
-/* Four more cards on the diagonals (Mario, 8 Oct 2026): hidden under the
-   cross, they fan out once the wheel turns, each from the quarter behind it
-   to its diagonal, so the circle opens like the empty state's fan. Painted
-   between the gradient card and the cross, they take its colour too. */
-.glass-spin .glass-card-x {
-  opacity: 0;
-  animation: glass-open 1s cubic-bezier(0.16, 1, 0.3, 1) both;
-}
-.glass-spin .glass-card-4 { --a: 45deg; --o: 0.7; animation-delay: 0.75s; }
-.glass-spin .glass-card-5 { --a: 135deg; --o: 0.75; animation-delay: 0.83s; }
-.glass-spin .glass-card-6 { --a: 225deg; --o: 0.8; animation-delay: 0.91s; }
-.glass-spin .glass-card-7 { --a: 315deg; --o: 0.85; animation-delay: 0.99s; }
-@keyframes glass-open {
-  from {
-    opacity: 0;
-    transform: rotate(calc(var(--a) - 45deg)) translateY(-28px) rotate(90deg) scale(0.54);
   }
   to {
     opacity: var(--o);

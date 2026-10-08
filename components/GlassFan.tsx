@@ -1,5 +1,3 @@
-import { Fragment } from "react";
-
 /**
  * The empty stage's picture (Mario, 8 Oct 2026): "Stackable glass" from
  * Spline, made a deck of slides and drawn in CSS, so it needs no runtime and
@@ -19,11 +17,7 @@ export default function GlassFan({ spinning = false }: { spinning?: boolean }) {
   return (
     <div aria-hidden className={`glass-fan${spinning ? " glass-spin" : ""}`}>
       {Array.from({ length: CARDS }, (_, k) => (
-        <Fragment key={k}>
-          <span className={`glass-card glass-card-${k}`} />
-          {/* The spinner's diagonals, painted over the gradient card and under the cross. */}
-          {spinning && k === 0 && Array.from({ length: 4 }, (_, x) => <span key={`x${x}`} className={`glass-card glass-card-x glass-card-${x + 4}`} />)}
-        </Fragment>
+        <span key={k} className={`glass-card glass-card-${k}`} />
       ))}
     </div>
   );
