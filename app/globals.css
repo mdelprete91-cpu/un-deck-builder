@@ -1003,7 +1003,7 @@ body {
    - Close: the four cards slide together, straightening, into one place in
      0.6s, a beat apart, back card first; the whole spinner travels to the
      stage's centre on the same curve. The cards keep the empty state's look
-     throughout; closed, the three glass cards read as one.
+     throughout; closed, only the front glass card is left.
    - Light: the fan's gradient behind the glass card, clipped to its shape,
      its colours moving organically (two wandering blobs, below), seen
      through the frosted glass. */
@@ -1018,10 +1018,11 @@ body {
 .glass-spin .glass-card-1 { --d: 0.03s; }
 .glass-spin .glass-card-2 { --d: 0.06s; }
 .glass-spin .glass-card-3 { --d: 0.09s; }
-/* The gradient card gives way to the light once the deck is closed. The
-   three glass cards stay, stacked into one: their frosting compounds over
-   the colour as in the fan, which is what makes it glow (Mario, 8 Oct 2026). */
-.glass-fan.glass-spin .glass-card-0 {
+/* Once the deck is closed only the front card stays: one transparent
+   pane, the light behind it (Mario, 8 Oct 2026: no need for three). */
+.glass-fan.glass-spin .glass-card-0,
+.glass-fan.glass-spin .glass-card-1,
+.glass-fan.glass-spin .glass-card-2 {
   animation:
     glass-close 0.6s cubic-bezier(0.4, 0, 0.2, 1) var(--d, 0s) both,
     glass-under 0.5s cubic-bezier(0.37, 0, 0.63, 1) 0.5s forwards;
@@ -1181,7 +1182,7 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .gen-spinner, .gen-label { animation-duration: 0.01ms; animation-delay: 0s; }
   .glass-fan.glass-spin .glass-card { animation: glass-close 0.01ms both; }
-  .glass-fan.glass-spin .glass-card-0 { animation: glass-close 0.01ms both, glass-under 0.01ms forwards; }
+  .glass-fan.glass-spin .glass-card-0, .glass-fan.glass-spin .glass-card-1, .glass-fan.glass-spin .glass-card-2 { animation: glass-close 0.01ms both, glass-under 0.01ms forwards; }
   .glass-spin .glass-light { animation: none; opacity: 1; }
   .glass-spin .glass-light::before, .glass-spin .glass-light::after, .glass-spin .glass-light-white { animation: none; }
   .glass-fan.glass-spin .glass-card-3::after { animation: none; opacity: 1; }
