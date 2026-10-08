@@ -1045,7 +1045,7 @@ body {
 }
 .glass-spin .glass-card {
   animation:
-    glass-fold 0.45s cubic-bezier(0.22, 1, 0.36, 1) var(--d, 0s) both,
+    glass-fold 0.45s cubic-bezier(0.22, 1, 0.36, 1) both,
     glass-trail 3s cubic-bezier(0.37, 0, 0.63, 1) calc(0.45s + (var(--p) - 1) * 0.5s) infinite,
     glass-beat 3s linear calc(0.45s + (var(--p) - 1) * 0.5s) infinite;
 }
@@ -1075,8 +1075,7 @@ body {
 }
 /* At the click the glass cards are gone at once (Mario, 8 Oct 2026),
    faded out in the first 0.09s while they start to narrow, and the
-   gradient card alone becomes the first bar, with a little hop as it
-   lands. Out of sight the glass cards reach their own places, ready for
+   gradient card alone hops up and comes down as the first bar. Out of sight the glass cards reach their own places, ready for
    the light. */
 @keyframes glass-fold {
   from {
@@ -1097,8 +1096,9 @@ body {
     transform: translateX(var(--bx));
   }
 }
-/* The gradient card's hop as it lands: up, a touch past its place on the
-   way down, settle. `translate` is its own property, so it rides on top of
+/* The gradient card's hop at the click (Mario, 8 Oct 2026): it jumps up
+   first, still a card, and comes down as it narrows into the bar, a touch
+   past its place, then settles. `translate` is its own property, so it rides on top of
    the gather's transform. */
 @keyframes glass-hop {
   0% { translate: 0 0; animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1); }
@@ -1161,8 +1161,8 @@ body {
    its second round it runs on the common schedule. */
 .glass-spin .glass-card-0 {
   animation:
-    glass-gather 0.45s cubic-bezier(0.22, 1, 0.36, 1) 0s both,
-    glass-hop 0.5s 0.3s both,
+    glass-hop 0.42s both,
+    glass-gather 0.45s cubic-bezier(0.22, 1, 0.36, 1) 0.08s both,
     glass-lead-trail 2.95s cubic-bezier(0.37, 0, 0.63, 1) forwards,
     glass-trail 3s cubic-bezier(0.37, 0, 0.63, 1) 2.95s infinite,
     glass-beat 3s linear 2.95s infinite;
