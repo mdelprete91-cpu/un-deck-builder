@@ -1252,6 +1252,13 @@ body {
   opacity: 1;
   pointer-events: auto;
 }
+/* Trial veils (local only, ?veil=… in the address, Mario 8 Oct 2026: try a
+   few looks for the slides under the loader). The default is above. */
+.gen-veil.v-hidden { background: var(--color-surface); -webkit-backdrop-filter: none; backdrop-filter: none; }
+.gen-veil.v-soft { background: color-mix(in srgb, var(--color-surface) 15%, transparent); -webkit-backdrop-filter: blur(5px); backdrop-filter: blur(5px); }
+.gen-veil.v-dim { background: color-mix(in srgb, var(--color-surface) 70%, transparent); -webkit-backdrop-filter: none; backdrop-filter: none; }
+.gen-veil.v-none { background: none; -webkit-backdrop-filter: none; backdrop-filter: none; }
+.gen-veil.v-frost { background: color-mix(in srgb, var(--color-surface) 35%, transparent); -webkit-backdrop-filter: blur(28px) saturate(1.4); backdrop-filter: blur(28px) saturate(1.4); }
 .gen-text-out {
   /* Out of the way before the cards cross it. */
   animation: gen-text-out 0.22s cubic-bezier(0.22, 1, 0.36, 1) forwards;

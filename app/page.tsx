@@ -1767,6 +1767,10 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
   const [spinner, setSpinner] = useState<{ dx: number; dy: number; leaving: boolean; from?: string[] } | null>(null);
   /** Local "test" prompt: a pretend generation in a loop, sample slides landing under the loader, no model call. */
   const [spinnerDemo, setSpinnerDemo] = useState(false);
+  /** Local only: ?veil=hidden|soft|dim|none|frost picks a trial look for the slides under the loader. */
+  const [veilTrial] = useState(() =>
+    process.env.NODE_ENV === "development" && typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("veil") : null,
+  );
   const emptyFanRef = useRef<HTMLDivElement>(null);
   const stageAreaRef = useRef<HTMLDivElement>(null);
   const startSpinner = () => {
@@ -2354,7 +2358,7 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
             aria-busy={!spinner.leaving}
             aria-live="polite"
           >
-            <div className={`gen-veil absolute inset-0 ${state.slides.length > 0 ? "is-on" : ""}`} />
+            <div className={`gen-veil absolute inset-0 ${state.slides.length > 0 ? "is-on" : ""} ${veilTrial ? `v-${veilTrial}` : ""}`} />
             <div className="relative flex flex-col items-center">
               <div
                 ref={genPillRef}
