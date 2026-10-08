@@ -34,7 +34,7 @@ import { parseDeckFile } from "@/lib/slides/deck-file";
 import { computeLogoTone, FULL_BLEED_TONE, RIGHT_PANEL_TONE, type ToneGeometry } from "@/lib/slides/logo-tone";
 import { ICON_LIBRARY, ICON_NAMES } from "@/lib/slides/icons";
 import Button, { ICON_SIZE } from "@/components/Button";
-import SkeletonDrift from "@/components/SkeletonDrift";
+import GlassFan from "@/components/GlassFan";
 import { chapterCandidates, needsChapterPlan, type ChapterPlan } from "@/lib/slides/chapters";
 import Sidebar from "@/components/Sidebar";
 import SlideFrame, { readImageFile } from "@/components/SlideFrame";
@@ -2438,7 +2438,7 @@ function EmptyState({
       {
         <>
           <div className="empty-in mb-6">
-            <SkeletonDrift />
+            <GlassFan />
           </div>
           <h1 className="empty-in text-[26px] font-medium tracking-tight text-ink" style={{ "--i": 1 } as React.CSSProperties}>
             {twoPager ? "What goes on the two pages?" : "What are we presenting today?"}
