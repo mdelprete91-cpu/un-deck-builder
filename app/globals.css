@@ -1104,7 +1104,7 @@ body {
 .glass-spin .glass-card-0 {
   animation:
     glass-gather 0.45s cubic-bezier(0.65, 0, 0.35, 1) 0s both,
-    glass-lead-trail 1.95s cubic-bezier(0.37, 0, 0.63, 1) forwards,
+    glass-lead-trail 2.95s cubic-bezier(0.37, 0, 0.63, 1) forwards,
     glass-trail 3s cubic-bezier(0.37, 0, 0.63, 1) 2.95s infinite;
 }
 .glass-spin .glass-card-0::before {
@@ -1114,9 +1114,8 @@ body {
     glass-head 3s cubic-bezier(0.37, 0, 0.63, 1) 2.95s infinite;
 }
 @keyframes glass-lead-trail {
-  0%, 23% { opacity: 1; }
-  48.7% { opacity: 0.55; }
-  74.4% { opacity: 0.2; }
+  0% { opacity: 1; }
+  15.254% { opacity: 1; animation-timing-function: linear; }
   100% { opacity: 0; }
 }
 @keyframes glass-lead-head {
@@ -1125,16 +1124,15 @@ body {
 }
 /* The bars exist only behind the light (Mario, 8 Oct 2026): a bar appears
    as the light reaches it, and after it has passed it stays as glass and
-   fades away over the next two bars. Ahead of the light there is nothing.
+   fades away evenly over exactly five bars' time (2.5s, the length of the
+   row), reaching nothing as its next round begins.
    On the way from the fan the glass cards fade out as they narrow and only
    the gradient card lands, lit: the light starts there, at 0.45s, and the
    bars come one by one behind it. */
 @keyframes glass-trail {
   0% { opacity: 0; }
-  16.667% { opacity: 1; }
-  33.333% { opacity: 0.55; }
-  50% { opacity: 0.2; }
-  66.667%, 100% { opacity: 0; }
+  16.667% { opacity: 1; animation-timing-function: linear; }
+  100% { opacity: 0; }
 }
 
 .gen-spinner {
