@@ -1015,9 +1015,9 @@ body {
   width: 84px;
   height: 84px;
 }
-/* Once in place the wheel turns and breathes (Mario, 8 Oct 2026): like a
-   breath, the cards drift out from the centre for 2s, hold a moment and
-   drift back for 2s, while the whole goes slowly round. The breath starts
+/* Once in place the wheel breathes, without turning (Mario, 8 Oct 2026):
+   like a breath, the cards drift out from the centre for 2s, hold a moment
+   and drift back for 2s. The breath starts
    from the gathered pose, so there is no step. */
 .glass-spin .glass-card {
   animation:
@@ -1107,21 +1107,6 @@ body {
    card stays where it is and the rest are the fan's glass. No light moves
    from card to card. */
 
-/* The turn, slow: a quadratic ease-in over 60deg in 1.6s ends at 75deg/s,
-   the speed of the linear 4.8s turn that follows, so there is no step. */
-.glass-spin {
-  animation:
-    glass-turn-in 1.6s cubic-bezier(0.11, 0, 0.5, 0) both,
-    glass-turn 4.8s linear 1.6s infinite;
-}
-@keyframes glass-turn-in {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(60deg); }
-}
-@keyframes glass-turn {
-  from { transform: rotate(60deg); }
-  to { transform: rotate(420deg); }
-}
 /* The generation stage (Mario, 8 Oct 2026, from a reference): the fan
    shrinks into a small wheel of six cards, centred on a blank
    skeleton of the slide being made. The skeleton fades in with a sweep of
