@@ -1001,8 +1001,10 @@ body {
    8 Oct 2026): the deck closes into a single card, and the loader is only
    a coloured light moving behind it, seen through the glass.
    - Close: the four cards slide together, straightening, into one place in
-     0.6s, a beat apart, back card first; the whole spinner travels to the
-     stage's centre on the same curve. The cards keep the empty state's look
+     0.7s, a beat apart, back card first, while the whole spinner travels to
+     the stage's centre on the same curve and time: one movement. As they
+     meet, the cards under the front one fade and the moving light fades in
+     behind it, a crossfade from the fan's colour to the loader's. The cards keep the empty state's look
      throughout; closed, only the front glass card is left.
    - Light: the fan's gradient behind the glass card, clipped to its shape,
      its colours moving organically (two wandering blobs, below), seen
@@ -1012,7 +1014,7 @@ body {
   height: calc(180px * var(--s));
 }
 .glass-fan.glass-spin .glass-card {
-  animation: glass-close 0.6s cubic-bezier(0.4, 0, 0.2, 1) var(--d, 0s) both;
+  animation: glass-close 0.7s cubic-bezier(0.4, 0, 0.2, 1) var(--d, 0s) both;
 }
 .glass-spin .glass-card-0 { --d: 0s; }
 .glass-spin .glass-card-1 { --d: 0.03s; }
@@ -1024,8 +1026,8 @@ body {
 .glass-fan.glass-spin .glass-card-1,
 .glass-fan.glass-spin .glass-card-2 {
   animation:
-    glass-close 0.6s cubic-bezier(0.4, 0, 0.2, 1) var(--d, 0s) both,
-    glass-under 0.5s cubic-bezier(0.37, 0, 0.63, 1) 0.5s forwards;
+    glass-close 0.7s cubic-bezier(0.4, 0, 0.2, 1) var(--d, 0s) both,
+    glass-under 0.7s cubic-bezier(0.37, 0, 0.63, 1) 0.55s forwards;
 }
 @keyframes glass-close {
   from {
@@ -1047,7 +1049,7 @@ body {
   border-radius: calc(30px * var(--s));
   overflow: hidden;
   opacity: 0;
-  animation: glass-light-in 0.6s cubic-bezier(0.37, 0, 0.63, 1) 0.45s forwards;
+  animation: glass-light-in 0.8s cubic-bezier(0.37, 0, 0.63, 1) 0.5s forwards;
 }
 /* Organic colour (Mario, 8 Oct 2026): two soft pieces of the fan's
    gradient wandering behind the glass on their own
@@ -1114,7 +1116,7 @@ body {
   opacity: 0;
   pointer-events: none;
   animation:
-    glass-light-in 0.6s cubic-bezier(0.37, 0, 0.63, 1) 0.45s forwards,
+    glass-light-in 0.8s cubic-bezier(0.37, 0, 0.63, 1) 0.5s forwards,
     glass-blob-w 5.2s cubic-bezier(0.45, 0, 0.55, 1) infinite;
 }
 @keyframes glass-blob-w {
@@ -1139,7 +1141,8 @@ body {
 }
 .gen-spinner {
   position: relative;
-  animation: gen-travel 0.7s cubic-bezier(0.4, 0, 0.2, 1) 0.35s both;
+  /* With the cards, from the first frame: one movement, not close-then-move. */
+  animation: gen-travel 0.7s cubic-bezier(0.4, 0, 0.2, 1) both;
 }
 @keyframes gen-travel {
   from { transform: translate(var(--dx, 0), var(--dy, 0)); }
