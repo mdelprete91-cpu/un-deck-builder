@@ -1098,14 +1098,16 @@ body {
   16.667% { opacity: 1; }
   33.333%, 100% { opacity: 0; }
 }
-/* The tail: once the light has passed, a bar fades almost away, and it
-   comes back just before the light reaches it again, so the light always
-   lands on a visible bar. Full at the start of its round, which is how the
-   bars arrive from the fan, so nothing jumps. */
+/* The tail: behind the light a bar fades, a third gone one bar back and
+   almost gone two bars back; then it comes back while the light is still
+   far, so the bars ahead of the light are always there (Mario, 8 Oct 2026).
+   Full at the start of its round, which is how the bars arrive from the
+   fan, so nothing jumps. */
 @keyframes glass-trail {
   0%, 16.667% { opacity: 1; }
-  50%, 83.333% { opacity: 0.08; }
-  100% { opacity: 1; }
+  33.333% { opacity: 0.35; }
+  50%, 58% { opacity: 0.05; }
+  75%, 100% { opacity: 1; }
 }
 
 .gen-spinner {
