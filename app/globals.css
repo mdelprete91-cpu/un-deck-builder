@@ -1063,8 +1063,10 @@ body {
   /* The fan's own gradient card, its edges melted (Mario, 8 Oct 2026: this
      palette): under the stacked glass it reads as the fan's cyan to blue. */
   background: linear-gradient(0deg, #2040ff, #35ffbb);
-  -webkit-mask-image: radial-gradient(closest-side, #000 40%, transparent 100%);
-  mask-image: radial-gradient(closest-side, #000 40%, transparent 100%);
+  /* Edges melted wide, and a blur on top, so the colour has no outline. */
+  -webkit-mask-image: radial-gradient(closest-side, #000 10%, rgba(0, 0, 0, 0.5) 55%, transparent 100%);
+  mask-image: radial-gradient(closest-side, #000 10%, rgba(0, 0, 0, 0.5) 55%, transparent 100%);
+  filter: blur(10px);
 }
 .glass-spin .glass-light::before {
   left: -15%;
