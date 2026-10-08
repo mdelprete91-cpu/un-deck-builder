@@ -1049,13 +1049,12 @@ body {
   opacity: 0;
   animation: glass-light-in 0.6s cubic-bezier(0.37, 0, 0.63, 1) 0.45s forwards;
 }
-/* Organic colour (Mario, 8 Oct 2026): the fan's gradient as the base, and
-   two soft blobs, one mint, one blue, wandering across it on their own
+/* Organic colour (Mario, 8 Oct 2026): two soft blobs, one mint, one
+   blue, the fan's colours, wandering behind the glass on their own
    loops of different lengths (6.4s and 8.2s), so the colours mix and
    shift without ever repeating the same picture or showing an edge. */
-.glass-spin .glass-light {
-  background: linear-gradient(0deg, #2040ff, #35ffbb);
-}
+/* No base fill: the blobs cover only part of the card, so its glass
+   shows through around them (Mario, 8 Oct 2026). */
 .glass-spin .glass-light::before,
 .glass-spin .glass-light::after {
   content: "";
