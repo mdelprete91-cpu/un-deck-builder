@@ -989,40 +989,25 @@ body {
   height: 220px;
   will-change: transform;
 }
-/* Once gathered, every card also turns on itself, 40deg and back, one
-   after the other, so while the wheel goes round the cards churn like a
-   whirl of paper rather than sitting still as a pinwheel (Mario, 8 Oct
-   2026). The twist starts from the gathered pose, so there is no step. */
 .glass-spin .glass-card {
-  animation:
-    glass-gather 0.9s cubic-bezier(0.16, 1, 0.3, 1) var(--d, 0s) forwards,
-    glass-twist 1.4s cubic-bezier(0.37, 0, 0.63, 1) calc(0.9s + var(--k) * 0.35s) infinite alternate;
-}
-@keyframes glass-twist {
-  from {
-    opacity: var(--o);
-    transform: rotate(var(--a)) translateY(-28px) rotate(90deg) scale(0.54);
-  }
-  to {
-    opacity: var(--o);
-    transform: rotate(var(--a)) translateY(-28px) rotate(130deg) scale(0.54);
-  }
+  animation: glass-gather 0.9s cubic-bezier(0.16, 1, 0.3, 1) var(--d, 0s) forwards;
 }
 /* Four spokes, the fan's own cards and no more (Mario, 8 Oct 2026): one at
    each quarter, overlapping at the centre into a cross. The gradient card
    is painted first, so the three glass cards over it refract its colour,
-   as they do in the fan. --o is each card's opacity. */
-.glass-spin .glass-card-0 { --k: 0; --a: 0deg; --o: 1; --d: 0s; }
-.glass-spin .glass-card-1 { --k: 1; --a: 90deg; --o: 0.8; --d: 0.04s; }
-.glass-spin .glass-card-2 { --k: 2; --a: 180deg; --o: 0.9; --d: 0.08s; }
-.glass-spin .glass-card-3 { --k: 3; --a: 270deg; --o: 1; --d: 0.12s; }
+   as they do in the fan. --o is each card's opacity. Each card sits turned
+   35deg on itself, still, not animated (Mario, 8 Oct 2026). */
+.glass-spin .glass-card-0 { --a: 0deg; --o: 1; --d: 0s; }
+.glass-spin .glass-card-1 { --a: 90deg; --o: 0.8; --d: 0.04s; }
+.glass-spin .glass-card-2 { --a: 180deg; --o: 0.9; --d: 0.08s; }
+.glass-spin .glass-card-3 { --a: 270deg; --o: 1; --d: 0.12s; }
 @keyframes glass-gather {
   from {
     transform: translate(calc(var(--x) * 0.7 * var(--s) * 1px), calc(var(--y) * 0.7 * var(--s) * 1px)) rotate(calc(var(--r) * 0.7 * 1deg));
   }
   to {
     opacity: var(--o);
-    transform: rotate(var(--a)) translateY(-28px) rotate(90deg) scale(0.54);
+    transform: rotate(var(--a)) translateY(-28px) rotate(125deg) scale(0.54);
   }
 }
 /* One smooth turn: a quadratic ease-in over 90deg in 1.2s ends at 150deg/s,
@@ -1085,7 +1070,6 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .glass-spin .glass-card, .gen-spinner, .gen-label { animation-duration: 0.01ms; animation-delay: 0s; }
   .glass-spin { animation: none; }
-  .glass-spin .glass-card { animation: glass-gather 0.01ms forwards; }
 }
 
 
