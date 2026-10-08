@@ -971,7 +971,7 @@ body {
    got lost"): frosting, a diagonal sheen like light across the surface, a
    bright top-left edge and a darker lower one, so each card reads as a
    pane with thickness over the gradient behind it. */
-.glass-card-1, .glass-card-2, .glass-card-3, .glass-card-x, .glass-spin .glass-card-0 {
+.glass-card-1, .glass-card-2, .glass-card-3 {
   background:
     linear-gradient(135deg, rgba(255, 255, 255, 0.34) 0%, rgba(255, 255, 255, 0.08) 38%, rgba(255, 255, 255, 0) 55%, rgba(255, 255, 255, 0.1) 100%),
     rgba(103, 133, 255, 0.18);
@@ -983,7 +983,7 @@ body {
     inset 0 0 0 1px rgba(255, 255, 255, 0.18),
     0 8px 20px -10px rgba(20, 40, 160, 0.45);
 }
-.dark .glass-card-1, .dark .glass-card-2, .dark .glass-card-3, .dark .glass-card-x, .dark .glass-spin .glass-card-0 {
+.dark .glass-card-1, .dark .glass-card-2, .dark .glass-card-3 {
   background:
     linear-gradient(135deg, rgba(255, 255, 255, 0.28) 0%, rgba(255, 255, 255, 0.06) 38%, rgba(255, 255, 255, 0) 55%, rgba(255, 255, 255, 0.08) 100%),
     rgba(103, 133, 255, 0.22);
@@ -998,167 +998,77 @@ body {
 }
 
 /* The generation spinner (GlassFan spinning over .gen-overlay, Mario
-   8 Oct 2026): the fan's cards become a row of five glass dots and a light
-   runs along them, left to right.
-   - Gather: the gradient card hops at the click; from 0.35s all four cards
-     shrink into dots over 0.7s (glass-gather), the whole spinner travelling
-     to the stage's centre on the same curve; a fifth dot comes out of the
-     fourth. The glass cards land as faint glass dots, the gradient one lit.
-   - Light: one dot at a time fills with the fan's gradient and swells a
-     little (glass-head, glass-beat), then fades back to faint glass over
-     the length of the row (glass-trail).
+   8 Oct 2026): the deck closes into a single card, and the loader is only
+   a coloured light moving behind it, seen through the glass.
+   - Close: the four cards slide together, straightening, into one place in
+     0.6s, a beat apart, back card first; the whole spinner travels to the
+     stage's centre on the same curve. The cards keep the empty state's look
+     throughout. Once closed, the cards under the front one fade out, so one
+     glass card is left.
+   - Light: a soft blob of the fan's gradient, clipped to the card, drifts
+     side to side behind it on a slow sine, 2.4s each way; the frosted glass
+     turns it into a glow moving inside the card. */
 .glass-fan.glass-spin {
-  width: 102px;
-  height: 40px;
+  width: calc(300px * var(--s));
+  height: calc(180px * var(--s));
 }
-.glass-spin .glass-card { --base: 0.35; }
-.glass-spin .glass-card-0 { --bx: -44px; --d: 0s; --p: 0; --go: 1; }
-.glass-spin .glass-card-1 { --bx: -22px; --d: 0.04s; --p: 1; }
-.glass-spin .glass-card-2 { --bx: 0px; --d: 0.08s; --p: 2; }
-.glass-spin .glass-card-3 { --bx: 22px; --d: 0.12s; --p: 3; }
-.glass-spin .glass-card-4 { --bx: 44px; --from: 22px; --p: 4; }
-/* Every bar is the fan's glass (the shared .glass-card-1..3 rule, card 0
-   included), redrawn below for a thin bar. */
-.glass-spin .glass-card-0, .glass-spin .glass-card-1, .glass-spin .glass-card-2, .glass-spin .glass-card-3, .glass-spin .glass-card-x {
-  /* Glass for a small round pane: a soft light at the top left, the fan's
-     tint behind, the fan's frosting, a hairline of light on the upper rim. */
-  background:
-    radial-gradient(70% 70% at 30% 25%, rgba(255, 255, 255, 0.3), rgba(255, 255, 255, 0) 70%),
-    rgba(103, 133, 255, 0.24);
-  -webkit-backdrop-filter: blur(6px) saturate(1.7) brightness(1.08);
-  backdrop-filter: blur(6px) saturate(1.7) brightness(1.08);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.25);
+.glass-fan.glass-spin .glass-card {
+  animation: glass-close 0.6s cubic-bezier(0.4, 0, 0.2, 1) var(--d, 0s) both;
 }
-.dark .glass-spin .glass-card-0, .dark .glass-spin .glass-card-1, .dark .glass-spin .glass-card-2, .dark .glass-spin .glass-card-3, .dark .glass-spin .glass-card-x {
-  background:
-    radial-gradient(70% 70% at 30% 25%, rgba(255, 255, 255, 0.22), rgba(255, 255, 255, 0) 70%),
-    rgba(103, 133, 255, 0.3);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18);
-}
-.glass-spin .glass-card {
+.glass-spin .glass-card-0 { --d: 0s; }
+.glass-spin .glass-card-1 { --d: 0.03s; }
+.glass-spin .glass-card-2 { --d: 0.06s; }
+.glass-spin .glass-card-3 { --d: 0.09s; }
+/* Under the front card: gone once the deck is closed. */
+.glass-fan.glass-spin .glass-card-0,
+.glass-fan.glass-spin .glass-card-1,
+.glass-fan.glass-spin .glass-card-2 {
   animation:
-    glass-gather 0.7s cubic-bezier(0.4, 0, 0.2, 1) calc(0.35s + var(--d, 0s)) both,
-    glass-trail 3s cubic-bezier(0.37, 0, 0.63, 1) calc(1s + (var(--p) - 1) * 0.5s) infinite,
-    glass-beat 3s linear calc(1s + (var(--p) - 1) * 0.5s) infinite;
+    glass-close 0.6s cubic-bezier(0.4, 0, 0.2, 1) var(--d, 0s) both,
+    glass-under 0.5s cubic-bezier(0.37, 0, 0.63, 1) 0.5s forwards;
 }
-/* The fifth dot comes out of the fourth once it is nearly in place. */
-.glass-spin .glass-card-x {
-  animation:
-    glass-split 0.35s cubic-bezier(0.4, 0, 0.2, 1) 0.8s both,
-    glass-trail 3s cubic-bezier(0.37, 0, 0.63, 1) calc(1s + (var(--p) - 1) * 0.5s) infinite,
-    glass-beat 3s linear calc(1s + (var(--p) - 1) * 0.5s) infinite;
-}
-@keyframes glass-gather {
+@keyframes glass-close {
   from {
-    width: calc(300px * var(--s));
-    height: calc(180px * var(--s));
-    margin: calc(-90px * var(--s)) 0 0 calc(-150px * var(--s));
-    border-radius: calc(30px * var(--s));
     transform: translate(calc(var(--x) * 0.7 * var(--s) * 1px), calc(var(--y) * 0.7 * var(--s) * 1px)) rotate(calc(var(--r) * 0.7 * 1deg));
   }
-  to {
-    width: 14px;
-    height: 14px;
-    margin: -7px 0 0 -7px;
-    border-radius: 50%;
-    opacity: var(--go, var(--base));
-    transform: translateX(var(--bx));
-  }
+  to { transform: none; }
 }
-@keyframes glass-hop {
-  0% { translate: 0 0; animation-timing-function: cubic-bezier(0.33, 1, 0.68, 1); }
-  45% { translate: 0 -8px; animation-timing-function: cubic-bezier(0.37, 0, 0.63, 1); }
-  100% { translate: 0 0; }
+@keyframes glass-under {
+  to { opacity: 0; }
 }
-@keyframes glass-split {
-  from {
-    width: 14px;
-    height: 14px;
-    margin: -7px 0 0 -7px;
-    border-radius: 50%;
-    opacity: 0;
-    transform: translateX(var(--from));
-  }
-  to {
-    width: 14px;
-    height: 14px;
-    margin: -7px 0 0 -7px;
-    border-radius: 50%;
-    opacity: var(--base);
-    transform: translateX(var(--bx));
-  }
+/* The light: behind the front card, the card's shape, clipped. */
+.glass-spin .glass-light {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: calc(300px * var(--s));
+  height: calc(180px * var(--s));
+  margin: calc(-90px * var(--s)) 0 0 calc(-150px * var(--s));
+  border-radius: calc(30px * var(--s));
+  overflow: hidden;
+  opacity: 0;
+  animation: glass-light-in 0.6s cubic-bezier(0.37, 0, 0.63, 1) 0.45s forwards;
 }
-.glass-spin .glass-card::before {
+.glass-spin .glass-light::before {
   content: "";
   position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  background: linear-gradient(0deg, #2040ff, #35ffbb);
-  opacity: 0;
-  pointer-events: none;
-  animation: glass-head 3s cubic-bezier(0.37, 0, 0.63, 1) calc(1s + (var(--p) - 1) * 0.5s) infinite backwards;
+  top: -20%;
+  left: 0;
+  width: 60%;
+  height: 140%;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, #35ffbb 0%, #2bb6ff 45%, #2040ff 75%, rgba(32, 64, 255, 0) 100%);
+  filter: blur(8px);
+  translate: -40% 0;
+  animation: glass-light-drift 2.4s cubic-bezier(0.37, 0, 0.63, 1) 0.45s infinite alternate;
 }
-/* One pulse per bar: up for 0.5s, down for 0.5s, on sine curves, the
-   gradient filling the glass and leaving it. The next bar starts as this
-   one peaks, so the light hands over smoothly; the round is 3s, a slot
-   longer than the five pulses, so the last bar is dark again before the
-   first lights up: the light is never in two places at once. It starts on
-   the fan's gradient card at its peak (a half-slot head start), so the
-   colour the empty state shows is the light that then runs along the bars. */
-@keyframes glass-head {
-  0% { opacity: 0; animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1); }
-  10% { opacity: 1; }
-  16.667% { opacity: 1; animation-timing-function: cubic-bezier(0.55, 0, 0.75, 0.4); }
-  36% { opacity: 0; }
-  100% { opacity: 0; }
+@keyframes glass-light-in {
+  to { opacity: 1; }
 }
-/* The beat on the bar itself: it swells a little as the light lands and
-   settles back, like a pulse (scale is its own property, so it adds to the
-   bar's transform). */
-@keyframes glass-beat {
-  0% { scale: 1; animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1); }
-  10% { scale: 1.2; animation-timing-function: cubic-bezier(0.45, 0, 0.55, 1); }
-  30%, 100% { scale: 1; }
+@keyframes glass-light-drift {
+  from { translate: -40% 0; }
+  to { translate: 106% 0; }
 }
-/* The gradient card leads: it lands lit and holds the light until the bars
-   are in place (1s), then lets it go and fades like any tail bar; from
-   its second round it runs on the common schedule. */
-.glass-spin .glass-card-0 {
-  animation:
-    glass-hop 0.55s both,
-    glass-gather 0.7s cubic-bezier(0.4, 0, 0.2, 1) 0.35s both,
-    glass-lead-trail 3.5s cubic-bezier(0.37, 0, 0.63, 1) forwards,
-    glass-trail 3s cubic-bezier(0.37, 0, 0.63, 1) 3.5s infinite,
-    glass-beat 3s linear 3.5s infinite;
-}
-.glass-spin .glass-card-0::before {
-  opacity: 1;
-  animation:
-    glass-lead-head 1.5s cubic-bezier(0.37, 0, 0.63, 1) forwards,
-    glass-head 3s cubic-bezier(0.37, 0, 0.63, 1) 3.5s infinite;
-}
-@keyframes glass-lead-trail {
-  0% { opacity: 1; }
-  28.571% { opacity: 1; animation-timing-function: linear; }
-  100% { opacity: var(--base); }
-}
-@keyframes glass-lead-head {
-  0%, 66.667% { opacity: 1; }
-  100% { opacity: 0; }
-}
-/* The bars exist only behind the light (Mario, 8 Oct 2026): a bar appears
-   as the light reaches it, and after it has passed it stays as glass and
-   fades away evenly over exactly five bars' time (2.5s, the length of the
-   row), reaching nothing as its next round begins.
-   On the way from the fan the glass cards fade out as they narrow and only
-   the gradient card lands, lit: the light starts there, at 0.45s, and the
-   bars come one by one behind it. */
-@keyframes glass-trail {
-  0% { opacity: var(--base); }
-  16.667% { opacity: 1; animation-timing-function: linear; }
-  100% { opacity: var(--base); }
-}
-
 .gen-spinner {
   position: relative;
   animation: gen-travel 0.7s cubic-bezier(0.4, 0, 0.2, 1) 0.35s both;
@@ -1205,11 +1115,10 @@ body {
 }
 @media (prefers-reduced-motion: reduce) {
   .gen-spinner, .gen-label { animation-duration: 0.01ms; animation-delay: 0s; }
-  .glass-spin .glass-card, .glass-spin .glass-card-x { animation: glass-gather 0.01ms both; }
-  .glass-spin { animation: none; }
-  .glass-spin .glass-card::before, .glass-spin .glass-card-0::before { animation: none; }
-  .glass-spin .glass-card-0::before { opacity: 1; }
-  .glass-spin .glass-card-0 { animation: glass-gather 0.01ms both; }
+  .glass-fan.glass-spin .glass-card, .glass-fan.glass-spin .glass-card-0, .glass-fan.glass-spin .glass-card-1, .glass-fan.glass-spin .glass-card-2 { animation: glass-close 0.01ms both, glass-under 0.01ms forwards; }
+  .glass-fan.glass-spin .glass-card-3 { animation: glass-close 0.01ms both; }
+  .glass-spin .glass-light { animation: none; opacity: 1; }
+  .glass-spin .glass-light::before { animation: none; translate: 33% 0; }
 }
 
 

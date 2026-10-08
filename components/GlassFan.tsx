@@ -11,19 +11,18 @@ import { Fragment } from "react";
 const CARDS = 4;
 
 /**
- * `spinning`: the generation's spinner (Mario, 8 Oct 2026). From the fan's
- * resting pose the four cards narrow into upright bars and a fifth slides
- * out from under the last; a light runs along them until the first slide
- * lands.
+ * `spinning`: the generation's loader (Mario, 8 Oct 2026). From the fan's
+ * resting pose the deck closes into a single card, and a coloured light
+ * moves behind it, seen through the glass, until the first slide lands.
  */
 export default function GlassFan({ spinning = false }: { spinning?: boolean }) {
   return (
     <div aria-hidden className={`glass-fan${spinning ? " glass-spin" : ""}`}>
       {Array.from({ length: CARDS }, (_, k) => (
         <Fragment key={k}>
+          {/* The loader's light, behind the front card only. */}
+          {spinning && k === CARDS - 1 && <span className="glass-light" />}
           <span className={`glass-card glass-card-${k}`} />
-          {/* The spinner's fifth bar, slid out from under the last card. */}
-          {spinning && k === CARDS - 1 && <span className="glass-card glass-card-x glass-card-4" />}
         </Fragment>
       ))}
     </div>
