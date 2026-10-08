@@ -1006,8 +1006,8 @@ body {
      meet, the cards under the front one fade and the moving light fades in
      behind it, a crossfade from the fan's colour to the loader's. The cards keep the empty state's look
      throughout; closed, only the front glass card is left.
-   - Light: two large organic forms in the fan's palette drifting behind the
-     front card, which frosts and refracts them (below). */
+   - Light: soft pieces of the fan's gradient and a white sheen wandering
+     behind the front card, at least 30% of it left clear (below). */
 .glass-fan.glass-spin {
   width: calc(300px * var(--s));
   height: calc(180px * var(--s));
@@ -1050,63 +1050,101 @@ body {
   opacity: 0;
   animation: glass-light-in 0.8s cubic-bezier(0.37, 0, 0.63, 1) 0.5s forwards;
 }
-/* Organic shapes under frosted glass (Mario, 8 Oct 2026, after two
-   references): two large round forms in the fan's palette, each a soft
-   gradient, larger than the card so only their curved edges cross it,
-   drift slowly past each other; between them the card stays clear. The
-   glass frosts them and bends them at its rim, and a fine grain sits on
-   top (.glass-card-3::after). */
+/* Organic colour (Mario, 8 Oct 2026): two soft pieces of the fan's
+   gradient wandering behind the glass on their own
+   loops of different lengths (6.4s and 8.2s), so the colours mix and
+   shift without ever repeating the same picture or showing an edge. */
+/* No base fill: the blobs cover only part of the card, so its glass
+   shows through around them (Mario, 8 Oct 2026). */
 .glass-spin .glass-light::before,
 .glass-spin .glass-light::after {
   content: "";
   position: absolute;
   border-radius: 50%;
+  /* The fan's own gradient card, its edges melted (Mario, 8 Oct 2026: this
+     palette): under the stacked glass it reads as the fan's cyan to blue. */
+  background: linear-gradient(0deg, #2040ff, #35ffbb);
+  -webkit-mask-image: radial-gradient(closest-side, #000 40%, transparent 100%);
+  mask-image: radial-gradient(closest-side, #000 40%, transparent 100%);
 }
 .glass-spin .glass-light::before {
-  /* Mint into teal, rising from the bottom left. */
-  width: 115%;
-  aspect-ratio: 1;
-  left: -62%;
-  top: 50%;
-  background: radial-gradient(circle at 70% 30%, #35ffbb 0%, #22c7c4 35%, #1a7fb8 70%, #1b3f9e 100%);
-  animation: glass-shape-a 7s cubic-bezier(0.45, 0, 0.55, 1) infinite alternate;
+  left: -15%;
+  top: -15%;
+  width: 65%;
+  height: 120%;
+  animation: glass-blob-a 6.4s cubic-bezier(0.45, 0, 0.55, 1) infinite;
 }
 .glass-spin .glass-light::after {
-  /* Blue into a pale cyan light, sweeping in from the top right. */
-  width: 115%;
-  aspect-ratio: 1;
-  left: 42%;
-  top: -140%;
-  background: radial-gradient(circle at 25% 75%, #bff3ff 0%, #2bb6ff 22%, #2040ff 55%, #13207a 100%);
-  animation: glass-shape-b 9s cubic-bezier(0.45, 0, 0.55, 1) infinite alternate;
+  left: 35%;
+  top: -5%;
+  width: 45%;
+  height: 100%;
+  animation: glass-blob-b 8.2s cubic-bezier(0.45, 0, 0.55, 1) infinite;
 }
-@keyframes glass-shape-a {
-  from { translate: 0 0; scale: 1; }
-  to { translate: 14% -10%; scale: 1.06; }
+/* A third, white, smaller and quicker (5.2s), a sheen drifting through the
+   colour (Mario, 8 Oct 2026: a little white). */
+.glass-spin .glass-light-white {
+  position: absolute;
+  left: 20%;
+  top: 0;
+  width: 60%;
+  height: 90%;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, rgba(255, 255, 255, 1), rgba(255, 255, 255, 0.45) 55%, rgba(255, 255, 255, 0));
+  filter: blur(14px);
+  z-index: 1;
+  animation: glass-blob-w 5.2s cubic-bezier(0.45, 0, 0.55, 1) infinite;
 }
-@keyframes glass-shape-b {
-  from { translate: 0 0; scale: 1; }
-  to { translate: -14% 9%; scale: 0.96; }
-}
-/* The front card in the loader: the fan's glass, nearly clear, frosting
-   what is behind it and bending it at the rim; a fine grain on top. */
-.glass-fan.glass-spin .glass-card-3 {
-  overflow: hidden;
-  background:
-    linear-gradient(135deg, rgba(255, 255, 255, 0.2) 0%, rgba(255, 255, 255, 0.04) 38%, rgba(255, 255, 255, 0) 55%, rgba(255, 255, 255, 0.08) 100%),
-    rgba(255, 255, 255, 0.03);
-  -webkit-backdrop-filter: blur(5px) saturate(1.3);
-  backdrop-filter: url(#glass-refract) blur(5px) saturate(1.3);
-}
+/* And a glow on the glass itself: a soft white bloom drifting over the
+   front card on the white sheen's loop, lightened in (screen), clipped to
+   the card (Mario, 8 Oct 2026: more white, like a glow). */
+.glass-fan.glass-spin .glass-card-3 { overflow: hidden; }
 .glass-fan.glass-spin .glass-card-3::after {
   content: "";
   position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.55 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-  opacity: 0.18;
-  mix-blend-mode: overlay;
+  left: 10%;
+  top: -10%;
+  width: 70%;
+  height: 110%;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, rgba(255, 255, 255, 0.75), rgba(255, 255, 255, 0.25) 55%, rgba(255, 255, 255, 0));
+  filter: blur(14px);
+  mix-blend-mode: screen;
+  opacity: 0;
   pointer-events: none;
+  animation:
+    glass-light-in 0.6s cubic-bezier(0.37, 0, 0.63, 1) 0.45s forwards,
+    glass-blob-w 5.2s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+}
+@keyframes glass-blob-w {
+  0%, 100% { translate: 0 0; scale: 1; }
+  33% { translate: 55% 30%; scale: 0.85; }
+  66% { translate: -45% 20%; scale: 1.1; }
+}
+@keyframes glass-blob-a {
+  0%, 100% { translate: 0 0; scale: 1; }
+  25% { translate: 45% 25%; scale: 1.15; }
+  50% { translate: 70% -15%; scale: 0.9; }
+  75% { translate: 20% 30%; scale: 1.05; }
+}
+@keyframes glass-blob-b {
+  0%, 100% { translate: 0 0; scale: 1; }
+  30% { translate: -50% 30%; scale: 0.9; }
+  60% { translate: -15% 45%; scale: 1.2; }
+  80% { translate: 20% 10%; scale: 1; }
+}
+/* One pane of glass is darker than the fan's three: the loader's card
+   lifts what is behind it more (brighter, more saturated) and carries a
+   faint white haze, so the colour reads as light, not shadow (Mario,
+   8 Oct 2026: too dark). */
+.glass-fan.glass-spin .glass-card-3 {
+  -webkit-backdrop-filter: blur(6px) saturate(1.9) brightness(1.45);
+  backdrop-filter: blur(6px) saturate(1.9) brightness(1.45);
+}
+.dark .glass-fan.glass-spin .glass-card-3 {
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.3) 0%, rgba(255, 255, 255, 0.1) 38%, rgba(255, 255, 255, 0.04) 55%, rgba(255, 255, 255, 0.12) 100%),
+    rgba(150, 175, 255, 0.16);
 }
 @keyframes glass-light-in {
   to { opacity: 1; }
@@ -1161,7 +1199,8 @@ body {
   .glass-fan.glass-spin .glass-card { animation: glass-close 0.01ms both; }
   .glass-fan.glass-spin .glass-card-0, .glass-fan.glass-spin .glass-card-1, .glass-fan.glass-spin .glass-card-2 { animation: glass-close 0.01ms both, glass-under 0.01ms forwards; }
   .glass-spin .glass-light { animation: none; opacity: 1; }
-  .glass-spin .glass-light::before, .glass-spin .glass-light::after { animation: none; }
+  .glass-spin .glass-light::before, .glass-spin .glass-light::after, .glass-spin .glass-light-white { animation: none; }
+  .glass-fan.glass-spin .glass-card-3::after { animation: none; opacity: 1; }
 }
 
 

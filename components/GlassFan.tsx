@@ -18,31 +18,13 @@ const CARDS = 4;
 export default function GlassFan({ spinning = false }: { spinning?: boolean }) {
   return (
     <div aria-hidden className={`glass-fan${spinning ? " glass-spin" : ""}`}>
-      {/* The loader's glass refraction (Chrome reads SVG filters in backdrop-filter):
-          a rim displacement map bends what is behind the card near its edges,
-          each colour channel by a slightly different amount (chromatic
-          aberration), and leaves the middle clear, as real glass does. The map
-          is public/empty/glass-refract-map.png, drawn for the card's shape. */}
-      {spinning && (
-        <svg width="0" height="0" className="absolute">
-          <filter id="glass-refract" x="0" y="0" width="100%" height="100%" colorInterpolationFilters="sRGB">
-            <feImage href="/empty/glass-refract-map.png" x="0" y="0" width="100%" height="100%" preserveAspectRatio="none" result="map" />
-            <feDisplacementMap in="SourceGraphic" in2="map" scale="16" xChannelSelector="R" yChannelSelector="G" result="dr" />
-            <feDisplacementMap in="SourceGraphic" in2="map" scale="19" xChannelSelector="R" yChannelSelector="G" result="dg" />
-            <feDisplacementMap in="SourceGraphic" in2="map" scale="22" xChannelSelector="R" yChannelSelector="G" result="db" />
-            <feColorMatrix in="dr" type="matrix" values="1 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 1 0" result="r" />
-            <feColorMatrix in="dg" type="matrix" values="0 0 0 0 0  0 1 0 0 0  0 0 0 0 0  0 0 0 1 0" result="g" />
-            <feColorMatrix in="db" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 1 0 0  0 0 0 1 0" result="b" />
-            <feBlend in="r" in2="g" mode="screen" result="rg" />
-            <feBlend in="rg" in2="b" mode="screen" />
-          </filter>
-        </svg>
-      )}
       {Array.from({ length: CARDS }, (_, k) => (
         <Fragment key={k}>
           {/* The loader's light, behind the front card only. */}
           {spinning && k === CARDS - 1 && (
-            <span className="glass-light" />
+            <span className="glass-light">
+              <span className="glass-light-white" />
+            </span>
           )}
           <span className={`glass-card glass-card-${k}`} />
         </Fragment>
