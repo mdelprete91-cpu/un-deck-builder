@@ -1086,10 +1086,10 @@ body {
    colour (Mario, 8 Oct 2026: a little white). */
 .glass-spin .glass-light-white {
   position: absolute;
-  left: 20%;
-  top: 0;
-  width: 60%;
-  height: 90%;
+  left: 10%;
+  top: -10%;
+  width: 80%;
+  height: 120%;
   border-radius: 50%;
   background: radial-gradient(closest-side, rgba(255, 255, 255, 1), rgba(255, 255, 255, 0.45) 55%, rgba(255, 255, 255, 0));
   filter: blur(14px);
@@ -1108,7 +1108,7 @@ body {
   width: 70%;
   height: 110%;
   border-radius: 50%;
-  background: radial-gradient(closest-side, rgba(255, 255, 255, 0.75), rgba(255, 255, 255, 0.25) 55%, rgba(255, 255, 255, 0));
+  background: radial-gradient(closest-side, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.4) 55%, rgba(255, 255, 255, 0));
   filter: blur(14px);
   mix-blend-mode: screen;
   opacity: 0;
