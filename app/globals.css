@@ -945,10 +945,10 @@ body {
    back when the pointer moves on: a gentle, slow ease both ways. `translate` sits on top of the breathing
    `transform`, so the two never fight. */
 .glass-fan:not(.glass-spin) .glass-card {
-  transition: translate 0.9s cubic-bezier(0.33, 1, 0.68, 1);
+  transition: translate 0.6s cubic-bezier(0.33, 1, 0.68, 1);
 }
 @media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
-  .glass-fan:not(.glass-spin) .glass-card:hover { translate: 0 -4px; }
+  .glass-fan:not(.glass-spin) .glass-card:hover { translate: 0 -10px; }
 }
 /* Glass at this size needs more than a tint (Mario, 8 Oct 2026: "the glass
    got lost"): frosting, a diagonal sheen like light across the surface, a
