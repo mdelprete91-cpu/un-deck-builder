@@ -639,8 +639,8 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
   /** The Generate press: first the questions still to ask, then the deck. */
   const onGenerate = () => {
     const brief = state.brief;
-    // Local only: "test" plays the spinner in a loop instead of generating,
-    // to look at the animation without spending credit (Mario, 8 Oct 2026).
+    // Local only: "test" plays a pretend generation in a loop (the loader over
+    // sample slides) to look at the animation without spending credit.
     if (process.env.NODE_ENV === "development" && brief.trim().toLowerCase() === "test") {
       setSpinnerDemo(true);
       return;
@@ -1765,7 +1765,7 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
    * stage's centre, so it glides from there.
    */
   const [spinner, setSpinner] = useState<{ dx: number; dy: number; leaving: boolean; from?: string[] } | null>(null);
-  /** Local "test" prompt: the spinner's entrance, turn and exit, over and over, with no generation. */
+  /** Local "test" prompt: a pretend generation in a loop, sample slides landing under the loader, no model call. */
   const [spinnerDemo, setSpinnerDemo] = useState(false);
   const emptyFanRef = useRef<HTMLDivElement>(null);
   const stageAreaRef = useRef<HTMLDivElement>(null);
@@ -1781,17 +1781,31 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
       return { dx: fan.left + fan.width / 2 - (area.left + area.width / 2), dy: fan.top + fan.height / 2 - (area.top + area.height / 2), leaving: false, from };
     });
   };
-  // The "test" loop: in, turn for 5s, out, 1.6s of empty stage, again. Esc
-  // or a change to the prompt ends it.
+  // The "test" loop (Mario, 8 Oct 2026): a pretend generation, no model call.
+  // The loader comes in, eight sample slides land under it one by one as a
+  // real deck streams in, it leaves, the deck stays a moment, and it starts
+  // over. Esc or a change to the prompt ends it.
   useEffect(() => {
     if (!spinnerDemo) return;
     let timers: ReturnType<typeof setTimeout>[] = [];
+    const sample: LayoutId[] = ["cover", "icon-cards", "example-image-left", "chart-columns-grouped", "section-image-deep", "progress", "quote", "thank-you"];
     const cycle = () => {
+      dispatch({ type: "GENERATION_START", replace: true });
       startSpinner();
-      timers = [
-        setTimeout(() => setSpinner((cur) => (cur ? { ...cur, leaving: true } : cur)), 5000),
-        setTimeout(cycle, 5000 + 520 + 1600),
-      ];
+      timers = sample.map((id, i) =>
+        setTimeout(() => {
+          const content = normalizeSlide(defaultContent(id), { brandId: state.brandId });
+          if (content) dispatch({ type: "APPEND_SLIDE", content });
+        }, 1400 + i * 700),
+      );
+      const done = 1400 + sample.length * 700 + 400;
+      timers.push(
+        setTimeout(() => {
+          dispatch({ type: "GENERATION_DONE" });
+          setSpinner((cur) => (cur ? { ...cur, leaving: true } : cur));
+        }, done),
+        setTimeout(cycle, done + 520 + 2500),
+      );
     };
     cycle();
     const stop = (e: KeyboardEvent) => e.key === "Escape" && setSpinnerDemo(false);
