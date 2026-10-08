@@ -971,7 +971,7 @@ body {
    got lost"): frosting, a diagonal sheen like light across the surface, a
    bright top-left edge and a darker lower one, so each card reads as a
    pane with thickness over the gradient behind it. */
-.glass-card-1, .glass-card-2, .glass-card-3, .glass-card-x {
+.glass-card-1, .glass-card-2, .glass-card-3, .glass-card-x, .glass-spin .glass-card-0 {
   background:
     linear-gradient(135deg, rgba(255, 255, 255, 0.34) 0%, rgba(255, 255, 255, 0.08) 38%, rgba(255, 255, 255, 0) 55%, rgba(255, 255, 255, 0.1) 100%),
     rgba(103, 133, 255, 0.18);
@@ -983,7 +983,7 @@ body {
     inset 0 0 0 1px rgba(255, 255, 255, 0.18),
     0 8px 20px -10px rgba(20, 40, 160, 0.45);
 }
-.dark .glass-card-1, .dark .glass-card-2, .dark .glass-card-3, .dark .glass-card-x {
+.dark .glass-card-1, .dark .glass-card-2, .dark .glass-card-3, .dark .glass-card-x, .dark .glass-spin .glass-card-0 {
   background:
     linear-gradient(135deg, rgba(255, 255, 255, 0.28) 0%, rgba(255, 255, 255, 0.06) 38%, rgba(255, 255, 255, 0) 55%, rgba(255, 255, 255, 0.08) 100%),
     rgba(103, 133, 255, 0.22);
@@ -1041,15 +1041,15 @@ body {
    gradient card is painted first and the glass ones over it refract its
    colour, as in the fan. --o is each card's opacity. */
 .glass-spin .glass-card { --t: 40deg; }
-.glass-spin .glass-card-0 { --a: 0deg; --o: 1; --d: 0s; }
-.glass-spin .glass-card-1 { --a: 60deg; --o: 1; --d: 0.04s; }
-.glass-spin .glass-card-2 { --a: 180deg; --o: 1; --d: 0.08s; }
-.glass-spin .glass-card-3 { --a: 240deg; --o: 1; --d: 0.12s; }
+.glass-spin .glass-card-0 { --a: 0deg; --o: 1; --d: 0s; --p: 0; }
+.glass-spin .glass-card-1 { --a: 60deg; --o: 1; --d: 0.04s; --p: 1; }
+.glass-spin .glass-card-2 { --a: 180deg; --o: 1; --d: 0.08s; --p: 3; }
+.glass-spin .glass-card-3 { --a: 240deg; --o: 1; --d: 0.12s; --p: 4; }
 /* The two new cards start hidden under the slot before theirs and slide
    out to 120deg and 300deg on the same curve and time as the gather, so
    they seem to fan out of their neighbours rather than appear. */
-.glass-spin .glass-card-4 { --a: 120deg; --from: 60deg; --o: 1; }
-.glass-spin .glass-card-5 { --a: 300deg; --from: 240deg; --o: 1; }
+.glass-spin .glass-card-4 { --a: 120deg; --from: 60deg; --o: 1; --p: 2; }
+.glass-spin .glass-card-5 { --a: 300deg; --from: 240deg; --o: 1; --p: 5; }
 @keyframes glass-split {
   0% {
     opacity: 0;
@@ -1073,39 +1073,62 @@ body {
    of the fan's glass break into jagged, dashed edges (Mario, 8 Oct 2026).
    In the wheel the glass keeps its tint and sheen but drops the backdrop
    blur, and its edge is drawn thick enough to land on a whole pixel. */
-.glass-spin .glass-card-1, .glass-spin .glass-card-2, .glass-spin .glass-card-3, .glass-spin .glass-card-x {
+.glass-spin .glass-card-0, .glass-spin .glass-card-1, .glass-spin .glass-card-2, .glass-spin .glass-card-3, .glass-spin .glass-card-x {
   --edge: rgba(255, 255, 255, 0.22);
   -webkit-backdrop-filter: none;
   backdrop-filter: none;
   box-shadow: inset 0 0 0 6px var(--edge);
   backface-visibility: hidden;
 }
-.dark .glass-spin .glass-card-1, .dark .glass-spin .glass-card-2, .dark .glass-spin .glass-card-3, .dark .glass-spin .glass-card-x {
+.dark .glass-spin .glass-card-0, .dark .glass-spin .glass-card-1, .dark .glass-spin .glass-card-2, .dark .glass-spin .glass-card-3, .dark .glass-spin .glass-card-x {
   --edge: rgba(255, 255, 255, 0.16);
 }
 /* The edge grows as the card shrinks, so it stays a hairline on screen
    through the whole move from the fan (a 6px edge at full size is a thick
    white frame). Same time and curve as the gather. */
-.glass-spin .glass-card-1, .glass-spin .glass-card-2, .glass-spin .glass-card-3 {
+.glass-spin .glass-card-0, .glass-spin .glass-card-1, .glass-spin .glass-card-2, .glass-spin .glass-card-3 {
   animation:
     glass-gather 0.6s cubic-bezier(0.22, 1, 0.36, 1) var(--d, 0s) forwards,
     glass-edge 0.6s cubic-bezier(0.22, 1, 0.36, 1) var(--d, 0s) both,
-    glass-breathe 4.4s cubic-bezier(0.37, 0, 0.63, 1) 0.75s infinite;
+    glass-breathe 4.4s cubic-bezier(0.37, 0, 0.63, 1) 0.75s infinite,
+    glass-trail 1.8s linear calc(0.6s + var(--p) * 0.3s) infinite;
 }
 .glass-spin .glass-card-x {
   animation:
     glass-split 0.6s cubic-bezier(0.22, 1, 0.36, 1) 0.05s both,
     glass-edge 0.6s cubic-bezier(0.22, 1, 0.36, 1) 0.05s both,
-    glass-breathe 4.4s cubic-bezier(0.37, 0, 0.63, 1) 0.75s infinite;
+    glass-breathe 4.4s cubic-bezier(0.37, 0, 0.63, 1) 0.75s infinite,
+    glass-trail 1.8s linear calc(0.6s + var(--p) * 0.3s) infinite;
 }
 @keyframes glass-edge {
   from { box-shadow: inset 0 0 0 1px var(--edge); }
   to { box-shadow: inset 0 0 0 6px var(--edge); }
 }
-.glass-spin .glass-card-0 { backface-visibility: hidden; }
-/* The wheel keeps the fan's own cards (Mario, 8 Oct 2026): the gradient
-   card stays where it is and the rest are the fan's glass. No light moves
-   from card to card. */
+/* An activity indicator (Mario, 8 Oct 2026): the head moves round the
+   wheel, clockwise, a card every 0.3s. The head card lights up in the
+   fan's gradient, turns back to clear glass, and then, as the head moves
+   on, fades out to nothing; the next time round it lights up again. Each
+   card starts its first round when the head first reaches it, so the trail
+   builds up behind the head from the gathered wheel with no jump. */
+.glass-spin .glass-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(0deg, #2040ff, #35ffbb);
+  opacity: 0;
+  pointer-events: none;
+  animation: glass-head 1.8s cubic-bezier(0.37, 0, 0.63, 1) calc(0.6s + var(--p) * 0.3s) infinite;
+}
+.glass-spin .glass-card-0::before { opacity: 1; }
+@keyframes glass-head {
+  0%, 14% { opacity: 1; }
+  42%, 100% { opacity: 0; }
+}
+@keyframes glass-trail {
+  0% { opacity: 1; }
+  100% { opacity: 0; }
+}
 
 /* The generation stage (Mario, 8 Oct 2026, from a reference): the fan
    shrinks into a small wheel of six cards, centred on a blank
@@ -1196,6 +1219,7 @@ body {
   .glass-spin .glass-card, .glass-spin .glass-card-1, .glass-spin .glass-card-2, .glass-spin .glass-card-3 { animation: glass-gather 0.01ms forwards; }
   .glass-spin .glass-card-x { animation: glass-split 0.01ms both; }
   .glass-spin { animation: none; }
+  .glass-spin .glass-card::before { animation: none; }
   .gen-skeleton { animation: none; }
   .gen-skeleton::after { animation: none; display: none; }
 }
