@@ -639,6 +639,12 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
   /** The Generate press: first the questions still to ask, then the deck. */
   const onGenerate = () => {
     const brief = state.brief;
+    // Local only: "test" plays the spinner in a loop instead of generating,
+    // to look at the animation without spending credit (Mario, 8 Oct 2026).
+    if (process.env.NODE_ENV === "development" && brief.trim().toLowerCase() === "test") {
+      setSpinnerDemo(true);
+      return;
+    }
     // An attached deck is asked what to do with it on every press until the
     // choice is made (Mario, 28 Sep 2026: a file whose questions were already
     // answered went straight to the deck and the choice never showed).
@@ -1759,6 +1765,8 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
    * stage's centre, so it glides from there.
    */
   const [spinner, setSpinner] = useState<{ dx: number; dy: number; leaving: boolean } | null>(null);
+  /** Local "test" prompt: the spinner's entrance, turn and exit, over and over, with no generation. */
+  const [spinnerDemo, setSpinnerDemo] = useState(false);
   const emptyFanRef = useRef<HTMLDivElement>(null);
   const stageAreaRef = useRef<HTMLDivElement>(null);
   const startSpinner = () => {
@@ -1770,13 +1778,39 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
       return { dx: fan.left + fan.width / 2 - (area.left + area.width / 2), dy: fan.top + fan.height / 2 - (area.top + area.height / 2), leaving: false };
     });
   };
+  // The "test" loop: in, turn for 5s, out, 1.6s of empty stage, again. Esc
+  // or a change to the prompt ends it.
+  useEffect(() => {
+    if (!spinnerDemo) return;
+    let timers: ReturnType<typeof setTimeout>[] = [];
+    const cycle = () => {
+      startSpinner();
+      timers = [
+        setTimeout(() => setSpinner((cur) => (cur ? { ...cur, leaving: true } : cur)), 5000),
+        setTimeout(cycle, 5000 + 520 + 1600),
+      ];
+    };
+    cycle();
+    const stop = (e: KeyboardEvent) => e.key === "Escape" && setSpinnerDemo(false);
+    window.addEventListener("keydown", stop);
+    return () => {
+      timers.forEach(clearTimeout);
+      window.removeEventListener("keydown", stop);
+      setSpinner((cur) => (cur ? { ...cur, leaving: true } : cur));
+    };
+  }, [spinnerDemo]);
+  const [demoBrief, setDemoBrief] = useState(state.brief);
+  if (demoBrief !== state.brief) {
+    setDemoBrief(state.brief);
+    if (spinnerDemo) setSpinnerDemo(false);
+  }
   // Off once the generation and its fitting are over: a short wait so the
   // gap between two passes of a replica does not flicker, then it leaves.
   useEffect(() => {
-    if (!spinner || spinner.leaving || state.status === "generating" || fitting) return;
+    if (spinnerDemo || !spinner || spinner.leaving || state.status === "generating" || fitting) return;
     const t = setTimeout(() => setSpinner((cur) => (cur ? { ...cur, leaving: true } : cur)), 450);
     return () => clearTimeout(t);
-  }, [spinner, state.status, fitting]);
+  }, [spinner, state.status, fitting, spinnerDemo]);
   useEffect(() => {
     if (!spinner?.leaving) return;
     const t = setTimeout(() => setSpinner(null), 520);
