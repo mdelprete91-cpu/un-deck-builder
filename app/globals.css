@@ -1070,17 +1070,17 @@ body {
   mask-image: radial-gradient(closest-side, #000 40%, transparent 100%);
 }
 .glass-spin .glass-light::before {
-  left: -15%;
-  top: -15%;
-  width: 65%;
-  height: 120%;
+  left: -18%;
+  top: -22%;
+  width: 85%;
+  height: 140%;
   animation: glass-blob-a 13s cubic-bezier(0.45, 0, 0.55, 1) infinite;
 }
 .glass-spin .glass-light::after {
-  left: 35%;
-  top: -5%;
-  width: 45%;
-  height: 100%;
+  left: 32%;
+  top: -12%;
+  width: 66%;
+  height: 125%;
   animation: glass-blob-b 16s cubic-bezier(0.45, 0, 0.55, 1) infinite;
 }
 /* A third, white, smaller and quicker (5.2s), a sheen drifting through the
@@ -1092,7 +1092,7 @@ body {
   width: 60%;
   height: 90%;
   border-radius: 50%;
-  background: radial-gradient(closest-side, rgba(255, 255, 255, 1), rgba(255, 255, 255, 0.45) 55%, rgba(255, 255, 255, 0));
+  background: radial-gradient(closest-side, rgba(255, 255, 255, 0.7), rgba(255, 255, 255, 0.25) 55%, rgba(255, 255, 255, 0));
   filter: blur(14px);
   z-index: 1;
   animation: glass-blob-w 11s cubic-bezier(0.45, 0, 0.55, 1) infinite;
@@ -1109,7 +1109,7 @@ body {
   width: 70%;
   height: 110%;
   border-radius: 50%;
-  background: radial-gradient(closest-side, rgba(255, 255, 255, 0.75), rgba(255, 255, 255, 0.25) 55%, rgba(255, 255, 255, 0));
+  background: radial-gradient(closest-side, rgba(255, 255, 255, 0.45), rgba(255, 255, 255, 0.15) 55%, rgba(255, 255, 255, 0));
   filter: blur(14px);
   mix-blend-mode: screen;
   opacity: 0;
@@ -1140,8 +1140,8 @@ body {
    faint white haze, so the colour reads as light, not shadow (Mario,
    8 Oct 2026: too dark). */
 .glass-fan.glass-spin .glass-card-3 {
-  -webkit-backdrop-filter: blur(6px) saturate(1.9) brightness(1.45);
-  backdrop-filter: blur(6px) saturate(1.9) brightness(1.45);
+  -webkit-backdrop-filter: blur(6px) saturate(1.5) brightness(1.2);
+  backdrop-filter: blur(6px) saturate(1.5) brightness(1.2);
 }
 .dark .glass-fan.glass-spin .glass-card-3 {
   background:
