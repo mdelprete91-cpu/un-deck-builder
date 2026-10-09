@@ -20,6 +20,7 @@ import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { countFromBrief, seriesFromBrief, uniformFromBrief, MIN_SLIDES_WITH_CHAPTERS, TIERS_REQUEST } from "../lib/slides/brief";
 import { normalizeSlide, overLimits, type LayoutId, type SlideContent } from "../lib/slides/schema";
+import { tidyModelSlide } from "../lib/slides/tidy";
 import { closingFor, finishDeck, makeRhythm, mergeContinuations, stripInventedYear, unifyLayouts } from "../lib/slides/rhythm";
 import { PARTNER_NAMES } from "../lib/slides/partners";
 import { extractDocx, extractPptx, extractXlsx, type Attachment } from "../lib/slides/attachments";
@@ -32,6 +33,19 @@ import { fillPhotos } from "../lib/slides/library";
 import { applyChapterPlan, chapterCandidates, ensureAgenda, needsChapterPlan, type ChapterPlan } from "../lib/slides/chapters";
 
 const URL = process.env.QA_URL ?? "http://localhost:3777";
+/**
+ * The site's password gate: with SITE_PASSWORD in the environment (read from
+ * .env.local by the caller, never written here) the suite signs in once and
+ * sends the session cookie with every call.
+ */
+let cookie = "";
+async function signIn() {
+  const password = process.env.SITE_PASSWORD;
+  if (!password) return;
+  const res = await fetch(`${URL}/api/login`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ password }) });
+  cookie = (res.headers.get("set-cookie") ?? "").split(";")[0];
+  if (!res.ok || !cookie) throw new Error(`sign in failed: HTTP ${res.status}`);
+}
 const BRAND_ID = "did";
 const BRAND_LABEL = "Digital Impact Division";
 const CHAPTER_LAYOUTS = new Set(["agenda", "section-divider"]);
@@ -146,6 +160,36 @@ function overflows(s: SlideContent, index: number): string[] {
   return out;
 }
 
+/** Layouts that print each item's number themselves (cards.ts steps and threeColumns, stats.ts timelinePhases). */
+const SELF_NUMBERED = new Set(["steps", "three-columns", "timeline-phases"]);
+/** A label that is only a number or a numbered step word: "1", "01.", "Step 2", "Fase 3", "Phase IV". */
+const NUMBER_ONLY = /^\s*(?:(?:step|phase|stage|fase|passo|paso|etapa|étape)\s*)?(?:\d{1,2}|[ivx]{1,4})[.):]?\s*$/i;
+const PLACEHOLDER = /lorem ipsum|\btbd\b|\[[^\]]{0,40}\]|one sentence describing|presentation title|section title|subtitle goes here|name surname/i;
+const norm = (t?: string) => (t ?? "").toLowerCase().replace(/\s+/g, " ").trim();
+
+/** What looks wrong to a reader even when every limit holds. */
+function oddities(slides: SlideContent[]): string[] {
+  const out: string[] = [];
+  slides.forEach((s, i) => {
+    const n = i + 1;
+    const blocks = s.blocks ?? [];
+    if (SELF_NUMBERED.has(s.layoutId)) blocks.forEach((b, j) => NUMBER_ONLY.test(b.label ?? "") && out.push(`${n} · ${s.layoutId}: label ${j + 1} is a number again ("${b.label}")`));
+    blocks.forEach((b, j) => {
+      if (b.label && b.body && norm(b.label) === norm(b.body)) out.push(`${n} · ${s.layoutId}: block ${j + 1} label repeats its body`);
+      if (b.label && s.title && norm(b.label) === norm(s.title)) out.push(`${n} · ${s.layoutId}: block ${j + 1} label repeats the title`);
+    });
+    const texts = blocks.flatMap((b) => [b.label, b.body]).filter((t): t is string => !!t && t.trim().length > 3).map(norm);
+    const dup = texts.find((t, k) => texts.indexOf(t) !== k);
+    if (dup) out.push(`${n} · ${s.layoutId}: "${dup.slice(0, 40)}" twice`);
+    const prose = proseOf(s);
+    if (/[—–]/.test(prose)) out.push(`${n} · ${s.layoutId}: em or en dash`);
+    const ph = prose.match(PLACEHOLDER);
+    if (ph) out.push(`${n} · ${s.layoutId}: placeholder text "${ph[0]}"`);
+    if (i > 0 && s.title && norm(s.title) === norm(slides[i - 1].title)) out.push(`${n} · ${s.layoutId}: same title as slide ${i}`);
+  });
+  return out;
+}
+
 const STOP: Record<string, RegExp> = {
   en: /\b(the|and|of|for|with|to)\b/gi,
   // "per" is English too ("cost per school"), so it is not an Italian tell.
@@ -162,7 +206,7 @@ const compact = (n: string) => {
 };
 
 async function generate(body: Record<string, unknown>): Promise<{ slides: unknown[]; meta?: { insertAfter?: number }; truncated: boolean; usage?: { inputTokens: number; outputTokens: number }; error?: string }> {
-  const res = await fetch(`${URL}/api/generate`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
+  const res = await fetch(`${URL}/api/generate`, { method: "POST", headers: { "content-type": "application/json", cookie }, body: JSON.stringify(body) });
   if (!res.ok || !res.body) return { slides: [], truncated: false, error: `HTTP ${res.status} ${(await res.text()).slice(0, 200)}` };
   const reader = res.body.getReader();
   const decoder = new TextDecoder();
@@ -260,7 +304,8 @@ async function replicatePrompt(p: Prompt, brief: string, path: string, t0: numbe
     return out.slides[0] ?? null;
   };
   const accept = (kind: "cover" | "content", title: string, raw: unknown): SlideContent | null => {
-    const c = raw ? normalizeSlide(denseBeforeNormalize(raw), { brandId: BRAND_ID }) : null;
+    const n = raw ? normalizeSlide(denseBeforeNormalize(raw), { brandId: BRAND_ID }) : null;
+    const c = n && tidyModelSlide(n);
     if (c && kind === "cover") return { layoutId: "cover", title: c.title || title, subtitle: c.subtitle ?? "" };
     if (c && !STRUCTURAL.has(c.layoutId)) return withContentDensity(c);
     return null;
@@ -369,7 +414,8 @@ async function runPrompt(p: Prompt): Promise<Result> {
     const c = normalizeSlide(raw, { brandId: BRAND_ID });
     if (!c) return null;
     if (!chapters && CHAPTER_LAYOUTS.has(c.layoutId)) return null;
-    return rhythm(stripInventedYear(c, brief));
+    const r = rhythm(stripInventedYear(c, brief));
+    return r && tidyModelSlide(r);
   };
   if (p.use === "replicate") return replicatePrompt(p, brief, paths[0], t0);
   const first = await generate({ mode: "generate", brief, attachments, brandLabel: BRAND_LABEL, chapters, format: "slides", count, perItem });
@@ -432,7 +478,7 @@ async function runPrompt(p: Prompt): Promise<Result> {
     const make = (c: SlideContent) => normalizeSlide(c, { brandId: BRAND_ID });
     const hadAgenda = slides.some((s) => s.layoutId === "agenda");
     if (needsChapterPlan(slides)) {
-      const res = await fetch(`${URL}/api/chapters`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ titles: chapterCandidates(slides), brief }) });
+      const res = await fetch(`${URL}/api/chapters`, { method: "POST", headers: { "Content-Type": "application/json", cookie }, body: JSON.stringify({ titles: chapterCandidates(slides), brief }) });
       const plan = res.ok ? ((await res.json()) as { chapters?: ChapterPlan }).chapters ?? [] : [];
       const before = slides.length;
       slides = applyChapterPlan(slides, plan, make);
@@ -535,6 +581,9 @@ async function runPrompt(p: Prompt): Promise<Result> {
     if (new Set(set).size !== set.length) findings.push(`${i + 1} · icon-cards: repeated icon`);
     if (set.length) warnings.push(`icons: ${(s.blocks ?? []).map((b, j) => `${b.label}=${icons[j] || "-"}`).join(", ")}`);
   }
+  // Oddities a reader notices at once (Mario, 9 Oct 2026: a numbered card
+  // whose label was its own number again).
+  findings.push(...oddities(slides));
   // Drift, invention, voice
   const briefMentions = /\b(giga|unicef)\b/i.test(brief);
   if (!briefMentions && !e.allowGiga) {
@@ -575,6 +624,7 @@ async function runPrompt(p: Prompt): Promise<Result> {
 }
 
 async function main() {
+  await signIn();
   const only = process.argv.slice(2);
   // QA_FILE points at another prompt file (a set of use cases outside the regression suite).
   const prompts = (JSON.parse(readFileSync(process.env.QA_FILE ?? "tools/qa-prompts.json", "utf8")) as Prompt[]).filter((p) => !only.length || only.includes(p.id));

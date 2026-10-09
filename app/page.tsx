@@ -24,6 +24,7 @@ import { defaultContent, denseContent } from "@/lib/slides/defaults";
 import { familyOf } from "@/lib/slides/families";
 import { countFromBrief, languageOf, seriesFromBrief, uniformFromBrief, MIN_SLIDES_WITH_CHAPTERS, TIERS_REQUEST } from "@/lib/slides/brief";
 import { makeRhythm, stripInventedYear } from "@/lib/slides/rhythm";
+import { tidyModelSlide } from "@/lib/slides/tidy";
 import { BLOCK_LABELS, presetStack } from "@/lib/slides/pages/presets";
 import { clearSaved, openSession, saveDeck } from "@/lib/slides/storage";
 import { buildHtmlDeck, exportHtmlDeck } from "@/lib/slides/export-html";
@@ -337,6 +338,7 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
             if (opts.dropChapters && CHAPTER_LAYOUTS.has(content.layoutId)) continue;
             if (rhythm) content = rhythm(stripInventedYear(content, String(body.brief ?? "")));
             if (!content) continue;
+            content = tidyModelSlide(content);
             if (opts.collectInsert) {
               collected.push(content);
               const after = (event.slide as { after?: unknown }).after;
@@ -1236,8 +1238,9 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
     };
     /** The model's slide as this step takes it, or null. A chart's explanation is made dense before normalizeSlide could drop it. */
     const accept = (st: Exclude<ReplicateStep, { kind: "fixed" }>, raw: unknown): SlideContent | null => {
-      const slide = normalizeSlide(denseBeforeNormalize(raw), { brandId: state.brandId });
-      if (!slide) return null;
+      const normalized = normalizeSlide(denseBeforeNormalize(raw), { brandId: state.brandId });
+      if (!normalized) return null;
+      const slide = tidyModelSlide(normalized);
       if (st.kind === "cover") return { layoutId: "cover", title: slide.title || st.source.title, subtitle: slide.subtitle ?? "" };
       if (CHAPTER_LAYOUTS.has(slide.layoutId) || slide.layoutId === "thank-you" || slide.layoutId === "cover") return null;
       return withContentDensity(slide);

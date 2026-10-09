@@ -1,7 +1,7 @@
 import { z } from "zod";
 import type { ImagePos } from "../schema";
 import { isCountryMap } from "../country-maps";
-import { libraryPhoto } from "../library";
+import { libraryPhoto, photoFits, slideWords } from "../library";
 
 /**
  * Two-pager pages: the block vocabulary (rebuilt 6 Oct 2026).
@@ -338,9 +338,13 @@ export function normalizePage(stack: unknown): PageBlock[] | null {
     }
     // The model names library photos by id ("photo"); the page stores the path.
     const r = raw as { photo?: unknown; items?: { photo?: unknown }[] };
-    block.image ??= libraryPhoto(r.photo);
+    // A picture of another country than the one the card names goes
+    // (Kenya over the Central Asian steppe, 9 Oct 2026); fillPagePhotos
+    // then gives the slot a photo that fits.
+    const fit = (src: string | undefined, text: object) => (src && photoFits(src, slideWords(text)) ? src : undefined);
+    block.image ??= fit(libraryPhoto(r.photo), { ...block, items: undefined });
     block.items?.forEach((it, i) => {
-      it.image ??= libraryPhoto(r.items?.[i]?.photo);
+      it.image ??= fit(libraryPhoto(r.items?.[i]?.photo), it);
       if (!it.image) delete it.image;
     });
     if (!block.image) delete block.image;
@@ -391,6 +395,10 @@ export function normalizePage(stack: unknown): PageBlock[] | null {
       const labels = (block.items ?? []).map((i) => i.label.trim());
       const counting = labels.every((l, i) => l === String(i + 1) || l === String(i + 1).padStart(2, "0"));
       if (counting || !labels.some((l) => /\d/.test(l))) continue;
+      // A word among the figures ("Monthly", 9 Oct 2026) is not a stat: the
+      // card goes when the row still holds two.
+      const figures = (block.items ?? []).filter((i) => /\d/.test(i.label));
+      if (figures.length >= 2) block.items = figures;
     }
     undashBlock(block);
     for (const k of ["rail", "heading", "sub", "lead"] as const) if (block[k]) block[k] = sentenceCase(block[k]!);

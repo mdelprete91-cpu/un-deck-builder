@@ -1,3 +1,5 @@
+import { COUNTRY_MAPS } from "./country-maps";
+
 /**
  * The photo library: Giga's own pictures, served from `public/library` at
  * 1920px (JPEG, 82) with 480px thumbnails for the picker grid. A slide
@@ -15,6 +17,12 @@ export interface LibraryImage {
   description: string;
   /** The slides it suits, for the model. */
   useFor: string;
+  /**
+   * The countries the picture shows, when it shows a recognisable place:
+   * a slide or card that names another country does not get it (Kenya over
+   * the Central Asian steppe, 9 Oct 2026). No places: fits anywhere.
+   */
+  places?: string[];
 }
 
 // Descriptions written from the pictures themselves (27 Sep 2026). The two
@@ -44,24 +52,28 @@ export const LIBRARY: LibraryImage[] = [
     label: "Two children walking to school under the mountains",
     description: "Two small boys in jackets and hats walk across a dry steppe towards the camera, a village and snow-capped mountains behind them; Central Asia.",
     useFor: "rural and remote schools, the last mile, why connectivity is hard to reach, Central Asia or Kazakhstan, equity",
+    places: ["Kazakhstan", "Kyrgyzstan", "Tajikistan", "Uzbekistan", "Turkmenistan"],
   },
   {
     id: "health-centre",
     label: "A mother and child at a health centre",
     description: "A mother holds her smiling toddler at a rural health centre; two nurses in white work at a desk with a laptop behind them; Southeast Asia.",
     useFor: "health facilities, connecting clinics, health workers, mothers and children, the health-facility mapping work",
+    places: ["Cambodia", "Lao PDR", "Laos", "Viet Nam", "Vietnam", "Thailand", "Philippines", "Indonesia", "Myanmar", "Timor-Leste", "Malaysia"],
   },
   {
     id: "kazakhstan-forum",
     label: "Giga Maps on stage, Kazakhstan",
     description: "A speaker on stage in front of a large screen showing the Giga Maps connectivity map of Kazakhstan, audience in the foreground.",
     useFor: "Giga Maps, the connectivity map, data and mapping, Kazakhstan, presenting results to governments",
+    places: ["Kazakhstan"],
   },
   {
     id: "connectivity-forum",
     label: "Giga Connectivity Forum, ITU",
     description: "Nine speakers on stage at the Giga Connectivity Forum 2024 at ITU hold coloured signs: Connect every school, Destination 2030, Opportunity for every child, I love Giga.",
     useFor: "partnerships and coalitions, events and convening, the 2030 goal, global commitment, a closing or rallying slide",
+    places: ["Switzerland"],
   },
   {
     id: "panel-talk",
@@ -74,12 +86,14 @@ export const LIBRARY: LibraryImage[] = [
     label: "A roundtable at ITU",
     description: "People around a meeting table at ITU with laptops, an 'Understand infrastructure' banner behind; formal working session.",
     useFor: "governance, steering committees, government and partner meetings, infrastructure planning, decisions",
+    places: ["Switzerland"],
   },
   {
     id: "sri-lanka-workshop",
     label: "A workshop over the Sri Lanka maps",
     description: "A team in a workshop room looks at connectivity maps of Sri Lanka on a screen, a blackboard of notes behind them.",
     useFor: "workshops, capacity building, working with ministries on data, Sri Lanka, collaborative mapping",
+    places: ["Sri Lanka"],
   },
   {
     id: "learning-hub",
@@ -92,12 +106,14 @@ export const LIBRARY: LibraryImage[] = [
     label: "Giga Technology Center, Barcelona",
     description: "Ca l'Alier, a restored red-brick industrial building with green walls of plants and a courtyard: the Giga Technology Center in Barcelona.",
     useFor: "only when the slide is about the Giga Technology Center in Barcelona, the Barcelona team or office",
+    places: ["Spain"],
   },
   {
     id: "campus-biotech",
     label: "Giga Technology Center, Geneva",
     description: "Campus Biotech, a large glass building in Geneva under a blue sky: the Giga Technology Center in Geneva.",
     useFor: "only when the slide is about the Giga Technology Center in Geneva, the Geneva team or office",
+    places: ["Switzerland"],
   },
 ];
 
@@ -118,15 +134,15 @@ export const DEFAULT_PHOTO = "/library/students-tablet.jpg";
  */
 export function fillPhotos<T extends { layoutId: string; image?: string; map?: string }>(slides: T[]): T[] {
   const used = new Set(slides.map((s) => s.image).filter(Boolean));
-  const pool = CHILDREN_PHOTOS.map(librarySrc);
+  const all = CHILDREN_PHOTOS.map(librarySrc);
   let k = 0;
-  const next = () => {
-    const fresh = pool.find((p) => !used.has(p));
-    const pick = fresh ?? pool[k++ % pool.length];
+  const next = (text: string) => {
+    const pool = all.filter((p) => photoFits(p, text));
+    const pick = pool.find((p) => !used.has(p)) ?? pool[k++ % pool.length];
     used.add(pick);
     return pick;
   };
-  return slides.map((s) => (PHOTO_LAYOUTS.has(s.layoutId) && !s.image && !s.map ? { ...s, image: next() } : s));
+  return slides.map((s) => (PHOTO_LAYOUTS.has(s.layoutId) && !s.image && !s.map ? { ...s, image: next(slideWords(s)) } : s));
 }
 
 /**
@@ -141,9 +157,10 @@ export function fillPagePhotos<T extends { stack?: { type: string; image?: strin
       if (b.image) used.add(b.image);
       for (const it of b.items ?? []) if (it.image) used.add(it.image);
     }
-  const pool = CHILDREN_PHOTOS.map(librarySrc);
+  const all = CHILDREN_PHOTOS.map(librarySrc);
   let k = 0;
-  const next = () => {
+  const next = (text: string) => {
+    const pool = all.filter((p) => photoFits(p, text));
     const pick = pool.find((p) => !used.has(p)) ?? pool[k++ % pool.length];
     used.add(pick);
     return pick;
@@ -152,9 +169,9 @@ export function fillPagePhotos<T extends { stack?: { type: string; image?: strin
     ...p,
     stack: p.stack?.map((b) =>
       b.type === "photos"
-        ? { ...b, items: b.items?.map((it) => (it.image ? it : { ...it, image: next() })) }
+        ? { ...b, items: b.items?.map((it) => (it.image ? it : { ...it, image: next(slideWords(it)) })) }
         : b.type === "figure" && !b.image && !b.map
-          ? { ...b, image: next() }
+          ? { ...b, image: next(slideWords(b)) }
           : b,
     ),
   }));
@@ -171,8 +188,63 @@ export const PHOTO_LAYOUTS = new Set<string>([
 ]);
 
 /** A model's photo choice as a slide image path, or undefined for an unknown id. */
-export const libraryPhoto = (id: unknown): string | undefined =>
-  typeof id === "string" && LIBRARY.some((l) => l.id === id.trim()) ? librarySrc(id.trim()) : undefined;
+/**
+ * The library path for a photo id the model wrote, or undefined. Tolerant of
+ * the spellings it drifts into ("Kazakhstan_forum", "/library/x.jpg"): a
+ * missed id left the slot to the children fallback under a caption about
+ * another picture (9 Oct 2026).
+ */
+export const libraryPhoto = (id: unknown): string | undefined => {
+  if (typeof id !== "string") return undefined;
+  const key = id
+    .trim()
+    .toLowerCase()
+    .replace(/^.*\//, "")
+    .replace(/\.jpe?g$/, "")
+    .replace(/[\s_]+/g, "-");
+  return LIBRARY.some((l) => l.id === key) ? librarySrc(key) : undefined;
+};
+
+/** Countries a brief often names that have no Giga map export, so photoFits sees them too. */
+const MORE_COUNTRIES = [
+  "Nigeria", "Uganda", "Burundi", "Cameroon", "Chad", "Mali", "Burkina Faso", "Côte d'Ivoire", "Ivory Coast", "Togo",
+  "Somalia", "Sudan", "South Sudan", "Egypt", "Morocco", "Tunisia", "Algeria", "Madagascar", "Angola", "Congo",
+  "DRC", "Afghanistan", "Pakistan", "India", "Bangladesh", "Nepal", "Bhutan", "China", "Japan", "Korea",
+  "Colombia", "Peru", "Ecuador", "Bolivia", "Chile", "Argentina", "Paraguay", "Uruguay", "Venezuela", "Nicaragua",
+  "Costa Rica", "Haiti", "Jamaica", "Cuba", "Ukraine", "Georgia", "Armenia", "Azerbaijan", "Turkey", "Türkiye",
+  "Jordan", "Lebanon", "Syria", "Iraq", "Yemen", "Estonia", "Italy", "France", "Germany", "United Kingdom",
+  "United States", "Canada", "Papua New Guinea", "Vanuatu", "Samoa", "Tonga",
+];
+
+const PLACES = new Map(LIBRARY.filter((l) => l.places).map((l) => [librarySrc(l.id), l.places!]));
+const COUNTRY_RE = new RegExp(
+  `\\b(?:${[...new Set([...COUNTRY_MAPS.map((c) => c.name), ...MORE_COUNTRIES, ...LIBRARY.flatMap((l) => l.places ?? [])])]
+    .map((n) => n.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))
+    .join("|")})\\b`,
+  "gi",
+);
+
+/** The countries a piece of text names, lower-cased. */
+export function countriesIn(text: string): string[] {
+  return [...new Set((text.match(COUNTRY_RE) ?? []).map((m) => m.toLowerCase()))];
+}
+
+/**
+ * False when the picture shows a place and the text names countries that
+ * are not it: a photo of the steppe under "Kenya", a Sri Lanka workshop
+ * under "Rwanda". A text that names no country takes any picture.
+ */
+export function photoFits(src: string | undefined, text: string): boolean {
+  const places = src ? PLACES.get(src) : undefined;
+  if (!places) return true;
+  const named = countriesIn(text);
+  return !named.length || named.some((n) => places.some((p) => p.toLowerCase() === n));
+}
+
+/** A slide's own words, for photoFits: everything but paths and ids. */
+export function slideWords(s: object): string {
+  return JSON.stringify(s, (k, v) => (k === "image" || k === "photo" || k === "id" || k === "layoutId" ? undefined : v));
+}
 
 export function librarySrc(id: string) {
   return `/library/${id}.jpg`;

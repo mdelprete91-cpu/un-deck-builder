@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { toChartColor } from "./chart-colors";
 import { cleanModelIcons } from "./icon-set";
-import { libraryPhoto, PHOTO_LAYOUTS } from "./library";
+import { libraryPhoto, PHOTO_LAYOUTS, photoFits, slideWords } from "./library";
 import { normalizePage, PAGE_FITS, pageBlockSchema, type PageBlock, type PageFit } from "./pages/schema";
 import type { ChartSource } from "./chart-import";
 
@@ -621,7 +621,9 @@ export function normalizeSlide(
   // photo slot, or with an unknown id, it is dropped and the placeholder stays.
   if (slide.photo !== undefined) {
     const src = PHOTO_LAYOUTS.has(slide.layoutId) ? libraryPhoto(slide.photo) : undefined;
-    if (src && !slide.image && !slide.map) slide.image = src;
+    // A picture of somewhere else than the country the slide is about goes;
+    // fillPhotos then gives the slot a photo that fits.
+    if (src && !slide.image && !slide.map && photoFits(src, slideWords(slide))) slide.image = src;
     delete slide.photo;
   }
   // Icons: a pinned set is the user's and stays; otherwise only known names

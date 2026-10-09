@@ -41,6 +41,42 @@ const textOf = (b: Block) =>
 /** Figures as written, normalised: "1,300" and "1300" are one figure. */
 const figures = (s: string) => (s.match(/\d[\d.,]*\d|\d/g) ?? []).map((n) => n.replace(/[.,](?=\d{3}\b)/g, "").replace(/[.,]$/, ""));
 
+/** The site's password gate: SITE_PASSWORD from the environment (the caller reads .env.local), never written here. */
+async function signIn(page: Page) {
+  const password = process.env.SITE_PASSWORD;
+  if (!password) return;
+  await page.goto("http://localhost:3777/login");
+  await page.getByPlaceholder("Password").fill(password);
+  await page.getByRole("button", { name: "Sign in" }).click();
+  await page.waitForURL((u) => u.pathname === "/");
+}
+
+/** A block label that is only a number or a numbered step word. */
+const NUMBER_ONLY = /^\s*(?:(?:step|phase|stage|fase|passo|paso|etapa)\s*)?(?:\d{1,2}|[ivx]{1,4})[.):]?\s*$/i;
+const PLACEHOLDER = /lorem ipsum|\btbd\b|\[[^\]]{0,40}\]|one sentence describing|section title|name surname/i;
+const norm = (t?: string) => (t ?? "").toLowerCase().replace(/\s+/g, " ").trim();
+/** What looks wrong to a reader in a page's blocks (Mario, 9 Oct 2026). */
+function oddities(slides: { stack?: Block[] }[]): string[] {
+  const out: string[] = [];
+  slides.forEach((s, p) =>
+    (s.stack ?? []).forEach((b, k) => {
+      const at = `p${p + 1} #${k + 1} ${b.type}`;
+      (b.items ?? []).forEach((it, j) => {
+        // A stat card's label is its figure: only a numbered list prints its own.
+        if (b.type === "numbered" && NUMBER_ONLY.test(it.label ?? "")) out.push(`${at}: item ${j + 1} label is a number ("${it.label}")`);
+        if (it.label && it.body && norm(it.label) === norm(it.body)) out.push(`${at}: item ${j + 1} label repeats its body`);
+      });
+      const texts = (b.items ?? []).flatMap((it) => [it.label, it.body]).filter((t): t is string => !!t && t.trim().length > 3).map(norm);
+      const dup = texts.find((t, i) => texts.indexOf(t) !== i);
+      if (dup) out.push(`${at}: "${dup.slice(0, 40)}" twice`);
+      if (b.heading && b.rail && norm(b.heading) === norm(b.rail)) out.push(`${at}: heading repeats its side label`);
+      const ph = textOf(b).match(PLACEHOLDER);
+      if (ph) out.push(`${at}: placeholder text "${ph[0]}"`);
+    }),
+  );
+  return out;
+}
+
 async function generate(page: Page, c: Case, brief: string): Promise<number> {
   await page.goto("http://localhost:3777/");
   await page.waitForTimeout(1200);
@@ -69,6 +105,7 @@ async function main() {
       const ctx = await browser.newContext({ viewport: { width: 1600, height: 1000 } });
       const page = await ctx.newPage();
       page.on("dialog", (d) => d.accept());
+      await signIn(page);
       const problems: string[] = [];
       const notes: string[] = [];
       try {
@@ -78,10 +115,21 @@ async function main() {
         if (slides.length !== 2) problems.push(`${slides.length} pages`);
         if (!["banner", "title"].includes(slides[0]?.stack?.[0]?.type ?? "")) problems.push("page 1 does not open with a banner or a title");
         if (slides.slice(1).some((s) => s.stack?.[0]?.type === "banner")) problems.push("banner after page 1");
-        const rails = slides.flatMap((s) => (s.stack ?? []).map((b) => b.rail?.trim().toLowerCase()).filter(Boolean));
+        // A section that runs on from the foot of one page to the top of the
+        // next keeps its label (the prompt asks for it): counted once.
+        const rails = slides
+          .flatMap((s, p) =>
+            (s.stack ?? []).map((b, k) => {
+              const prev = slides[p - 1]?.stack?.at(-1);
+              const runsOn = k === 0 && prev?.type === b.type && prev?.rail?.trim().toLowerCase() === b.rail?.trim().toLowerCase();
+              return runsOn ? "" : b.rail?.trim().toLowerCase();
+            }),
+          )
+          .filter(Boolean);
         if (new Set(rails).size !== rails.length) problems.push(`repeated labels: ${rails.join(" / ")}`);
         const text = slides.flatMap((s) => (s.stack ?? []).map(textOf)).join(" ");
         if (/[—–]/.test(text)) problems.push("em/en dash");
+        problems.push(...oddities(slides));
         const known = new Set(figures(brief));
         const invented = [...new Set(figures(text))].filter((f) => !known.has(f) && !/^20\d\d$/.test(f) && f.length > 1);
         if (invented.length) notes.push(`figures not in the brief: ${invented.join(", ")}`);

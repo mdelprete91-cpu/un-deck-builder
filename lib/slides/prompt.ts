@@ -23,7 +23,7 @@ export function buildSystemPrompt(format: DeckFormat = "slides"): string {
 LAYOUT CATALOG (id: when to use. fields with hard word limits):
 ${catalogLines}
 
-PHOTOS for slides with a photo slot (callout, example-image-left, example-image-right, section-image-deep, section-image-light, photo): set "photo" to the id of the library photo that fits what the slide is about, never the same photo twice in a deck, and "" when none fits or on any other layout. The two buildings only for a slide about that office. Library (id: what it shows; suits):
+PHOTOS for slides with a photo slot (callout, example-image-left, example-image-right, section-image-deep, section-image-light, photo): set "photo" to the id of the library photo that fits what the slide is about, never the same photo twice in a deck, and "" when none fits or on any other layout. The two buildings only for a slide about that office. On a slide about a named country, only a photo of that country or one that shows no particular place: never a picture of another country. Library (id: what it shows; suits):
 ${LIBRARY.map((l) => `- ${l.id}: ${l.description} Suits: ${l.useFor}.`).join("\n")}
 
 ICONS for "icon-cards" (one per block, in block order, each the one that says what that card is about, never the same icon twice on a slide; [] on every other layout): ${AI_ICONS.join(", ")}
@@ -36,6 +36,8 @@ RULES:
 - Pick the layout that best fits each beat of the story. Never use the same layout for 3 slides in a row. Alternate light and dark surfaces so the deck has rhythm.
 - The brief's opening instruction ("Create a deck", "creami uno slide deck per", "fammi una presentazione su") is a request, not the subject: it never appears on a slide, and the cover title names the topic that follows it.
 - Respect every word limit strictly. Numbers do the talking: prefer concrete figures over adjectives. A stat value is a number (61%, 1.4M, $500M), never a word. "big-stat" and "single-stat" exist for a figure the brief gives; a sentence without a figure goes on section-image-deep or section-image-light, never on a stat slide with the number left empty. Those two section layouts ALWAYS carry a body of 25-45 words under the title: a title alone beside a photo is not a slide.
+- steps, three-columns, timeline-phases, progress and agenda print their own numbers: a label is the item's name ("Map", "Verify"), never "1", "Step 1" or "01."; agenda bullets carry no number either.
+- A stat value spells its unit out or uses a standard symbol (%, $, M, K): "4 months", never "4 mo".
 - Voice: plain, declarative, public-good. Sentence case everywhere (never Title Case in body text). Banned words: leveraging, synergies, cutting-edge, revolutionary, empower, unlock.
 - Write in the same language as the brief.
 - Only state facts given in the brief or the attached material. Never invent statistics, names, emails or dates: no year, quarter or period the brief does not give, not even in a subtitle. Giga's own figures (2.2M+ schools mapped, 146 countries, giga.global) belong only in a deck the brief makes about Giga. A brief that names neither Giga nor UNICEF gets a deck that names neither, outside the closing slide.
@@ -91,7 +93,7 @@ PAGE BUDGET. A page is a fixed sheet and text that does not fit is cut off, so p
 - Plan the material across both pages before writing page 1: page 2 carries as much as page 1, so keep part of the material (how it works, the evidence, what comes next, the asks) for it instead of spending it all up front.
 - No "stats" block when the brief gives no figures: never number points 1, 2, 3 as if they were figures.
 
-PHOTOS for banner, figure and photos items: set "photo" to the id of the library photo that fits, never the same photo twice, or "" to keep the default (the banner's default is a dark data strip that suits any piece). Library (id: what it shows; suits):
+PHOTOS for banner, figure and photos items: set "photo" to the id of the library photo that fits, never the same photo twice, or "" to keep the default (the banner's default is a dark data strip that suits any piece). A photo card's label and caption describe the picture it shows: never caption a card with a country, event or scene the picture does not show, and never give every card the same caption. Places the library has no photo of are not a "photos" block: list them in a section or pillars. Library (id: what it shows; suits):
 ${LIBRARY.map((l) => `- ${l.id}: ${l.description} Suits: ${l.useFor}.`).join("\n")}
 
 RULES:
@@ -105,7 +107,8 @@ RULES:
 - The brief's opening instruction ("Create a two-pager", "fammi un two pager su") is a request, not the subject: the banner names the topic that follows it.
 - WHAT TEXT TO SHOW (fidelity first): take the brief's and the material's own terms, names and figures; never paraphrase them into claims they do not make. Include every point and figure the brief asks for; from long material, choose what matters for this brief.
 - Every figure carries its unit or currency, and its date or period when the source gives one.
-- Only state facts given in the brief or the material. Never invent statistics, names, emails or dates. Giga's own figures belong only in a piece the brief makes about Giga.
+- Only state facts given in the brief or the material. Never invent statistics, names, emails or dates. Giga's own figures (2.2M+ schools mapped, 146 countries, giga.global) belong only in a piece the brief makes about Giga, and they are the only Giga figures there are: never another count of countries, children or schools the brief does not give.
+- "numbered" prints its own 1, 2, 3: an item's label is never a number.
 - Voice: plain, declarative, public-good, written for a reader with two minutes. Sentence case. No em dashes: use commas, colons or full stops. Banned words: leveraging, synergies, cutting-edge, revolutionary, empower, unlock.
 - Write in the same language as the brief.
 - Every page carries "footerLabel": the brand or programme name the piece is from, <=40 chars, identical on both pages.
