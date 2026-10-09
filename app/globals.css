@@ -1277,9 +1277,9 @@ body {
   top: 50%;
   margin: -45px 0 0 -75px;
   /* A damped spring drawn with linear(): eases in like the rest of the
-     morph, passes its size by about 6% and settles back, so the sphere
-     lands in the pill with the least of bounces (Mario, 9 Oct 2026). */
-  animation: gen-mini 0.6s linear(0, 0.03 8%, 0.12 16%, 0.28 26%, 0.5 36%, 0.74 46%, 0.92 56%, 1.03 66%, 1.06 74%, 1.04 82%, 1.01 90%, 1) 0.18s both;
+     morph, passes its size by about 3% and eases back over 0.7s, so the
+     sphere lands in the pill with a gentle bounce (Mario, 9 Oct 2026). */
+  animation: gen-mini 0.7s linear(0, 0.03 8%, 0.11 16%, 0.26 26%, 0.47 36%, 0.69 46%, 0.86 56%, 0.97 66%, 1.025 76%, 1.03 84%, 1.015 92%, 1) 0.18s both;
 }
 /* The front card and its light round off into a sphere as they shrink
    into the pill (Mario, 8 Oct 2026). */
