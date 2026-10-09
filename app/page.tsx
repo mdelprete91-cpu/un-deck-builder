@@ -103,7 +103,7 @@ export default function Studio() {
    * Two-pagers: the block plan as it streams, shown on the stage while the
    * model works, so the wait says what is being decided (Mario, 7 Oct 2026).
    */
-  const [livePlan, setLivePlan] = useState<PlanRow[] | null>(null);
+  const [, setLivePlan] = useState<PlanRow[] | null>(null);
   /** Two-pager: the selected block, null when none is (the page's own bar shows). */
   const [focusedBlock, setFocusedBlock] = useState<number | null>(null);
   /** Last session's deck, offered on the empty state. Never applied on its own. */
@@ -2388,18 +2388,7 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
               {/* Hung under the wheel, out of the flow: the wheel alone is centred, so it lands exactly where it was aimed. */}
               <div className="absolute left-1/2 top-full flex w-[min(560px,calc(100vw-48px))] -translate-x-1/2 justify-center">
               <div className="gen-label mt-4 flex w-full flex-col items-center gap-4">
-                {twoPager && livePlan && livePlan.length > 0 && state.slides.length === 0 && (
-                  // The plan as it arrives: which block tells which part, page by page.
-                  <ol className="flex w-full flex-col gap-1 text-[13px] leading-snug">
-                    {livePlan.slice(-8).map((r, i) => (
-                      <li key={`${livePlan.length - Math.min(8, livePlan.length) + i}`} className="float-in grid grid-cols-[52px_120px_minmax(0,1fr)] gap-3 text-ink-muted">
-                        <span className="tabular-nums text-ink-faint">Page {r.page}</span>
-                        <span className="font-medium text-ink">{BLOCK_LABELS[r.block as keyof typeof BLOCK_LABELS] ?? r.block}</span>
-                        <span className="truncate">{r.part.replace(/\s*[—–]\s*/g, ", ")}</span>
-                      </li>
-                    ))}
-                  </ol>
-                )}
+                {/* No plan rows under the loader (Mario, 9 Oct 2026): the pill alone says it. */}
               </div>
               </div>
             </div>
