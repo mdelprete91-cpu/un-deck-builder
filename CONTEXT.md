@@ -513,7 +513,10 @@ guard, all pure functions, none touching the user's words:
   values' encoding dropped with the chart); a series chart whose series are the categories themselves
   (one figure per bar, no series used twice) becomes chart-bars or chart-columns-wide, since it is
   one distribution wearing a legend; a slide that says what an earlier one said (same title, same
-  block labels or stat values) is dropped as a repeat; a section divider starts a new run, so
+  block labels or stat values) is dropped as a repeat; so is a near repeat the signature misses (12 Oct 2026: "Map,
+  Plan, Connect, Monitor" after "Map, Connect, Monitor"): three labels or more, three quarters of
+  them on one earlier content slide of the same chapter, dates and phases ("Q1", "2026", "Phase
+  2") left out of the comparison, never in a prescribed series or under "same layout"; a section divider starts a new run, so
   parallel chapters in one layout are structure. `normalizeSlide` drops a slide with no text at
   all and strips blocks, stats and bullets from a chart slide.
 - **Once the deck is complete** (`runGenerate` after the top-up, and the suite): `mergeContinuations`

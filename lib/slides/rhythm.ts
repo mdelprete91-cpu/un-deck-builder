@@ -307,6 +307,13 @@ function fixFlagChart(content: SlideContent): SlideContent {
   return { ...rest, notes, layoutId: blocks.length <= 4 ? "four-cards" : "list", blocks };
 }
 
+/** A label that is a date or a phase ("Q1", "2026", "Phase 2"): two timelines for two years share them without repeating. */
+const DATE_LABEL = /^(?:q[1-4](?:\s+\d{4})?|h[12](?:\s+\d{4})?|\d{4}|(?:phase|step|stage|fase|passo|paso|etapa|wave|round)\s*\d{1,2}|\d{1,2})$/i;
+/** A content slide's block labels, as a set, dates and phases left out. */
+function labelSet(content: SlideContent): Set<string> {
+  return new Set((content.blocks ?? []).map((b) => (b.label ?? "").trim().toLowerCase()).filter((l) => l && !DATE_LABEL.test(l)));
+}
+
 /** A ranking is sorted: the catalog says so, and the model sometimes forgets (Mombasa before Nakuru). */
 function sortRanking(content: SlideContent): SlideContent {
   if (content.layoutId !== "chart-bars-horizontal" || !content.bars?.length) return content;
@@ -377,6 +384,8 @@ export function makeRhythm(opts: RhythmOptions = {}): (content: SlideContent) =>
   let uniformLayout: LayoutId | null = null;
   /** What each accepted content slide said, for the repeat check. */
   const said = new Set<string>();
+  /** The label sets of the content slides accepted in this chapter, for the near-repeat check. */
+  let labelSets: Set<string>[] = [];
   /** Library photos already placed: the same picture twice goes back to the placeholder. */
   const photos = new Set<string>();
   const settle = (layoutId: LayoutId) => {
@@ -398,6 +407,7 @@ export function makeRhythm(opts: RhythmOptions = {}): (content: SlideContent) =>
       if (content.layoutId === "section-divider") {
         last = null;
         run = 0;
+        labelSets = [];
       }
       return content;
     }
@@ -406,6 +416,15 @@ export function makeRhythm(opts: RhythmOptions = {}): (content: SlideContent) =>
     if (!fixed || isRepeatChart(fixed, lastChart)) return null;
     const signature = signatureOf(fixed);
     if (signature.split("|")[0] && said.has(signature)) return null;
+    // A near repeat the signature misses: "Map, Plan, Connect, Monitor" after
+    // "Map, Connect, Monitor" (the evaluation of 12 Oct 2026). Three labels or
+    // more, three quarters of them on one earlier slide of this chapter. A
+    // prescribed series repeats its labels by design and is left alone.
+    if (!opts.series && !opts.uniform) {
+      const labels = labelSet(fixed);
+      if (labels.size >= 3 && labelSets.some((prev) => [...labels].filter((l) => prev.has(l)).length / labels.size >= 0.75)) return null;
+      if (labels.size >= 2) labelSets.push(labels);
+    }
     said.add(signature);
     content = fixed;
     if (content.image && /^\/library\//.test(content.image)) {
