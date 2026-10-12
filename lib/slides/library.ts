@@ -495,6 +495,9 @@ export function countriesIn(text: string): string[] {
   return [...new Set((text.match(COUNTRY_RE) ?? []).map((m) => m.toLowerCase()))];
 }
 
+/** The countries a library picture shows, or undefined for one that shows no particular place. */
+export const photoPlaces = (src: string | undefined) => (src ? PLACES.get(src) : undefined);
+
 /**
  * False when the picture shows a place and the text names countries that
  * are not it: a photo of the steppe under "Kenya", a Sri Lanka workshop

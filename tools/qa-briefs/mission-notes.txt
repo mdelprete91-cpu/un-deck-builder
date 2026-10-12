@@ -1,0 +1,11 @@
+can you turn these notes into slides for my debrief with the team on friday
+
+mission Gambia 6 to 9 oct
+met MoBSE (Ministry of Basic and Secondary Ed) + PURA regulator
+school mapping: ~1,100 schools in the dataset, approx 30% missing coordinates
+gov wants to prioritize upper basic schools first
+PURA open to using USF (universal service fund) but needs a costing model
+big issue: electricity, many schools no grid, solar needed
+next steps: data validation sprint in Nov, costing workshop Q1, follow up call with Ministry ICT unit
+they asked if GigaMaps can show schools without power -> need to check w tech team
+tone: internal, honest, not too polished

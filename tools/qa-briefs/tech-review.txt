@@ -1,0 +1,28 @@
+Create a presentation for an internal technical review with the Giga engineering team and our external vendor's developers. The audience is technical (backend, data engineers, a couple of product people), so skip the high level mission intro and go straight into the substance.
+
+Topic: proposed redesign of the school connectivity data ingestion pipeline that feeds GigaMaps.
+
+Context:
+Today data arrives from three sources: government school registries (CSV/Excel uploads, very inconsistent), ISP APIs reporting connectivity speed, and the Giga Daily Check App measurements from schools. Ingestion runs as nightly batch jobs. Main problems: duplicate schools across sources, no versioning of school records, validation errors are discovered only after data is published on the map, and onboarding a new country takes about 6 weeks of manual work.
+
+Proposal:
+1. A unified school identity layer with a matching service (fuzzy match on name, coordinates, admin codes)
+2. A validation step before publishing, with a review queue for country focal points
+3. Versioned school records so we can track changes over time
+4. Move ISP and Daily Check data to near real time streaming; keep registries as batch
+
+Structure I want (12 slides):
+1. Title
+2. Current architecture (diagram)
+3. Pain points with concrete examples
+4. Goals and non goals
+5. Proposed architecture (diagram)
+6. School identity and matching logic
+7. Validation and review flow
+8. Versioning model
+9. Streaming vs batch: what changes
+10. Migration plan in 3 phases
+11. Risks and open questions
+12. Decisions needed from this meeting
+
+Style: clean, minimal text per slide, use diagrams and tables where possible, no stock photos, no marketing language. Add speaker notes with the details that don't fit on the slides.

@@ -54,7 +54,7 @@ const SCHEMA = {
 
 const INSTRUCTIONS = `You are a senior presentation editor at an international organisation (UNICEF, ITU). You review slide decks written by an AI from a user's brief and reference material. The layouts and design are fixed and approved. The owner's priority is consistency with the source: the deck should show the brief's and the material's own content, well chosen and well placed, not reinterpret it. Judge only which text is shown and how it is laid out on the slides; do not reward persuasive rewording. Score each criterion from 1 (poor) to 5 (excellent), strictly: 5 means a senior communications officer would ship it unchanged, 3 means it needs a pass, 1 means it misleads or fails the brief. Then list the concrete issues, the worst first, at most eight, each with the slide number (1-based, cover is 1), the criterion, what is wrong in one sentence quoting the slide, and the fix in one sentence. The closing "Thanks" slide and the contacts are fixed by the tool: do not judge them. Criteria:\n${CRITERIA.map(([k, v]) => `- ${k}: ${v}`).join("\n")}\nEnd with a one-sentence verdict. Write in English.`;
 
-type Prompt = { id: string; brief?: string; briefFile?: string; files?: string[]; xlsx?: string; insights?: string };
+type Prompt = { id: string; brief?: string; briefFile?: string; files?: string[]; xlsx?: string; insights?: string; briefNotes?: string };
 
 async function materialOf(p: Prompt): Promise<string> {
   const paths = [...(p.xlsx ? [join("tools/qa-briefs", p.xlsx)] : []), ...(p.files ?? [])];
@@ -94,7 +94,7 @@ async function main() {
     for (let d = queue.shift(); d; d = queue.shift()) {
       const p = prompts.get(d.id)!;
       const brief = p.brief ?? readFileSync(join("tools/qa-briefs", p.briefFile!), "utf8");
-      const input = `BRIEF:\n${brief}${p.insights ? `\n\nUSER ANSWERS ABOUT THE MATERIAL: ${p.insights}` : ""}\n\nMATERIAL:\n${(await materialOf(p)) || "(none)"}\n\nDECK:\n${(d.slides as Record<string, unknown>[]).map(slideText).join("\n")}`;
+      const input = `BRIEF:\n${brief}${p.insights ? `\n\nUSER ANSWERS ABOUT THE MATERIAL: ${p.insights}` : ""}${p.briefNotes ? `\n\nUSER ANSWERS ABOUT THE BRIEF: ${p.briefNotes}` : ""}\n\nMATERIAL:\n${(await materialOf(p)) || "(none)"}\n\nDECK:\n${(d.slides as Record<string, unknown>[]).map(slideText).join("\n")}`;
       const r = await client.responses.create({
         model: "gpt-6-sol",
         instructions: INSTRUCTIONS,

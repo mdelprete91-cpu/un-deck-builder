@@ -337,5 +337,99 @@
         "1,250,000"
       ]
     }
+  },
+  {
+    "id": "thin-ministry",
+    "brief": "Make a presentation about Giga for the Ministry of Education of Kenya.",
+    "lang": "en",
+    "expect": {
+      "min": 5,
+      "max": 8,
+      "allowGiga": true,
+      "text": [
+        "ITU"
+      ],
+      "noForeignPhotos": true
+    }
+  },
+  {
+    "id": "thin-ministry-answered",
+    "brief": "Make a presentation about Giga for the Ministry of Education of Kenya.",
+    "lang": "en",
+    "briefNotes": "Purpose: propose a collaboration on school mapping. Facts: use only Giga's public figures. The ask: the Ministry shares its school registry and names a focal point.",
+    "expect": {
+      "min": 5,
+      "max": 9,
+      "allowGiga": true,
+      "text": [
+        "ITU",
+        "focal point"
+      ],
+      "noForeignPhotos": true,
+      "lastContentHas": [
+        "focal point"
+      ]
+    }
+  },
+  {
+    "id": "pitch-senegal",
+    "brief": "I need a pitch deck for a meeting next week with a regional telecom operator in West Africa. Goal: convince them to co-finance school connectivity in 200 rural schools in Senegal. Keep it to 8 slides max, focus on business value for them (brand, new subscribers, ESG reporting), and end with a clear ask.",
+    "lang": "en",
+    "expect": {
+      "max": 9,
+      "text": [
+        "Senegal",
+        "200"
+      ],
+      "noForeignPhotos": true,
+      "lastContentHas": [
+        "ask"
+      ]
+    }
+  },
+  {
+    "id": "mission-notes",
+    "briefFile": "mission-notes.txt",
+    "lang": "en",
+    "expect": {
+      "min": 4,
+      "max": 8,
+      "text": [
+        "upper basic",
+        "solar"
+      ],
+      "noText": [
+        "the team asked"
+      ]
+    }
+  },
+  {
+    "id": "tech-review",
+    "briefFile": "tech-review.txt",
+    "lang": "en",
+    "expect": {
+      "count": 12,
+      "lastContentHas": [
+        "Decisions"
+      ],
+      "noMetaNotes": true,
+      "noFlagCharts": true
+    }
+  },
+  {
+    "id": "linked-article",
+    "brief": "Turn this article into a short presentation (5 or 6 slides) I can show at our team all hands to explain what the Giga Accelerator is and why it matters. Keep it simple and visual, one key message per slide, and add a final slide with 3 questions to open the discussion. https://techafricanews.com/2025/08/28/itu-and-unicef-launch-giga-accelerator-to-fast-track-school-connectivity/",
+    "lang": "en",
+    "expect": {
+      "min": 5,
+      "max": 7,
+      "text": [
+        "ITU",
+        "50,000"
+      ],
+      "lastContentHas": [
+        "?"
+      ]
+    }
   }
 ]

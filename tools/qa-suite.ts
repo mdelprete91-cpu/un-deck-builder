@@ -29,7 +29,9 @@ import { readPdfSlides } from "../lib/slides/pdf-source";
 import { denseBeforeNormalize, densityHint, planReplica, withContentDensity } from "../lib/slides/replicate";
 import { continuationLabel, estimateFits, restoreCover, restoreSlide } from "../lib/slides/restore";
 import { compareSlide, fidelityScore, isFlawed, planLeftovers, repairNote, runningLines, sourceUnits, totals, type Leftover, type SlideFidelity, type Totals } from "../lib/slides/fidelity";
-import { fillPhotos } from "../lib/slides/library";
+import { countriesIn, fillPhotos, photoPlaces } from "../lib/slides/library";
+import { SHORT_BRIEF_WORDS } from "../lib/slides/sheet-questions";
+import { isChartLayout } from "../lib/slides/schema";
 import { applyChapterPlan, chapterCandidates, ensureAgenda, needsChapterPlan, type ChapterPlan } from "../lib/slides/chapters";
 
 const URL = process.env.QA_URL ?? "http://localhost:3777";
@@ -68,6 +70,8 @@ interface Prompt {
   insights?: string;
   /** "replicate": the first file is a pptx rebuilt slide by slide, as runReplicate does in the editor. */
   use?: "replicate";
+  /** The wizard's answers about the brief, as compileInsights writes them ("Purpose: … The ask: …"). */
+  briefNotes?: string;
   expect: {
     count?: number;
     min?: number;
@@ -83,6 +87,16 @@ interface Prompt {
     tiers?: boolean;
     chapters?: boolean;
     allowGiga?: boolean;
+    /** The slide before the closing slide contains each of these. */
+    lastContentHas?: string[];
+    /** No library photo of a place other than the countries the brief names. */
+    noForeignPhotos?: boolean;
+    /** No footnote about the brief or how the slide was made. */
+    noMetaNotes?: boolean;
+    /** No chart whose every figure is 0 or 1. */
+    noFlagCharts?: boolean;
+    /** Strings that must not appear anywhere. */
+    noText?: string[];
   };
 }
 
@@ -166,6 +180,11 @@ const SELF_NUMBERED = new Set(["steps", "three-columns", "timeline-phases"]);
 const NUMBER_ONLY = /^\s*(?:(?:step|phase|stage|fase|passo|paso|etapa|étape)\s*)?(?:\d{1,2}|[ivx]{1,4})[.):]?\s*$/i;
 const PLACEHOLDER = /lorem ipsum|\btbd\b|\[[^\]]{0,40}\]|one sentence describing|presentation title|section title|subtitle goes here|name surname/i;
 const norm = (t?: string) => (t ?? "").toLowerCase().replace(/\s+/g, " ").trim();
+/** A footnote about the brief instead of the material (the evaluation of 12 Oct 2026). */
+const META_NOTE = /\b(the brief|the material|not specified|does not (specify|give|provide|define|prescribe))\b/i;
+/** A chart whose every figure is 0 or 1: flags drawn as data. */
+const isFlagChart = (s: SlideContent) =>
+  isChartLayout(s.layoutId) && !!s.bars?.length && s.bars.every((b) => (b.values?.length ? b.values : [b.value]).every((v) => v === 0 || v === 1));
 
 /** What looks wrong to a reader even when every limit holds. */
 function oddities(slides: SlideContent[]): string[] {
@@ -234,6 +253,8 @@ async function generate(body: Record<string, unknown>): Promise<{ slides: unknow
 
 interface Result {
   id: string;
+  /** The wizard's questions on this brief, when the editor would ask them. */
+  questions?: string[];
   slides: SlideContent[];
   layouts: string[];
   findings: string[];
@@ -418,7 +439,15 @@ async function runPrompt(p: Prompt): Promise<Result> {
     return r && tidyModelSlide(r);
   };
   if (p.use === "replicate") return replicatePrompt(p, brief, paths[0], t0);
-  const first = await generate({ mode: "generate", brief, attachments, brandLabel: BRAND_LABEL, chapters, format: "slides", count, perItem });
+  // The questions the editor's wizard would ask on this brief (onGenerate's own test).
+  const words = brief.split(/\s+/).filter(Boolean).length;
+  let questions: string[] | undefined;
+  if (!attachments.length && words < SHORT_BRIEF_WORDS) {
+    const res = await fetch(`${URL}/api/analyze`, { method: "POST", headers: { "content-type": "application/json", cookie }, body: JSON.stringify({ name: "brief", text: brief, kind: "brief" }) });
+    const analysis = res.ok ? ((await res.json()) as { questions?: { id: string; question: string; options: string[] }[] }) : null;
+    questions = (analysis?.questions ?? []).map((q) => `[${q.id}] ${q.question}${q.options.length ? ` (${q.options.join(" / ")})` : ""}`);
+  }
+  const first = await generate({ mode: "generate", brief, attachments, briefNotes: p.briefNotes, brandLabel: BRAND_LABEL, chapters, format: "slides", count, perItem });
   // gpt-6-luna list price (25 Sep 2026), the same as GenerationReadout.
   const usage = (u?: { inputTokens: number; outputTokens: number }) => (u ? (u.inputTokens * 0.1 + u.outputTokens * 0.5) / 1_000_000 : 0);
   cost += usage(first.usage);
@@ -569,6 +598,23 @@ async function runPrompt(p: Prompt): Promise<Result> {
   }
   if (e.tiers && !TIERS_REQUEST.test(brief)) findings.push("tiers asked, trigger silent");
   if (!e.tiers && TIERS_REQUEST.test(brief)) findings.push("tiers trigger fired uninvited");
+  // What the evaluation of 12 Oct 2026 scored.
+  if (e.lastContentHas) {
+    const end = slides.findIndex((s) => s.layoutId === "thank-you");
+    const last = slides[(end < 0 ? slides.length : end) - 1];
+    const text = last ? textOf(last).toLowerCase() : "";
+    e.lastContentHas.forEach((t) => !text.includes(t.toLowerCase()) && findings.push(`last content slide lacks "${t}"`));
+  }
+  if (e.noForeignPhotos) {
+    const named = countriesIn(brief);
+    slides.forEach((s, i) => {
+      const places = photoPlaces(s.image);
+      if (places && named.length && !named.some((n) => places.some((pl) => pl.toLowerCase() === n))) findings.push(`${i + 1} · foreign photo ${s.image?.slice(9, -4)}`);
+    });
+  }
+  if (e.noMetaNotes) slides.forEach((s, i) => s.notes && META_NOTE.test(s.notes) && findings.push(`${i + 1} · note about the brief: "${s.notes.slice(0, 50)}"`));
+  if (e.noFlagCharts) slides.forEach((s, i) => isFlagChart(s) && findings.push(`${i + 1} · ${s.layoutId}: a chart of zeros and ones`));
+  e.noText?.forEach((t) => all.toLowerCase().includes(t.toLowerCase()) && findings.push(`text "${t}" present`));
   // Library photos the model placed, for a look: slide number, layout, photo.
   const placed = slides.map((s, i) => (s.image?.startsWith("/library/") ? `${i + 1}:${s.title?.slice(0, 24) ?? s.layoutId}=${s.image.slice(9, -4)}` : "")).filter(Boolean);
   if (placed.length) warnings.push(`photos: ${placed.join(", ")}`);
@@ -620,7 +666,7 @@ async function runPrompt(p: Prompt): Promise<Result> {
   const titles = content.map((s) => s.title?.trim().toLowerCase()).filter(Boolean);
   if (new Set(titles).size !== titles.length) findings.push("duplicate titles");
   const overflow = slides.flatMap(overflows);
-  return { id: p.id, slides, layouts, findings, warnings, overflow, cost, seconds, truncated: first.truncated, error: first.error };
+  return { id: p.id, questions, slides, layouts, findings, warnings, overflow, cost, seconds, truncated: first.truncated, error: first.error };
 }
 
 async function main() {
@@ -661,10 +707,13 @@ async function main() {
     "",
     "## Over limit",
     ...results.flatMap((r) => r.overflow.map((o) => `- ${r.id}: ${o}`)),
+    "",
+    "## Wizard questions",
+    ...results.filter((r) => r.questions).flatMap((r) => [`- ${r.id}: ${r.questions!.length ? "" : "none"}`, ...r.questions!.map((q) => `  - ${q}`)]),
   ];
   writeFileSync(join(dir, "report.md"), lines.join("\n"));
   console.log(`\nreport: ${dir}/report.md`);
-  console.log(lines[lines.length - results.flatMap((r) => r.overflow).length - 3]);
+  console.log(lines.find((l) => l.startsWith("Passed ")));
 }
 
 main();
