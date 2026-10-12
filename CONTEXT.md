@@ -280,7 +280,14 @@ offer.
   of tokens per opening. The switcher is model-free now, see "The layout switcher" below.
 - **The subject comes from the brief and the material, never from the tool.** The system prompt
   introduces the planner as a tool used by UNICEF and Giga teams, not as Giga's voice; Giga's own
-  figures are allowed only in a deck the brief makes about Giga; the partner roster is used only
+  facts are allowed only in a deck the brief makes about Giga, and both system prompts list them
+  from one constant, `GIGA_FACTS` in `lib/slides/giga-facts.ts`, each with its source and the
+  date it was read (12 Oct 2026, giga.global: a joint UNICEF and ITU partnership since 2019, 2.2M+
+  schools mapped, 136K+ reporting real-time connectivity, 54 countries engaged, 21 with mapping and
+  modeling completed; the old "146 countries" was in no source). Re-read the site before changing a
+  figure and move the date; `defaults.ts` follows the same figures. `attachmentsNote` also asks to
+  keep the organisations the material names as leading, funding or delivering the work (a Giga
+  Accelerator article led by ITU and UNICEF came back without ITU); the partner roster is used only
   when the brief names partners; the lockup sentence in the user turn says it sets logo and
   colours, not subject; `attachmentsNote` says the deck is about the material, with the brief
   first on everything it states (length, angle, which organisations to feature). Mario's rule,

@@ -21,7 +21,7 @@ export function newItem(field: ArrayField): unknown {
 
 const LOREM_ROW = "One sentence describing the opportunity or possibility";
 const LOREM_BODY =
-  "Visibility, ESG impact reporting, access to a network of 2.2M+ mapped schools across 46 countries.";
+  "Visibility, ESG impact reporting, access to a network of 2.2M+ mapped schools and 54 countries engaged with Giga.";
 
 /** Placeholder content used when a layout is inserted manually. */
 export function defaultContent(layoutId: LayoutId): SlideContent {
@@ -50,7 +50,7 @@ export function defaultContent(layoutId: LayoutId): SlideContent {
     case "section-divider":
       return { layoutId, title: "Section title" };
     case "big-stat":
-      return { layoutId, stat: "2.2M+", support: "Schools mapped across 146 countries." };
+      return { layoutId, stat: "2.2M+", support: "Schools mapped by Giga, a UNICEF and ITU partnership." };
     case "quote":
       return { layoutId, quote: "Connectivity is a right, not a privilege.", author: "Author" };
     case "section-image-deep":

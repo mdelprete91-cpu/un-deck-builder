@@ -10,6 +10,7 @@ import type { DeckFormat } from "./state";
 import { PARTNER_NAMES } from "./partners";
 import { AI_ICONS } from "./icon-set";
 import { LIBRARY } from "./library";
+import { GIGA_FACTS_LINE } from "./giga-facts";
 
 /**
  * System prompt: layout catalog + brand voice. Kept tight — prompt size
@@ -41,7 +42,7 @@ RULES:
 - Voice: plain, declarative, public-good. Sentence case everywhere (never Title Case in body text). Banned words: leveraging, synergies, cutting-edge, revolutionary, empower, unlock.
 - The user message gives today's date: what a source dates before today has happened, and is written in the past tense.
 - Write in the same language as the brief.
-- Only state facts given in the brief or the attached material. Never invent statistics, names, emails or dates: no year, quarter or period the brief does not give, not even in a subtitle. Giga's own figures (2.2M+ schools mapped, 146 countries, giga.global) belong only in a deck the brief makes about Giga. A brief that names neither Giga nor UNICEF gets a deck that names neither, outside the closing slide.
+- Only state facts given in the brief or the attached material. Never invent statistics, names, emails or dates: no year, quarter or period the brief does not give, not even in a subtitle. Giga's own facts (${GIGA_FACTS_LINE}) belong only in a deck the brief makes about Giga, and they are the only Giga facts there are: mapped, monitored and connected schools are different figures. A brief that names neither Giga nor UNICEF gets a deck that names neither, outside the closing slide.
 - DENSE MATERIAL: when the brief asks to carry a report or a long deck in full, keep its text and figures as written on the dense layouts (bullet-columns, figures-panel, scenarios, matrix, chart-text, cascade) instead of cutting them down to cards: one source slide becomes one slide, its headers become the column or row labels, its sub-points stay sub-points ("- "). Their "items" and "stats" live inside each block; on every other layout set them to []. "takeaway" is figures-panel's closing sentence when the material draws one; "" everywhere else.
 - DENSITY: "density" is "high" when a slide must carry more text than its layout's limits (a report or a dense source slide kept in full), else "". It exists on four-cards, icon-cards, steps, three-columns, callout, list, example-image-left/right, stat-grid, brand-equity, two-stats, single-stat, big-stat, every chart layout, timeline, timeline-phases and progress. There the fields stay the same, but a block may carry "items" (points, "- " for a sub-point, up to 80 words a block) instead of a short body, stat labels run to 30 words, a chart carries "subtitle" (a header) and "bullets" (the explanation, up to 8 points) beside the plot, and timeline or progress bodies run to 40 words. Chart values may be negative (costs) on every chart but the donut.
 - FOOTNOTES: "notes" carries the footnotes the material prints for that slide (sources, definitions, "1. Cumulative 5-years"), as written, <=40 words, numbered as in the material, with the matching superscript (¹ ²) kept in the slide text; "" when the slide has none, and always "" on cover, agenda, section-divider, partner and thank-you. Never a note about the brief, what it lacks, or how the slide was built.
@@ -108,7 +109,7 @@ RULES:
 - The brief's opening instruction ("Create a two-pager", "fammi un two pager su") is a request, not the subject: the banner names the topic that follows it.
 - WHAT TEXT TO SHOW (fidelity first): take the brief's and the material's own terms, names and figures; never paraphrase them into claims they do not make. Include every point and figure the brief asks for; from long material, choose what matters for this brief.
 - Every figure carries its unit or currency, and its date or period when the source gives one.
-- Only state facts given in the brief or the material. Never invent statistics, names, emails or dates. Giga's own figures (2.2M+ schools mapped, 146 countries, giga.global) belong only in a piece the brief makes about Giga, and they are the only Giga figures there are: never another count of countries, children or schools the brief does not give.
+- Only state facts given in the brief or the material. Never invent statistics, names, emails or dates. Giga's own facts (${GIGA_FACTS_LINE}) belong only in a piece the brief makes about Giga, and they are the only Giga facts there are: never another count of countries, children or schools the brief does not give, and mapped, monitored and connected schools are different figures.
 - "numbered" prints its own 1, 2, 3: an item's label is never a number.
 - Voice: plain, declarative, public-good, written for a reader with two minutes. Sentence case. No em dashes: use commas, colons or full stops. Banned words: leveraging, synergies, cutting-edge, revolutionary, empower, unlock.
 - The user message gives today's date: what a source dates before today has happened, and is written in the past tense.
@@ -202,7 +203,7 @@ function attachmentsNote(body: GenerateBody): string {
   return (
     `\n\nAttached reference material (${n} item${n === 1 ? "" : "s"}: ${names}) precedes this message.` +
     (answered ? " The user answered questions about the material; those answers rank with the brief, above the material itself." : "") +
-    ` The ${body.format === "two-pager" ? "pages are" : "deck is"} about this material: take the subject, structure, facts, figures and names from it. The brief comes first on everything it says (length, angle, audience, which organisations to feature); where the brief is silent, the material decides. Quote numbers exactly as they appear, copied digit by digit (3,323 is not 3,523), never invent what is not there, and do not copy long passages verbatim.` +
+    ` The ${body.format === "two-pager" ? "pages are" : "deck is"} about this material: take the subject, structure, facts, figures and names from it. The brief comes first on everything it says (length, angle, audience, which organisations to feature); where the brief is silent, the material decides. Keep the organisations the material names as leading, funding or delivering the work. Quote numbers exactly as they appear, copied digit by digit (3,323 is not 3,523), never invent what is not there, and do not copy long passages verbatim.` +
     (sheets ? SPREADSHEET_NOTE : "")
   );
 }
