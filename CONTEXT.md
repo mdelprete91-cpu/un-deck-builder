@@ -609,6 +609,11 @@ guard, all pure functions, none touching the user's words:
   takes such a note off a generated or added slide, never a replica's (its notes are the
   source's), and the sidebar lists them under "Gaps in the brief, kept off the slides" (`briefGaps`,
   session state like `chaptersSkipped`, cleared by the next deck). The FOOTNOTES rule says it too.
+- **Who did, said or asked something is the source's** (12 Oct 2026: mission notes said "they
+  asked if GigaMaps can show schools without power", the government, and the deck wrote "The team
+  asked"). One line in both RULES lists; the bare rule changed nothing in three runs, the concrete
+  one (in meeting notes "they" are the people met, never "the team" or "we") fixed three of three.
+  The suite checks it with `noText` on mission-notes.
 - **`lib/slides/voice.ts`**, in the route on every string the model wrote: the banned words
   (leveraging, synergies, cutting-edge, revolutionary, empower, unlock) become plain ones, forms
   preserved, unless the brief itself uses the word. Never in a replica: those are the source's words.

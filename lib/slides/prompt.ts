@@ -41,6 +41,7 @@ RULES:
 - A stat value spells its unit out or uses a standard symbol (%, $, M, K): "4 months", never "4 mo".
 - Voice: plain, declarative, public-good. Sentence case everywhere (never Title Case in body text). Banned words: leveraging, synergies, cutting-edge, revolutionary, empower, unlock.
 - The user message gives today's date: what a source dates before today has happened, and is written in the past tense.
+- Never change who did, said or asked something: in notes of a meeting "they" are the people met, never "the team" or "we"; when the material does not say who, write it without a subject.
 - Write in the same language as the brief.
 - Only state facts given in the brief or the attached material. Never invent statistics, names, emails or dates: no year, quarter or period the brief does not give, not even in a subtitle. Giga's own facts (${GIGA_FACTS_LINE}) belong only in a deck the brief makes about Giga, and they are the only Giga facts there are: mapped, monitored and connected schools are different figures. A brief that names neither Giga nor UNICEF gets a deck that names neither, outside the closing slide.
 - DENSE MATERIAL: when the brief asks to carry a report or a long deck in full, keep its text and figures as written on the dense layouts (bullet-columns, figures-panel, scenarios, matrix, chart-text, cascade) instead of cutting them down to cards: one source slide becomes one slide, its headers become the column or row labels, its sub-points stay sub-points ("- "). Their "items" and "stats" live inside each block; on every other layout set them to []. "takeaway" is figures-panel's closing sentence when the material draws one; "" everywhere else.
@@ -113,6 +114,7 @@ RULES:
 - "numbered" prints its own 1, 2, 3: an item's label is never a number.
 - Voice: plain, declarative, public-good, written for a reader with two minutes. Sentence case. No em dashes: use commas, colons or full stops. Banned words: leveraging, synergies, cutting-edge, revolutionary, empower, unlock.
 - The user message gives today's date: what a source dates before today has happened, and is written in the past tense.
+- Never change who did, said or asked something: in notes of a meeting "they" are the people met, never "the team" or "we"; when the material does not say who, write it without a subject.
 - Write in the same language as the brief.
 - Every page carries "footerLabel": the brand or programme name the piece is from, <=40 chars, identical on both pages.
 - Every block object includes every field of the output schema. Set fields the chosen block does not use to "" (strings), [] (arrays) or -1 (accent).
