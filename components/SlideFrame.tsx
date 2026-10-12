@@ -560,8 +560,9 @@ export default function SlideFrame({
         btn.className = "logo-upload";
         btn.type = "button";
         const replace = pageRef.current.onReplacePartner;
-        btn.title = replace ? "Replace this partner: from the logo library, or upload a logo" : "Upload the partner logo (SVG, rendered white automatically)";
-        btn.innerHTML = replace ? `${lucideSvg("replace")}<span>Replace</span>` : `${lucideSvg("upload")}<span>SVG</span>`;
+        // The whole logo is the target, with no label or tooltip: the hover
+        // outline is the hint (Mario, 12 Oct 2026).
+        btn.setAttribute("aria-label", replace ? "Replace this partner: from the logo library, or upload a logo" : "Upload the partner logo (SVG, rendered white automatically)");
         btn.addEventListener("click", (e) => {
           e.stopPropagation();
           const at = Number(/^bullets\.(\d+)$/.exec(cell.getAttribute("data-item") ?? "")?.[1]);

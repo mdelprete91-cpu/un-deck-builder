@@ -256,14 +256,12 @@ button > svg.lucide:first-child:not(:only-child) {
    is sized by its button, so one SVG string serves every scale. */
 .slide-root .item-delete svg { width: 50%; height: 50%; flex: none; }
 .slide-root .item-add,
-.slide-root .logo-upload,
 .slide-root .image-upload {
   display: inline-flex;
   align-items: center;
   gap: 0.45em;
 }
 .slide-root .item-add svg,
-.slide-root .logo-upload svg,
 .slide-root .image-upload svg { width: 1em; height: 1em; flex: none; }
 
 /* Self-hosted fonts. Inter is the chrome; Manrope and Open Sans are the
@@ -488,30 +486,16 @@ body {
   color: #ffffff;
   border-style: solid;
 }
+/* The whole logo is the click target (Mario, 12 Oct 2026): no label, the
+   hover outline says it is editable. Under the ✕ (z-index 5). */
 .slide-root .logo-upload {
   position: absolute;
-  left: 50%;
-  bottom: 4px;
-  transform: translateX(-50%);
-  padding: 6px 16px;
-  border-radius: 999px;
+  inset: 0;
+  padding: 0;
   border: none;
-  background: rgba(22, 22, 22, 0.75);
-  color: #ffffff;
-  font-family: 'Manrope', system-ui, sans-serif;
-  font-weight: 700;
-  font-size: 18px;
-  line-height: 1;
+  background: transparent;
   cursor: pointer;
-  opacity: 0;
-  transition: opacity 0.15s;
-  z-index: 6;
-}
-.slide-root [data-logo]:hover > .logo-upload {
-  opacity: 1;
-}
-.slide-root .logo-upload:hover {
-  background: #161616;
+  z-index: 4;
 }
 
 
@@ -530,10 +514,6 @@ body {
   padding: calc(4px * var(--inv, 1)) calc(12px * var(--inv, 1));
   font-size: calc(12px * var(--inv, 1));
   border-width: 2px;
-}
-.page-root .logo-upload {
-  padding: 3px 8px;
-  font-size: 10px;
 }
 
 /* On a page the photo button is sized in screen pixels, like the rest of the chrome. */
