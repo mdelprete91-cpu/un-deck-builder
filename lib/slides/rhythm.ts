@@ -1,4 +1,4 @@
-import { PRIMARY_ARRAY, type LayoutId, type SlideContent } from "./schema";
+import { isChartLayout, PRIMARY_ARRAY, type LayoutId, type SlideContent } from "./schema";
 
 /**
  * Deterministic passes over the slides as they stream in. None of them
@@ -283,6 +283,30 @@ function fixLonelyGrid(content: SlideContent): SlideContent {
   return { ...content, layoutId: "example-image-left" };
 }
 
+/**
+ * A chart whose every figure is 0 or 1 is flags drawn as data ("batch" and
+ * "streaming" at 1 and 0 across three sources, the evaluation of 12 Oct
+ * 2026). It becomes cards: one per category, its body the series that are 1,
+ * in the model's own words; a category with none goes. Up to four cards on
+ * four-cards, five or six on list; more, or no series names, stays a chart.
+ * A note about the chart's encoding goes with the chart.
+ */
+function fixFlagChart(content: SlideContent): SlideContent {
+  if (!isChartLayout(content.layoutId) || !content.bars?.length) return content;
+  const series = content.series ?? [];
+  const valuesOf = (b: { value: number; values?: number[] }) => (b.values?.length ? b.values : [b.value]);
+  if (!series.length || !content.bars.every((b) => valuesOf(b).every((v) => v === 0 || v === 1))) return content;
+  const blocks = content.bars
+    .map((b) => ({ label: b.label, body: valuesOf(b).flatMap((v, i) => (v === 1 && series[i] ? [series[i]] : [])).join(", ") }))
+    .filter((b) => b.body);
+  if (!blocks.length || blocks.length > 6) return content;
+  const { bars: _bars, series: _series, ...rest } = content;
+  void _bars;
+  void _series;
+  const notes = rest.notes && /\b(values?|encod\w*|numeric|scale|axis)\b/i.test(rest.notes) ? undefined : rest.notes;
+  return { ...rest, notes, layoutId: blocks.length <= 4 ? "four-cards" : "list", blocks };
+}
+
 /** A ranking is sorted: the catalog says so, and the model sometimes forgets (Mombasa before Nakuru). */
 function sortRanking(content: SlideContent): SlideContent {
   if (content.layoutId !== "chart-bars-horizontal" || !content.bars?.length) return content;
@@ -377,7 +401,7 @@ export function makeRhythm(opts: RhythmOptions = {}): (content: SlideContent) =>
       }
       return content;
     }
-    const fixed = fixEmptySection(fixHeroWithoutFigure(fixNonNumericStats(fixLonelyTimeline(sortRanking(fixLonelyGrid(fixDiagonalSeries(content)))))));
+    const fixed = fixEmptySection(fixHeroWithoutFigure(fixNonNumericStats(fixLonelyTimeline(sortRanking(fixLonelyGrid(fixDiagonalSeries(fixFlagChart(content))))))));
     // A dropped slide never counts against the cap.
     if (!fixed || isRepeatChart(fixed, lastChart)) return null;
     const signature = signatureOf(fixed);

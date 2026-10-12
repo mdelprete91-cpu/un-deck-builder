@@ -507,7 +507,10 @@ guard, all pure functions, none touching the user's words:
   a photo, Luna's first slip, 25 Sep 2026) takes a stray `support`/`subtitle` as its body or is
   dropped, never counted against the cap; a chart whose every (label, figure) pair is already on
   the previous chart is dropped too (Luna drew a three-line trend and then one line per series
-  from the same table, 25 Sep 2026); a series chart whose series are the categories themselves
+  from the same table, 25 Sep 2026); a chart whose every figure is 0 or 1 is flags drawn as data ("batch" and "streaming" at 1
+  and 0 across three sources, 12 Oct 2026) and becomes cards, one per category, its body the series
+  at 1 (`fixFlagChart`, first in the chain: four-cards up to four, list up to six, a note about the
+  values' encoding dropped with the chart); a series chart whose series are the categories themselves
   (one figure per bar, no series used twice) becomes chart-bars or chart-columns-wide, since it is
   one distribution wearing a legend; a slide that says what an earlier one said (same title, same
   block labels or stat values) is dropped as a repeat; a section divider starts a new run, so
