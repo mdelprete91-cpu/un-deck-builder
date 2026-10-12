@@ -310,7 +310,9 @@ offer.
   closing on top), the route budgets two more, and the top-up in `onGenerate` aims at count + 2.
   This is flat on purpose: as a conditional in the prompt ("unless the items need more") Haiku
   obeyed "exactly 6" one time in two and dropped two objectives. No number in the brief means the
-  model chooses (8-14). When the model still hits
+  model chooses (8-14), or 5 to 7 for a thin brief (under thirty words, no material, no answers:
+  eleven slides of "a deck about Giga for the Ministry of Education of Kenya" said one thing five
+  times, 12 Oct 2026). When the model still hits
   `max_tokens` the route says `truncated` and the client shows an error naming how many slides
   arrived, instead of a silently shorter deck. That silent short deck (12 for "20-page") is what
   happened on 22 Sep 2026: the count stayed prose, the prompt offered 8-14, and 400 tokens a slide

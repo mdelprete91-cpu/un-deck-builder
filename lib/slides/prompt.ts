@@ -295,13 +295,17 @@ function messageFor(body: GenerateBody): string {
           : typeof body.count === "number" && body.count < 12
             ? " (the agenda and the section dividers count too: with this length use exactly two chapters, so the content keeps most of the slides)"
             : " (the agenda and the section dividers count too)";
+      // A thin brief (under thirty words, no material, no answers) has little
+      // to tell: eleven slides from "a deck about Giga for the Ministry of
+      // Education of Kenya" said the same thing five times (12 Oct 2026).
+      const thin = (body.brief ?? "").split(/\s+/).filter(Boolean).length < 30 && !body.attachments?.length && !body.briefNotes?.trim();
       const length = body.perItem
         ? typeof body.count === "number"
           ? `The brief asks for one slide per item and names ${body.count}: that is the number of items, not the size of the deck. Make exactly one slide for each item the brief lists, then add the cover and the closing slide on top${body.chapters === true ? ", and the agenda and a divider before each chapter" : ""}.`
           : `The brief asks for one slide per item: make exactly one slide for each item it lists, plus the cover and the closing slide${body.chapters === true ? ", and the agenda and a divider before each chapter" : ""}.`
         : typeof body.count === "number"
           ? `Produce exactly ${body.count} slides counting the cover${chaptersCount}, then the closing slide on top: ${body.count + 1} in all.${body.lastContent?.trim() ? ` Slide ${body.count} is the last content slide the brief prescribes: ${body.lastContent.trim()}.` : ""}`
-          : `Choose the number of slides yourself (typically 8-14; when the brief asks to carry long material in full, as many as it takes, up to ${MAX_SLIDES}). A "page" in the brief means a slide.`;
+          : `Choose the number of slides yourself (typically ${thin ? "5 to 7" : "8-14"}; when the brief asks to carry long material in full, as many as it takes, up to ${MAX_SLIDES}). A "page" in the brief means a slide.`;
       // The closing slide is outside the count since 12 Oct 2026, so a slide
       // the brief puts last ("12. Decisions needed") is no longer cut for it.
       const last = body.lastContent?.trim()
