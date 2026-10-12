@@ -309,6 +309,31 @@ offer.
   happened on 22 Sep 2026: the count stayed prose, the prompt offered 8-14, and 400 tokens a slide
   was not enough. Later the same day "Six slides" went unread because it was a word, and the
   model chose fourteen.
+- **The closing slide is on top of the brief's number** (Mario, 12 Oct 2026). "12 slides" is the
+  cover and eleven slides of content, then "Thanks": the user turn says "Produce exactly N slides
+  counting the cover, then the closing slide on top: N + 1 in all", `runGenerate` and the suite aim
+  at `count + 1` (`count + 2` for a series, as before), the rhythm cap is that number and the route
+  budgets one slide more. Before, the closing slide was inside the count, the cap let only
+  "Thanks" past `cap - 1`, and a brief whose outline ended on "12. Decisions needed from this
+  meeting" lost that slide every time.
+- **The last content slide the brief prescribes is a flat line, sent only when there is one.**
+  `lastSlideFromBrief` (`brief.ts`) reads "a final slide with 3 questions", "end with a clear ask",
+  "chiudi con …", or a numbered outline as long as the count whose last item is not a closing
+  (several numbered lists in one brief are separate runs). Failing that, the wizard's answered ask
+  (`slotsFromNotes`), or a purpose that asks for something (`purposeAsks`). With a count the line is
+  positional ("Slide 12 is the last content slide the brief prescribes: …"): the bare "comes right
+  before the closing slide" was ignored for a quote slide.
+- **The brief's contract** (`lib/slides/contract.ts`, `app/api/contract`, 12 Oct 2026): a side call
+  (`CONTRACT_MODEL`, gpt-6-luna, reasoning low), fired with the generation and never shown to the
+  model that writes the deck, reads the brief, the answers and the linked pages into
+  `{ slides, lastContent, entities }`. `checkContract` matches the finished deck (title words,
+  stemmed, half of them; or every `mustContain` term; section dividers count) and a missing
+  prescribed slide or last slide becomes one add request with its title and `after`, within the
+  same two add requests as the top-up and **never past the brief's number**: on a full deck a
+  missed match is likelier the same slide under other words (tech-review came back with fifteen
+  slides for twelve before this cap). Missing entities only go to the console ("Not in the deck:
+  ITU") and to the suite's report, never to the user. The suite reports the share of the contract
+  each deck meets.
 - **The brief's structure comes first.** When the brief prescribes one slide per item, the titles,
   or what goes on each slide, the system prompt tells the model to follow it to the letter: every
   item gets its slide, titles are copied as written, and every slide of the series takes a layout

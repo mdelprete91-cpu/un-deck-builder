@@ -3,7 +3,8 @@
 import { ChartColumn, ChevronDown, ChevronUp, Play, Copy, History, Image as ImageIcon, LayoutTemplate, LoaderCircle, Plus, Redo2, Superscript, Trash2, Undo2, Upload } from "lucide-react";
 import { useEffect, useLayoutEffect, useMemo, useReducer, useRef, useState, type CSSProperties } from "react";
 import { BRANDS } from "@/lib/slides/brand";
-import { deckReducer, initialDeckState, isDefaultName, readPath, setPath } from "@/lib/slides/state";
+import { deckReducer, initialDeckState, insertSlides, isDefaultName, readPath, setPath } from "@/lib/slides/state";
+import { checkContract, type BriefContract } from "@/lib/slides/contract";
 import { ensureId, isChartLayout, isPage, normalizeSlide, overLimits, PRIMARY_ARRAY, type LayoutId, type Slide, type SlideContent } from "@/lib/slides/schema";
 import { renderSlide } from "@/lib/slides/layouts";
 import { A4_PX, pageDateNow } from "@/lib/slides/pages/a4";
@@ -22,8 +23,8 @@ import { undash } from "@/lib/slides/pages/schema";
 import { normalizePage, PAGE_BLOCK_LIMITS, RAIL_BLOCKS, panelTone, tableHeads, type PageBlock, type PageBlockType } from "@/lib/slides/pages/schema";
 import { defaultContent, denseContent } from "@/lib/slides/defaults";
 import { familyOf } from "@/lib/slides/families";
-import { countFromBrief, languageOf, seriesFromBrief, uniformFromBrief, MIN_SLIDES_WITH_CHAPTERS, TIERS_REQUEST } from "@/lib/slides/brief";
-import { makeRhythm, stripInventedYear } from "@/lib/slides/rhythm";
+import { countFromBrief, languageOf, lastSlideFromBrief, seriesFromBrief, uniformFromBrief, MIN_SLIDES_WITH_CHAPTERS, TIERS_REQUEST } from "@/lib/slides/brief";
+import { makeRhythm, stripInventedYear, type RhythmOptions } from "@/lib/slides/rhythm";
 import { tidyModelSlide } from "@/lib/slides/tidy";
 import { BLOCK_LABELS, presetStack } from "@/lib/slides/pages/presets";
 import { clearSaved, openSession, saveDeck } from "@/lib/slides/storage";
@@ -43,7 +44,7 @@ import ChartDataPanel from "@/components/ChartDataPanel";
 import ImagePickerModal from "@/components/ImagePickerModal";
 import EditWithAiModal from "@/components/EditWithAiModal";
 import SheetWizard from "@/components/SheetWizard";
-import { compileInsights, normalizeAnalysis, SHORT_BRIEF_WORDS, wantsFile, USE_QUESTION_ID, fileUseOf, fileUseQuestion, lengthAnalysisFor, lengthOf, mentionsMissingFile, missingFileAnalysis, MISSING_FILE_QUESTION_ID, ATTACH_IT, preselectFileUse, type SheetAnalysis, type SheetAnswers } from "@/lib/slides/sheet-questions";
+import { compileInsights, normalizeAnalysis, purposeAsks, slotsFromNotes, SHORT_BRIEF_WORDS, wantsFile, USE_QUESTION_ID, fileUseOf, fileUseQuestion, lengthAnalysisFor, lengthOf, mentionsMissingFile, missingFileAnalysis, MISSING_FILE_QUESTION_ID, ATTACH_IT, preselectFileUse, type SheetAnalysis, type SheetAnswers } from "@/lib/slides/sheet-questions";
 import { denseBeforeNormalize, densityHint, planReplica, withContentDensity, type ReplicateStep } from "@/lib/slides/replicate";
 import { compareSlide, fidelityScore, isFlawed, planLeftovers, repairNote, runningLines, sourceUnits, totals, type DeckFidelity, type Leftover, type SlideFidelity } from "@/lib/slides/fidelity";
 import { readPdfSlides } from "@/lib/slides/pdf-source";
@@ -253,7 +254,7 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
        * the brief prescribes slide by slide: no two identical layouts in a
        * row there, at most two elsewhere.
        */
-      rhythm?: { series: boolean };
+      rhythm?: RhythmOptions;
       /**
        * The stack of the page being rewritten. Its photos cannot travel in
        * `preserve` (they live inside blocks the model just replaced), so they
@@ -269,6 +270,8 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
       keepColors?: { color?: string }[];
       /** Every slide kept from this run, for a caller that has to follow up on them. */
       collect?: SlideContent[];
+      /** collectInsert: what INSERT_SLIDES received, so the caller can keep the deck's order on its side (insertSlides). */
+      onInserted?: (contents: SlideContent[], positions: (number | null)[], at: number | null) => void;
       /** The stream's closing event, for a caller that must know about truncation. */
       onDone?: (done: { truncated?: boolean }) => void;
       /** Two-pagers: the block plan the model wrote before its pages. */
@@ -408,6 +411,7 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
             positions: freshAt,
             agenda: meta?.agenda,
           });
+          opts.onInserted?.(fresh, freshAt, meta?.insertAfter ?? null);
         }
       }
       dispatch({ type: "GENERATION_DONE" });
@@ -806,8 +810,23 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
     const chapters = state.chapters && !(!twoPager && count !== undefined && count < MIN_SLIDES_WITH_CHAPTERS);
     setChaptersSkipped(chapters !== state.chapters ? (count as number) : null);
     const perItem = !twoPager && seriesFromBrief(brief);
-    const wanted = count === undefined ? undefined : perItem ? count + 2 : count;
+    // The closing slide is on top of the brief's number (Mario, 12 Oct 2026),
+    // and with a series the cover too.
+    const wanted = count === undefined ? undefined : perItem ? count + 2 : count + 1;
     const rhythm = { series: perItem, uniform: uniformFromBrief(brief), cap: twoPager ? undefined : wanted };
+    const briefNotes = briefQ?.brief === brief && briefQ.analysis ? compileInsights(briefQ.analysis, briefQ.answers) : undefined;
+    // The last content slide the brief or the answers prescribe: the brief's
+    // own words, else the answered ask, else a purpose that asks for something.
+    const slots = slotsFromNotes(briefNotes);
+    const lastContent = twoPager ? undefined : (lastSlideFromBrief(brief, count) ?? slots.ask ?? (purposeAsks(slots.purpose) ? slots.purpose : undefined));
+    // The brief's contract, read on the side while the deck is written
+    // (lib/slides/contract.ts); any failure leaves the deck as it comes.
+    const contractCall: Promise<BriefContract | null> = twoPager
+      ? Promise.resolve(null)
+      : fetch("/api/contract", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ brief, briefNotes }) })
+          .then((r) => (r.ok ? r.json() : null))
+          .then((j: { contract?: BriefContract } | null) => j?.contract ?? null)
+          .catch(() => null);
     const kept: SlideContent[] = [];
     let truncated = false;
     let received = await runGeneration(
@@ -815,7 +834,8 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
         mode: "generate",
         brief,
         attachments,
-        briefNotes: briefQ?.brief === brief && briefQ.analysis ? compileInsights(briefQ.analysis, briefQ.answers) : undefined,
+        briefNotes,
+        lastContent,
         brandLabel: theme.label,
         chapters,
         format: state.format,
@@ -838,7 +858,13 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
     // missing slides; a truncated one is not, the error already says why.
     // Two tries: the one add for a single missing slide came back with
     // nothing usable once in twenty decks (23 Sep 2026).
-    for (let attempt = 0; attempt < 2 && !twoPager && wanted && received > 0 && received < wanted && !truncated; attempt++) {
+    // The deck as the editor holds it, kept in order on this side for the contract check.
+    let deck = [...kept];
+    const track = (contents: SlideContent[], positions: (number | null)[], at: number | null) => {
+      deck = insertSlides(deck, contents, positions, at).slides;
+    };
+    let attempt = 0;
+    for (; attempt < 2 && !twoPager && wanted && received > 0 && received < wanted && !truncated; attempt++) {
       // The closing slide counts: when the model left it out, ENSURE_CLOSING
       // adds it after the top-up, so the top-up asks for one fewer (a six-slide
       // brief came back as seven, 26 Sep 2026).
@@ -857,8 +883,39 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
           format: state.format,
           existingSlides: kept.map((k) => light(k as (typeof state.slides)[number])),
         },
-        { replace: false, collectInsert: true, dropChapters: !chapters, rhythm },
+        { replace: false, collectInsert: true, dropChapters: !chapters, rhythm, onInserted: track },
       );
+    }
+    // The contract, within the same two add requests: a slide the brief
+    // prescribes, or its last slide, that the deck does not have is asked for
+    // by its title and place. Entities only go to the console.
+    if (!twoPager && received > 0 && !truncated) {
+      const contract = await Promise.race([contractCall, new Promise<null>((r) => setTimeout(() => r(null), 20_000))]);
+      const gap = contract || lastContent ? checkContract(deck, contract ?? { slides: [], lastContent: "", entities: [] }, lastContent) : null;
+      if (gap?.entities.length) console.info(`Not in the deck: ${gap.entities.join(", ")}`);
+      // Never past the brief's number: a prescribed slide the matching missed
+      // is likelier there under other words than absent (tech-review, 12 Oct
+      // 2026: fifteen slides for twelve), so only empty places are filled.
+      const room = wanted ? Math.max(0, wanted - deck.length - (deck.some((k) => k.layoutId === "thank-you") ? 0 : 1)) : 2;
+      const asked = gap ? gap.missing.slice(0, room) : [];
+      if (asked.length && attempt < 2) {
+        const list = asked.map((m) => `"${m.title}"${m.last ? " as the last content slide, right before the closing slide" : ""} with "after": ${m.after}`).join("; ");
+        received += await runGeneration(
+          {
+            mode: "add",
+            brief,
+            attachments,
+            briefNotes,
+            instruction: `The brief prescribes slides the deck does not have yet. Add exactly these, one slide each, titled and placed as given: ${list}. Write them from the brief, the user's answers and the material only.`,
+            count: asked.length,
+            brandLabel: theme.label,
+            chapters,
+            format: state.format,
+            existingSlides: deck.map((k) => light(k as (typeof state.slides)[number])),
+          },
+          { replace: false, collectInsert: true, dropChapters: !chapters, rhythm: { ...rhythm, cap: undefined }, onInserted: track },
+        );
+      }
     }
     // The two fixed partnership-tier slides are added only when the brief
     // asks for them by name. A bare "tier" is not enough: "API keys by tier"

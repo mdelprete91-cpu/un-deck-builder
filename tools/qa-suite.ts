@@ -18,7 +18,7 @@
  */
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { countFromBrief, seriesFromBrief, uniformFromBrief, MIN_SLIDES_WITH_CHAPTERS, TIERS_REQUEST } from "../lib/slides/brief";
+import { countFromBrief, lastSlideFromBrief, seriesFromBrief, uniformFromBrief, MIN_SLIDES_WITH_CHAPTERS, TIERS_REQUEST } from "../lib/slides/brief";
 import { normalizeSlide, overLimits, type LayoutId, type SlideContent } from "../lib/slides/schema";
 import { tidyModelSlide } from "../lib/slides/tidy";
 import { closingFor, finishDeck, makeRhythm, mergeContinuations, stripInventedYear, unifyLayouts } from "../lib/slides/rhythm";
@@ -30,7 +30,8 @@ import { denseBeforeNormalize, densityHint, planReplica, withContentDensity } fr
 import { continuationLabel, estimateFits, restoreCover, restoreSlide } from "../lib/slides/restore";
 import { compareSlide, fidelityScore, isFlawed, planLeftovers, repairNote, runningLines, sourceUnits, totals, type Leftover, type SlideFidelity, type Totals } from "../lib/slides/fidelity";
 import { countriesIn, fillPhotos, photoPlaces } from "../lib/slides/library";
-import { SHORT_BRIEF_WORDS } from "../lib/slides/sheet-questions";
+import { SHORT_BRIEF_WORDS, purposeAsks, slotsFromNotes } from "../lib/slides/sheet-questions";
+import { checkContract, type BriefContract, type ContractGap } from "../lib/slides/contract";
 import { isChartLayout } from "../lib/slides/schema";
 import { applyChapterPlan, chapterCandidates, ensureAgenda, needsChapterPlan, type ChapterPlan } from "../lib/slides/chapters";
 
@@ -255,6 +256,8 @@ interface Result {
   id: string;
   /** The wizard's questions on this brief, when the editor would ask them. */
   questions?: string[];
+  /** The brief's contract against the finished deck (lib/slides/contract.ts). */
+  contract?: { share: number; missing: string[]; entities: string[] };
   slides: SlideContent[];
   layouts: string[];
   findings: string[];
@@ -418,7 +421,10 @@ async function runPrompt(p: Prompt): Promise<Result> {
   const count = countFromBrief(brief);
   const perItem = seriesFromBrief(brief);
   const chapters = !!p.chapters && !(count !== undefined && count < MIN_SLIDES_WITH_CHAPTERS);
-  const wanted = count === undefined ? undefined : perItem ? count + 2 : count;
+  // The closing slide is on top of the brief's number, as in runGenerate.
+  const wanted = count === undefined ? undefined : perItem ? count + 2 : count + 1;
+  const slots = slotsFromNotes(p.briefNotes);
+  const lastContent = lastSlideFromBrief(brief, count) ?? slots.ask ?? (purposeAsks(slots.purpose) ? slots.purpose : undefined);
   const rhythm = makeRhythm({ series: perItem, uniform: uniformFromBrief(brief), cap: wanted });
   const attachments: Attachment[] = [];
   const paths = [...(p.xlsx ? [join("tools/qa-briefs", p.xlsx)] : []), ...(p.files ?? [])];
@@ -447,7 +453,10 @@ async function runPrompt(p: Prompt): Promise<Result> {
     const analysis = res.ok ? ((await res.json()) as { questions?: { id: string; question: string; options: string[] }[] }) : null;
     questions = (analysis?.questions ?? []).map((q) => `[${q.id}] ${q.question}${q.options.length ? ` (${q.options.join(" / ")})` : ""}`);
   }
-  const first = await generate({ mode: "generate", brief, attachments, briefNotes: p.briefNotes, brandLabel: BRAND_LABEL, chapters, format: "slides", count, perItem });
+  const contractCall = fetch(`${URL}/api/contract`, { method: "POST", headers: { "content-type": "application/json", cookie }, body: JSON.stringify({ brief, briefNotes: p.briefNotes }) })
+    .then((r) => (r.ok ? r.json() : null))
+    .catch(() => null) as Promise<{ contract?: BriefContract; usage?: { inputTokens: number; outputTokens: number } } | null>;
+  const first = await generate({ mode: "generate", brief, attachments, briefNotes: p.briefNotes, lastContent, brandLabel: BRAND_LABEL, chapters, format: "slides", count, perItem });
   // gpt-6-luna list price (25 Sep 2026), the same as GenerationReadout.
   const usage = (u?: { inputTokens: number; outputTokens: number }) => (u ? (u.inputTokens * 0.1 + u.outputTokens * 0.5) / 1_000_000 : 0);
   cost += usage(first.usage);
@@ -455,7 +464,28 @@ async function runPrompt(p: Prompt): Promise<Result> {
   const findings: string[] = [];
   const warnings: string[] = [];
   if (first.error) findings.push(`route error: ${first.error}`);
-  for (let attempt = 0; attempt < 2 && wanted && slides.length > 0 && slides.length < wanted && !first.truncated; attempt++) {
+  // An add request's slides, each where its own "after" says (the editor's INSERT_SLIDES), never past the closing slide.
+  const place = (add: Awaited<ReturnType<typeof generate>>, cap: number, keepStructural = false) => {
+    const titles = new Set(slides.map((s) => (s.title ?? "").trim().toLowerCase()).filter(Boolean));
+    const fallback = add.meta?.insertAfter ?? slides.length - 1;
+    const extra = add.slides
+      .map((raw) => ({ s: normalizeSlide(raw, { brandId: BRAND_ID }), after: (raw as { after?: number }).after }))
+      .filter((x): x is { s: SlideContent; after: number | undefined } => !!x.s && (keepStructural || !STRUCTURAL.has(x.s.layoutId)) && !titles.has((x.s.title ?? "").trim().toLowerCase()))
+      .map((x) => ({ ...x, s: tidyModelSlide(x.s) }))
+      .slice(0, cap);
+    const clamp = (v: number) => Math.min(Math.max(v, 1), slides.length - 1);
+    const groups = new Map<number, SlideContent[]>();
+    for (const x of extra) {
+      const at = clamp(typeof x.after === "number" ? x.after : fallback);
+      (groups.get(at) ?? groups.set(at, []).get(at)!).push(x.s);
+    }
+    const next = [...slides];
+    for (const at of [...groups.keys()].sort((a, b) => b - a)) next.splice(at, 0, ...groups.get(at)!);
+    slides = next;
+    return extra.length;
+  };
+  let attempt = 0;
+  for (; attempt < 2 && wanted && slides.length > 0 && slides.length < wanted && !first.truncated; attempt++) {
     // The closing slide counts: the pipeline adds it after the top-up when missing.
     const closed = slides.some((s) => s.layoutId === "thank-you");
     const missing = wanted - slides.length - (closed ? 0 : 1);
@@ -472,24 +502,35 @@ async function runPrompt(p: Prompt): Promise<Result> {
       existingSlides: slides,
     });
     cost += usage(add.usage);
-    // A topped-up slide with a title the deck already has is a repeat, whatever the instruction said.
-    const titles = new Set(slides.map((s) => (s.title ?? "").trim().toLowerCase()).filter(Boolean));
-    // Each added slide goes where its own "after" says (the editor's INSERT_SLIDES), never past the closing slide.
-    const fallback = add.meta?.insertAfter ?? slides.length - 1;
-    const extra = add.slides
-      .map((raw) => ({ s: normalizeSlide(raw, { brandId: BRAND_ID }), after: (raw as { after?: number }).after }))
-      .filter((x): x is { s: SlideContent; after: number | undefined } => !!x.s && !STRUCTURAL.has(x.s.layoutId) && !titles.has((x.s.title ?? "").trim().toLowerCase()))
-      .slice(0, missing);
-    const clamp = (v: number) => Math.min(Math.max(v, 1), slides.length - 1);
-    const groups = new Map<number, SlideContent[]>();
-    for (const x of extra) {
-      const at = clamp(typeof x.after === "number" ? x.after : fallback);
-      (groups.get(at) ?? groups.set(at, []).get(at)!).push(x.s);
+    const n = place(add, missing);
+    warnings.push(`topped up: +${n} after a short deck of ${slides.length - n}`);
+  }
+  // The brief's contract, as runGenerate checks it: a prescribed slide or last slide the deck lacks is one add request within the two.
+  const contractRes = await contractCall;
+  cost += usage(contractRes?.usage);
+  let gap: ContractGap | null = null;
+  if (!first.truncated && slides.length && (contractRes?.contract || lastContent)) {
+    gap = checkContract(slides, contractRes?.contract ?? { slides: [], lastContent: "", entities: [] }, lastContent ?? undefined);
+    const room = wanted ? Math.max(0, wanted - slides.length - (slides.some((x) => x.layoutId === "thank-you") ? 0 : 1)) : 2;
+    const asked = gap.missing.slice(0, room);
+    if (asked.length && attempt < 2) {
+      const list = asked.map((m) => `\"${m.title}\"${m.last ? " as the last content slide, right before the closing slide" : ""} with \"after\": ${m.after}`).join("; ");
+      const add = await generate({
+        mode: "add",
+        brief,
+        attachments,
+        briefNotes: p.briefNotes,
+        instruction: `The brief prescribes slides the deck does not have yet. Add exactly these, one slide each, titled and placed as given: ${list}. Write them from the brief, the user's answers and the material only.`,
+        count: asked.length,
+        brandLabel: BRAND_LABEL,
+        chapters,
+        format: "slides",
+        existingSlides: slides,
+      });
+      cost += usage(add.usage);
+      const n = place(add, asked.length);
+      warnings.push(`contract: +${n} of ${asked.length} prescribed (${asked.map((m) => m.title).join(" / ")})`);
     }
-    const next = [...slides];
-    for (const at of [...groups.keys()].sort((a, b) => b - a)) next.splice(at, 0, ...groups.get(at)!);
-    slides = next;
-    warnings.push(`topped up: +${extra.length} after a short deck of ${slides.length - extra.length}`);
   }
   // What the editor does once the deck is complete (see runGenerate in app/page.tsx).
   const beforeMerge = slides.length;
@@ -531,7 +572,8 @@ async function runPrompt(p: Prompt): Promise<Result> {
   if (slides[slides.length - 1]?.layoutId !== "thank-you") findings.push("no closing slide last");
   if (first.truncated) findings.push("TRUNCATED");
   if (e.count !== undefined) {
-    const target = perItem ? e.count + 2 : e.count;
+    // The brief's number plus the closing slide (plus the cover for a series), as runGenerate counts.
+    const target = perItem ? e.count + 2 : e.count + 1;
     // A deck short by the continued slides it folded back kept its content, not its count.
     if (slides.length !== target && slides.length + merged !== target) findings.push(`count ${slides.length} ≠ ${target}`);
   }
@@ -602,7 +644,8 @@ async function runPrompt(p: Prompt): Promise<Result> {
   if (e.lastContentHas) {
     const end = slides.findIndex((s) => s.layoutId === "thank-you");
     const last = slides[(end < 0 ? slides.length : end) - 1];
-    const text = last ? textOf(last).toLowerCase() : "";
+    // Everything the slide shows, its points included.
+    const text = last ? JSON.stringify(last).toLowerCase() : "";
     e.lastContentHas.forEach((t) => !text.includes(t.toLowerCase()) && findings.push(`last content slide lacks "${t}"`));
   }
   if (e.noForeignPhotos) {
@@ -666,7 +709,12 @@ async function runPrompt(p: Prompt): Promise<Result> {
   const titles = content.map((s) => s.title?.trim().toLowerCase()).filter(Boolean);
   if (new Set(titles).size !== titles.length) findings.push("duplicate titles");
   const overflow = slides.flatMap(overflows);
-  return { id: p.id, questions, slides, layouts, findings, warnings, overflow, cost, seconds, truncated: first.truncated, error: first.error };
+  // The contract against the finished deck: share of what the brief prescribed that is there.
+  const final = contractRes?.contract || lastContent ? checkContract(slides, contractRes?.contract ?? { slides: [], lastContent: "", entities: [] }, lastContent ?? undefined) : null;
+  const contract = final ? { share: final.share, missing: final.missing.map((m) => m.title), entities: final.entities } : undefined;
+  if (final?.entities.length) warnings.push(`not in the deck: ${final.entities.join(", ")}`);
+  if (final?.missing.length) warnings.push(`contract missing: ${final.missing.map((m) => m.title).join(" / ")}`);
+  return { id: p.id, questions, contract, slides, layouts, findings, warnings, overflow, cost, seconds, truncated: first.truncated, error: first.error };
 }
 
 async function main() {
@@ -687,7 +735,7 @@ async function main() {
         const r = await runPrompt(p);
         results.push(r);
         writeFileSync(join(dir, `${p.id}.json`), JSON.stringify(r, null, 1));
-        console.log(`${p.id.padEnd(18)} ${String(r.slides.length).padStart(2)} slides  ${r.findings.length ? "FAIL " + r.findings.join(" | ") : "ok"}${r.warnings.length ? `  warn: ${r.warnings.join(" | ")}` : ""}${r.overflow.length ? `  (${r.overflow.length} over limit)` : ""}`);
+        console.log(`${p.id.padEnd(18)} ${String(r.slides.length).padStart(2)} slides${r.contract ? ` c=${Math.round(r.contract.share * 100)}%` : ""}  ${r.findings.length ? "FAIL " + r.findings.join(" | ") : "ok"}${r.warnings.length ? `  warn: ${r.warnings.join(" | ")}` : ""}${r.overflow.length ? `  (${r.overflow.length} over limit)` : ""}`);
       } catch (err) {
         results.push({ id: p.id, slides: [], layouts: [], findings: [`crash: ${(err as Error).message}`], warnings: [], overflow: [], cost: 0, seconds: 0, truncated: false });
         console.log(`${p.id.padEnd(18)} crash ${(err as Error).message}`);
@@ -699,11 +747,15 @@ async function main() {
   const lines = [
     `# QA suite ${stamp} against ${URL}`,
     "",
-    "| id | slides | layouts | findings | warnings | over limit | cost | s |",
-    "|---|---|---|---|---|---|---|---|",
-    ...results.map((r) => `| ${r.id} | ${r.slides.length} | ${r.layouts.join(", ")} | ${r.findings.join("; ") || "ok"} | ${r.warnings.join("; ")} | ${r.overflow.length} | $${r.cost.toFixed(3)} | ${r.seconds.toFixed(0)} |`),
+    "| id | slides | layouts | findings | warnings | contract | over limit | cost | s |",
+    "|---|---|---|---|---|---|---|---|---|",
+    ...results.map((r) => `| ${r.id} | ${r.slides.length} | ${r.layouts.join(", ")} | ${r.findings.join("; ") || "ok"} | ${r.warnings.join("; ")} | ${r.contract ? `${Math.round(r.contract.share * 100)}%` : "-"} | ${r.overflow.length} | $${r.cost.toFixed(3)} | ${r.seconds.toFixed(0)} |`),
     "",
     `Passed ${results.filter((r) => !r.findings.length).length}/${results.length}. Total cost $${results.reduce((a, r) => a + r.cost, 0).toFixed(3)}.`,
+    (() => {
+      const c = results.filter((r) => r.contract);
+      return `Contract: ${c.length ? Math.round((c.reduce((a, r) => a + r.contract!.share, 0) / c.length) * 100) : 0}% satisfied on average over ${c.length} decks.`;
+    })(),
     "",
     "## Over limit",
     ...results.flatMap((r) => r.overflow.map((o) => `- ${r.id}: ${o}`)),
@@ -714,6 +766,7 @@ async function main() {
   writeFileSync(join(dir, "report.md"), lines.join("\n"));
   console.log(`\nreport: ${dir}/report.md`);
   console.log(lines.find((l) => l.startsWith("Passed ")));
+  console.log(lines.find((l) => l.startsWith("Contract: ")));
 }
 
 main();

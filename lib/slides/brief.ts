@@ -124,3 +124,46 @@ export function languageOf(brief: string): string | undefined {
 export function uniformFromBrief(brief: string): boolean {
   return /\b(?:same|identical|one)\s+layout\b|\bstesso\s+layout\b|\blayout\s+(?:uguale|identico)\b/i.test(brief);
 }
+
+/** A numbered outline line: "12. Decisions needed from this meeting". */
+const OUTLINE_LINE = /^\s*(\d{1,2})[.)]\s+(.+?)\s*$/gm;
+/** What closes a deck, as opposed to a last slide of content. */
+const CLOSING_ITEM = /\b(thanks?|thank you|grazie|gracias|merci|contacts?|contatti|contactos)\b/i;
+/** The brief naming its last slide: "a final slide with 3 questions", "end with a clear ask", "chiudi con le richieste". */
+const LAST_SLIDE = [
+  /\b(?:a |the )?(?:final|last|closing|concluding) slide (?:with|on|for|about|that|listing|of)\s+([^.\n]+)/i,
+  /\bends? (?:it |the deck |the presentation )?(?:with|on)\s+([^.\n]+)/i,
+  /\b(?:ultima|l'ultima) slide (?:con|su|per|sulle|sui|sulla)\s+([^.\n]+)/i,
+  /\b(?:chiudi|chiudere|termina|terminare|finisci) con\s+([^.\n]+)/i,
+  /\b[úu]ltima diapositiva (?:con|sobre|para)\s+([^.\n]+)/i,
+  /\b(?:termina|terminar|cierra|cerrar) con\s+([^.\n]+)/i,
+];
+
+/**
+ * The last content slide the brief prescribes, in its own words, or null:
+ * "add a final slide with 3 questions" → "3 questions"; a numbered outline as
+ * long as the named count whose last item is not a closing → that item. The
+ * evaluation of 12 Oct 2026: "12. Decisions needed from this meeting" and "a
+ * final slide with 3 questions" both came back as "Thanks", because the
+ * count held the closing slide and the cap cut the slide before it.
+ */
+export function lastSlideFromBrief(brief: string, count: number | undefined): string | null {
+  // A brief can hold several numbered lists (a proposal in four points,
+  // then the twelve-slide outline): each run starts again at 1.
+  const runs: { n: number; text: string }[][] = [];
+  for (const m of brief.matchAll(OUTLINE_LINE)) {
+    const it = { n: Number(m[1]), text: m[2] };
+    if (it.n === 1 || !runs.length) runs.push([it]);
+    else runs[runs.length - 1].push(it);
+  }
+  const outline = runs.find((r) => count !== undefined && r.length >= 2 && r.length === count && r.every((it, i) => it.n === i + 1));
+  if (outline) {
+    const last = outline[outline.length - 1].text;
+    if (!CLOSING_ITEM.test(last)) return last;
+  }
+  for (const re of LAST_SLIDE) {
+    const m = re.exec(brief);
+    if (m && !CLOSING_ITEM.test(m[1])) return m[1].trim().replace(/[,;:]$/, "");
+  }
+  return null;
+}

@@ -148,6 +148,12 @@ interface GenerateBody {
   outputLanguage?: string;
   /** The user's answers to the questions a short brief raised (compileInsights): they rank with the brief. */
   briefNotes?: string;
+  /**
+   * The last content slide the brief or the user's answers prescribe
+   * (lastSlideFromBrief, the ask slot): one flat line in the user turn, sent
+   * only when there is one.
+   */
+  lastContent?: string;
 }
 
 /**
@@ -282,9 +288,14 @@ export function buildUserMessage(body: GenerateBody): string {
           ? `The brief asks for one slide per item and names ${body.count}: that is the number of items, not the size of the deck. Make exactly one slide for each item the brief lists, then add the cover and the closing slide on top${body.chapters === true ? ", and the agenda and a divider before each chapter" : ""}.`
           : `The brief asks for one slide per item: make exactly one slide for each item it lists, plus the cover and the closing slide${body.chapters === true ? ", and the agenda and a divider before each chapter" : ""}.`
         : typeof body.count === "number"
-          ? `Produce exactly ${body.count} slides, no more and no fewer, counting the cover and the closing slide${chaptersCount}.`
+          ? `Produce exactly ${body.count} slides counting the cover${chaptersCount}, then the closing slide on top: ${body.count + 1} in all.${body.lastContent?.trim() ? ` Slide ${body.count} is the last content slide the brief prescribes: ${body.lastContent.trim()}.` : ""}`
           : `Choose the number of slides yourself (typically 8-14; when the brief asks to carry long material in full, as many as it takes, up to ${MAX_SLIDES}). A "page" in the brief means a slide.`;
-      return `Brief: ${body.brief}${brand}${language}${notes}\n\nCreate the deck that best tells this story. ${length}${noChapters}`;
+      // The closing slide is outside the count since 12 Oct 2026, so a slide
+      // the brief puts last ("12. Decisions needed") is no longer cut for it.
+      const last = body.lastContent?.trim()
+        ? `${!body.perItem && typeof body.count === "number" ? "" : ` The last content slide is prescribed: ${body.lastContent.trim()}.`} It comes right before the closing slide, written as the brief or the user's answers word it.`
+        : "";
+      return `Brief: ${body.brief}${brand}${language}${notes}\n\nCreate the deck that best tells this story. ${length}${last}${noChapters}`;
     }
   }
 }

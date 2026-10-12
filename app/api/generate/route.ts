@@ -114,6 +114,7 @@ export async function POST(request: Request): Promise<Response> {
           ? undefined
           : languageOf(body.brief ?? ""),
     briefNotes: typeof body.briefNotes === "string" ? body.briefNotes.slice(0, 2000) : undefined,
+    lastContent: typeof body.lastContent === "string" ? body.lastContent.slice(0, 300) : undefined,
   };
   if (!body.brief?.trim() && !oneSlide) {
     if (attachments.length === 0) return new Response("Missing brief", { status: 400 });
@@ -131,7 +132,8 @@ export async function POST(request: Request): Promise<Response> {
   // deck; add/regenerate keep count-driven budgets.
   // With `perItem` the named count is the items, and the cover and the
   // closing slide come on top of it.
-  const named = typeof body.count === "number" ? body.count + (body.perItem ? 2 : 0) : 20;
+  // The closing slide is on top of a named count (12 Oct 2026), two slides on top of a series.
+  const named = typeof body.count === "number" ? body.count + (body.perItem ? 2 : 1) : 20;
   const count = oneSlide ? 1 : Math.min(Math.max(named, 1), MAX_SLIDES + 2);
   // Add mode carries extra output (insertAfter + refreshed agenda bullets).
   // Every slide carries all its required fields, so a content-heavy slide (a
