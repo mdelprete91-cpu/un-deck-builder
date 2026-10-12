@@ -43,7 +43,7 @@ import ChartDataPanel from "@/components/ChartDataPanel";
 import ImagePickerModal from "@/components/ImagePickerModal";
 import EditWithAiModal from "@/components/EditWithAiModal";
 import SheetWizard from "@/components/SheetWizard";
-import { compileInsights, normalizeAnalysis, SHORT_BRIEF_WORDS, USE_QUESTION_ID, fileUseOf, fileUseQuestion, lengthAnalysisFor, lengthOf, mentionsMissingFile, missingFileAnalysis, MISSING_FILE_QUESTION_ID, ATTACH_IT, preselectFileUse, type SheetAnalysis, type SheetAnswers } from "@/lib/slides/sheet-questions";
+import { compileInsights, normalizeAnalysis, SHORT_BRIEF_WORDS, wantsFile, USE_QUESTION_ID, fileUseOf, fileUseQuestion, lengthAnalysisFor, lengthOf, mentionsMissingFile, missingFileAnalysis, MISSING_FILE_QUESTION_ID, ATTACH_IT, preselectFileUse, type SheetAnalysis, type SheetAnswers } from "@/lib/slides/sheet-questions";
 import { denseBeforeNormalize, densityHint, planReplica, withContentDensity, type ReplicateStep } from "@/lib/slides/replicate";
 import { compareSlide, fidelityScore, isFlawed, planLeftovers, repairNote, runningLines, sourceUnits, totals, type DeckFidelity, type Leftover, type SlideFidelity } from "@/lib/slides/fidelity";
 import { readPdfSlides } from "@/lib/slides/pdf-source";
@@ -609,6 +609,14 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
     if (w.queue[0] === "nofile" && noFileQ?.answers[MISSING_FILE_QUESTION_ID] === ATTACH_IT) {
       setWizard(null);
       setNoFileQ(null);
+      document.querySelector<HTMLInputElement>('[data-tour="prompt"] input[type="file"]')?.click();
+      return;
+    }
+    // The brief's facts slot answered "attach a file": the same stop. The
+    // other answers stay; the file one goes, the file itself will say it.
+    if (w.queue[0] === "brief" && wantsFile(briefQ?.analysis, briefQ?.answers ?? {})) {
+      setWizard(null);
+      setBriefQ((q) => (q ? { ...q, asked: true, answers: Object.fromEntries(Object.entries(q.answers).filter(([k]) => k !== "facts")) } : q));
       document.querySelector<HTMLInputElement>('[data-tour="prompt"] input[type="file"]')?.click();
       return;
     }
@@ -1961,7 +1969,8 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
             key={wizardSubject.id}
             subject={wizardSubject}
             finalLabel={
-              wizardSubject.id === "nofile" && noFileQ?.answers[MISSING_FILE_QUESTION_ID] === ATTACH_IT
+              (wizardSubject.id === "nofile" && noFileQ?.answers[MISSING_FILE_QUESTION_ID] === ATTACH_IT) ||
+              (wizardSubject.id === "brief" && wantsFile(briefQ?.analysis, briefQ?.answers ?? {}))
                 ? "Choose file"
                 : wizard.intent === "generate" && wizard.queue.length === 1
                   ? "Generate"

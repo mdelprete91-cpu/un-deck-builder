@@ -28,6 +28,8 @@ export interface SheetQuestion {
    * typed on it, answered as "<n> <unit>" (the length question's "Custom").
    */
   custom?: { label: string; unit: string; min: number; max: number; detail?: string };
+  /** The brief's facts slot: the option that means "I will attach a file", which stops the wizard at the file picker. */
+  attach?: string;
 }
 
 export interface SheetAnalysis {
@@ -74,12 +76,66 @@ export type MaterialKind = "spreadsheet" | "document" | "brief";
 export const SHORT_BRIEF_WORDS = 40;
 
 /**
- * The brief on its own, when it is short. The questions come from what it
- * leaves open (subject, audience, angle), never from what it says, and the
- * options are what a UNICEF or Giga deck plausibly needs, since a short
- * brief has nothing to quote.
+ * The slots a presenter fills before writing a deck (the evaluation of 12
+ * Oct 2026: "a deck about Giga for the Ministry of Education of Kenya" came
+ * back as eleven generic slides, because nobody asked what the meeting was
+ * for). In this order, at most three asked, each question's id its slot.
  */
-export const BRIEF_ANALYSIS_INSTRUCTIONS = `You prepare a slide deck for a deck builder used by UNICEF and Giga teams. You receive only the brief the user typed, with no material attached. Write a one-sentence summary of the deck it asks for. Then ask questions ONLY where the brief leaves open something that changes the slides: no subject beyond a name ("a deck for UNICEF"), no audience when the deck could be for donors, a ministry, partners or an internal team, no angle when the topic could be told as results, a plan or a request, no period when the figures could be this year or a programme's whole life. A brief that says what the deck is about, for whom and with what angle gets no questions: an empty list is the right answer, never a question for its own sake. Never ask about slide count, colours, fonts or layout names. At most ${MAX_QUESTIONS} questions, each one short sentence; "why" is one short line on what it changes in the deck. Use "multi" whenever the options can hold together in one deck (two scenarios, several countries, periods, sections, figures or audiences the deck could cover side by side), so the user can pick more than one: a question about what to show, present, cover or include is always "multi". "single" only when the question asks for one thing by nature (the main one, the headline, the lead) or the options exclude each other; "text" only when no list fits. Options are two to six plausible choices for this brief in a UNICEF or Giga context, short and concrete, never "Other". Ids are short slugs. Write in the brief's language.`;
+export const BRIEF_SLOTS = ["purpose", "facts", "ask", "audience"] as const;
+export type BriefSlot = (typeof BRIEF_SLOTS)[number];
+export const MAX_BRIEF_QUESTIONS = 3;
+/** How compileInsights names each slot's answer, and slotsFromNotes reads it back. */
+export const SLOT_LABELS: Record<BriefSlot, string> = { purpose: "Purpose:", facts: "Facts:", ask: "The ask:", audience: "Audience:" };
+
+/** The brief's schema: the same shape, its ids limited to the slots. */
+export const BRIEF_ANALYSIS_SCHEMA = {
+  ...SHEET_ANALYSIS_SCHEMA,
+  properties: {
+    ...SHEET_ANALYSIS_SCHEMA.properties,
+    questions: {
+      ...SHEET_ANALYSIS_SCHEMA.properties.questions,
+      items: {
+        ...SHEET_ANALYSIS_SCHEMA.properties.questions.items,
+        properties: { ...SHEET_ANALYSIS_SCHEMA.properties.questions.items.properties, id: { type: "string", enum: [...BRIEF_SLOTS] } },
+      },
+    },
+  },
+} as const;
+
+/**
+ * The slot answers back out of the compiled notes ("Purpose: … The ask: …"),
+ * for the pipeline: a deck that asks for something ends on that ask.
+ */
+export function slotsFromNotes(notes: string | undefined): Partial<Record<BriefSlot, string>> {
+  const out: Partial<Record<BriefSlot, string>> = {};
+  if (!notes) return out;
+  const marks = BRIEF_SLOTS.map((slot) => ({ slot, at: notes.indexOf(SLOT_LABELS[slot]) }))
+    .filter((m) => m.at >= 0)
+    .sort((a, b) => a.at - b.at);
+  marks.forEach((m, i) => {
+    const text = notes
+      .slice(m.at + SLOT_LABELS[m.slot].length, marks[i + 1]?.at ?? notes.length)
+      .trim()
+      .replace(/\.$/, "");
+    if (text) out[m.slot] = text;
+  });
+  return out;
+}
+
+/** A purpose that asks the audience for something or for a decision, in the languages the builder writes. */
+const ASKING = /\b(ask|request|propos|convinc|secure|decid|decision|approv|commit|fund|chied|richiest|propost|decision|convinc|approva|pedir|solicit|propuesta|decisi[oó]n|aprob|demand|proposer|d[ée]cision|approuv)/i;
+export const purposeAsks = (purpose: string | undefined) => !!purpose && ASKING.test(purpose);
+
+/**
+ * The brief on its own, when it is short: what a presenter would ask a
+ * colleague before starting, only for the slots the brief leaves empty.
+ */
+export const BRIEF_ANALYSIS_INSTRUCTIONS = `You read a deck brief for a deck builder used by UNICEF and Giga teams, before the deck is written, and ask only what a presenter would ask a colleague before starting, when the answer would change the slides. Write a one-sentence summary of the deck it asks for. Then check these slots in order and ask only about the empty ones, at most ${MAX_BRIEF_QUESTIONS} questions, each question's id being its slot:
+1. purpose: what the deck is for (introduce, ask for something, report results, get a decision). Skip it if the brief says it.
+2. facts: if the brief gives no figures and no file is attached, what the deck should rely on: attaching a file, or only the public figures already allowed.
+3. ask: what the audience should do or decide at the end. Skip it if the brief says it or the purpose is to report.
+4. audience: who will see it, only if the brief names no one.
+Options come from the brief: name its country, organisation and audience in them, short and concrete, two to five, never "Other". "single" for purpose, facts and audience; "multi" for ask. "why" is one short line on what the answer changes in the deck. Never ask about colours, layouts, fonts or slide count, and never ask what the brief already says. An empty list is the right answer for a brief that fills every slot. Write in the brief's language.`;
 
 /**
  * A document (PDF, Word, PowerPoint, text) is read the other way round: it
@@ -125,6 +181,32 @@ export function normalizeAnalysis(raw: unknown): SheetAnalysis | null {
   }
   if (!summary && questions.length === 0) return null;
   return { summary, questions };
+}
+
+const ATTACH_OPTION = /\b(attach|upload|file|alleg|carica|file|adjunt|archivo|sub[ei]r|joindre|fichier|anex)/i;
+
+/** True when the brief's facts answer is the file option: the wizard stops and opens the file picker. */
+export function wantsFile(analysis: SheetAnalysis | undefined, answers: SheetAnswers): boolean {
+  const facts = analysis?.questions.find((q) => q.id === "facts");
+  return !!facts?.attach && answers.facts === facts.attach;
+}
+
+/** A brief's questions: slots only, in slot order, three at most. */
+export function normalizeBriefAnalysis(raw: unknown): SheetAnalysis | null {
+  const a = normalizeAnalysis(raw);
+  if (!a) return null;
+  const order = (id: string) => BRIEF_SLOTS.indexOf(id as BriefSlot);
+  const questions = a.questions
+    .filter((q) => order(q.id) >= 0)
+    .sort((x, y) => order(x.id) - order(y.id))
+    .slice(0, MAX_BRIEF_QUESTIONS)
+    .map((q) => {
+      if (q.id !== "facts") return q;
+      // The model words the option in the brief's language; the one about a file is the one that opens the picker.
+      const attach = q.options.find((o) => ATTACH_OPTION.test(o));
+      return attach ? { ...q, attach } : q;
+    });
+  return { ...a, questions };
 }
 
 /**
@@ -191,7 +273,9 @@ export function preselectFileUse<T extends { analysis?: SheetAnalysis; answers?:
 
 export function compileInsights(analysis: SheetAnalysis, answers: SheetAnswers): string {
   const lines: string[] = [];
-  if (fileUseOf(answers) === "reinterpret") {
+  // Only a file has a use: a brief's answers once carried "Reinterpret this
+  // file" too, with no file in sight (12 Oct 2026).
+  if (analysis.questions.some((q) => q.id === USE_QUESTION_ID) && fileUseOf(answers) === "reinterpret") {
     lines.push("Reinterpret this file: tell its story in a new structure of your choosing, keeping its facts and figures.");
   }
   for (const q of analysis.questions) {
@@ -199,7 +283,9 @@ export function compileInsights(analysis: SheetAnalysis, answers: SheetAnswers):
     const a = answers[q.id];
     const text = Array.isArray(a) ? a.filter(Boolean).join(", ") : (a ?? "").trim();
     if (!text) continue;
-    lines.push(`${q.question} ${text}.`);
+    // A slot's answer is labelled, so the pipeline can read it back (slotsFromNotes).
+    const label = SLOT_LABELS[q.id as BriefSlot];
+    lines.push(label ? `${label} ${text.replace(/\.$/, "")}.` : `${q.question} ${text}.`);
   }
   return lines.join(" ");
 }

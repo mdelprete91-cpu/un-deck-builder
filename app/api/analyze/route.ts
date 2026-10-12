@@ -2,11 +2,13 @@ import OpenAI from "openai";
 import type { ResponseInputContent } from "openai/resources/responses/responses";
 import {
   BRIEF_ANALYSIS_INSTRUCTIONS,
+  BRIEF_ANALYSIS_SCHEMA,
   DOCUMENT_ANALYSIS_INSTRUCTIONS,
   MAX_ANALYSIS_CHARS,
   SHEET_ANALYSIS_INSTRUCTIONS,
   SHEET_ANALYSIS_SCHEMA,
   normalizeAnalysis,
+  normalizeBriefAnalysis,
   type MaterialKind,
 } from "@/lib/slides/sheet-questions";
 
@@ -76,11 +78,12 @@ export async function POST(request: Request): Promise<Response> {
       model: "gpt-6-luna",
       instructions: kind === "spreadsheet" ? SHEET_ANALYSIS_INSTRUCTIONS : kind === "brief" ? BRIEF_ANALYSIS_INSTRUCTIONS : DOCUMENT_ANALYSIS_INSTRUCTIONS,
       input: [{ role: "user", content }],
-      text: { format: { type: "json_schema", name: "material_questions", schema: SHEET_ANALYSIS_SCHEMA as unknown as Record<string, unknown>, strict: true } },
+      text: { format: { type: "json_schema", name: "material_questions", schema: (kind === "brief" ? BRIEF_ANALYSIS_SCHEMA : SHEET_ANALYSIS_SCHEMA) as unknown as Record<string, unknown>, strict: true } },
       reasoning: { effort: "none" },
       max_output_tokens: 1500,
     });
-    const analysis = normalizeAnalysis(JSON.parse(firstObject(response.output_text)));
+    const parsed = JSON.parse(firstObject(response.output_text));
+    const analysis = kind === "brief" ? normalizeBriefAnalysis(parsed) : normalizeAnalysis(parsed);
     if (!analysis) return new Response("The file gave no summary", { status: 502 });
     return Response.json(analysis, { headers: { "Cache-Control": "no-store" } });
   } catch (err) {

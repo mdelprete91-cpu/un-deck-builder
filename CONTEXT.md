@@ -414,8 +414,20 @@ or a drop on the box. They exist to give the model the facts; they are **not** d
 - **Every readable file is read for questions, not only spreadsheets** (Mario, 25 Sep 2026: "launch
   it for any document when the situation is not clear to you"). PDF (as `input_file`, under 2.8 MB
   of base64), Word, PowerPoint and text go to the same route with `kind: "document"` and the brief
-  as pressed; a short brief with no file goes with `kind: "brief"` and `BRIEF_ANALYSIS_INSTRUCTIONS`
-  (subject, audience, angle, period, options the model proposes since there is nothing to quote); `DOCUMENT_ANALYSIS_INSTRUCTIONS` asks only where the material could become
+  as pressed; a short brief with no file goes with `kind: "brief"` and `BRIEF_ANALYSIS_INSTRUCTIONS`,
+  a slot check (12 Oct 2026, after "a deck about Giga for the Ministry of Education of Kenya" came
+  back as eleven generic slides): what a presenter would ask a colleague, only for the empty slots,
+  in this order, at most three, each question's id its slot (`BRIEF_SLOTS`, an enum in
+  `BRIEF_ANALYSIS_SCHEMA`, ordered and capped by `normalizeBriefAnalysis`): **purpose** (introduce,
+  ask, report, decide), **facts** (attach a file or only the public figures allowed), **ask** (what
+  the audience should do at the end), **audience**. Options name the brief's country and audience.
+  `compileInsights` labels the slot answers ("Purpose: … The ask: …", `SLOT_LABELS`) and
+  `slotsFromNotes` reads them back for the pipeline; a brief's notes no longer carry the file
+  "Reinterpret" line. The facts option about a file (`attach`, found by `ATTACH_OPTION` in the
+  model's wording) stops the wizard at the file picker like "Attach the file" (`wantsFile`). Every
+  question can be passed with the wizard's Skip; there is no "let the builder decide" option row.
+  The brief subject fires under `SHORT_BRIEF_WORDS` (40) with no file: 15 of the 24 regression
+  briefs, and one of the five evaluation briefs (thin-ministry); `DOCUMENT_ANALYSIS_INSTRUCTIONS` asks only where the material could become
   two different decks and neither it nor the brief settles it (several projects or countries in
   one file, a report the deck could follow in part, two scenarios, a term the slides would have
   to explain), and says an empty list is the right answer otherwise. A clear document leaves the
