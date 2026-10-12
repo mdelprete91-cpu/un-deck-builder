@@ -53,8 +53,9 @@ export interface BrandTheme {
 const GIGA_LOCKUP = "/logos/giga-unicef-itu-horizontal.svg";
 const UNICEF_LOGO = "/logos/unicef.svg";
 const DID_UNBOXED = "/logos/unicef-digital-impact-unboxed.svg";
-const INCLUSION_BLACK = "/logos/unicef-digital-inclusion-black.svg";
-const INCLUSION_WHITE = "/logos/unicef-digital-inclusion-white.svg";
+// The UNICEF mark, a hairline and the wordmark, as on the two-pager's masthead (Mario, 12 Oct 2026).
+const INCLUSION_BLACK = "/logos/unicef-digital-inclusion-lockup-black.svg";
+const INCLUSION_WHITE = "/logos/unicef-digital-inclusion-lockup-white.svg";
 
 const TO_BLACK = "brightness(0)";
 const TO_WHITE = "brightness(0) invert(1)";
@@ -149,12 +150,12 @@ export const BRANDS: Record<BrandId, BrandTheme> = {
     label: "UNICEF Digital Inclusion",
     ...CYAN_PALETTE,
     footerLabel: "Digital Inclusion",
-    // Bare wordmark, no UNICEF emblem: its type fills the whole viewBox, so at
-    // the shared 60px logo height it renders roughly twice the type size of
-    // the other lockups. Scaled down until its cap height matches "giga".
-    logoLight: { src: INCLUSION_BLACK, filter: TO_BLACK, scale: 0.46 },
-    logoDark: { src: INCLUSION_WHITE, filter: TO_WHITE, scale: 0.46 },
-    logoCover: { src: INCLUSION_BLACK, scale: 0.46 },
+    // The full lockup (UNICEF mark | Digital Inclusion), the same one the
+    // two-pager prints, at the Digital Impact Division lockup's height: on
+    // the A4 masthead the two stand 37pt tall side by side.
+    logoLight: { src: INCLUSION_BLACK, filter: TO_BLACK, scale: 1.2 },
+    logoDark: { src: INCLUSION_WHITE, filter: TO_WHITE, scale: 1.2 },
+    logoCover: { src: INCLUSION_BLACK, scale: 1.2 },
   },
 };
 
