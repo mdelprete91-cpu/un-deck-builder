@@ -200,6 +200,10 @@ export function normalizeBriefAnalysis(raw: unknown): SheetAnalysis | null {
     .filter((q) => order(q.id) >= 0)
     .sort((x, y) => order(x.id) - order(y.id))
     .slice(0, MAX_BRIEF_QUESTIONS)
+    // Purpose, facts and audience are one answer each (the instructions say
+    // so); normalizeAnalysis would make "…a file with figures to use?" a
+    // multiple choice, and the file option would no longer stop the wizard.
+    .map((q) => (q.id !== "ask" && q.kind === "multi" ? { ...q, kind: "single" as const } : q))
     .map((q) => {
       if (q.id !== "facts") return q;
       // The model words the option in the brief's language; the one about a file is the one that opens the picker.
@@ -318,7 +322,7 @@ const lengthAnalysis: SheetAnalysis = {
     {
       id: LENGTH_QUESTION_ID,
       question: "How many slides should the deck have?",
-      why: "The cover and the closing slide count. You can add or remove slides afterwards.",
+      why: "The cover counts; the closing slide comes on top. You can add or remove slides afterwards.",
       kind: "single",
       options: [LENGTH_DECIDE, ...LENGTHS.map(([n]) => `${n} slides`)],
       details: ["Sized to what the brief and the material need", ...LENGTHS.map(([, d]) => d)],
