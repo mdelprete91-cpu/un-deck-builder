@@ -12,6 +12,8 @@ import {
   type MaterialKind,
 } from "@/lib/slides/sheet-questions";
 
+import { languageOf } from "@/lib/slides/brief";
+
 export const runtime = "nodejs";
 
 /**
@@ -67,7 +69,9 @@ export async function POST(request: Request): Promise<Response> {
   if (!process.env.OPENAI_API_KEY) return new Response("OPENAI_API_KEY is not configured", { status: 500 });
 
   const content: ResponseInputContent[] = [];
-  if (kind === "brief") content.push({ type: "input_text", text: `The user's brief for the deck: "${text}"` });
+  // The language is named, not left to "the brief's language": an English
+  // brief once got its questions in Spanish (12 Oct 2026).
+  if (kind === "brief") content.push({ type: "input_text", text: `The user's brief for the deck: "${text}"\n\nThe brief is in ${languageOf(text) ?? "English"}: write the summary, the questions and the options in ${languageOf(text) ?? "English"}.` });
   else if (pdf) content.push({ type: "input_file", filename: name, file_data: `data:application/pdf;base64,${pdf}` });
   else content.push({ type: "input_text", text: `${kind === "spreadsheet" ? "Workbook" : "Material"} "${name}":\n<<<\n${text}\n>>>` });
   if (brief && kind !== "brief") content.push({ type: "input_text", text: `The user's brief for the deck: "${brief}"` });
