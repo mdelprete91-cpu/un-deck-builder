@@ -68,6 +68,8 @@ export type Attachment =
       textOnly?: boolean;
       /** The text is an Excel workbook laid out as tables: the chip shows a sheet and the wizard always asks. */
       spreadsheet?: boolean;
+      /** A linked page's publication date (YYYY-MM-DD), read from its markup: the model is told it next to today's. */
+      published?: string;
     } & Questioned);
 
 /** The kinds the model reads and may have questions about (images are looked at, not questioned). */

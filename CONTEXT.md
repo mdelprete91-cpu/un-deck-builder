@@ -393,7 +393,13 @@ or a drop on the box. They exist to give the model the facts; they are **not** d
   text; a page that yields under 80 characters (built by JavaScript) is fetched again through
   Jina Reader (`r.jina.ai`, 20 s timeout), which renders it and returns the readable text; the
   result is capped like a text attachment, then appended to `attachments` as a text item named by
-  its URL (`buildUserContent` labels it "Linked page"). A failed fetch is skipped, never an
+  its URL (`buildUserContent` labels it "Linked page"). Its publication date is read from the
+  markup before it is stripped (`publishedDate`: article:published_time, JSON-LD datePublished,
+  og:updated_time, a time element; Jina's "Published Time"; else a /YYYY/MM/DD/ path) and the label
+  says it: `Linked page "url" (published 2025-08-28)`. The route puts today's date in the body and
+  the user turn opens with "Today is YYYY-MM-DD."; one line in both RULES lists says a source dated
+  before today has happened and is told in the past tense (12 Oct 2026: an August 2025 article
+  was presented in October 2026 in the future tense). A failed fetch is skipped, never an
   error. The composer draws links in Giga Blue through a mirror div under the textarea
   (`splitLinks`), so the user sees the link was recognised.
 - **A spreadsheet is a text attachment with the questions it raises** (25 Sep 2026, rewritten

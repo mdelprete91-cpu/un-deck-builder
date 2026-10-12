@@ -39,6 +39,7 @@ RULES:
 - steps, three-columns, timeline-phases, progress and agenda print their own numbers: a label is the item's name ("Map", "Verify"), never "1", "Step 1" or "01."; agenda bullets carry no number either.
 - A stat value spells its unit out or uses a standard symbol (%, $, M, K): "4 months", never "4 mo".
 - Voice: plain, declarative, public-good. Sentence case everywhere (never Title Case in body text). Banned words: leveraging, synergies, cutting-edge, revolutionary, empower, unlock.
+- The user message gives today's date: what a source dates before today has happened, and is written in the past tense.
 - Write in the same language as the brief.
 - Only state facts given in the brief or the attached material. Never invent statistics, names, emails or dates: no year, quarter or period the brief does not give, not even in a subtitle. Giga's own figures (2.2M+ schools mapped, 146 countries, giga.global) belong only in a deck the brief makes about Giga. A brief that names neither Giga nor UNICEF gets a deck that names neither, outside the closing slide.
 - DENSE MATERIAL: when the brief asks to carry a report or a long deck in full, keep its text and figures as written on the dense layouts (bullet-columns, figures-panel, scenarios, matrix, chart-text, cascade) instead of cutting them down to cards: one source slide becomes one slide, its headers become the column or row labels, its sub-points stay sub-points ("- "). Their "items" and "stats" live inside each block; on every other layout set them to []. "takeaway" is figures-panel's closing sentence when the material draws one; "" everywhere else.
@@ -110,6 +111,7 @@ RULES:
 - Only state facts given in the brief or the material. Never invent statistics, names, emails or dates. Giga's own figures (2.2M+ schools mapped, 146 countries, giga.global) belong only in a piece the brief makes about Giga, and they are the only Giga figures there are: never another count of countries, children or schools the brief does not give.
 - "numbered" prints its own 1, 2, 3: an item's label is never a number.
 - Voice: plain, declarative, public-good, written for a reader with two minutes. Sentence case. No em dashes: use commas, colons or full stops. Banned words: leveraging, synergies, cutting-edge, revolutionary, empower, unlock.
+- The user message gives today's date: what a source dates before today has happened, and is written in the past tense.
 - Write in the same language as the brief.
 - Every page carries "footerLabel": the brand or programme name the piece is from, <=40 chars, identical on both pages.
 - Every block object includes every field of the output schema. Set fields the chosen block does not use to "" (strings), [] (arrays) or -1 (accent).
@@ -148,6 +150,8 @@ interface GenerateBody {
   outputLanguage?: string;
   /** The user's answers to the questions a short brief raised (compileInsights): they rank with the brief. */
   briefNotes?: string;
+  /** Today's date (YYYY-MM-DD), set by the route: the model is told it, so a dated source reads in its tense. */
+  today?: string;
   /**
    * The last content slide the brief or the user's answers prescribe
    * (lastSlideFromBrief, the ask slot): one flat line in the user turn, sent
@@ -235,7 +239,7 @@ export function buildUserContent(body: GenerateBody): ResponseInputContent[] {
       const insights = a.insights?.trim() ? `\n${a.spreadsheet ? "What to draw from this spreadsheet" : "About this file, from the user"}: ${a.insights.trim()}` : "";
       blocks.push({
         type: "input_text",
-        text: `${label} "${a.name}"${a.truncated ? " (truncated)" : ""}:\n<<<\n${a.text}\n>>>${insights}`,
+        text: `${label} "${a.name}"${a.published ? ` (published ${a.published})` : ""}${a.truncated ? " (truncated)" : ""}:\n<<<\n${a.text}\n>>>${insights}`,
       });
     }
   }
@@ -243,7 +247,12 @@ export function buildUserContent(body: GenerateBody): ResponseInputContent[] {
   return blocks;
 }
 
+/** The user turn: today's date, then what the request asks (messageFor). */
 export function buildUserMessage(body: GenerateBody): string {
+  return `${body.today ? `Today is ${body.today}.\n\n` : ""}${messageFor(body)}`;
+}
+
+function messageFor(body: GenerateBody): string {
   if (body.format === "two-pager") return buildPageUserMessage(body);
   // The lockup sets logo and colours, never the subject. The closing slide's
   // fallback contact is the brand's team; Giga's own address only for Giga.

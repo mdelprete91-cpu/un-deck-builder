@@ -35,9 +35,12 @@ async function fetchPage(url: string): Promise<Attachment | null> {
     return null;
   }
   if (!/^https?:$/.test(parsed.protocol) || PRIVATE_HOST.test(parsed.hostname)) return null;
-  let text = await fetchPlain(url);
-  if (text.length < THIN_PAGE) text = await fetchRendered(url);
+  let { text, published } = await fetchPlain(url);
+  if (text.length < THIN_PAGE) ({ text, published } = await fetchRendered(url));
   if (text.length < THIN_PAGE) return null;
+  // The date the page gives, else the one its address carries (/2025/08/28/).
+  const fromUrl = /\/((?:19|20)\d{2})\/(\d{2})\/(\d{2})\//.exec(parsed.pathname);
+  const date = published ?? (fromUrl ? `${fromUrl[1]}-${fromUrl[2]}-${fromUrl[3]}` : undefined);
   return {
     id: "",
     name: url,
@@ -45,11 +48,33 @@ async function fetchPage(url: string): Promise<Attachment | null> {
     text: text.slice(0, MAX_TEXT_PER_FILE),
     bytes: Math.min(text.length, MAX_TEXT_PER_FILE),
     truncated: text.length > MAX_TEXT_PER_FILE,
+    ...(date ? { published: date } : {}),
   };
 }
 
+/**
+ * When the page says it was published: article:published_time, a JSON-LD
+ * datePublished, og:updated_time, a <time datetime>, in that order. Read
+ * before the markup is stripped (12 Oct 2026: an August 2025 article was
+ * told in the future tense in October 2026).
+ */
+function publishedDate(html: string): string | undefined {
+  const patterns = [
+    /<meta[^>]+(?:property|name|itemprop)=["'](?:article:published_time|datePublished|date|pubdate|publish-date|dc\.date)["'][^>]*content=["']([^"']+)["']/i,
+    /<meta[^>]+content=["']([^"']+)["'][^>]*(?:property|name|itemprop)=["'](?:article:published_time|datePublished)["']/i,
+    /"datePublished"\s*:\s*"([^"]+)"/i,
+    /<meta[^>]+property=["']og:updated_time["'][^>]*content=["']([^"']+)["']/i,
+    /<time[^>]+datetime=["']([^"']+)["']/i,
+  ];
+  for (const re of patterns) {
+    const d = re.exec(html)?.[1].match(/(?:19|20)\d{2}-\d{2}-\d{2}/)?.[0];
+    if (d) return d;
+  }
+  return undefined;
+}
+
 /** The page as the server sends it: enough for articles and documents. */
-async function fetchPlain(url: string): Promise<string> {
+async function fetchPlain(url: string): Promise<{ text: string; published?: string }> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
   try {
@@ -58,20 +83,20 @@ async function fetchPlain(url: string): Promise<string> {
       redirect: "follow",
       headers: { "user-agent": "GigaDeckBuilder/1.0 (+https://un-deck-builder.vercel.app)", accept: "text/html,text/plain;q=0.9,*/*;q=0.1" },
     });
-    if (!res.ok) return "";
+    if (!res.ok) return { text: "" };
     const type = res.headers.get("content-type") ?? "";
-    if (!/text\/html|text\/plain|application\/xhtml/.test(type)) return "";
+    if (!/text\/html|text\/plain|application\/xhtml/.test(type)) return { text: "" };
     const raw = (await res.text()).slice(0, MAX_BYTES);
-    return /html/.test(type) ? htmlToText(raw) : raw.trim();
+    return /html/.test(type) ? { text: htmlToText(raw), published: publishedDate(raw) } : { text: raw.trim() };
   } catch {
-    return "";
+    return { text: "" };
   } finally {
     clearTimeout(timer);
   }
 }
 
 /** The page after JavaScript has run, as readable text, via Jina Reader. */
-async function fetchRendered(url: string): Promise<string> {
+async function fetchRendered(url: string): Promise<{ text: string; published?: string }> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), READER_TIMEOUT_MS);
   try {
@@ -79,10 +104,13 @@ async function fetchRendered(url: string): Promise<string> {
       signal: controller.signal,
       headers: { accept: "text/plain", "x-return-format": "text" },
     });
-    if (!res.ok) return "";
-    return (await res.text()).slice(0, MAX_BYTES).replace(/[ \t]+/g, " ").replace(/\s*\n\s*/g, "\n").trim();
+    if (!res.ok) return { text: "" };
+    const text = (await res.text()).slice(0, MAX_BYTES).replace(/[ \t]+/g, " ").replace(/\s*\n\s*/g, "\n").trim();
+    // Jina's header block carries "Published Time: 2025-08-28T…" when the page gives one.
+    const published = /^Published Time:\s*((?:19|20)\d{2}-\d{2}-\d{2})/m.exec(text)?.[1];
+    return { text, published };
   } catch {
-    return "";
+    return { text: "" };
   } finally {
     clearTimeout(timer);
   }
