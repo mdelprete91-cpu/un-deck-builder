@@ -336,7 +336,7 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
                   footerLabel: (event.slide as { footerLabel?: string }).footerLabel ?? "",
                 }
               : event.slide;
-            let content = normalizeSlide(raw, { brandId: state.brandId });
+            let content = normalizeSlide(raw, { brandId: state.brandId, context: String(body.brief ?? "") });
             if (!content) continue;
             if (opts.dropChapters && CHAPTER_LAYOUTS.has(content.layoutId)) continue;
             if (rhythm) content = rhythm(stripInventedYear(content, String(body.brief ?? "")));
@@ -767,7 +767,7 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
     };
     // A new piece fills page one before page two (pullForward); a page
     // rewritten on its own keeps its blocks where they are.
-    const filled = opts.dated && pages.length > 1 ? await pullForward(fillPagePhotos(pages) as Slide[], theme) : fillPagePhotos(pages);
+    const filled = opts.dated && pages.length > 1 ? await pullForward(fillPagePhotos(pages, state.brief) as Slide[], theme) : fillPagePhotos(pages, state.brief);
     // A page emptied by pullForward goes (from the end, so indexes hold).
     const emptied: number[] = [];
     for (let i = 0; i < filled.length; i++) {

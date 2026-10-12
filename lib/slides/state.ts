@@ -304,7 +304,7 @@ function reduce(state: DeckState, action: DeckAction): DeckState {
         ...action.state,
         // A deck saved before the fallback opens with its empty photo slots
         // filled by children photos, each once, not the old AI placeholder.
-        ...(action.state.slides && !action.state.slides.some(isPage) ? { slides: fillPhotos(action.state.slides) as Slide[] } : {}),
+        ...(action.state.slides && !action.state.slides.some(isPage) ? { slides: fillPhotos(action.state.slides, action.state.brief ?? state.brief) as Slide[] } : {}),
         status: "idle",
         error: undefined,
         past: [],
@@ -381,12 +381,12 @@ function reduce(state: DeckState, action: DeckAction): DeckState {
       // A replicated deck keeps its slides one to one (no merge, no finish
       // pass): only its empty photo slots are filled.
       if (state.slides.some(isPage)) return state;
-      const filled = fillPhotos(state.slides) as Slide[];
+      const filled = fillPhotos(state.slides, state.brief) as Slide[];
       return filled.every((m, i) => m === state.slides[i]) ? state : { ...state, slides: filled };
     }
     case "MERGE_CONTINUATIONS": {
       if (state.slides.some(isPage)) return state;
-      const merged = fillPhotos(finishDeck(mergeContinuations(state.slides))) as Slide[];
+      const merged = fillPhotos(finishDeck(mergeContinuations(state.slides)), state.brief) as Slide[];
       if (merged.length === state.slides.length && merged.every((m, i) => m === state.slides[i])) return state;
       return { ...state, slides: merged, activeIndex: Math.min(state.activeIndex, merged.length - 1) };
     }
@@ -857,7 +857,7 @@ function reduce(state: DeckState, action: DeckAction): DeckState {
       const at = Math.min(action.index ?? state.activeIndex + 1, state.slides.length);
       const slides = [...state.slides];
       // A photo layout inserted by hand gets a children photo the deck does not use yet.
-      const [content] = fillPhotos([...state.slides, action.content]).slice(-1);
+      const [content] = fillPhotos([...state.slides, action.content], state.brief).slice(-1);
       slides.splice(at, 0, ensureId(content));
       return { ...state, ...remember(state), slides, activeIndex: at };
     }

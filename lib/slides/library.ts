@@ -388,7 +388,8 @@ export const LIBRARY: LibraryImage[] = [
  * (Mario, 27 Sep 2026: the AI-generated placeholder is never to be shown).
  * Handed out in turn so a deck does not repeat one picture.
  */
-export const CHILDREN_PHOTOS = ["students-tablet", "laptop-smile", "tablet-lesson", "mountain-walk", "health-centre", "kyrgyz-computer-lab", "cameroon-tablet-pair", "cameroon-girl-tablet", "cameroon-boy-tablet", "timor-learning-app", "classroom-tablet-pair", "teacher-tablet-girl", "tablet-maths-game", "unicef-desk-readers", "girls-headphones-tablet"];
+// tablet-lesson (two girls in face masks) is out of the fallback since 12 Oct 2026 (Mario): pickable, never automatic.
+export const CHILDREN_PHOTOS = ["students-tablet", "laptop-smile", "mountain-walk", "health-centre", "kyrgyz-computer-lab", "cameroon-tablet-pair", "cameroon-girl-tablet", "cameroon-boy-tablet", "timor-learning-app", "classroom-tablet-pair", "teacher-tablet-girl", "tablet-maths-game", "unicef-desk-readers", "girls-headphones-tablet"];
 
 /** The picture an empty photo slot shows: a photo of children, never the AI placeholder. */
 export const DEFAULT_PHOTO = "/library/students-tablet.jpg";
@@ -398,12 +399,12 @@ export const DEFAULT_PHOTO = "/library/students-tablet.jpg";
  * yet, cycling when all are taken. The model's own picks and the user's
  * uploads are left as they are.
  */
-export function fillPhotos<T extends { layoutId: string; image?: string; map?: string }>(slides: T[]): T[] {
+export function fillPhotos<T extends { layoutId: string; image?: string; map?: string }>(slides: T[], context = ""): T[] {
   const used = new Set(slides.map((s) => s.image).filter(Boolean));
   const all = CHILDREN_PHOTOS.map(librarySrc);
   let k = 0;
   const next = (text: string) => {
-    const pool = all.filter((p) => photoFits(p, text));
+    const pool = all.filter((p) => photoFits(p, text, context));
     const pick = pool.find((p) => !used.has(p)) ?? pool[k++ % pool.length];
     used.add(pick);
     return pick;
@@ -416,7 +417,7 @@ export function fillPhotos<T extends { layoutId: string; image?: string; map?: s
  * empty gets a children photo the piece does not use yet. The banner keeps
  * its own default (the data strip), and a figure with a map is a map.
  */
-export function fillPagePhotos<T extends { stack?: { type: string; image?: string; map?: string; items?: { image?: string }[] }[] }>(pages: T[]): T[] {
+export function fillPagePhotos<T extends { stack?: { type: string; image?: string; map?: string; items?: { image?: string }[] }[] }>(pages: T[], context = ""): T[] {
   const used = new Set<string>();
   for (const p of pages)
     for (const b of p.stack ?? []) {
@@ -426,7 +427,7 @@ export function fillPagePhotos<T extends { stack?: { type: string; image?: strin
   const all = CHILDREN_PHOTOS.map(librarySrc);
   let k = 0;
   const next = (text: string) => {
-    const pool = all.filter((p) => photoFits(p, text));
+    const pool = all.filter((p) => photoFits(p, text, context));
     const pick = pool.find((p) => !used.has(p)) ?? pool[k++ % pool.length];
     used.add(pick);
     return pick;
@@ -499,14 +500,18 @@ export function countriesIn(text: string): string[] {
 export const photoPlaces = (src: string | undefined) => (src ? PLACES.get(src) : undefined);
 
 /**
- * False when the picture shows a place and the text names countries that
- * are not it: a photo of the steppe under "Kenya", a Sri Lanka workshop
- * under "Rwanda". A text that names no country takes any picture.
+ * False when the picture shows a place and the words around it name
+ * countries that are not it: a photo of the steppe under "Kenya", a Sri Lanka
+ * workshop under "Rwanda". The slide's own words decide when they name a
+ * country; otherwise the deck's context (its brief) does, since a Kenya deck
+ * names Kenya on the cover and nowhere else (the evaluation of 12 Oct 2026).
+ * Text that names no country takes any picture.
  */
-export function photoFits(src: string | undefined, text: string): boolean {
+export function photoFits(src: string | undefined, text: string, context = ""): boolean {
   const places = src ? PLACES.get(src) : undefined;
   if (!places) return true;
-  const named = countriesIn(text);
+  const own = countriesIn(text);
+  const named = own.length ? own : countriesIn(context);
   return !named.length || named.some((n) => places.some((p) => p.toLowerCase() === n));
 }
 

@@ -564,7 +564,7 @@ export function overLimits(raw: unknown): { field: string; count: number; max: n
 
 export function normalizeSlide(
   raw: unknown,
-  opts: { keepClosingTitle?: boolean; brandId?: string } = {},
+  opts: { keepClosingTitle?: boolean; brandId?: string; context?: string } = {},
 ): SlideContent | null {
   const parsed = slideContentSchema.safeParse(raw);
   if (!parsed.success) return null;
@@ -578,7 +578,7 @@ export function normalizeSlide(
   // slide-shaped rules below apply, and ARRAY_LIMITS has no "a4-page" entry
   // (adding one would reject every page, since `stack` is not an ArrayField).
   if (isPage(slide)) {
-    const stack = normalizePage(slide.stack);
+    const stack = normalizePage(slide.stack, opts.context);
     if (!stack) return null;
     slide.stack = stack;
     // The label has to exist for the editor to write to it: setPath is a
@@ -623,7 +623,7 @@ export function normalizeSlide(
     const src = PHOTO_LAYOUTS.has(slide.layoutId) ? libraryPhoto(slide.photo) : undefined;
     // A picture of somewhere else than the country the slide is about goes;
     // fillPhotos then gives the slot a photo that fits.
-    if (src && !slide.image && !slide.map && photoFits(src, slideWords(slide))) slide.image = src;
+    if (src && !slide.image && !slide.map && photoFits(src, slideWords(slide), opts.context)) slide.image = src;
     delete slide.photo;
   }
   // Icons: a pinned set is the user's and stays; otherwise only known names

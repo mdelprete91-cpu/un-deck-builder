@@ -438,7 +438,7 @@ async function runPrompt(p: Prompt): Promise<Result> {
   const t0 = Date.now();
   let cost = 0;
   const post = (raw: unknown): SlideContent | null => {
-    const c = normalizeSlide(raw, { brandId: BRAND_ID });
+    const c = normalizeSlide(raw, { brandId: BRAND_ID, context: brief });
     if (!c) return null;
     if (!chapters && CHAPTER_LAYOUTS.has(c.layoutId)) return null;
     const r = rhythm(stripInventedYear(c, brief));
@@ -469,11 +469,12 @@ async function runPrompt(p: Prompt): Promise<Result> {
     const titles = new Set(slides.map((s) => (s.title ?? "").trim().toLowerCase()).filter(Boolean));
     const fallback = add.meta?.insertAfter ?? slides.length - 1;
     const extra = add.slides
-      .map((raw) => ({ s: normalizeSlide(raw, { brandId: BRAND_ID }), after: (raw as { after?: number }).after }))
+      .map((raw) => ({ s: normalizeSlide(raw, { brandId: BRAND_ID, context: brief }), after: (raw as { after?: number }).after }))
       .filter((x): x is { s: SlideContent; after: number | undefined } => !!x.s && (keepStructural || !STRUCTURAL.has(x.s.layoutId)) && !titles.has((x.s.title ?? "").trim().toLowerCase()))
       .map((x) => ({ ...x, s: tidyModelSlide(x.s) }))
       .slice(0, cap);
-    const clamp = (v: number) => Math.min(Math.max(v, 1), slides.length - 1);
+    // Never before the cover, even when the deck so far is the cover alone.
+    const clamp = (v: number) => Math.max(1, Math.min(v, slides.length - 1));
     const groups = new Map<number, SlideContent[]>();
     for (const x of extra) {
       const at = clamp(typeof x.after === "number" ? x.after : fallback);
@@ -534,7 +535,7 @@ async function runPrompt(p: Prompt): Promise<Result> {
   }
   // What the editor does once the deck is complete (see runGenerate in app/page.tsx).
   const beforeMerge = slides.length;
-  slides = fillPhotos(finishDeck(mergeContinuations(slides)));
+  slides = fillPhotos(finishDeck(mergeContinuations(slides)), brief);
   const merged = beforeMerge - slides.length;
   if (merged) warnings.push(`${merged} continued slide${merged === 1 ? "" : "s"} folded back`);
   if (uniformFromBrief(brief)) slides = unifyLayouts(slides);

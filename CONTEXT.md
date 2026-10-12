@@ -563,7 +563,13 @@ guard, all pure functions, none touching the user's words:
   carries a description written from the picture and the slides it suits; the system prompt lists
   them once, the output schema has `photo` (a library id or ""), and `normalizeSlide` turns a valid
   id into `image` only on a layout with a photo slot (`PHOTO_LAYOUTS`) and only when the slot is
-  empty. The rhythm pass puts a repeated photo back to the placeholder. The two buildings are the
+  empty. The rhythm pass puts a repeated photo back to the placeholder. **A picture of a place fits
+  only that place**: library entries carry `places`, and `photoFits` drops a photo whose places
+  are not the countries the slide names, or, when the slide names none, the countries of the deck's
+  brief (`normalizeSlide`'s `context`, `fillPhotos(slides, brief)` in the reducer, `fillPagePhotos`
+  and `normalizePage` for two-pagers). A Kenya deck named Kenya on its cover only and took the
+  Kazakhstan stage and the Central Asian steppe (12 Oct 2026). `tablet-lesson` (two girls in face
+  masks) is out of `CHILDREN_PHOTOS` since that day: the model or the user may still pick it. The two buildings are the
   Giga Technology Center in Barcelona (Ca l'Alier) and in Geneva (Campus Biotech), for a slide
   about that office only. A rewrite keeps a photo already on the slide and may fill an empty slot.
 - **Content QA** (`tools/qa-content.ts`, 27 Sep 2026): gpt-6-sol with reasoning judges each deck of

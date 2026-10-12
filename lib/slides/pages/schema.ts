@@ -317,7 +317,7 @@ function isEmptyBlock(b: PageBlock): boolean {
  * only what still exists), clamp the arrays, drop empties, cap the stack.
  * Returns null when nothing usable is left, so the caller discards the page.
  */
-export function normalizePage(stack: unknown): PageBlock[] | null {
+export function normalizePage(stack: unknown, context = ""): PageBlock[] | null {
   if (!Array.isArray(stack)) return null;
   const out: PageBlock[] = [];
   for (const raw of stack) {
@@ -341,7 +341,7 @@ export function normalizePage(stack: unknown): PageBlock[] | null {
     // A picture of another country than the one the card names goes
     // (Kenya over the Central Asian steppe, 9 Oct 2026); fillPagePhotos
     // then gives the slot a photo that fits.
-    const fit = (src: string | undefined, text: object) => (src && photoFits(src, slideWords(text)) ? src : undefined);
+    const fit = (src: string | undefined, text: object) => (src && photoFits(src, slideWords(text), context) ? src : undefined);
     block.image ??= fit(libraryPhoto(r.photo), { ...block, items: undefined });
     block.items?.forEach((it, i) => {
       it.image ??= fit(libraryPhoto(r.items?.[i]?.photo), it);
