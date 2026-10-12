@@ -25,7 +25,7 @@ import { defaultContent, denseContent } from "@/lib/slides/defaults";
 import { familyOf } from "@/lib/slides/families";
 import { countFromBrief, languageOf, lastSlideFromBrief, seriesFromBrief, uniformFromBrief, MIN_SLIDES_WITH_CHAPTERS, TIERS_REQUEST } from "@/lib/slides/brief";
 import { makeRhythm, stripInventedYear, type RhythmOptions } from "@/lib/slides/rhythm";
-import { tidyModelSlide } from "@/lib/slides/tidy";
+import { dropMetaNotes, tidyModelSlide } from "@/lib/slides/tidy";
 import { BLOCK_LABELS, presetStack } from "@/lib/slides/pages/presets";
 import { clearSaved, openSession, saveDeck } from "@/lib/slides/storage";
 import { buildHtmlDeck, exportHtmlDeck } from "@/lib/slides/export-html";
@@ -286,6 +286,7 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
     const briefLang = opts.replace && !body.source && typeof body.brief === "string" ? detectLang(body.brief, languageOf(body.brief)) : undefined;
     startSpinner();
     dispatch({ type: "GENERATION_START", replace: opts.replace, source: briefLang });
+    if (opts.replace) setBriefGaps([]);
     const rhythm = opts.rhythm ? makeRhythm(opts.rhythm) : null;
     // Before the first slide of a fresh deck lands, the "Generating…" pill's
     // place is measured, so the slide bar can fly in from there (FLIP in
@@ -342,6 +343,12 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
             if (rhythm) content = rhythm(stripInventedYear(content, String(body.brief ?? "")));
             if (!content) continue;
             content = tidyModelSlide(content);
+            // A note about the brief is not the slide's: it goes to the sidebar.
+            if (!body.source) {
+              const meta = dropMetaNotes(content);
+              content = meta.slide;
+              if (meta.dropped) setBriefGaps((g) => (g.includes(meta.dropped!) ? g : [...g, meta.dropped!]));
+            }
             if (opts.collectInsert) {
               collected.push(content);
               const after = (event.slide as { after?: unknown }).after;
@@ -430,6 +437,8 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
   const [attachError, setAttachError] = useState<string | null>(null);
   /** The count that made the last generation skip chapters, for the sidebar. */
   const [chaptersSkipped, setChaptersSkipped] = useState<number | null>(null);
+  /** Notes the model wrote about the brief instead of on a slide (dropMetaNotes), for the sidebar. Session state, never saved. */
+  const [briefGaps, setBriefGaps] = useState<string[]>([]);
   // The last replica's fidelity report (lib/slides/fidelity.ts): session
   // state like chaptersSkipped, cleared by the next generation, never saved.
   const [fidelity, setFidelity] = useState<DeckFidelity | null>(null);
@@ -1982,6 +1991,7 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
         onOpenSheet={(id) => setWizard({ queue: [id], intent: "edit" })}
         attachError={attachError}
         chaptersSkipped={chaptersSkipped}
+        briefGaps={briefGaps}
         fidelity={fidelity}
       />
 

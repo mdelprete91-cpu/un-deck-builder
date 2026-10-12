@@ -585,6 +585,11 @@ guard, all pure functions, none touching the user's words:
 - **Known limit, not guarded**: a PDF with no text layer (a scanned or rendered page) is read by
   the model as an image, and a digit can come back wrong (3,323 rejected schools read as 3,523,
   twice, 26 Sep 2026). The prompt says digit by digit; the fix is a PDF with a text layer.
+- **Notes about the brief stay off the slides** (12 Oct 2026: "The brief does not specify…" in
+  the footnote row of most slides of a technical deck). `dropMetaNotes` (`tidy.ts`, `META_NOTE`)
+  takes such a note off a generated or added slide, never a replica's (its notes are the
+  source's), and the sidebar lists them under "Gaps in the brief, kept off the slides" (`briefGaps`,
+  session state like `chaptersSkipped`, cleared by the next deck). The FOOTNOTES rule says it too.
 - **`lib/slides/voice.ts`**, in the route on every string the model wrote: the banned words
   (leveraging, synergies, cutting-edge, revolutionary, empower, unlock) become plain ones, forms
   preserved, unless the brief itself uses the word. Never in a replica: those are the source's words.

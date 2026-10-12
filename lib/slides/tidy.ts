@@ -95,3 +95,17 @@ export function tidyModelSlide<T extends SlideContent>(content: T): T {
   }
   return slide;
 }
+
+/**
+ * A footnote about the brief instead of the material ("The brief does not
+ * specify…", on most slides of a technical deck, the evaluation of 12 Oct
+ * 2026). Generated slides only, never a replica, whose notes are the
+ * source's own: the caller takes the dropped note for the sidebar's "Gaps in
+ * the brief".
+ */
+export const META_NOTE = /\b(the brief|the material|not specified|does not (specify|give|provide|define|prescribe))\b/i;
+export function dropMetaNotes<T extends SlideContent>(slide: T): { slide: T; dropped?: string } {
+  if (!slide.notes || !META_NOTE.test(slide.notes)) return { slide };
+  const { notes, ...rest } = slide;
+  return { slide: rest as T, dropped: notes };
+}

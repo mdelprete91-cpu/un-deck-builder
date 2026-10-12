@@ -20,7 +20,7 @@ import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { countFromBrief, lastSlideFromBrief, seriesFromBrief, uniformFromBrief, MIN_SLIDES_WITH_CHAPTERS, TIERS_REQUEST } from "../lib/slides/brief";
 import { normalizeSlide, overLimits, type LayoutId, type SlideContent } from "../lib/slides/schema";
-import { tidyModelSlide } from "../lib/slides/tidy";
+import { dropMetaNotes, META_NOTE, tidyModelSlide } from "../lib/slides/tidy";
 import { closingFor, finishDeck, makeRhythm, mergeContinuations, stripInventedYear, unifyLayouts } from "../lib/slides/rhythm";
 import { PARTNER_NAMES } from "../lib/slides/partners";
 import { extractDocx, extractPptx, extractXlsx, type Attachment } from "../lib/slides/attachments";
@@ -181,8 +181,6 @@ const SELF_NUMBERED = new Set(["steps", "three-columns", "timeline-phases"]);
 const NUMBER_ONLY = /^\s*(?:(?:step|phase|stage|fase|passo|paso|etapa|étape)\s*)?(?:\d{1,2}|[ivx]{1,4})[.):]?\s*$/i;
 const PLACEHOLDER = /lorem ipsum|\btbd\b|\[[^\]]{0,40}\]|one sentence describing|presentation title|section title|subtitle goes here|name surname/i;
 const norm = (t?: string) => (t ?? "").toLowerCase().replace(/\s+/g, " ").trim();
-/** A footnote about the brief instead of the material (the evaluation of 12 Oct 2026). */
-const META_NOTE = /\b(the brief|the material|not specified|does not (specify|give|provide|define|prescribe))\b/i;
 /** A chart whose every figure is 0 or 1: flags drawn as data. */
 const isFlagChart = (s: SlideContent) =>
   isChartLayout(s.layoutId) && !!s.bars?.length && s.bars.every((b) => (b.values?.length ? b.values : [b.value]).every((v) => v === 0 || v === 1));
@@ -442,7 +440,7 @@ async function runPrompt(p: Prompt): Promise<Result> {
     if (!c) return null;
     if (!chapters && CHAPTER_LAYOUTS.has(c.layoutId)) return null;
     const r = rhythm(stripInventedYear(c, brief));
-    return r && tidyModelSlide(r);
+    return r && dropMetaNotes(tidyModelSlide(r)).slide;
   };
   if (p.use === "replicate") return replicatePrompt(p, brief, paths[0], t0);
   // The questions the editor's wizard would ask on this brief (onGenerate's own test).
@@ -471,7 +469,7 @@ async function runPrompt(p: Prompt): Promise<Result> {
     const extra = add.slides
       .map((raw) => ({ s: normalizeSlide(raw, { brandId: BRAND_ID, context: brief }), after: (raw as { after?: number }).after }))
       .filter((x): x is { s: SlideContent; after: number | undefined } => !!x.s && (keepStructural || !STRUCTURAL.has(x.s.layoutId)) && !titles.has((x.s.title ?? "").trim().toLowerCase()))
-      .map((x) => ({ ...x, s: tidyModelSlide(x.s) }))
+      .map((x) => ({ ...x, s: dropMetaNotes(tidyModelSlide(x.s)).slide }))
       .slice(0, cap);
     // Never before the cover, even when the deck so far is the cover alone.
     const clamp = (v: number) => Math.max(1, Math.min(v, slides.length - 1));
