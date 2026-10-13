@@ -15,6 +15,7 @@ import { fetchLinkedPages } from "@/lib/slides/links-server";
 import { languageOf, MAX_SLIDES } from "@/lib/slides/brief";
 import { cleanVoice } from "@/lib/slides/voice";
 import { yearTimelineMonths } from "@/lib/slides/rhythm";
+import { kbAttachments } from "@/lib/slides/kb";
 import type { SlideContent } from "@/lib/slides/schema";
 import { LANG_NAMES } from "@/lib/slides/i18n";
 
@@ -106,7 +107,8 @@ export async function POST(request: Request): Promise<Response> {
   const linked = oneSlide ? [] : await fetchLinkedPages(body.brief ?? "");
   body = {
     ...body,
-    attachments: [...attachments, ...linked],
+    // The knowledge base's pages on what the brief names (lib/slides/kb.ts), never on a replica.
+    attachments: [...attachments, ...linked, ...(oneSlide || body.source ? [] : kbAttachments(body.brief ?? ""))],
     // A replicated slide keeps the source's language, whatever the brief's.
     // The deck's language once it has been switched (lib/slides/i18n.ts), else the brief's.
     language:

@@ -373,6 +373,21 @@ offer.
   same file, same place: a year in the cover's subtitle that the brief never gave is the model's
   ("2024", three times with the rule against it), and the subtitle goes.
 
+## Knowledge base
+
+Mario, 13 Oct 2026. `kb/index.json` holds the pages of Giga Maps, Giga Meter, Connectivity Credits,
+Spectrum Certificates and the whole UNICEF Digital Impact site (`kb/sources.json`: aliases, start
+pages, how far to follow links), cleaned to text with the day each page was first read as it is.
+`tools/kb-update.ts` reads them (plain fetch, Jina for pages built by JavaScript; stylesheets,
+scripts and privacy pages skipped; navigation lines and HTML entities cleaned) and writes
+`kb/CHANGES.md`. `.github/workflows/kb-update.yml` runs it every Monday and opens a pull request
+when anything changed; merging deploys. No API key: the model reads the pages only when a deck
+needs them. `kbAttachments` (`lib/slides/kb.ts`) gives a brief that names a source (by its
+aliases, whole words) that source's pages as one reference attachment, the pages sharing most
+words with the brief first, 12k characters at most, labelled with the read date; never to a
+replica or a rewrite. The system prompt does not change. A brief that only says "Giga" gets
+nothing from here (giga.global is not a source): `GIGA_FACTS` covers it.
+
 ## Attachments to the brief
 
 The prompt box takes reference files (PDF, Word, PowerPoint, Excel, text, images) via "Attach files"

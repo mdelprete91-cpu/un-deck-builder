@@ -96,7 +96,7 @@ async function fetchPlain(url: string): Promise<{ text: string; published?: stri
 }
 
 /** The page after JavaScript has run, as readable text, via Jina Reader. */
-async function fetchRendered(url: string): Promise<{ text: string; published?: string }> {
+export async function fetchRendered(url: string): Promise<{ text: string; published?: string }> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), READER_TIMEOUT_MS);
   try {
@@ -117,7 +117,7 @@ async function fetchRendered(url: string): Promise<{ text: string; published?: s
 }
 
 /** The readable text of a page: no scripts, styles, nav chrome or tags. */
-function htmlToText(html: string): string {
+export function htmlToText(html: string): string {
   const body = html
     .replace(/<script[\s\S]*?<\/script>/gi, " ")
     .replace(/<style[\s\S]*?<\/style>/gi, " ")

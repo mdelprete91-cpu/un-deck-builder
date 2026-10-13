@@ -1,0 +1,99 @@
+{
+  "_doc": "Sources of the knowledge base (tools/kb-update.ts, weekly GitHub Action). Each source: what a brief may call it (aliases), where to read it, and how far to follow its own links. Mario's list, 13 Oct 2026.",
+  "sources": [
+    {
+      "id": "giga-maps",
+      "name": "Giga Maps",
+      "aliases": [
+        "giga maps",
+        "gigamaps",
+        "giga map",
+        "connectivity map",
+        "maps.giga.global"
+      ],
+      "start": [
+        "https://maps.giga.global/about"
+      ],
+      "render": true,
+      "follow": {
+        "prefix": "https://maps.giga.global/about",
+        "max": 4
+      }
+    },
+    {
+      "id": "connectivity-credits",
+      "name": "Connectivity Credits",
+      "aliases": [
+        "connectivity credits",
+        "connectivity credit",
+        "connectivitycredits"
+      ],
+      "start": [
+        "https://www.connectivitycredits.org/"
+      ],
+      "follow": {
+        "prefix": "https://www.connectivitycredits.org/",
+        "max": 4
+      }
+    },
+    {
+      "id": "giga-meter",
+      "name": "Giga Meter",
+      "aliases": [
+        "giga meter",
+        "gigameter",
+        "daily check app",
+        "meter.giga.global"
+      ],
+      "start": [
+        "https://meter.giga.global/"
+      ],
+      "follow": {
+        "prefix": "https://meter.giga.global/",
+        "max": 4
+      }
+    },
+    {
+      "id": "spectrum-certificates",
+      "name": "Spectrum Certificates",
+      "aliases": [
+        "spectrum certificates",
+        "spectrum certificate",
+        "spectrumcertificates"
+      ],
+      "start": [
+        "https://spectrumcertificates.org/"
+      ],
+      "follow": {
+        "prefix": "https://spectrumcertificates.org/",
+        "max": 4
+      }
+    },
+    {
+      "id": "unicef-digital-impact",
+      "name": "UNICEF Digital Impact Division and Digital Inclusion",
+      "aliases": [
+        "digital inclusion",
+        "digital impact division",
+        "digital impact",
+        "unicef did",
+        "inclusione digitale",
+        "inclusión digital"
+      ],
+      "start": [
+        "https://www.unicef.org/digitalimpact/digital-inclusion",
+        "https://www.unicef.org/digitalimpact/",
+        "https://www.unicef.org/digitalimpact/about-digital-inclusion",
+        "https://www.unicef.org/digitalimpact/what-we-do",
+        "https://www.unicef.org/digitalimpact/Who-we-are",
+        "https://www.unicef.org/digitalimpact/stories",
+        "https://www.unicef.org/digitalimpact/data-and-resources",
+        "https://www.unicef.org/digitalimpact/take-action"
+      ],
+      "follow": {
+        "prefix": "https://www.unicef.org/digitalimpact/",
+        "max": 150
+      }
+    }
+  ]
+}
