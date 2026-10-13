@@ -275,8 +275,10 @@ export async function POST(request: Request): Promise<Response> {
             // A two-pager replica reads a layout (columns over two pages, cards,
             // captions) before it writes: with no reasoning the same PDF came
             // out right one time and scrambled the next (7 Oct 2026). Every
-            // other generation keeps it off.
-            reasoning: { effort: twoPager && body.source ? "medium" : "none" },
+            // other generation keeps it off. Low, not medium (Mario, 13 Oct 2026:
+            // "the two-pager is very slow to replicate"): the thinking came
+            // before the first page and again on every repair pass.
+            reasoning: { effort: twoPager && body.source ? "low" : "none" },
             max_output_tokens: maxTokens,
             stream: true,
           },
