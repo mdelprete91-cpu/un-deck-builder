@@ -406,7 +406,7 @@ export const DEFAULT_PHOTO = "/library/students-tablet.jpg";
  * yet, cycling when all are taken. The model's own picks and the user's
  * uploads are left as they are.
  */
-export function fillPhotos<T extends { layoutId: string; image?: string; map?: string }>(slides: T[], context = ""): T[] {
+export function fillPhotos<T extends { layoutId: string; image?: string; map?: string }>(slides: T[], context = "", opts: { dedupe?: boolean } = {}): T[] {
   const used = new Set(slides.map((s) => s.image).filter(Boolean));
   const all = CHILDREN_PHOTOS.map(librarySrc);
   // When the children photos that fit run out (a Kenya deck keeps two of
@@ -420,7 +420,23 @@ export function fillPhotos<T extends { layoutId: string; image?: string; map?: s
     used.add(pick);
     return pick;
   };
-  return slides.map((s) => (PHOTO_LAYOUTS.has(s.layoutId) && !s.image && !s.map ? { ...s, image: next(slideWords(s)) } : s));
+  // A library photo a later slide repeats (the model picked it again on a
+  // slide the top-up added, 13 Oct 2026) goes back to the fill.
+  const seen = new Set<string>();
+  // Only at the end of a generation: a reopened deck keeps what its user chose.
+  const deduped = slides.map((s) => {
+    if (!opts.dedupe || !s.image || !isLibraryImage(s.image)) return s;
+    if (!seen.has(s.image)) {
+      seen.add(s.image);
+      return s;
+    }
+    const { image: _i, ...rest } = s;
+    void _i;
+    return rest as T;
+  });
+  used.clear();
+  deduped.forEach((s) => s.image && used.add(s.image));
+  return deduped.map((s) => (PHOTO_LAYOUTS.has(s.layoutId) && !s.image && !s.map ? { ...s, image: next(slideWords(s)) } : s));
 }
 
 /**

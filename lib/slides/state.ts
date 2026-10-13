@@ -386,7 +386,7 @@ function reduce(state: DeckState, action: DeckAction): DeckState {
     }
     case "MERGE_CONTINUATIONS": {
       if (state.slides.some(isPage)) return state;
-      const merged = fillPhotos(finishDeck(mergeContinuations(state.slides), { series: action.series }), state.brief) as Slide[];
+      const merged = fillPhotos(finishDeck(mergeContinuations(state.slides), { series: action.series }), state.brief, { dedupe: true }) as Slide[];
       if (merged.length === state.slides.length && merged.every((m, i) => m === state.slides[i])) return state;
       return { ...state, slides: merged, activeIndex: Math.min(state.activeIndex, merged.length - 1) };
     }
