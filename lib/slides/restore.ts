@@ -728,6 +728,50 @@ const point = (l: Line) => (l.sub ? `- ${l.text}` : l.text);
 const headLike = (l: Line | undefined) => !!l && !l.sub && words(l.text) <= 8 && !/[.;!]$/.test(l.text.trim()) && !figuresIn(l.text).length;
 
 /**
+ * Label-and-text rows: three or more short labels, each with its text either
+ * level with it on the right (a narrow column of labels) or right under it,
+ * in the same column (a heading over its paragraph, Digital Inclusion 10:
+ * "Handsets and devices" over its line). Null when the slide is not set out
+ * either way.
+ */
+function rowsOf(boxes: Box[]): { pairs: { label: Box; text: Box }[]; used: Set<Box> } | null {
+  return besideRows(boxes) ?? stackedRows(boxes);
+}
+function stackedRows(boxes: Box[]): { pairs: { label: Box; text: Box }[]; used: Set<Box> } | null {
+  const heads = boxes.filter((b) => b.lines.length === 1 && headLike(b.lines[0]));
+  const pairs: { label: Box; text: Box }[] = [];
+  const taken = new Set<Box>();
+  for (const h of [...heads].sort((a, b) => a.y - b.y)) {
+    const t = boxes
+      .filter((x) => x !== h && !taken.has(x) && !heads.includes(x) && Math.abs(x.x - h.x) < 0.03 && x.y >= h.y + h.h - 0.01 && x.y - (h.y + h.h) < 0.05 && x.w >= h.w * 0.6)
+      .sort((a, b) => a.y - b.y)[0];
+    if (!t) continue;
+    taken.add(t);
+    pairs.push({ label: h, text: t });
+  }
+  if (pairs.length < 3) return null;
+  return { pairs, used: new Set(pairs.flatMap((p) => [p.label, p.text])) };
+}
+function besideRows(boxes: Box[]): { pairs: { label: Box; text: Box }[]; used: Set<Box> } | null {
+  const labels = boxes.filter((b) => b.w < 0.3 && b.lines.length === 1 && headLike(b.lines[0]));
+  const texts = boxes.filter((b) => b.w >= 0.35);
+  const pairs: { label: Box; text: Box }[] = [];
+  const taken = new Set<Box>();
+  for (const l of [...labels].sort((a, b) => a.y - b.y)) {
+    const mid = l.y + l.h / 2;
+    // Level with it: the text's box spans the label's middle, and starts to its right.
+    const t = texts
+      .filter((x) => !taken.has(x) && x.x >= l.x + l.w - 0.02 && mid >= x.y - 0.02 && mid <= x.y + x.h + 0.02)
+      .sort((a, b) => Math.abs(a.y + a.h / 2 - mid) - Math.abs(b.y + b.h / 2 - mid))[0];
+    if (!t) continue;
+    taken.add(t);
+    pairs.push({ label: l, text: t });
+  }
+  if (pairs.length < 3 || pairs.length < labels.length - 1) return null;
+  return { pairs, used: new Set(pairs.flatMap((p) => [p.label, p.text])) };
+}
+
+/**
  * A group of boxes as the points of one block, the source's grouping kept: a
  * box that opens on a header gives the block its label (the first box) or
  * a point with the box's other lines as its sub-points ("header" + "-
@@ -867,7 +911,11 @@ export function rebuildFromBoxes(units: SourceUnits, title: string, source: Sour
   if (!notes) tail.push(...noteLines.map((e) => ({ ...e, sub: false })));
 
   // 1. A grid, as a matrix.
-  const grid = gridOf(boxes);
+  const found = gridOf(boxes);
+  // One band of paragraphs is not a matrix but columns of cards (Digital
+  // Inclusion 11: three headed cards, their first paragraph read as values,
+  // the rest pushed to a second slide): the columns below take it whole.
+  const grid = found && !(found.bands.length === 1 && found.bands[0].cells.some((c) => words(c.value?.lines.map((l) => l.text).join(" ") ?? "") > 12)) ? found : null;
   if (grid) {
     const labels = grid.bands.map((b) => b.label?.lines.map((l) => l.text).join(" ") ?? "");
     // The heading read as the first pathway: the line over everything is the slide's title then.
@@ -896,6 +944,39 @@ export function rebuildFromBoxes(units: SourceUnits, title: string, source: Sour
   }
   // The title's own box is the title, not a point.
   boxes = boxes.map((b) => ({ ...b, lines: b.lines.filter((l) => l.text !== titleLine || slideTitle !== titleLine) })).filter((b) => b.lines.length);
+
+  // 1b. Rows: a short label on the left, its text on the right, row by row
+  // ("Country offices: Some key wins", Digital Inclusion deck, 13 Oct 2026:
+  // six countries, each a line of text beside it). Read column by column,
+  // the texts parted from their labels and each wide one opened a slide of
+  // its own; paired by row, they are the list layout's rows, one slide.
+  const rows = rowsOf(boxes);
+  // Only a slide that is all rows (a lead and captions aside): rows found
+  // inside cards or columns would split those across two slides.
+  const rowsOnly = (() => {
+    if (!rows) return false;
+    const rest = boxes.filter((b) => !rows.used.has(b));
+    const top = Math.min(...rows.pairs.map((r) => r.label.y));
+    return rest.every((b) => b.y + b.h <= top + 0.01 || b.lines.every((l) => words(l.text) <= 4));
+  })();
+  if (rows && rowsOnly && !chartBoxes.length && !out.length) {
+    const rowBlocks: Block[] = rows.pairs.map((r) => ({ label: r.label.lines.map((l) => l.text).join(" "), body: r.text.lines.map((l) => l.text).join(" ") }));
+    // What else the slide says, a lead over the rows and short captions, goes in the band over them.
+    const rest = boxes.filter((b) => !rows.used.has(b));
+    const top = Math.min(...rows.pairs.map((r) => r.label.y));
+    const lead = rest.filter((b) => b.y + b.h <= top + 0.01);
+    const captions = rest.filter((b) => !lead.includes(b) && b.lines.every((l) => words(l.text) <= 4));
+    const band = [...lead, ...captions].flatMap((b) => b.lines.map((l) => l.text)).join(" · ");
+    const banded = band && words(band) <= 60 ? [...lead, ...captions] : [];
+    const make = (bs: Block[], t: string) => clean({ layoutId: "list", title: t, blocks: bs, ...(banded.length ? { support: band } : {}) });
+    let parts = 1;
+    while (parts < rowBlocks.length && !Array.from({ length: parts }, (_, i) => rowBlocks.slice(Math.ceil((i * rowBlocks.length) / parts), Math.ceil(((i + 1) * rowBlocks.length) / parts))).every((bs) => holds(make(bs, slideTitle)))) parts++;
+    for (let i = 0; i < parts; i++) {
+      const bs = rowBlocks.slice(Math.ceil((i * rowBlocks.length) / parts), Math.ceil(((i + 1) * rowBlocks.length) / parts));
+      out.push(make(bs, i === 0 ? slideTitle : `${slideTitle} ${cont}`));
+    }
+    boxes = boxes.filter((b) => !rows.used.has(b) && !banded.includes(b));
+  }
 
   // 2. Charts, one a slide, each with what sits in its column.
   const overflow: Block[] = [];
