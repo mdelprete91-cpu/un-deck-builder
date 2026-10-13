@@ -591,5 +591,269 @@
     }
    ]
   }
+ ],
+ "spectrum": [
+  {
+   "layoutId": "a4-page",
+   "footerLabel": "Digital Inclusion · Spectrum Certificates",
+   "pageDate": "October 2026",
+   "stack": [
+    {
+     "type": "title",
+     "heading": "Spectrum Certificates: A digital instrument for issuing temporary spectrum-use authorizations under existing regulatory authority."
+    },
+    {
+     "type": "callout",
+     "lead": "Status:",
+     "body": "Concept and prototype. Reference implementation available at https://portal.spectrumcertificates.org and overview at https://portal.spectrumcertificates.org/tour. No production software, no live issuances. This brief is intended to open a working conversation about a sandbox pilot and partnership development.",
+     "tone": "orange"
+    },
+    {
+     "type": "section",
+     "rail": "What a Spectrum Certificate is",
+     "items": [
+      {
+       "label": "",
+       "body": "A Spectrum Certificate is a cryptographically signed, machine-readable record of a temporary spectrum-use authorization, issued by a regulator to an operator, scoped to frequency, geography, time window, and power, with a defined lifecycle and a public verification path."
+      },
+      {
+       "label": "",
+       "body": "Current spectrum management frameworks in most national markets were designed for a small number of operators, static assignments, and predictable use cases. They do not handle dynamic spectrum access, shared-use models, automation, LEO and non-traditional deployment, or short-duration narrow-geography uses cleanly. Operators wait years on category-by-category licensing; regulators recognize the mismatch but lack instruments to act without legislative reform."
+      },
+      {
+       "label": "",
+       "body": "A Spectrum Certificate sits on top of existing licensing. It does not replace it. The regulator retains full legal authority. The certificate is an instrument for expressing, tracking, and verifying a grant of use that already falls within the regulator's mandate, in a form that is responsive to real-time demand, and is queryable, revocable, as well as auditable in seconds rather than weeks."
+      }
+     ]
+    },
+    {
+     "type": "screens",
+     "items": [
+      {
+       "label": "",
+       "body": ""
+      },
+      {
+       "label": "",
+       "body": ""
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "layoutId": "a4-page",
+   "footerLabel": "Digital Inclusion · Spectrum Certificates",
+   "pageDate": "October 2026",
+   "stack": [
+    {
+     "type": "section",
+     "rail": "US/North America telecommunication ask",
+     "items": [
+      {
+       "label": "",
+       "body": "We are looking to integrate and test the Spectrum Certificates registry and framework in an US/FCC testing sandbox environment. We would work with the FCC and partner organizations to"
+      },
+      {
+       "kind": "number",
+       "label": "",
+       "body": "integrate the registry with current spectrum management tools"
+      },
+      {
+       "kind": "number",
+       "label": "",
+       "body": "prove spectrum certificates as a framework to enhance responsiveness and telecommunication resilience"
+      },
+      {
+       "kind": "number",
+       "label": "",
+       "body": "further develop management platform tools which interface with the certificates registry system and"
+      },
+      {
+       "kind": "number",
+       "label": "",
+       "body": "work together with FCC innovation partners to enhance the value-add of granular spectrum sharing."
+      }
+     ]
+    },
+    {
+     "type": "section",
+     "rail": "International Development",
+     "items": [
+      {
+       "label": "",
+       "body": "We are actively pursuing and have received strong interest from regulatory authorities of Nigeria, Kenya, and Ghana. We are in early stages of pilot deployment in Sierra Leone."
+      },
+      {
+       "label": "",
+       "body": "We would welcome further introductions and support from the FCC as we continue international deployments. On the international stage the Spectrum Certificates framework can"
+      },
+      {
+       "kind": "number",
+       "label": "",
+       "body": "enhance emergency and high-impact event resilience"
+      },
+      {
+       "kind": "number",
+       "label": "",
+       "body": "enable last-mile connectivity"
+      },
+      {
+       "kind": "number",
+       "label": "",
+       "body": "expand market opportunity and"
+      },
+      {
+       "kind": "number",
+       "label": "",
+       "body": "offer a trusted and robust telecommunication software layer in developing regions."
+      }
+     ]
+    },
+    {
+     "type": "section",
+     "rail": "Emerging Technologies",
+     "items": [
+      {
+       "label": "",
+       "body": "Spectrum certificates offer a flexibility framework geared for interoperability and automation. We believe it can have an impact as in the following emerging technologies"
+      },
+      {
+       "kind": "number",
+       "label": "",
+       "body": "unmanned vehicle communication systems"
+      },
+      {
+       "kind": "number",
+       "label": "",
+       "body": "LEO satellite communication system, both direct and via terrestrial systems"
+      },
+      {
+       "kind": "number",
+       "label": "",
+       "body": "dynamic sharing and emergency responsiveness"
+      }
+     ]
+    },
+    {
+     "type": "contacts",
+     "rail": "Contact",
+     "lead": "We are actively seeking strategic partnerships with technology providers and would welcome FCC backing in these initiatives.",
+     "items": [
+      {
+       "label": "Naroa Zurutuza",
+       "body": "CTO and Co-Founder, Giga (UNICEF)",
+       "extra": "nzurutuza@unicef.org"
+      },
+      {
+       "label": "Daniel Krasner",
+       "body": "Spectrum Certificates Project lead/CTO",
+       "extra": "dkrasner@unicef.org"
+      }
+     ]
+    }
+   ]
+  }
+ ],
+ "songbird": [
+  {
+   "layoutId": "a4-page",
+   "footerLabel": "Digital Inclusion · Songbird",
+   "pageDate": "October 2026",
+   "stack": [
+    {
+     "type": "title",
+     "heading": "Songbird: Safe, affordable connectivity infrastructure for child serving facilities"
+    },
+    {
+     "type": "section",
+     "rail": "What Songbird is",
+     "items": [
+      {
+       "label": "",
+       "body": "Songbird is an early stage connectivity infrastructure project incubated by UNICEF. It delivers affordable upstream wholesale bandwidth to ISPs, governments, and public purpose institutions — reducing the per megabit cost of connecting schools, health facilities, and other child serving facilities."
+      },
+      {
+       "label": "",
+       "body": "The network is designed around four operating principles:"
+      },
+      {
+       "kind": "bullet",
+       "label": "",
+       "body": "Cheaper — affordable wholesale rates for governments and other entities connecting schools and health centers."
+      },
+      {
+       "kind": "bullet",
+       "label": "",
+       "body": "Healthier — redundant connectivity pathways that strengthen network resilience for critical public services."
+      },
+      {
+       "kind": "bullet",
+       "label": "",
+       "body": "Faster — smart, lean network design combining idle infrastructure, localized caching, and efficient routing to optimize bandwidth supply and lower cost."
+      },
+      {
+       "kind": "bullet",
+       "label": "",
+       "body": "Safer — content filtering and monitoring capabilities to ensure safe internet access for children."
+      },
+      {
+       "label": "This bridges the first and middle mile, linking subsea cable bandwidth to terrestrial fiber through partnerships and IRU investments directed at safe connectivity for children.",
+       "body": ""
+      }
+     ]
+    },
+    {
+     "type": "split",
+     "tag": "Phase 1",
+     "body": "Focus is East, West and North Africa with regional connectivity rings (an East African ring linking Mombasa and Dar es Salaam inland; a West African ring from Lagos; a North African route leveraging new subsea capacity)."
+    },
+    {
+     "type": "section",
+     "rail": "US/FCC ask",
+     "items": [
+      {
+       "label": "",
+       "body": "AI is driving the largest subsea build cycle in two decades, led mostly by hyperscalers such as Meta, Google, and Amazon. We are looking to work with the FCC and US partner organizations to:"
+      }
+     ]
+    },
+    {
+     "type": "numbered",
+     "items": [
+      {
+       "label": "",
+       "body": "Work with the FCC on how an open access, trusted vendor wholesale layer in Africa fits the broader US activities in secure, resilient, and diversified international connectivity infrastructure."
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "layoutId": "a4-page",
+   "footerLabel": "Digital Inclusion · Songbird",
+   "pageDate": "October 2026",
+   "stack": [
+    {
+     "type": "numbered",
+     "rail": "US/FCC ask",
+     "items": [
+      {
+       "label": "",
+       "body": "Connect Songbird with US development finance institutions and other US backed instruments for pre-seed/seed investment, guarantees, or blended finance."
+      },
+      {
+       "label": "",
+       "body": "Align Songbird with other US backed last mile connectivity initiatives active in the region so that they can benefit from Songbird's lower IP transit prices."
+      },
+      {
+       "label": "",
+       "body": "Support Songbird as a demonstrable case study that FCC and US partners can point to in international engagements."
+      }
+     ],
+     "start": 2
+    }
+   ]
+  }
  ]
 }

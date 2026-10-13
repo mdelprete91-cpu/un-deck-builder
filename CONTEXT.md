@@ -1628,3 +1628,22 @@ Conventions:
   `::highlight(deck-verified)`, an accent underline): ranges over the text, never markup, so
   editing, thumbnails and exports are untouched.
 
+## Two-pagers composed the way the team composes them
+
+- **The archetypes are the team's own pieces** (Mario, 13 Oct 2026: "I use this variety of layouts 90%
+  of the time, to give dynamism and not weigh the page down with text only"). `ARCHETYPES` in
+  `page-catalog.ts` are, block by block, the Digital Inclusion brief (title, lede, side-title
+  sections, stats with the orange accent card, pillars; photos and a 3x2 stats grid), the U.S.
+  partnerships piece (panels, grey active and orange asks, continued over both pages), Spectrum
+  Certificates (callout status, sections, screens; numbered asks, contacts) and Songbird (a section
+  with bullets and a bold closing line, split with the phase and its map, numbered asks).
+- **Every page has an anchor**: `numbered` counts as one (Songbird's page 2 is only that), with
+  banner, stats, photos, figure, split, screens, pillars and panels (`ANCHORS` in pages/restore.ts,
+  the prompt's READABILITY lines). A closing key sentence is a section's last item with a bold
+  label and no body. At least four kinds of block (Songbird has four).
+- **Numbered asks count on across pages**: `continueNumbering` (pages/restore.ts) sets `start` on a
+  numbered block that opens a page after one that closed the page before, in the same part (its own
+  side title, or the one above it); run in the fit pass once blocks have their pages.
+- **Goldens**: `tools/twopager-golden.json` holds `spectrum` and `songbird` rebuilt from Mario's
+  pptx with our blocks, next to `usPartnerships` (the Digital Inclusion brief).
+

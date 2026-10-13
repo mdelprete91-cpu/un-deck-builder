@@ -81,7 +81,8 @@ ${spreadsheet}
 PLAN FIRST. "plan" comes before "pages": one row per block of the piece, in order, page by page. For each row: "part" (the heading or the first words of the part of the material it carries, or the brief's topic), "shape" (what that part is, in the words of the spreadsheet: headline figures, two sides compared, places or settings, areas of work, asks, running text...), "block" (the block that tells it best), "why" (one short line: the signal you saw), "page" (1-based). Then write "pages" exactly as the plan says: the same blocks, in the same order, one block per plan row. Choose by the signals, not by habit: "section" only for real running text; figures go on stats, two side-by-side columns on panels, settings or places on photos, three parallel items on pillars, asks on numbered or asks.
 
 READABILITY (a reader with two minutes):
-- Every page has at least one anchor block (banner, stats, photos, figure, split, screens).
+- Every page has at least one anchor block (banner, stats, photos, figure, split, screens, pillars, panels, numbered): the team's own two-pagers never have a page of text only.
+- Figures always go on stats, the most striking one as the accent card (orange). Three parallel ways or capabilities go on pillars, places or settings on photos, asks on numbered, a status on callout, two sides on panels. A key sentence that closes a section is its last item in bold: a label with no body.
 - Never three "section" blocks in a row: break the run with the block the next part's shape calls for.
 - A "section" over about 900 characters is split under two labels, or its list becomes bullets.
 - Figures the material writes large are stats, never sentences in a section.

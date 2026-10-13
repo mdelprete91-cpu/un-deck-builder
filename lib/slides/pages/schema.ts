@@ -133,6 +133,8 @@ export interface PageBlock {
   tones?: string[];
   /** panels: a continuation on the next page, drawn without its column heads. */
   cont?: boolean;
+  /** numbered: the first number, when the list carries on from the page before (Songbird's asks 2–4). */
+  start?: number;
 }
 
 /**
@@ -213,6 +215,7 @@ export const pageBlockSchema = z.object({
   wide: z.boolean().optional(),
   tones: z.array(z.string()).max(2).optional(),
   cont: z.boolean().optional(),
+  start: z.coerce.number().int().min(1).max(99).optional().catch(undefined),
 });
 
 /** The text fields each block draws, so the editor always has them to write to. */

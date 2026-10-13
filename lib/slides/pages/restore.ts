@@ -331,7 +331,8 @@ export function shapeReplica(pages: SlideContent[], source: string): SlideConten
 }
 
 /** Blocks that give a page somewhere for the eye to land. */
-const ANCHORS = new Set(["banner", "stats", "photos", "figure", "split", "screens", "pillars", "panels"]);
+// Numbered asks in their circles count (Songbird's page 2 is only that).
+const ANCHORS = new Set(["banner", "stats", "photos", "figure", "split", "screens", "pillars", "panels", "numbered"]);
 
 /**
  * How a piece reads (Mario, 7 Oct 2026: the reference is far more dynamic).
@@ -384,6 +385,30 @@ export function layoutIssues(pages: SlideContent[]): string[] {
   const kinds = new Set(blocks.map((b) => b.type)).size;
   if (kinds < 4) issues.push(`only ${kinds} kinds of block`);
   return issues;
+}
+
+/**
+ * A numbered list that runs from the foot of one page to the top of the next
+ * counts on (Songbird: asks 1 on page one, 2–4 on page two), unless the
+ * second opens a part of its own (another side title).
+ */
+export function continueNumbering(pages: SlideContent[]): SlideContent[] {
+  let last: { rail: string; next: number } | null = null;
+  return pages.map((p) => {
+    const stack = (p.stack ?? []).map((b, i) => {
+      let out = b;
+      if (b.type === "numbered") {
+        const carries = i === 0 && last && (!b.rail?.trim() || b.rail.trim() === last.rail);
+        out = carries ? { ...b, start: last!.next } : b.start ? { ...b, start: undefined } : b;
+      }
+      return out;
+    });
+    const tail = stack[stack.length - 1];
+    // Its part: its own side title, else the one over it (Songbird's asks sit under the "US/FCC ask" section).
+    const part = [...stack].reverse().find((x) => x.rail?.trim())?.rail?.trim() ?? "";
+    last = tail?.type === "numbered" ? { rail: part, next: (tail.start ?? 1) + (tail.items?.length ?? 0) } : null;
+    return { ...p, stack };
+  });
 }
 
 /**

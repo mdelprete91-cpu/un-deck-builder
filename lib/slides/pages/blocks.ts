@@ -180,7 +180,7 @@ const numbered: BlockRender = (b, { path, d }) => {
     .map(
       (it, i) =>
         `<div ${item(`${path}.items.${i}`)} style="position:relative;display:grid;grid-template-columns:${pt(16)} minmax(0,1fr);column-gap:${pt(9)};${i ? `margin-top:${pt(12)};` : ""}">` +
-        `<span style="width:${pt(16)};height:${pt(16)};margin-top:${pt((d.lh - 16) / 2)};border-radius:50%;background:${ACCENT};color:${PALETTE.white};font-family:${FONT.open};font-weight:600;font-size:8pt;line-height:${pt(16)};text-align:center;">${i + 1}</span>` +
+        `<span style="width:${pt(16)};height:${pt(16)};margin-top:${pt((d.lh - 16) / 2)};border-radius:50%;background:${ACCENT};color:${PALETTE.white};font-family:${FONT.open};font-weight:600;font-size:8pt;line-height:${pt(16)};text-align:center;">${(b.start ?? 1) + i}</span>` +
         `<div ${edP(`${path}.items.${i}.body`)} style="${TYPE.body(d)}color:${PALETTE.ink};white-space:pre-line;">${esc(it.body)}</div></div>`,
     )
     .join("");

@@ -220,45 +220,51 @@ export function catalogTable(): string {
 }
 
 /**
- * The shapes a two-pager takes, from the pieces Mario has made. The model
- * picks one first and follows its order; blocks marked optional may be left
- * out, and sections may be added where the material needs them.
+ * The shapes a two-pager takes, from the pieces Mario has made and uses "90%
+ * of the time, to give dynamism and not weigh the page down with text only"
+ * (13 Oct 2026: digital-inclusion-a4, the U.S. partnerships piece,
+ * spectrum-certificates, songbird). Each is that piece's own stack, block by
+ * block. The model picks one first and follows its order; blocks marked
+ * optional may be left out, and sections may be added where the material
+ * needs them. No page of these pieces is text only.
  */
 export const ARCHETYPES = [
   {
     id: "advocacy",
-    name: "Advocacy brief",
-    when: "Making the case for an issue or a way of working (the problem, why it matters, what we do, the evidence)",
-    page1: "banner, section (the challenge), stats (3), section (why it matters), section (what we do), section (what the evidence shows, optional)",
-    page2: "title, figure (optional), section (how it works / a proven model), stats (6, optional), section, pillars",
+    name: "Programme or advocacy brief",
+    when: "Presenting what a team or programme does and why (the problem, how it works, the evidence, where it applies), like the Digital Inclusion brief",
+    page1:
+      "title (the promise in one sentence), lede (who we are and what we do, the team's name in bold), section (how it works), section (why it exists) followed by stats (3, the most striking figure as the accent card, in orange), section (how we work) followed by pillars (3: an icon, a bold label, a short text each)",
+    page2: "photos (where the model applies: 4 or 5 settings, a title and a short caption each), section (proven at scale, one sentence) followed by stats (6, a 3x2 grid of results)",
   },
   {
     id: "donor-update",
     name: "Donor or partner update",
     when: "Reporting to one partner what their support made possible, and what comes next",
-    page1: "banner, section (the partner's investment), stats (4), section (results, one bold lead-in per country or programme)",
-    page2: "section (a flagship initiative), table (before and today, optional), asks (the next phase)",
+    page1: "title, lede, stats (4, the partner's investment and its results), section (results, one bold lead-in per country or programme)",
+    page2: "section (a flagship initiative), table (before and today, optional), numbered (the next phase, as asks)",
   },
   {
     id: "partnership",
-    name: "Partnership brief",
-    when: "Presenting an offer or a programme to prospective partners, with explicit asks",
-    page1: "banner, section (the opportunity), stats (3 or 4), section (what we do), pillars (optional)",
-    page2: "section (where we work / track record), photos (optional), panels (running vs asks), contacts (optional)",
+    name: "Partnerships and open asks",
+    when: "Presenting the partners a team works with and what it asks of new ones, like the U.S. companies piece",
+    page1: "title, lede (the model and why partners matter), panels (left: the active partnerships, grey; right: the open asks, the accent column in orange; each partner a bold name then its text, bullets for details)",
+    page2: "panels continued (cont), so the two columns run over both pages",
   },
   {
     id: "product",
-    name: "Product or initiative brief",
-    when: "Explaining a tool, a product or a pilot to a partner or a regulator: what it is, where it stands, what is asked (the Spectrum and Lunar pieces)",
-    page1: "title (the product and what it does), lede (optional), callout (its status), section (what it is), screens (two screenshots of the tool, prototype included; always when the brief asks for them)",
-    page2: "table (when the brief gives phases, options or costs), heading (opens the ask), numbered (the asks), section (other contexts or uses, optional), contacts",
+    name: "Product or tool brief",
+    when: "Explaining a tool, a product or a pilot to a partner or a regulator: what it is, where it stands, what is asked (the Spectrum Certificates and Lunar pieces)",
+    page1: "title (the product and what it does), callout (its status: 'Status:' then where it stands), section (what it is), screens (two screenshots of the tool, prototype included; always when the brief asks for them)",
+    page2: "section (each ask by audience, its points as a numbered list), section (other contexts or uses, numbered), contacts (names, roles and emails)",
   },
   {
     id: "programme-ask",
-    name: "Programme brief with an ask",
-    when: "A programme or project presented to a funder or a regulator, with a phase and concrete asks (the Songbird piece)",
-    page1: "title (the programme and its promise), section (what it is, with bullets for its principles), split (the current phase and its map or picture), numbered (the asks)",
-    page2: "numbered (the asks, continued) or sections, contacts (optional)",
+    name: "Initiative with a phase and asks",
+    when: "A programme or project presented to a funder or a regulator, with a current phase, a map and concrete asks (the Songbird piece)",
+    page1:
+      "title (the initiative and its promise), section (what it is: a paragraph, its principles as bullets, then its key sentence as a last item in bold: a label with no body), split (the current phase as the pill, its text, the map or picture), numbered (the asks, with the section's label as rail)",
+    page2: "numbered (the asks, continued), contacts (optional)",
   },
 ] as const;
 export type ArchetypeId = (typeof ARCHETYPES)[number]["id"];
