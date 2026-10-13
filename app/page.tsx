@@ -440,7 +440,7 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
   /** The count that made the last generation skip chapters, for the sidebar. */
   const [chaptersSkipped, setChaptersSkipped] = useState<number | null>(null);
   /** Notes the model wrote about the brief instead of on a slide (dropMetaNotes), for the sidebar. Session state, never saved. */
-  const [briefGaps, setBriefGaps] = useState<string[]>([]);
+  const [, setBriefGaps] = useState<string[]>([]);
   // The last replica's fidelity report (lib/slides/fidelity.ts): session
   // state like chaptersSkipped, cleared by the next generation, never saved.
   const [fidelity, setFidelity] = useState<DeckFidelity | null>(null);
@@ -1997,7 +1997,6 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
         onOpenSheet={(id) => setWizard({ queue: [id], intent: "edit" })}
         attachError={attachError}
         chaptersSkipped={chaptersSkipped}
-        briefGaps={briefGaps}
         fidelity={fidelity}
       />
 

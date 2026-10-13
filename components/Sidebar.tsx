@@ -28,8 +28,6 @@ interface SidebarProps {
   attachError: string | null;
   /** Set when the last generation left chapters out because the brief named too few slides. */
   chaptersSkipped: number | null;
-  /** Notes the model wrote about the brief rather than on a slide, kept off the slides. */
-  briefGaps: string[];
   /** The last replica's fidelity report, shown in the generation readout. */
   fidelity: DeckFidelity | null;
 }
@@ -63,7 +61,6 @@ export default function Sidebar({
   onOpenSheet,
   attachError,
   chaptersSkipped,
-  briefGaps,
   fidelity,
 }: SidebarProps) {
   const [addBrief, setAddBrief] = useState("");
@@ -168,16 +165,9 @@ export default function Sidebar({
             dividers. Ask for eight or more to keep them.
           </p>
         )}
-        {hasSlides && !generating && briefGaps.length > 0 && (
-          <div className="mt-1.5 text-xs leading-relaxed text-ink-muted">
-            <p>Gaps in the brief, kept off the slides:</p>
-            <ul className="mt-0.5 list-disc pl-4">
-              {briefGaps.slice(0, 5).map((g) => (
-                <li key={g}>{g}</li>
-              ))}
-            </ul>
-          </div>
-        )}
+        {/* Notes the model wrote about the brief stay off the slides and are
+            not shown either (Mario, 13 Oct 2026: nobody should see them; the
+            wizard's questions are where a thin brief gets better). */}
         {chaptersPending && (
           <p className="mt-1.5 text-xs leading-relaxed text-ink-muted">
             The deck on screen still has {state.chapters ? "no chapters" : "chapters"}. Regenerate
