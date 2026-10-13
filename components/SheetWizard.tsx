@@ -3,7 +3,7 @@
 import { ArrowLeft, ArrowRight, Check, FileSpreadsheet, FileText, GalleryHorizontal, MessageSquareText, Paperclip, RotateCcw, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import Button from "@/components/Button";
-import { answeredCount, PLACEHOLDER_ANSWER, type MaterialKind, type SheetAnalysis, type SheetAnswers, type SheetQuestion } from "@/lib/slides/sheet-questions";
+import { PLACEHOLDER_ANSWER, type MaterialKind, type SheetAnalysis, type SheetAnswers, type SheetQuestion } from "@/lib/slides/sheet-questions";
 
 /** What the dialog is asking about: a file, or the brief itself. */
 export interface WizardSubject {
@@ -131,30 +131,32 @@ export default function SheetWizard({
 
           {analysis && (
             <>
-              {analysis.summary && <p className="text-sm leading-relaxed text-ink-muted">{analysis.summary}</p>}
+              {/* A file's summary says what was read; a brief's would only repeat what the user just wrote (Mario, 13 Oct 2026: too much text). */}
+              {analysis.summary && s.kind !== "brief" && <p className="text-sm leading-relaxed text-ink-muted">{analysis.summary}</p>}
               {questions.length === 0 && <p className="mt-4 text-sm text-ink">Nothing to ask: the {noun} reads on its own.</p>}
               {q && (
-                <div className="mt-5">
-                  <div className="flex items-center justify-between text-[13px] text-ink-faint">
-                    <span>
-                      Question {step + 1} of {questions.length}
+                <div className={s.kind === "brief" ? "" : "mt-5"}>
+                  {/* Where we are, once: the bar and "2/5" on one line. */}
+                  <div className="flex items-center gap-3" aria-label={`Question ${step + 1} of ${questions.length}`}>
+                    <div className="h-1 flex-1 overflow-hidden rounded-full bg-canvas-2" aria-hidden>
+                      <div
+                        className="h-full rounded-full bg-giga transition-[width] duration-200 ease-[cubic-bezier(0.16,1,0.3,1)]"
+                        style={{ width: `${((step + 1) / questions.length) * 100}%` }}
+                      />
+                    </div>
+                    <span className="text-[13px] tabular-nums text-ink-faint" aria-hidden>
+                      {step + 1}/{questions.length}
                     </span>
-                    <span>{answeredCount(analysis, answers)} answered</span>
                   </div>
-                  <div className="mt-2 h-1 overflow-hidden rounded-full bg-canvas-2" aria-hidden>
-                    <div
-                      className="h-full rounded-full bg-giga transition-[width] duration-200 ease-[cubic-bezier(0.16,1,0.3,1)]"
-                      style={{ width: `${((step + 1) / questions.length) * 100}%` }}
-                    />
-                  </div>
-                  {/* The brief's own words the doubt is about, so the question reads in place. */}
+                  {/* The brief's own words the doubt is about: where in the deck the question sits. */}
                   {q.about && (
-                    <p className="mt-5 line-clamp-2 text-[13px] italic text-ink-muted" data-hj-suppress>
-                      “{q.about}”
+                    <p className="mt-5 truncate text-[13px] text-ink-muted" data-hj-suppress title={q.about}>
+                      {q.about}
                     </p>
                   )}
-                  <p className={`${q.about ? "mt-1.5" : "mt-5"} text-base font-medium leading-snug text-ink`}>{q.question}</p>
-                  {q.why && <p className="mt-1 text-[13px] text-ink-muted">{q.why}</p>}
+                  <p className={`${q.about ? "mt-1" : "mt-5"} text-base font-medium leading-snug text-ink`}>{q.question}</p>
+                  {/* On a file the reason helps; on the brief the question carries it. */}
+                  {q.why && s.kind !== "brief" && <p className="mt-1 text-[13px] text-ink-muted">{q.why}</p>}
                   {/* Several answers can be right: say so, the squares alone are easy to miss. */}
                   {q.kind === "multi" && <p className="mt-1 text-[13px] text-ink-faint">Choose one or more</p>}
 
@@ -162,19 +164,20 @@ export default function SheetWizard({
                     <div key={q.id} className="mt-4">
                       {answers[q.id] === PLACEHOLDER_ANSWER ? (
                         // No data yet: the slide gets a bracketed placeholder to fill in by hand.
-                        <div className="flex min-h-[86px] items-start justify-between gap-3 rounded-lg border border-giga/40 bg-giga-tint px-3 py-2.5 text-sm text-giga">
-                          <span>
-                            <span className="block font-medium">A placeholder goes on the slide</span>
-                            <span className="mt-0.5 block text-[13px] text-giga/80">In square brackets, naming what is missing, for you to fill in after.</span>
-                          </span>
-                          <Button variant="ghost" onClick={() => set(q.id, "")}>
-                            Type it instead
-                          </Button>
+                        <div className="flex h-10 items-center justify-between gap-3 rounded-lg border border-dashed border-giga/50 bg-giga-tint pl-3 pr-1 text-sm text-giga">
+                          <span>Placeholder on the slide, to fill in later</span>
+                          <button
+                            type="button"
+                            onClick={() => set(q.id, "")}
+                            className="rounded-full px-3 py-1 text-[13px] text-giga/80 transition-colors duration-100 hover:bg-surface hover:text-giga focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-giga/30"
+                          >
+                            Type it
+                          </button>
                         </div>
                       ) : (
                         <textarea
                           autoFocus
-                          rows={3}
+                          rows={2}
                           value={typeof answers[q.id] === "string" ? (answers[q.id] as string) : ""}
                           onChange={(e) => set(q.id, e.target.value)}
                           placeholder="Your answer"
@@ -203,13 +206,10 @@ export default function SheetWizard({
                               onClick={() => set(q.id, PLACEHOLDER_ANSWER)}
                               className="rounded-full border border-dashed border-giga/50 px-3 py-1 text-[13px] text-giga transition-colors duration-100 hover:bg-giga-tint focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-giga/30"
                             >
-                              No data yet: leave a placeholder
+                              Leave a placeholder
                             </button>
                           )}
                         </div>
-                      )}
-                      {q.placeholder && answers[q.id] !== PLACEHOLDER_ANSWER && (
-                        <p className="mt-2 text-[13px] text-ink-faint">Skipped, it stays a placeholder on the slide: nothing is made up.</p>
                       )}
                     </div>
                   ) : (
@@ -345,7 +345,7 @@ export default function SheetWizard({
             </>
           ) : (
             <>
-              <Button variant="ghost" onClick={skipQuestion}>
+              <Button variant="ghost" onClick={skipQuestion} title={q?.placeholder ? "Skip: a placeholder goes on the slide, nothing is made up" : undefined}>
                 Skip
               </Button>
               <div className="flex items-center gap-2">
