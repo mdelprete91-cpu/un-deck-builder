@@ -391,6 +391,13 @@ export const LIBRARY: LibraryImage[] = [
 // tablet-lesson (two girls in face masks) is out of the fallback since 12 Oct 2026 (Mario): pickable, never automatic.
 export const CHILDREN_PHOTOS = ["students-tablet", "laptop-smile", "mountain-walk", "health-centre", "kyrgyz-computer-lab", "cameroon-tablet-pair", "cameroon-girl-tablet", "cameroon-boy-tablet", "timor-learning-app", "classroom-tablet-pair", "teacher-tablet-girl", "tablet-maths-game", "unicef-desk-readers", "girls-headphones-tablet"];
 
+/**
+ * The second choice for an empty slot, once the children photos that fit are
+ * all on the deck: library pictures of no particular place. Not the masked
+ * children (Mario, 12 Oct 2026) and not the two buildings.
+ */
+export const SPARE_PHOTOS = ["learning-hub", "panel-talk"];
+
 /** The picture an empty photo slot shows: a photo of children, never the AI placeholder. */
 export const DEFAULT_PHOTO = "/library/students-tablet.jpg";
 
@@ -402,10 +409,14 @@ export const DEFAULT_PHOTO = "/library/students-tablet.jpg";
 export function fillPhotos<T extends { layoutId: string; image?: string; map?: string }>(slides: T[], context = ""): T[] {
   const used = new Set(slides.map((s) => s.image).filter(Boolean));
   const all = CHILDREN_PHOTOS.map(librarySrc);
+  // When the children photos that fit run out (a Kenya deck keeps two of
+  // them, and two decks in five showed one twice, 13 Oct 2026), the library
+  // photos of no particular place come next, before anything repeats.
+  const spare = SPARE_PHOTOS.map(librarySrc);
   let k = 0;
   const next = (text: string) => {
     const pool = all.filter((p) => photoFits(p, text, context));
-    const pick = pool.find((p) => !used.has(p)) ?? pool[k++ % pool.length];
+    const pick = pool.find((p) => !used.has(p)) ?? spare.find((p) => !used.has(p)) ?? pool[k++ % pool.length];
     used.add(pick);
     return pick;
   };
