@@ -402,7 +402,7 @@ giga.global home into `kb/giga-facts.json`, which `GIGA_FACTS` (`lib/slides/giga
 reads: the figures in every Giga deck change only through the weekly pull request
 (`.github/workflows/kb-update.yml`, Mondays) that Mario merges, and CHANGES.md says so first.
 
-**A reserve, not a source of subject** (Mario: "in case there are gaps in the brief, if there is
+**Not live yet** (`KB_LIVE = false` in the generate route, 13 Oct 2026: it did not pass the quality gate, and the weekly workflow is not on main). **A reserve, not a source of subject** (Mario: "in case there are gaps in the brief, if there is
 material that fits; files the user attaches come first, they are fresher"). `background()` in
 the generate route adds one "Background" attachment (`kbBackground`, `lib/slides/kb.ts`) only
 when the brief names Giga, UNICEF or one of the products (`OWN`: the subject rule above) and

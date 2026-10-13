@@ -43,7 +43,14 @@ import type { Attachment } from "@/lib/slides/attachments";
 import { materialScore, SCARCE_MATERIAL } from "@/lib/slides/brief";
 
 /** The knowledge base for this request: scarce material, or the user's files beside it (Mario, 13 Oct 2026). */
+/**
+ * The knowledge base is not live yet (Mario, 13 Oct 2026: it did not pass the
+ * quality gate; it ships when a fair measure says it helps). Off, it adds nothing.
+ */
+const KB_LIVE = false;
+
 function background(body: GenerateBody, given: Attachment[]): Attachment[] {
+  if (!KB_LIVE) return [];
   const brief = body.brief ?? "";
   const attachedChars = given.reduce((n, a) => n + (a.kind === "text" ? a.text.length : a.kind === "pdf" ? 20_000 : 2_000), 0);
   // Answered slots ("Purpose: … The ask: …"), or any answer given.
