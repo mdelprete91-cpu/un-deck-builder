@@ -1,3 +1,4 @@
+import type { TextSource } from "./attribution";
 import { z } from "zod";
 import { toChartColor } from "./chart-colors";
 import { cleanModelIcons } from "./icon-set";
@@ -217,6 +218,12 @@ export interface SlideContent {
   /** Footnotes, printed in the footer row (layouts/dense.ts `footnote`). */
   notes?: string;
   /**
+   * Where each text comes from, by its data-edit path (lib/slides/attribution.ts):
+   * set by the generate route, read by the right-click menu, never drawn nor
+   * exported (Mario, 13 Oct 2026).
+   */
+  sources?: Record<string, TextSource>;
+  /**
    * The takeaway: one closing sentence in an accent band with an icon, at the
    * bottom of the slide (layouts/dense.ts `takeawayBand`). Slide-level, like
    * `notes`, so any layout could take it; drawn only on TAKEAWAY_LAYOUTS.
@@ -389,6 +396,20 @@ export const slideContentSchema = z.object({
   pageDate: z.string().optional(),
   pageLogo: z.string().optional(),
   notes: z.string().optional(),
+  sources: z
+    .record(
+      z.string(),
+      z.object({
+        label: z.string(),
+        url: z.string().optional(),
+        date: z.string().optional(),
+        quote: z.string(),
+        match: z.enum(["high", "partial", "none"]),
+        edited: z.boolean().optional(),
+        verified: z.object({ at: z.string(), source: z.string().optional() }).optional(),
+      }),
+    )
+    .optional(),
   takeaway: z.string().optional(),
   density: z
     .string()

@@ -1599,3 +1599,24 @@ Conventions:
 - If a change makes `README.md`, `PRODUCT.md` or `DESIGN.md` wrong, update them in the same commit.
 - Ask before: changing template geometry, adding a color or typeface, giving the model more control
   over layout, changing the brand-to-palette rule. Mario owns those calls.
+
+## Sources, verification and placeholders in the editor
+
+- **Every text knows where it comes from** (Mario, 13 Oct 2026). The generate route attaches
+  `sources` to each slide or page (`attribute`, `lib/slides/attribution.ts`): for every
+  data-edit path, the closest sentence among the request's sources (the brief, the answers, the
+  files, linked pages, the knowledge base, `GIGA_FACTS`), with its label, url, date, the passage
+  and how close it is (`high`, `partial`, `none`). Word overlap plus a bonus for a shared figure;
+  the model writes in its own words, so "close" is honest wording, not a promise. It is in the
+  schema (zod keeps it), saved with the deck, never drawn nor exported.
+- **The right click on a text** opens `TextMenu.tsx` (SlideFrame's `onTextMenu`): where it comes
+  from, then, for a text with a figure, **Mark as verified…** with a source of the editor's own or
+  none (UNICEF must not say anything wrong: a person certifies the figures), and **Add a footnote**
+  on slides with a footnote row: the next superscript at the end of the text and "n. source" in
+  `notes`, one `REPLACE_SLIDE`, so one undo. Editing a text marks its source `edited` and drops
+  its verification (`EDIT_FIELD`).
+- **Placeholders and verified texts are marked on the editing stage only**, with the CSS Custom
+  Highlight API (`::highlight(deck-placeholder)`, white with a dashed accent underline;
+  `::highlight(deck-verified)`, an accent underline): ranges over the text, never markup, so
+  editing, thumbnails and exports are untouched.
+

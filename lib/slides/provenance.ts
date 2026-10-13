@@ -20,6 +20,8 @@ export interface Source {
   text: string;
   /** YYYY-MM-DD: when it was published or read. */
   date?: string;
+  /** The page, when the source is one. */
+  url?: string;
   /** The user's own words or files: never footnoted (they know where it comes from). */
   own: boolean;
 }

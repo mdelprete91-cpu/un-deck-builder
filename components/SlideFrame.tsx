@@ -98,6 +98,10 @@ interface SlideFrameProps {
   onReplacePartner?: ((at: number) => void) | null;
   /** Two-pager, first page: open the programme-logo menu at this point on screen. */
   onPickLogo?: ((at: { x: number; y: number }) => void) | null;
+  /** Right click on a text: the source and verification menu (TextMenu.tsx) at this point on screen. */
+  onTextMenu?: ((path: string, at: { x: number; y: number }) => void) | null;
+  /** The data-edit paths a person verified: marked on the editing stage only. */
+  verified?: string[] | null;
   /** High density: Enter / Backspace / Tab on points. */
   pointOps?: PointOps | null;
   /** High density: an item whose delete would be refused gets no ✕. */
@@ -205,6 +209,8 @@ export default function SlideFrame({
   onUploadLogo,
   onPickImage,
   onPickLogo,
+  onTextMenu,
+  verified,
   onReplacePartner,
   onChartClick,
   onAutofit,
@@ -322,8 +328,55 @@ export default function SlideFrame({
   // The two-pager callbacks travel together in one ref: the wiring effect
   // must not re-run when a parent re-renders, and one ref is one lint waiver
   // rather than four.
-  const pageRef = useRef({ onPickImage, onPickLogo, onReplacePartner, onFocusBlock, onMoveBlock, onDeleteBlock, onAddBlock, onChartClick });
-  pageRef.current = { onPickImage, onPickLogo, onReplacePartner, onFocusBlock, onMoveBlock, onDeleteBlock, onAddBlock, onChartClick };
+  const pageRef = useRef({ onPickImage, onPickLogo, onReplacePartner, onFocusBlock, onMoveBlock, onDeleteBlock, onAddBlock, onChartClick, onTextMenu });
+  pageRef.current = { onPickImage, onPickLogo, onReplacePartner, onFocusBlock, onMoveBlock, onDeleteBlock, onAddBlock, onChartClick, onTextMenu };
+
+  /*
+   * Placeholders ("[Total budget 2027]") and verified texts, marked on the
+   * editing stage with the CSS Custom Highlight API (Mario, 13 Oct 2026: a
+   * placeholder in white highlight; a verified figure shown as such). The
+   * marks are ranges over the text, never markup in it, so editing, the
+   * thumbnails and every export stay as they were.
+   */
+  const verifiedKey = (verified ?? []).join("|");
+  useEffect(() => {
+    const stage = stageRef.current;
+    const registry = typeof CSS !== "undefined" ? (CSS as unknown as { highlights?: Map<string, unknown> }).highlights : undefined;
+    const HighlightCtor = typeof window !== "undefined" ? (window as unknown as { Highlight?: new (...r: Range[]) => unknown }).Highlight : undefined;
+    if (!editable || !stage || !registry || !HighlightCtor) return;
+    const paint = () => {
+      const holes: Range[] = [];
+      const checked: Range[] = [];
+      const done = new Set(verifiedKey ? verifiedKey.split("|") : []);
+      stage.querySelectorAll<HTMLElement>("[data-edit]").forEach((node) => {
+        if (done.has(node.getAttribute("data-edit")!)) {
+          const r = document.createRange();
+          r.selectNodeContents(node);
+          checked.push(r);
+        }
+        const walker = document.createTreeWalker(node, NodeFilter.SHOW_TEXT);
+        for (let t = walker.nextNode() as Text | null; t; t = walker.nextNode() as Text | null) {
+          for (const m of t.data.matchAll(/\[[^\[\]\n]{1,80}\]/g)) {
+            const r = document.createRange();
+            r.setStart(t, m.index!);
+            r.setEnd(t, m.index! + m[0].length);
+            holes.push(r);
+          }
+        }
+      });
+      registry.set("deck-placeholder", new HighlightCtor(...holes));
+      registry.set("deck-verified", new HighlightCtor(...checked));
+    };
+    paint();
+    // Typing changes the text under the ranges: paint again as it changes.
+    const mo = new MutationObserver(paint);
+    mo.observe(stage, { characterData: true, childList: true, subtree: true });
+    return () => {
+      mo.disconnect();
+      registry.delete("deck-placeholder");
+      registry.delete("deck-verified");
+    };
+  }, [html, editable, verifiedKey]);
 
   useLayoutEffect(() => {
     const el = containerRef.current;
@@ -450,13 +503,23 @@ export default function SlideFrame({
         }
       };
       const onInput = () => refitNode(node);
+      // The right click opens the deck's own menu: where the text comes from, its check.
+      const onContext = (e: MouseEvent) => {
+        const open = pageRef.current.onTextMenu;
+        if (!open) return;
+        e.preventDefault();
+        commit();
+        open(path, { x: e.clientX, y: e.clientY });
+      };
       node.addEventListener("blur", commit);
       node.addEventListener("keydown", onKeyDown);
       node.addEventListener("input", onInput);
+      node.addEventListener("contextmenu", onContext);
       cleanups.push(() => {
         node.removeEventListener("blur", commit);
         node.removeEventListener("keydown", onKeyDown);
         node.removeEventListener("input", onInput);
+        node.removeEventListener("contextmenu", onContext);
       });
     });
 

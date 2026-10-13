@@ -17,6 +17,7 @@ import { cleanVoice } from "@/lib/slides/voice";
 import { yearTimelineMonths } from "@/lib/slides/rhythm";
 import { kbBackground } from "@/lib/slides/kb";
 import { checkFigures, indexSources, type Source } from "@/lib/slides/provenance";
+import { attribute } from "@/lib/slides/attribution";
 import { GIGA_FACTS } from "@/lib/slides/giga-facts";
 
 /** The request's sources, each with what a footnote would call it. */
@@ -24,7 +25,9 @@ function sourcesOf(body: GenerateBody): Source[] {
   const out: Source[] = [
     { label: "the brief", text: body.brief ?? "", own: true },
     { label: "your answers", text: body.briefNotes ?? "", own: true },
-    ...GIGA_FACTS.map((f) => ({ label: f.source.replace(/^https?:\/\//, "").replace(/\/$/, ""), text: f.fact, date: f.verified, own: false })),
+    ...GIGA_FACTS.map((f) => ({ label: f.source.replace(/^https?:\/\//, "").replace(/\/$/, ""), text: f.fact, date: f.verified, url: /^https?:/.test(f.source) ? f.source : `https://${f.source}/`, own: false })),
+    // A replica's source is the file it rebuilds.
+    ...(body.source ? [{ label: "the source file", text: body.source, own: true }] : []),
   ];
   for (const a of body.attachments ?? []) {
     if (a.kind !== "text") continue;
@@ -32,9 +35,9 @@ function sourcesOf(body: GenerateBody): Source[] {
       // One knowledge-base attachment holds several pages: "# title (Source, url, read date)".
       for (const part of a.text.split(/\n(?=# )/)) {
         const head = /^# .*\((?:[^,]*), (https?:\/\/[^,]+), read (\d{4}-\d{2}-\d{2})\)/.exec(part);
-        out.push({ label: head ? new URL(head[1]).host.replace(/^www\./, "") : "knowledge base", text: part, date: head?.[2], own: false });
+        out.push({ label: head ? new URL(head[1]).host.replace(/^www\./, "") : "knowledge base", text: part, date: head?.[2], url: head?.[1], own: false });
       }
-    } else if (/^https?:\/\//.test(a.name)) out.push({ label: new URL(a.name).host.replace(/^www\./, ""), text: a.text, date: a.published, own: false });
+    } else if (/^https?:\/\//.test(a.name)) out.push({ label: new URL(a.name).host.replace(/^www\./, ""), text: a.text, date: a.published, url: a.name, own: false });
     else out.push({ label: a.name, text: a.text, own: true });
   }
   return out;
@@ -212,7 +215,10 @@ export async function POST(request: Request): Promise<Response> {
   // Every figure on a slide must be in one of these (lib/slides/provenance.ts). A PDF or an image
   // is read by the model, not by us: with one attached the check cannot see all the material.
   const verifiable = (body.attachments ?? []).every((a) => a.kind === "text");
-  const figureIndex = verifiable ? indexSources(sourcesOf(body)) : null;
+  const allSources = sourcesOf(body);
+  const figureIndex = verifiable ? indexSources(allSources) : null;
+  // A file the server cannot read (a PDF, an image) may be where an unmatched text comes from.
+  const unreadable = (body.attachments ?? []).find((a) => a.kind !== "text")?.name;
   const sourceText = [body.brief ?? "", body.briefNotes ?? "", ...(body.attachments ?? []).map((a) => (a.kind === "text" ? a.text : ""))].join(" ");
   const stream = new ReadableStream({
     async start(controller) {
@@ -303,6 +309,12 @@ export async function POST(request: Request): Promise<Response> {
                 if (checked.removed.length) send({ type: "unsourced", index, title: (out as SlideContent).title ?? "", figures: checked.removed, dropped: !checked.slide });
                 if (!checked.slide) continue;
                 out = checked.slide;
+              }
+              // Where each text comes from, for the editor's right-click menu (lib/slides/attribution.ts).
+              if (out && typeof out === "object") {
+                const page = twoPager && "blocks" in (out as object);
+                const target = page ? { stack: (out as { blocks: unknown }).blocks } : out;
+                (out as { sources?: unknown }).sources = attribute(target, allSources, { unreadable: unreadable ? `the attached file "${unreadable}" (not readable here)` : undefined });
               }
               send({ type: "slide", index: index++, slide: out });
             }

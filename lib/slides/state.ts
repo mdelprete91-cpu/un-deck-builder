@@ -442,7 +442,15 @@ function reduce(state: DeckState, action: DeckAction): DeckState {
         }
       }
       const slides = [...state.slides];
-      slides[action.index] = setPath(slide, action.path, action.value);
+      const next = setPath(slide, action.path, action.value);
+      // A text the user rewrote is theirs now: its source is shown as edited,
+      // and a check made on the old words no longer holds.
+      const src = next.sources?.[action.path];
+      if (src && (!src.edited || src.verified)) {
+        const { verified: _gone, ...rest } = src;
+        void _gone;
+        slides[action.index] = { ...next, sources: { ...next.sources, [action.path]: { ...rest, edited: true } } };
+      } else slides[action.index] = next;
       return { ...state, ...remember(state), slides };
     }
     case "SET_LANGUAGE":

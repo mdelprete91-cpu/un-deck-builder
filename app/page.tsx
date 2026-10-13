@@ -17,6 +17,9 @@ import type { PlanRow } from "@/lib/slides/prompt";
 import LanguageMenu from "@/components/LanguageMenu";
 import EditChoice from "@/components/EditChoice";
 import LogoMenu from "@/components/LogoMenu";
+import TextMenu from "@/components/TextMenu";
+import { textAt } from "@/lib/slides/attribution";
+import { figuresIn } from "@/lib/slides/provenance";
 import PartnerLogoModal from "@/components/PartnerLogoModal";
 import { apply, detectLang, LANG_LABELS, LANG_NAMES, plan, newEdits, remember, snapshot, textFields, uiStrings, type DeckLang, type Job, type Lang } from "@/lib/slides/i18n";
 import { undash } from "@/lib/slides/pages/schema";
@@ -336,6 +339,7 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
                   layoutId: "a4-page",
                   stack: (event.slide as { blocks?: unknown[] }).blocks,
                   footerLabel: (event.slide as { footerLabel?: string }).footerLabel ?? "",
+                  sources: (event.slide as { sources?: unknown }).sources,
                 }
               : event.slide;
             let content = normalizeSlide(raw, { brandId: state.brandId, context: String(body.brief ?? "") });
@@ -1978,6 +1982,39 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
   const [partnerModal, setPartnerModal] = useState<{ at: number | null } | null>(null);
   /** Two-pager: the programme-logo menu, open at this point (components/LogoMenu.tsx). */
   const [logoMenu, setLogoMenu] = useState<{ x: number; y: number } | null>(null);
+  /** The right click on a text of the active slide or page: its source, its check, a footnote. */
+  const [textMenu, setTextMenu] = useState<{ index: number; path: string; x: number; y: number } | null>(null);
+  /**
+   * A verification set or taken off, or a footnote added: the whole slide
+   * replaced in one step, so one undo takes it back.
+   */
+  const verifyText = (index: number, path: string, source: string | undefined | null) => {
+    const slide = state.slides[index];
+    if (!slide) return;
+    const sources = { ...(slide.sources ?? {}) };
+    const cur = sources[path] ?? { label: "", quote: "", match: "none" as const };
+    if (source === null) {
+      const { verified: _off, ...rest } = cur;
+      void _off;
+      sources[path] = rest;
+    } else sources[path] = { ...cur, verified: { at: new Date().toISOString().slice(0, 10), ...(source ? { source } : {}) } };
+    dispatch({ type: "REPLACE_SLIDE", index, content: { ...slide, sources } });
+  };
+  const footnoteText = (index: number, path: string, note: string) => {
+    const slide = state.slides[index];
+    if (!slide || isPage(slide)) return;
+    const SUP = "⁰¹²³⁴⁵⁶⁷⁸⁹";
+    const { notes = "", sources: _s, ...rest } = slide;
+    void _s;
+    const used = [...JSON.stringify(rest)].map((c) => SUP.indexOf(c)).filter((d) => d > 0);
+    const n = Math.min(9, Math.max(0, ...used) + 1);
+    const text = textAt(slide, path).replace(/\s+$/, "");
+    const withMark = setPath(slide, path, `${text}${SUP[n]}`) as typeof slide;
+    const line = `${n}. ${note}`.trimEnd() + (note ? "" : " ");
+    dispatch({ type: "REPLACE_SLIDE", index, content: { ...withMark, notes: notes.trim() ? `${notes.trimEnd()}\n${line}` : line } });
+    // An empty note waits for its words: the caret goes there.
+    if (!note) setFocusRequest({ path: "notes" });
+  };
   /** The deck is being translated into this language (switchLanguage). */
   const [translating, setTranslating] = useState<Lang | null>(null);
   // Another page, or Esc outside a text: no block selected.
@@ -2264,6 +2301,8 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
                     }
                     onEditWithAi={twoPager ? () => setAiModal(true) : null}
                     onPickLogo={twoPager && state.activeIndex === 0 ? (at) => setLogoMenu(at) : null}
+                    onTextMenu={state.status === "generating" ? null : (path, at) => setTextMenu({ index: state.activeIndex, path, ...at })}
+                    verified={Object.entries(active.sources ?? {}).filter(([, s]) => s.verified).map(([p]) => p)}
                     canAddBlockItem={
                       twoPager
                         ? (b) => {
@@ -2369,6 +2408,33 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
                       }}
                     />
                   )}
+                  {textMenu && state.slides[textMenu.index] && (() => {
+                    const slide = state.slides[textMenu.index];
+                    const close = () => setTextMenu(null);
+                    return (
+                      <TextMenu
+                        x={textMenu.x}
+                        y={textMenu.y}
+                        source={slide.sources?.[textMenu.path]}
+                        recorded={!!slide.sources && Object.keys(slide.sources).length > 0}
+                        hasFigure={figuresIn(textAt(slide, textMenu.path)).length > 0}
+                        canFootnote={!isPage(slide) && !NO_NOTES.has(slide.layoutId) && textMenu.path !== "notes"}
+                        onFootnote={(note) => {
+                          footnoteText(textMenu.index, textMenu.path, note);
+                          close();
+                        }}
+                        onVerify={(source) => {
+                          verifyText(textMenu.index, textMenu.path, source);
+                          close();
+                        }}
+                        onUnverify={() => {
+                          verifyText(textMenu.index, textMenu.path, null);
+                          close();
+                        }}
+                        onClose={close}
+                      />
+                    );
+                  })()}
                   {logoMenu && (
                     <LogoMenu
                       {...logoMenu}

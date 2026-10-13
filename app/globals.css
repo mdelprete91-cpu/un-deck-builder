@@ -1344,3 +1344,18 @@ body {
 }
 
 
+
+/*
+ * The editing stage's marks (SlideFrame, CSS Custom Highlight API): a
+ * placeholder to fill in on a white highlight, a verified text underlined in
+ * the accent. Never in a thumbnail or an export: only the editing stage
+ * registers them.
+ */
+::highlight(deck-placeholder) {
+  background-color: #ffffff;
+  color: #1a1a1a;
+  text-decoration: underline dashed var(--color-giga);
+}
+::highlight(deck-verified) {
+  text-decoration: underline solid var(--color-giga);
+}
