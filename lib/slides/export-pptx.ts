@@ -224,7 +224,7 @@ async function captureSlide(host: HTMLElement, index: number, title: string | un
   }
 }
 
-function waitForImages(root: HTMLElement): Promise<void> {
+export function waitForImages(root: HTMLElement): Promise<void> {
   const pending = [...root.querySelectorAll("img")].filter((img) => !img.complete);
   if (pending.length === 0) return Promise.resolve();
   return new Promise((resolve) => {
@@ -240,7 +240,7 @@ function waitForImages(root: HTMLElement): Promise<void> {
 }
 
 /** Never hang the export on one slide: a step that stalls becomes an error. */
-function withTimeout<T>(p: Promise<T>, ms: number, what: string): Promise<T> {
+export function withTimeout<T>(p: Promise<T>, ms: number, what: string): Promise<T> {
   return new Promise((resolve, reject) => {
     const t = setTimeout(() => reject(new Error(`${what} timed out after ${ms / 1000}s`)), ms);
     p.then((v) => { clearTimeout(t); resolve(v); }, (e) => { clearTimeout(t); reject(e); });

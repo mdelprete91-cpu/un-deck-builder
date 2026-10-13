@@ -44,7 +44,8 @@ export interface SourceBox {
   y: number;
   w: number;
   h: number;
-  kind: "text" | "chart" | "legend";
+  /** "image" and "table" only place a picture or a table, for the replica's source sheet (source-sheet.ts); their text is not here. */
+  kind: "text" | "chart" | "legend" | "image" | "table";
   /** The box's lines as `text` writes them ("- " on a sub-point); footnotes and chart labels are not here. */
   lines: string[];
 }
@@ -159,7 +160,7 @@ function shapesOf(xml: string): { xml: string; i: number; x: number; y: number; 
   const stack: T[] = [];
   const out: { xml: string; i: number; x: number; y: number; w: number; h: number }[] = [];
   const num = (re: RegExp, text: string) => re.exec(text)?.slice(1).map(Number);
-  for (const m of xml.matchAll(/<p:grpSp>|<p:grpSp\s[^>]*>|<\/p:grpSp>|<p:sp\b[\s\S]*?<\/p:sp>|<p:graphicFrame\b[\s\S]*?<\/p:graphicFrame>/g)) {
+  for (const m of xml.matchAll(/<p:grpSp>|<p:grpSp\s[^>]*>|<\/p:grpSp>|<p:sp\b[\s\S]*?<\/p:sp>|<p:graphicFrame\b[\s\S]*?<\/p:graphicFrame>|<p:pic\b[\s\S]*?<\/p:pic>/g)) {
     const tag = m[0];
     if (tag === "</p:grpSp>") {
       stack.pop();
@@ -204,7 +205,9 @@ async function readSlide(zip: JSZip, path: string, n: number, slideWidth: number
   // written after its points. Shapes as wide as most of the slide (a title,
   // a key-message band) read by their top; narrower ones column by column,
   // top to bottom, so a header stays with the points under it.
-  const shapes = shapesOf(xml);
+  // Pictures only take a place on the source sheet: they never enter the reading order.
+  const every = shapesOf(xml);
+  const shapes = every.filter((sh) => !sh.xml.startsWith("<p:pic"));
   const wide = (sh: { w: number }) => sh.w > slideWidth * 0.6;
   const narrow = shapes.filter((sh) => !wide(sh));
   const narrowTop = Math.min(...narrow.map((sh) => sh.y));
@@ -216,6 +219,7 @@ async function readSlide(zip: JSZip, path: string, n: number, slideWidth: number
   ];
 
   const at = (sh: { x: number; y: number; w: number; h: number }) => ({ x: sh.x / slideWidth, y: sh.y / slideHeight, w: sh.w / slideWidth, h: sh.h / slideHeight });
+  for (const sh of every) if (sh.xml.startsWith("<p:pic") && sh.w > 0 && sh.h > 0) raw.boxes!.push({ ...at(sh), kind: "image", lines: [] });
   const charts = ordered.filter((sh) => sh.xml.startsWith("<p:graphicFrame") && /<c:chart\b/.test(sh.xml));
   // A legend drawn as text boxes: small single lines stacked right under a
   // chart, inside its width (the Gambia cost charts name their three series
@@ -248,7 +252,10 @@ async function readSlide(zip: JSZip, path: string, n: number, slideWidth: number
     const { xml: shape, x: shapeX, y: shapeY } = sh;
     if (legendShapes.has(sh.i)) continue;
     if (shape.startsWith("<p:graphicFrame")) {
-      if (/<a:tbl\b/.test(shape)) raw.extras.push(readTable(shape));
+      if (/<a:tbl\b/.test(shape)) {
+        raw.extras.push(readTable(shape));
+        raw.boxes!.push({ ...at(sh), kind: "table", lines: readTable(shape).split("\n").slice(1) });
+      }
       const chartId = /<c:chart\b[^>]*r:id="([^"]+)"/.exec(shape)?.[1];
       const target = chartId ? rels.get(chartId) : undefined;
       if (target) {

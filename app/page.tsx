@@ -18,6 +18,9 @@ import LanguageMenu from "@/components/LanguageMenu";
 import EditChoice from "@/components/EditChoice";
 import LogoMenu from "@/components/LogoMenu";
 import TextMenu from "@/components/TextMenu";
+import { resultSheet, sourceSheetFromPdf, sourceSheetFromSlides } from "@/lib/slides/contact-sheet";
+import type { CheckProblem } from "@/lib/slides/replica-check";
+import type { SourceSlide } from "@/lib/slides/pptx-source";
 import SourceModal from "@/components/SourceModal";
 import { citation, textAt } from "@/lib/slides/attribution";
 import { figuresIn } from "@/lib/slides/provenance";
@@ -1285,6 +1288,71 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
     onDeckArrived();
   };
 
+  /**
+   * The replica against its source by eye: the two sheets, the problems, and
+   * one remake of each source slide whose text came out divided wrongly.
+   * `results` is the replica's slides by step, already in the deck; a remade
+   * step's slides replace its own there.
+   */
+  const checkByEye = async (
+    file: Extract<Attachment, { kind: "text" | "pdf" }>,
+    sources: SourceSlide[],
+    steps: ReplicateStep[],
+    results: (SlideContent[] | null | undefined)[],
+    remake: (step: number, note: string) => Promise<SlideContent[] | null>,
+  ): Promise<DeckFidelity["visual"]> => {
+    const deck = results.flatMap((r) => r ?? []);
+    if (deck.length < 2) return undefined;
+    // Where each step's slides sit in the deck, and the map the check reads.
+    const starts: number[] = [];
+    let at = 0;
+    for (const r of results) {
+      starts.push(at);
+      at += r?.length ?? 0;
+    }
+    const map = steps
+      .map((st, i) => (st.kind === "fixed" || !results[i]?.length ? "" : `source ${st.source.n} → result ${starts[i] + 1}${results[i]!.length > 1 ? `-${starts[i] + results[i]!.length}` : ""}`))
+      .filter(Boolean)
+      .join("\n");
+    const source = file.kind === "pdf" ? await sourceSheetFromPdf(file.data) : sourceSheetFromSlides(sources);
+    const result = await resultSheet(deck.map(ensureId), theme);
+    if (!source || !result) return undefined;
+    const res = await fetch("/api/replica-check", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ source, result, map }) });
+    if (!res.ok) throw new Error(await res.text());
+    const { problems } = (await res.json()) as { problems: CheckProblem[] };
+    // What a remake can mend: the division of a content slide's text.
+    const MENDABLE = new Set(["split", "grouping", "empty", "title"]);
+    let fixed = 0;
+    const left: CheckProblem[] = [];
+    const byStep = new Map<number, CheckProblem[]>();
+    for (const p of problems) {
+      const i = steps.findIndex((st) => st.kind === "content" && st.source.n === p.source);
+      if (i < 0 || !MENDABLE.has(p.kind)) left.push(p);
+      else byStep.set(i, [...(byStep.get(i) ?? []), p]);
+    }
+    // Last step first, so the earlier steps' places in the deck still hold.
+    for (const i of [...byStep.keys()].sort((a, b) => b - a)) {
+      const ps = byStep.get(i)!;
+      const note = `Compared by eye with the source, this slide's text is divided wrongly: ${ps.map((p) => `${p.detail} Do this: ${p.fix}`).join(" ")} Choose whichever available layout tells it best; keep every line of the source.`;
+      const old = results[i] ?? [];
+      const made = await remake(i, note).catch((err) => {
+        if ((err as Error).name === "AbortError") throw err;
+        return null;
+      });
+      if (!made?.length) {
+        left.push(...ps);
+        continue;
+      }
+      // Swap the step's slides in the deck: replace, then insert or delete the difference.
+      const base = starts[i];
+      made.forEach((content, k) => (k < old.length ? dispatch({ type: "REPLACE_SLIDE", index: base + k, content }) : dispatch({ type: "INSERT", index: base + k, content })));
+      for (let k = old.length - 1; k >= made.length; k--) dispatch({ type: "DELETE", index: base + k });
+      results[i] = made;
+      fixed++;
+    }
+    return { problems: left.map(({ fix: _f, ...p }) => (void _f, p)), fixed };
+  };
+
   const runReplicate = async (file: Extract<Attachment, { kind: "text" | "pdf" }>) => {
     if (twoPager) return runReplicatePages(file);
     const sources = file.sourceSlides ?? [];
@@ -1458,6 +1526,32 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
       dispatch({ type: "GENERATION_ERROR", error: (err as Error).message });
       return;
     }
+    // The check by eye (lib/slides/replica-check.ts, Mario, 13 Oct 2026):
+    // the source's pages and the replica's slides as two contact sheets, how
+    // the text is divided compared, and each source slide whose text came out
+    // divided wrongly made again once, with what was wrong as the repair
+    // note, before the deck opens. The layouts stay the replica's choice.
+    let visual: DeckFidelity["visual"];
+    try {
+      visual = await checkByEye(file, sources, steps, results, async (i, note) => {
+        const st = steps[i];
+        if (st.kind !== "content") return null;
+        const current = results[i]?.[0];
+        const { image: _im, ...previous } = current ?? ({ layoutId: "list" } as SlideContent);
+        void _im;
+        const slide = accept(st, await call(i, st.source.text, { repair: note, ...(current ? { previous } : {}) }));
+        const done = restoreSlide(st.source.n, st.source.title, units[i]!, slide, fits, { cont, boxes: st.source.boxes });
+        // Kept only when it holds the source as well as before.
+        const before = reports[i];
+        if (before && fidelityScore(done.report) < fidelityScore(before) - 1) return null;
+        restored[i] = done;
+        reports[i] = done.report;
+        return done.slides.map((x) => normalizeSlide(x, { brandId: state.brandId }) ?? x);
+      });
+    } catch (err) {
+      if ((err as Error).name === "AbortError") return;
+      console.warn("[replica check]", err);
+    }
     dispatch({ type: "ENSURE_CLOSING" });
     dispatch({ type: "FILL_PHOTOS" });
     dispatch({ type: "GENERATION_DONE", usage });
@@ -1494,6 +1588,7 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
         continued: done.reduce((n, r) => n + r.slides.length - 1, 0),
         trimmed: done.reduce((n, r) => n + r.trimmed, 0),
       },
+      ...(visual ? { visual } : {}),
     });
     onDeckArrived();
   };

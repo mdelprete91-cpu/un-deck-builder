@@ -2,15 +2,18 @@
  * The replica checked against its source by eye (Mario, 13 Oct 2026: "when
  * you replicate, make a sprite sheet of the attached slides and compare it
  * with the result"). The fidelity check (fidelity.ts) compares the words, so
- * a deck can keep every line and still lose the source's shape: a table of
- * six rows came back as six slides, maps and photos dropped, a matrix
- * flattened into cards. Two contact sheets, the source's pages and the
- * replica's slides, each tile numbered, go to the model with the plan that
- * maps one onto the other, and it names, slide by slide, where the shape is
- * not the source's. The editor fixes what it can before the deck opens.
+ * a deck can keep every line and still divide it wrongly: a table of six
+ * rows came back as six slides, each country apart from its own text. Two
+ * contact sheets, the source's pages and the replica's slides, each tile
+ * numbered, go to the model with the plan that maps one onto the other, and
+ * it names where the text is divided differently from the source. Only the
+ * division (Mario, 13 Oct 2026: "this is only to understand how the text is
+ * split across the slides; the layout is yours, pick the best one available
+ * to tell the story"): the replica's layouts are never judged against the
+ * source's. The editor fixes what it can before the deck opens.
  */
 
-export const CHECK_KINDS = ["split", "merged", "structure", "missing_image", "empty", "title", "extra"] as const;
+export const CHECK_KINDS = ["split", "merged", "grouping", "empty", "title", "extra"] as const;
 export type CheckKind = (typeof CHECK_KINDS)[number];
 
 export interface CheckProblem {
@@ -48,15 +51,14 @@ export const CHECK_SCHEMA = {
   additionalProperties: false,
 } as const;
 
-export const CHECK_INSTRUCTIONS = `You check a replicated slide deck against its source. You get two contact sheets: the SOURCE pages and the RESULT slides, each tile numbered in its corner, and the map of which result slides each source page became. The result is drawn in a different brand on purpose: its fonts, colours and template layouts differ from the source and that is never a problem. Compare the SHAPE of each source page with what it became and list only real problems:
-- split: one source page became two or more result slides although it is a single slide of content (a table, rows, cards) that one slide could hold.
-- merged: two source pages ended up on one result slide.
-- structure: the source's structure is lost: a table or rows became loose bullets or one line per card, a grid or matrix flattened, numbered steps lost their numbers, label and text pulled apart, big figures turned into plain text.
-- missing_image: a photo, map, logo or diagram in the source has no counterpart on its result slide.
-- empty: a result slide is nearly empty or shows a large empty area where the source page is full.
-- title: the result slide's title is not the source page's title (a placeholder like "x" or a footer label used as the title).
-- extra: a result slide that matches no source page (a generic closing or divider the source does not have).
-"detail" is one plain sentence naming what the source shows and what the result shows. "fix" is one instruction to rebuild that slide so its shape matches the source ("one slide: a list of six rows, country as label, its text beside it"). A source page that the result keeps in the same shape gets no entry. Never report text wording, colours, fonts or styling. An empty list is the right answer when every page kept its shape.`;
+export const CHECK_INSTRUCTIONS = `You check how a replicated slide deck divides its source's text across slides. You get two contact sheets: the SOURCE pages and the RESULT slides, each tile numbered in its corner, and the map of which result slides each source page became. The result is redesigned on purpose: its brand, fonts, colours, layouts and pictures are chosen to tell the story well and may differ completely from the source; never report any of that. Judge only how the text is divided and grouped:
+- split: one source page became two or more result slides although its text belongs together and one slide could hold it (a list of rows, a set of cards, a short table).
+- merged: the text of two source pages ended up on one result slide.
+- grouping: on the result slide, text that belongs together in the source is pulled apart (a label away from its own text, a row's cells in different places, a heading separated from its points) or unrelated text is joined.
+- empty: a result slide carries almost no text although its source page has plenty, or a slide with only a title and a footer.
+- title: the result slide's title is not the source page's title (a placeholder like "x", or a footer label used as the title).
+- extra: a result slide with text that matches no source page.
+"detail" is one plain sentence naming how the source divides that text and how the result does. "fix" says only how the text should be divided and grouped ("one slide: six items, each a country with its own text"), never which layout, colour or picture to use. A source page whose text keeps its division gets no entry. An empty list is the right answer when every page's text is divided as in the source.`;
 
 export function normalizeCheck(raw: unknown): CheckProblem[] {
   const list = (raw as { problems?: unknown })?.problems;

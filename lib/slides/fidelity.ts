@@ -570,6 +570,12 @@ export interface DeckFidelity {
   restored?: { putBack: number; rebuilt: number; continued: number; trimmed: number };
   /** A two-pager: the block plan the model wrote before its pages, and what reads badly (pages/restore.ts checkRhythm). */
   layout?: { plan: { part: string; shape: string; block: string; why: string; page: number }[]; notes: string[] };
+  /**
+   * The check by eye (replica-check.ts): how the text is divided across the
+   * slides against the source. `problems` still there after the fixes,
+   * `fixed` how many slides were rebuilt from them before the deck opened.
+   */
+  visual?: { problems: { source: number; result: number[]; kind: string; detail: string }[]; fixed: number };
 }
 
 export interface Totals {

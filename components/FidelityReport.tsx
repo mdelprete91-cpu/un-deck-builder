@@ -35,6 +35,27 @@ export default function FidelityReport({
         <p className="text-[13px] text-ink-faint">Source fidelity</p>
         <p className="text-sm font-medium tabular-nums text-ink">{score}%</p>
       </div>
+      {/* The check by eye (replica-check.ts): how the text is divided across the slides. */}
+      {report.visual && (
+        <div className="mt-1.5 text-[13px] text-ink-faint">
+          <p>
+            {report.visual.fixed ? `${report.visual.fixed} slide${report.visual.fixed === 1 ? "" : "s"} remade to divide the text as the source does` : "Text divided as in the source"}
+            {report.visual.problems.length ? `; ${report.visual.problems.length} to look at:` : "."}
+          </p>
+          {report.visual.problems.map((p, k) => (
+            <button
+              key={k}
+              type="button"
+              onClick={() => p.result[0] && onGoTo(p.result[0] - 1)}
+              className="mt-1 block w-full rounded-md px-1.5 py-1 text-left text-[13px] text-ink-muted transition-colors duration-100 hover:bg-mist hover:text-ink"
+              title="Go to slide"
+            >
+              {p.result.length ? `Slide ${p.result[0]}: ` : ""}
+              {p.detail}
+            </button>
+          ))}
+        </div>
+      )}
       <Button variant="secondary" className="mt-2.5 w-full" onClick={() => setOpen(true)}>
         Review
       </Button>
