@@ -27,7 +27,11 @@ interface KbSource {
 }
 
 /** Characters of background handed to the model, the most relevant pages first, across sources. */
-const BUDGET = 10_000;
+const BUDGET = 8_000;
+/** Pages that say how to install, apply, contact or browse: never background for a deck. */
+const NOT_CONTENT = /self-hosting|installation|privacy|cookie|jobs|contact|category\/|\/page\/\d|newsroom|media-kit|multimedia|faq|podcast|bits-and-bytes|hall-fame|featured-videos/i;
+/** At most this many pages chosen by relevance after a named source's core pages. */
+const MAX_RANKED = 3;
 /** A page enters a scarce brief's deck at this BM25 score; beside attached files only at the higher one. */
 export const KB_THRESHOLD = 6.5;
 export const KB_THRESHOLD_WITH_FILES = 12;
@@ -114,7 +118,7 @@ export function kbBackground(query: string, opts: { scarce: boolean; withFiles: 
     const starts = new Set((SOURCES_FILE.sources.find((x) => x.id === source.id)?.start ?? []).map((u) => u.replace(/\/$/, "")));
     return source.pages.filter((p) => starts.has(p.url.replace(/\/$/, ""))).map((page) => ({ page, source, score: Infinity }));
   });
-  const ranked = [...core, ...rankPages(query).filter((x) => x.score >= threshold && !core.some((c) => c.page === x.page))];
+  const ranked = [...core.slice(0, 2), ...rankPages(query).filter((x) => x.score >= threshold && !NOT_CONTENT.test(x.page.url) && !core.some((c) => c.page === x.page)).slice(0, MAX_RANKED)];
   if (!ranked.length) return null;
   const seen = new Set<string>();
   let text = "";

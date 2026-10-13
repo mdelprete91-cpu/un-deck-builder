@@ -16,6 +16,29 @@ import { languageOf, MAX_SLIDES } from "@/lib/slides/brief";
 import { cleanVoice } from "@/lib/slides/voice";
 import { yearTimelineMonths } from "@/lib/slides/rhythm";
 import { kbBackground } from "@/lib/slides/kb";
+import { checkFigures, indexSources, type Source } from "@/lib/slides/provenance";
+import { GIGA_FACTS } from "@/lib/slides/giga-facts";
+
+/** The request's sources, each with what a footnote would call it. */
+function sourcesOf(body: GenerateBody): Source[] {
+  const out: Source[] = [
+    { label: "the brief", text: body.brief ?? "", own: true },
+    { label: "your answers", text: body.briefNotes ?? "", own: true },
+    ...GIGA_FACTS.map((f) => ({ label: f.source.replace(/^https?:\/\//, "").replace(/\/$/, ""), text: f.fact, date: f.verified, own: false })),
+  ];
+  for (const a of body.attachments ?? []) {
+    if (a.kind !== "text") continue;
+    if (a.background) {
+      // One knowledge-base attachment holds several pages: "# title (Source, url, read date)".
+      for (const part of a.text.split(/\n(?=# )/)) {
+        const head = /^# .*\((?:[^,]*), (https?:\/\/[^,]+), read (\d{4}-\d{2}-\d{2})\)/.exec(part);
+        out.push({ label: head ? new URL(head[1]).host.replace(/^www\./, "") : "knowledge base", text: part, date: head?.[2], own: false });
+      }
+    } else if (/^https?:\/\//.test(a.name)) out.push({ label: new URL(a.name).host.replace(/^www\./, ""), text: a.text, date: a.published, own: false });
+    else out.push({ label: a.name, text: a.text, own: true });
+  }
+  return out;
+}
 import type { Attachment } from "@/lib/slides/attachments";
 import { materialScore, SCARCE_MATERIAL } from "@/lib/slides/brief";
 
@@ -179,6 +202,10 @@ export async function POST(request: Request): Promise<Response> {
         : Math.min(800 + perItem * count + (isAdd ? 400 : 0), 36000);
   const encoder = new TextEncoder();
 
+  // Every figure on a slide must be in one of these (lib/slides/provenance.ts). A PDF or an image
+  // is read by the model, not by us: with one attached the check cannot see all the material.
+  const verifiable = (body.attachments ?? []).every((a) => a.kind === "text");
+  const figureIndex = verifiable ? indexSources(sourcesOf(body)) : null;
   const sourceText = [body.brief ?? "", body.briefNotes ?? "", ...(body.attachments ?? []).map((a) => (a.kind === "text" ? a.text : ""))].join(" ");
   const stream = new ReadableStream({
     async start(controller) {
@@ -262,11 +289,15 @@ export async function POST(request: Request): Promise<Response> {
               // A timeline month takes its year from the sources here, where the
               // linked pages are (the client never sees them): A6, 13 Oct 2026.
               const clean = twoPager ? stripEmptyPage(slide) : (yearTimelineMonths(stripEmptyFields(slide) as SlideContent, sourceText) as unknown);
-              send({
-                type: "slide",
-                index: index++,
-                slide: body.mode === "replicate" || body.source ? clean : cleanVoice(clean, body.brief ?? ""),
-              });
+              let out = body.mode === "replicate" || body.source ? clean : cleanVoice(clean, body.brief ?? "");
+              // Only figures that exist, with a source (Mario, 13 Oct 2026). Never on a replica: its figures are the file's.
+              if (!twoPager && figureIndex && body.mode !== "replicate" && !body.source && out && typeof out === "object") {
+                const checked = checkFigures(out as SlideContent, figureIndex);
+                if (checked.removed.length) send({ type: "unsourced", index, title: (out as SlideContent).title ?? "", figures: checked.removed, dropped: !checked.slide });
+                if (!checked.slide) continue;
+                out = checked.slide;
+              }
+              send({ type: "slide", index: index++, slide: out });
             }
           } else if (event.type === "response.refusal.delta") {
             refusal += event.delta;

@@ -373,6 +373,25 @@ offer.
   same file, same place: a year in the cover's subtitle that the brief never gave is the model's
   ("2024", three times with the rule against it), and the subtitle goes.
 
+## Only figures that exist, with a source
+
+Mario, 13 Oct 2026: "the deck builder takes only data that really exists and has a source; it
+must not invent numbers or things that do not exist". The prompt says so in one line, and the
+generate route enforces it (`lib/slides/provenance.ts`): every figure the model writes on a
+generated, added or rewritten slide (never a replica) is looked up, as a number (`parseFigure`:
+"2.2M+" is 2,200,000; a figure rounded from the source counts; numbers the source spells out,
+"sixty percent", count), in the sources the request carried: the brief, the answers, attached and
+linked text, the knowledge base's pages, `GIGA_FACTS`. A sentence whose figure is in none of them
+leaves the slide; a stat no source holds goes; a hero stat or a chart with one such value takes
+the slide with it (the top-up fills its place). Small counts (ten and under) and this year are
+exempt; a figure the model calculated (a difference, a ratio) is not in a source and goes. A
+figure found only on a web page (a linked page, the knowledge base, giga.global) gets a footnote
+naming it and the month it was read: "Source: giga.global, October 2026." The route sends an
+`unsourced` event with what it removed. With a PDF or an image attached the check is off: the
+model reads those, the route does not. Measured on 30 saved decks: two figures removed, both
+calculated by the model; the invented funnel (100, 75, 50) and the mixed Giga Meter chart are
+dropped.
+
 ## Knowledge base
 
 Mario, 13 Oct 2026. `kb/index.json` holds the pages of giga.global, Giga Maps, Giga Meter,
