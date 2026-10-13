@@ -1,6 +1,6 @@
 "use client";
 
-import { ChartColumn, ChevronDown, ChevronUp, Play, Copy, History, Image as ImageIcon, LayoutTemplate, LoaderCircle, Plus, Redo2, Superscript, Trash2, Undo2, Upload } from "lucide-react";
+import { ChartColumn, ChevronDown, ChevronUp, Play, Copy, History, Image as ImageIcon, LayoutTemplate, LoaderCircle, Plus, Redo2, Trash2, Undo2, Upload } from "lucide-react";
 import { useEffect, useLayoutEffect, useMemo, useReducer, useRef, useState, type CSSProperties } from "react";
 import { BRANDS } from "@/lib/slides/brand";
 import { deckReducer, initialDeckState, insertSlides, isDefaultName, readPath, setPath } from "@/lib/slides/state";
@@ -1646,31 +1646,6 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
       !!PRIMARY_ARRAY[active.layoutId] &&
       ((active[PRIMARY_ARRAY[active.layoutId]!.field] as unknown[] | undefined)?.length ?? 0) <
         PRIMARY_ARRAY[active.layoutId]!.max;
-  /**
-   * Links a text to the footnote (Mario, 28 Sep 2026: "how do I connect a
-   * footnote to a text?"): the next superscript number goes where the caret
-   * is in the slide's text, the edit is committed, and the footnote gets the
-   * matching "N. " when it does not have it yet. Typing "^1" does the same
-   * without the button (SlideFrame).
-   */
-  const onReference = () => {
-    if (!active || isPage(active)) return;
-    const SUP = "⁰¹²³⁴⁵⁶⁷⁸⁹";
-    const focused = document.activeElement as HTMLElement | null;
-    const target = focused?.closest<HTMLElement>('[data-tour="canvas"] [data-edit]');
-    if (!target || target.getAttribute("data-edit") === "notes") {
-      dispatch({ type: "GENERATION_ERROR", error: "Click in the text where the reference goes, then press Reference (or type ^1 there)." });
-      return;
-    }
-    const { notes = "", ...rest } = active;
-    const used = [...JSON.stringify(rest)].map((c) => SUP.indexOf(c)).filter((d) => d > 0);
-    const n = Math.min(9, Math.max(0, ...used) + 1);
-    document.execCommand("insertText", false, SUP[n]);
-    target.blur();
-    if (!new RegExp(`(^|[\\s;])${n}\\.`).test(notes)) {
-      dispatch({ type: "EDIT_FIELD", index: state.activeIndex, path: "notes", value: notes.trim() ? `${notes.trimEnd()}\n${n}. ` : `${n}. ` });
-    }
-  };
   const onAddItem = () => {
     // A partner is picked from the logo library or uploaded, not typed in.
     if (active?.layoutId === "partner") return setPartnerModal({ at: null });
@@ -2530,10 +2505,6 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
                     addMenu={addMenu}
                     onOpenAddMenu={() => setAddFocus(editingPath())}
                     onAddPart={onAddPart}
-                    canAddNote={!modular && !isPage(active) && !NO_NOTES.has(active.layoutId) && !active.notes?.trim()}
-                    onAddNote={() => dispatch({ type: "EDIT_FIELD", index: state.activeIndex, path: "notes", value: "1. " })}
-                    canReference={!isPage(active) && !!active.notes?.trim()}
-                    onReference={onReference}
                     canEditData={isChart}
                     onRegenerate={onRegenerateSlide}
                     onAddItem={onAddItem}
@@ -2974,10 +2945,6 @@ function SlideActions({
   addMenu,
   onOpenAddMenu,
   onAddPart,
-  canAddNote,
-  onAddNote,
-  canReference,
-  onReference,
   canEditData,
   canChangeImage,
   onRegenerate,
@@ -3002,12 +2969,6 @@ function SlideActions({
   /** The menu opens: the caller notes which text had the caret. */
   onOpenAddMenu: () => void;
   onAddPart: (id: string) => void;
-  /** A content slide with no footnote yet: "Footnote" adds one in the footer row. */
-  canAddNote: boolean;
-  onAddNote: () => void;
-  /** The slide has a footnote: "Reference" puts its next number, in superscript, where the caret is. */
-  canReference: boolean;
-  onReference: () => void;
   canEditData: boolean;
   canChangeImage: boolean;
   onRegenerate: (instruction: string) => void;
@@ -3127,23 +3088,7 @@ function SlideActions({
                 </Button>
               )
             )}
-            {canReference && (
-              <Button
-                variant="secondary"
-                icon={Superscript}
-                // Keeps the caret in the slide's text while the button is pressed.
-                onMouseDown={(e) => e.preventDefault()}
-                onClick={onReference}
-                title="Click in a text where the reference goes, then press: adds the next footnote number (or type ^1)"
-              >
-                Reference
-              </Button>
-            )}
-            {canAddNote && (
-              <Button variant="secondary" icon={Superscript} onClick={onAddNote} title="Add a footnote in the footer row">
-                Footnote
-              </Button>
-            )}
+            {/* Footnotes are added from the right click on a text, with their source (Mario, 13 Oct 2026), not from this bar. */}
             {canEditData && (
               <Button
                 variant="secondary"
