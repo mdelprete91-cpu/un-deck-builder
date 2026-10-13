@@ -534,6 +534,19 @@ guard, all pure functions, none touching the user's words:
   2") left out of the comparison, never in a prescribed series or under "same layout"; a section divider starts a new run, so
   parallel chapters in one layout are structure. `normalizeSlide` drops a slide with no text at
   all and strips blocks, stats and bullets from a chart slide.
+- **What a reader notices across slides** (`lib/slides/repeats.ts`, 13 Oct 2026, second evaluation):
+  a content slide whose every sentence is already on an earlier one (80% of its meaningful words,
+  `repeatsEarlier`) is dropped in the streaming pass, before the top-up so the place is filled
+  again, and in `finishDeck` for slides the top-up or the contract added; never in a series. A
+  funnel whose values grow or drop under 1% at one step (schools and countries in one funnel) is
+  a stat grid, or goes when its figures were shown (`fixMixedFunnel`). Stats that are only whole
+  numbers under ten ("1 regional partner") become cards with the figure as the label
+  (`fixFillerStats`). Dense columns with one point each become three columns
+  (`fixSparseColumns`). `finishDeck` compares figures as numbers (`parseFigure`: "2.2M+" is
+  2,200,000) and drops a chart of two figures or more that earlier slides all showed. A timeline
+  month with no year takes the year the sources give it (`yearTimelineMonths`, in the route too,
+  where the linked pages are). "8 slides max", "at most", "fino a" make the number a ceiling
+  (`countIsCeiling`): the closing slide is inside it and the prescribed last slide is count - 1.
 - **Once the deck is complete** (`runGenerate` after the top-up, and the suite): `mergeContinuations`
   folds two consecutive blocks-family slides with one title into one (Objective 1 with KR1-3 and
   again with KR5-6, 26 Sep 2026); `unifyLayouts` under "same layout" gives every blocks-family
@@ -590,7 +603,10 @@ guard, all pure functions, none touching the user's words:
   brief (`normalizeSlide`'s `context`, `fillPhotos(slides, brief)` in the reducer, `fillPagePhotos`
   and `normalizePage` for two-pagers). A Kenya deck named Kenya on its cover only and took the
   Kazakhstan stage and the Central Asian steppe (12 Oct 2026). `tablet-lesson` (two girls in face
-  masks) is out of `CHILDREN_PHOTOS` since that day: the model or the user may still pick it. The two buildings are the
+  masks) is out of `CHILDREN_PHOTOS` since that day: the model or the user may still pick it. When the
+  children photos that fit run out, `SPARE_PHOTOS` (learning-hub, panel-talk: no particular place)
+  come before any repeat (13 Oct 2026: two decks in five showed one photo twice; decks carry 0-5
+  photo slots, two on average, against four children photos). The two buildings are the
   Giga Technology Center in Barcelona (Ca l'Alier) and in Geneva (Campus Biotech), for a slide
   about that office only. A rewrite keeps a photo already on the slide and may fill an empty slot.
 - **Content QA** (`tools/qa-content.ts`, 27 Sep 2026): gpt-6-sol with reasoning judges each deck of

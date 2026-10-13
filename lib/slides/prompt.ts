@@ -153,6 +153,8 @@ interface GenerateBody {
   outputLanguage?: string;
   /** The user's answers to the questions a short brief raised (compileInsights): they rank with the brief. */
   briefNotes?: string;
+  /** The brief's number is a ceiling ("8 slides max"): the closing slide counts in it. */
+  countIsCeiling?: boolean;
   /** Today's date (YYYY-MM-DD), set by the route: the model is told it, so a dated source reads in its tense. */
   today?: string;
   /**
@@ -304,7 +306,9 @@ function messageFor(body: GenerateBody): string {
           ? `The brief asks for one slide per item and names ${body.count}: that is the number of items, not the size of the deck. Make exactly one slide for each item the brief lists, then add the cover and the closing slide on top${body.chapters === true ? ", and the agenda and a divider before each chapter" : ""}.`
           : `The brief asks for one slide per item: make exactly one slide for each item it lists, plus the cover and the closing slide${body.chapters === true ? ", and the agenda and a divider before each chapter" : ""}.`
         : typeof body.count === "number"
-          ? `Produce exactly ${body.count} slides counting the cover${chaptersCount}, then the closing slide on top: ${body.count + 1} in all.${body.lastContent?.trim() ? ` Slide ${body.count} is the last content slide the brief prescribes: ${body.lastContent.trim()}.` : ""}`
+          ? body.countIsCeiling
+            ? `Produce at most ${body.count} slides in all, counting the cover and the closing slide${chaptersCount}.${body.lastContent?.trim() ? ` Slide ${body.count - 1} is the last content slide the brief prescribes: ${body.lastContent.trim()}.` : ""}`
+            : `Produce exactly ${body.count} slides counting the cover${chaptersCount}, then the closing slide on top: ${body.count + 1} in all.${body.lastContent?.trim() ? ` Slide ${body.count} is the last content slide the brief prescribes: ${body.lastContent.trim()}.` : ""}`
           : `Choose the number of slides yourself (typically ${thin ? "5 to 7" : "8-14"}; when the brief asks to carry long material in full, as many as it takes, up to ${MAX_SLIDES}). A "page" in the brief means a slide.`;
       // The closing slide is outside the count since 12 Oct 2026, so a slide
       // the brief puts last ("12. Decisions needed") is no longer cut for it.

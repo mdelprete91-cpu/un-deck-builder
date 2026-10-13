@@ -14,6 +14,8 @@ import { sanitizeAttachments } from "@/lib/slides/attachments-server";
 import { fetchLinkedPages } from "@/lib/slides/links-server";
 import { languageOf, MAX_SLIDES } from "@/lib/slides/brief";
 import { cleanVoice } from "@/lib/slides/voice";
+import { yearTimelineMonths } from "@/lib/slides/rhythm";
+import type { SlideContent } from "@/lib/slides/schema";
 import { LANG_NAMES } from "@/lib/slides/i18n";
 
 export const runtime = "nodejs";
@@ -135,7 +137,7 @@ export async function POST(request: Request): Promise<Response> {
   // With `perItem` the named count is the items, and the cover and the
   // closing slide come on top of it.
   // The closing slide is on top of a named count (12 Oct 2026), two slides on top of a series.
-  const named = typeof body.count === "number" ? body.count + (body.perItem ? 2 : 1) : 20;
+  const named = typeof body.count === "number" ? body.count + (body.perItem ? 2 : body.countIsCeiling ? 0 : 1) : 20;
   const count = oneSlide ? 1 : Math.min(Math.max(named, 1), MAX_SLIDES + 2);
   // Add mode carries extra output (insertAfter + refreshed agenda bullets).
   // Every slide carries all its required fields, so a content-heavy slide (a
@@ -161,6 +163,7 @@ export async function POST(request: Request): Promise<Response> {
         : Math.min(800 + perItem * count + (isAdd ? 400 : 0), 36000);
   const encoder = new TextEncoder();
 
+  const sourceText = [body.brief ?? "", body.briefNotes ?? "", ...(body.attachments ?? []).map((a) => (a.kind === "text" ? a.text : ""))].join(" ");
   const stream = new ReadableStream({
     async start(controller) {
       const send = (event: Record<string, unknown>) =>
@@ -240,7 +243,9 @@ export async function POST(request: Request): Promise<Response> {
               // A replica keeps the source's words: the voice pass would turn
               // the source's own "synergies" into "shared gains". A two-pager
               // replica carries its document in `source`.
-              const clean = twoPager ? stripEmptyPage(slide) : stripEmptyFields(slide);
+              // A timeline month takes its year from the sources here, where the
+              // linked pages are (the client never sees them): A6, 13 Oct 2026.
+              const clean = twoPager ? stripEmptyPage(slide) : (yearTimelineMonths(stripEmptyFields(slide) as SlideContent, sourceText) as unknown);
               send({
                 type: "slide",
                 index: index++,

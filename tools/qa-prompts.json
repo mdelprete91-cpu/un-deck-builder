@@ -376,7 +376,7 @@
     "brief": "I need a pitch deck for a meeting next week with a regional telecom operator in West Africa. Goal: convince them to co-finance school connectivity in 200 rural schools in Senegal. Keep it to 8 slides max, focus on business value for them (brand, new subscribers, ESG reporting), and end with a clear ask.",
     "lang": "en",
     "expect": {
-      "max": 9,
+      "max": 8,
       "text": [
         "Senegal",
         "200"

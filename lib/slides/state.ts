@@ -156,7 +156,7 @@ export type DeckAction =
   /** Generation done under "same layout": every blocks-family slide takes the one layout that holds them all. */
   | { type: "UNIFY_LAYOUTS" }
   /** Generation done: consecutive slides with one title fold into one. */
-  | { type: "MERGE_CONTINUATIONS" }
+  | { type: "MERGE_CONTINUATIONS"; series?: boolean }
   /** `source`: the sheet the data came from (chart-import.ts), null to unlink, absent to leave as is. */
   | { type: "SET_BARS"; index: number; bars: { label: string; value: number; values?: number[]; color?: string }[]; series?: string[]; source?: ChartSource | null }
   | { type: "SET_LOGO"; index: number; slug: string; dataUrl: string }
@@ -386,7 +386,7 @@ function reduce(state: DeckState, action: DeckAction): DeckState {
     }
     case "MERGE_CONTINUATIONS": {
       if (state.slides.some(isPage)) return state;
-      const merged = fillPhotos(finishDeck(mergeContinuations(state.slides)), state.brief) as Slide[];
+      const merged = fillPhotos(finishDeck(mergeContinuations(state.slides), { series: action.series }), state.brief) as Slide[];
       if (merged.length === state.slides.length && merged.every((m, i) => m === state.slides[i])) return state;
       return { ...state, slides: merged, activeIndex: Math.min(state.activeIndex, merged.length - 1) };
     }

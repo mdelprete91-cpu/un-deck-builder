@@ -65,13 +65,17 @@ export const MAX_SLIDES = 40;
  * by per / each / ogni is passed over and the search goes on. A count under
  * two ("1 slide on X") is no count either: the model chooses the length.
  */
-export function countFromBrief(brief: string): number | undefined {
+function countMatch(brief: string): RegExpExecArray | null {
   const words = Object.keys(NUMBER_WORDS).join("|");
   const re = new RegExp(
     `\\b(\\d{1,2}|${words})\\s*(?:-\\s*)?(?:slides?|pages?|pagine|pagina|diapositives?|diapositiva|diapositivas?|diapos?|transparencias?|páginas?|folien|seiten)\\b(?!\\s+(?:per|each|for each|for every|a|ogni|per ogni)\\b)`,
     "gi",
   );
-  const m = re.exec(brief);
+  return re.exec(brief);
+}
+
+export function countFromBrief(brief: string): number | undefined {
+  const m = countMatch(brief);
   if (!m) return undefined;
   const n = /^\d/.test(m[1]) ? parseInt(m[1], 10) : NUMBER_WORDS[m[1].toLowerCase()];
   if (!n || n < 2) return undefined;
@@ -123,6 +127,23 @@ export function languageOf(brief: string): string | undefined {
  */
 export function uniformFromBrief(brief: string): boolean {
   return /\b(?:same|identical|one)\s+layout\b|\bstesso\s+layout\b|\blayout\s+(?:uguale|identico)\b/i.test(brief);
+}
+
+/**
+ * True when the brief's number is a ceiling, not a length: "8 slides max",
+ * "at most 10 slides", "fino a 12 slide". The closing slide then stays inside
+ * the number (A5, 13 Oct 2026: "8 slides max" and "end with a clear ask" came
+ * back as nine).
+ */
+export function countIsCeiling(brief: string): boolean {
+  const m = countMatch(brief);
+  if (!m) return false;
+  const before = brief.slice(Math.max(0, m.index - 30), m.index);
+  const after = brief.slice(m.index + m[0].length, m.index + m[0].length + 20);
+  return (
+    /\b(?:max(?:imum)?|at most|no more than|not more than|up to|massimo|al massimo|fino a|non più di|como m[aá]ximo|hasta|au plus|maximum)\s*$/i.test(before) ||
+    /^\s*(?:max(?:imum)?|at most|tops|al massimo|massimo|como m[aá]ximo|maximum)\b/i.test(after)
+  );
 }
 
 /** A numbered outline line: "12. Decisions needed from this meeting". */

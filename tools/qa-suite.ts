@@ -18,9 +18,10 @@
  */
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { countFromBrief, lastSlideFromBrief, seriesFromBrief, uniformFromBrief, MIN_SLIDES_WITH_CHAPTERS, TIERS_REQUEST } from "../lib/slides/brief";
+import { countFromBrief, countIsCeiling, lastSlideFromBrief, seriesFromBrief, uniformFromBrief, MIN_SLIDES_WITH_CHAPTERS, TIERS_REQUEST } from "../lib/slides/brief";
 import { normalizeSlide, overLimits, type LayoutId, type SlideContent } from "../lib/slides/schema";
 import { dropMetaNotes, META_NOTE, tidyModelSlide } from "../lib/slides/tidy";
+import { yearTimelineMonths } from "../lib/slides/rhythm";
 import { closingFor, finishDeck, makeRhythm, mergeContinuations, stripInventedYear, unifyLayouts } from "../lib/slides/rhythm";
 import { PARTNER_NAMES } from "../lib/slides/partners";
 import { extractDocx, extractPptx, extractXlsx, type Attachment } from "../lib/slides/attachments";
@@ -31,6 +32,7 @@ import { continuationLabel, estimateFits, restoreCover, restoreSlide } from "../
 import { compareSlide, fidelityScore, isFlawed, planLeftovers, repairNote, runningLines, sourceUnits, totals, type Leftover, type SlideFidelity, type Totals } from "../lib/slides/fidelity";
 import { countriesIn, fillPhotos, photoPlaces } from "../lib/slides/library";
 import { SHORT_BRIEF_WORDS, purposeAsks, slotsFromNotes } from "../lib/slides/sheet-questions";
+import { isBareMonth, isFillerStats, isMixedFunnel, repeatsEarlier, yearOfMonth } from "../lib/slides/repeats";
 import { checkContract, type BriefContract, type ContractGap } from "../lib/slides/contract";
 import { isChartLayout } from "../lib/slides/schema";
 import { applyChapterPlan, chapterCandidates, ensureAgenda, needsChapterPlan, type ChapterPlan } from "../lib/slides/chapters";
@@ -181,6 +183,8 @@ const SELF_NUMBERED = new Set(["steps", "three-columns", "timeline-phases"]);
 const NUMBER_ONLY = /^\s*(?:(?:step|phase|stage|fase|passo|paso|etapa|étape)\s*)?(?:\d{1,2}|[ivx]{1,4})[.):]?\s*$/i;
 const PLACEHOLDER = /lorem ipsum|\btbd\b|\[[^\]]{0,40}\]|one sentence describing|presentation title|section title|subtitle goes here|name surname/i;
 const norm = (t?: string) => (t ?? "").toLowerCase().replace(/\s+/g, " ").trim();
+/** Text about what the brief lacks, on a slide (B3 of the second evaluation). */
+const GAP_TEXT = /\b(the brief|the material|not specified|not provided|to be defined|were provided|does not (?:specify|give|provide|define|prescribe))\b/i;
 /** A chart whose every figure is 0 or 1: flags drawn as data. */
 const isFlagChart = (s: SlideContent) =>
   isChartLayout(s.layoutId) && !!s.bars?.length && s.bars.every((b) => (b.values?.length ? b.values : [b.value]).every((v) => v === 0 || v === 1));
@@ -223,13 +227,14 @@ const compact = (n: string) => {
   return v >= 1_000_000 ? `${String(Number((v / 1_000_000).toFixed(1)))}M` : v >= 1000 ? `${String(Number((v / 1000).toFixed(1)))}K` : n;
 };
 
-async function generate(body: Record<string, unknown>): Promise<{ slides: unknown[]; meta?: { insertAfter?: number }; truncated: boolean; usage?: { inputTokens: number; outputTokens: number }; error?: string }> {
+async function generate(body: Record<string, unknown>): Promise<{ slides: unknown[]; meta?: { insertAfter?: number }; truncated: boolean; usage?: { inputTokens: number; outputTokens: number }; error?: string; firstMs?: number }> {
+  const t0 = Date.now();
   const res = await fetch(`${URL}/api/generate`, { method: "POST", headers: { "content-type": "application/json", cookie }, body: JSON.stringify(body) });
   if (!res.ok || !res.body) return { slides: [], truncated: false, error: `HTTP ${res.status} ${(await res.text()).slice(0, 200)}` };
   const reader = res.body.getReader();
   const decoder = new TextDecoder();
   let buffer = "";
-  const out: { slides: unknown[]; meta?: { insertAfter?: number }; truncated: boolean; usage?: { inputTokens: number; outputTokens: number }; error?: string } = { slides: [], truncated: false };
+  const out: { slides: unknown[]; meta?: { insertAfter?: number }; truncated: boolean; usage?: { inputTokens: number; outputTokens: number }; error?: string; firstMs?: number } = { slides: [], truncated: false };
   for (;;) {
     const { done, value } = await reader.read();
     if (done) break;
@@ -239,7 +244,11 @@ async function generate(body: Record<string, unknown>): Promise<{ slides: unknow
     for (const line of lines) {
       if (!line.trim()) continue;
       const ev = JSON.parse(line);
-      if (ev.type === "slide") out.slides.push(ev.slide);
+      if (ev.type === "slide") {
+        // The wait before the first slide lands, what the user sees as the deck "starting".
+        out.firstMs ??= Date.now() - t0;
+        out.slides.push(ev.slide);
+      }
       else if (ev.type === "meta") out.meta = ev;
       else if (ev.type === "done") {
         out.truncated = !!ev.truncated;
@@ -254,6 +263,8 @@ interface Result {
   id: string;
   /** The wizard's questions on this brief, when the editor would ask them. */
   questions?: string[];
+  /** Seconds from the request to the first slide of the first generation call. */
+  firstSlide?: number;
   /** The brief's contract against the finished deck (lib/slides/contract.ts). */
   contract?: { share: number; missing: string[]; entities: string[] };
   slides: SlideContent[];
@@ -420,7 +431,8 @@ async function runPrompt(p: Prompt): Promise<Result> {
   const perItem = seriesFromBrief(brief);
   const chapters = !!p.chapters && !(count !== undefined && count < MIN_SLIDES_WITH_CHAPTERS);
   // The closing slide is on top of the brief's number, as in runGenerate.
-  const wanted = count === undefined ? undefined : perItem ? count + 2 : count + 1;
+  const ceiling = countIsCeiling(brief);
+  const wanted = count === undefined ? undefined : perItem ? count + 2 : ceiling ? count : count + 1;
   const slots = slotsFromNotes(p.briefNotes);
   const lastContent = lastSlideFromBrief(brief, count) ?? slots.ask ?? (purposeAsks(slots.purpose) ? slots.purpose : undefined);
   const rhythm = makeRhythm({ series: perItem, uniform: uniformFromBrief(brief), cap: wanted });
@@ -439,7 +451,8 @@ async function runPrompt(p: Prompt): Promise<Result> {
     const c = normalizeSlide(raw, { brandId: BRAND_ID, context: brief });
     if (!c) return null;
     if (!chapters && CHAPTER_LAYOUTS.has(c.layoutId)) return null;
-    const r = rhythm(stripInventedYear(c, brief));
+    const sources = [brief, p.briefNotes ?? "", ...attachments.map((a) => (a.kind === "text" ? a.text : ""))].join(" ");
+    const r = rhythm(yearTimelineMonths(stripInventedYear(c, brief), sources));
     return r && dropMetaNotes(tidyModelSlide(r)).slide;
   };
   if (p.use === "replicate") return replicatePrompt(p, brief, paths[0], t0);
@@ -454,7 +467,7 @@ async function runPrompt(p: Prompt): Promise<Result> {
   const contractCall = fetch(`${URL}/api/contract`, { method: "POST", headers: { "content-type": "application/json", cookie }, body: JSON.stringify({ brief, briefNotes: p.briefNotes }) })
     .then((r) => (r.ok ? r.json() : null))
     .catch(() => null) as Promise<{ contract?: BriefContract; usage?: { inputTokens: number; outputTokens: number } } | null>;
-  const first = await generate({ mode: "generate", brief, attachments, briefNotes: p.briefNotes, lastContent, brandLabel: BRAND_LABEL, chapters, format: "slides", count, perItem });
+  const first = await generate({ mode: "generate", brief, attachments, briefNotes: p.briefNotes, lastContent, countIsCeiling: ceiling || undefined, brandLabel: BRAND_LABEL, chapters, format: "slides", count, perItem });
   // gpt-6-luna list price (25 Sep 2026), the same as GenerationReadout.
   const usage = (u?: { inputTokens: number; outputTokens: number }) => (u ? (u.inputTokens * 0.1 + u.outputTokens * 0.5) / 1_000_000 : 0);
   cost += usage(first.usage);
@@ -533,7 +546,7 @@ async function runPrompt(p: Prompt): Promise<Result> {
   }
   // What the editor does once the deck is complete (see runGenerate in app/page.tsx).
   const beforeMerge = slides.length;
-  slides = fillPhotos(finishDeck(mergeContinuations(slides)), brief);
+  slides = fillPhotos(finishDeck(mergeContinuations(slides), { series: perItem || uniformFromBrief(brief) }), brief);
   const merged = beforeMerge - slides.length;
   if (merged) warnings.push(`${merged} continued slide${merged === 1 ? "" : "s"} folded back`);
   if (uniformFromBrief(brief)) slides = unifyLayouts(slides);
@@ -572,7 +585,7 @@ async function runPrompt(p: Prompt): Promise<Result> {
   if (first.truncated) findings.push("TRUNCATED");
   if (e.count !== undefined) {
     // The brief's number plus the closing slide (plus the cover for a series), as runGenerate counts.
-    const target = perItem ? e.count + 2 : e.count + 1;
+    const target = perItem ? e.count + 2 : countIsCeiling(brief) ? e.count : e.count + 1;
     // A deck short by the continued slides it folded back kept its content, not its count.
     if (slides.length !== target && slides.length + merged !== target) findings.push(`count ${slides.length} ≠ ${target}`);
   }
@@ -657,6 +670,22 @@ async function runPrompt(p: Prompt): Promise<Result> {
   if (e.noMetaNotes) slides.forEach((s, i) => s.notes && META_NOTE.test(s.notes) && findings.push(`${i + 1} · note about the brief: "${s.notes.slice(0, 50)}"`));
   if (e.noFlagCharts) slides.forEach((s, i) => isFlagChart(s) && findings.push(`${i + 1} · ${s.layoutId}: a chart of zeros and ones`));
   e.noText?.forEach((t) => all.toLowerCase().includes(t.toLowerCase()) && findings.push(`text "${t}" present`));
+  // The second evaluation (13 Oct 2026), on every deck.
+  const sources = brief + " " + (p.briefNotes ?? "") + " " + attachments.map((a) => (a.kind === "text" ? a.text : "")).join(" ");
+  const body2 = slides.filter((x) => !STRUCTURAL.has(x.layoutId));
+  body2.forEach((x, i) => repeatsEarlier(x, body2.slice(0, i)) && findings.push(`${slides.indexOf(x) + 1} · ${x.layoutId}: repeats earlier slides sentence by sentence`));
+  slides.forEach((x, i) => {
+    if (isFillerStats(x)) findings.push(`${i + 1} · ${x.layoutId}: filler stats (whole numbers under ten)`);
+    if (isMixedFunnel(x)) findings.push(`${i + 1} · chart-funnel: not a funnel`);
+    if (x.layoutId === "timeline" || x.layoutId === "timeline-phases")
+      (x.blocks ?? []).forEach((b) => isBareMonth(b.label) && yearOfMonth(b.label, sources) && findings.push(`${i + 1} · ${x.layoutId}: "${b.label}" has no year (the source gives ${yearOfMonth(b.label, sources)})`));
+    const visible = textOf(x) + " " + (x.notes ?? "");
+    const gap = visible.match(GAP_TEXT);
+    if (gap) findings.push(`${i + 1} · ${x.layoutId}: gap on the slide "${gap[0]}"`);
+  });
+  const imgs = slides.map((x) => x.image).filter((x): x is string => !!x && x.startsWith("/library/"));
+  const twice = imgs.filter((x, i) => imgs.indexOf(x) !== i);
+  if (twice.length) findings.push(`photo used twice: ${[...new Set(twice)].map((x) => x.slice(9, -4)).join(", ")}`);
   // Library photos the model placed, for a look: slide number, layout, photo.
   const placed = slides.map((s, i) => (s.image?.startsWith("/library/") ? `${i + 1}:${s.title?.slice(0, 24) ?? s.layoutId}=${s.image.slice(9, -4)}` : "")).filter(Boolean);
   if (placed.length) warnings.push(`photos: ${placed.join(", ")}`);
@@ -713,7 +742,7 @@ async function runPrompt(p: Prompt): Promise<Result> {
   const contract = final ? { share: final.share, missing: final.missing.map((m) => m.title), entities: final.entities } : undefined;
   if (final?.entities.length) warnings.push(`not in the deck: ${final.entities.join(", ")}`);
   if (final?.missing.length) warnings.push(`contract missing: ${final.missing.map((m) => m.title).join(" / ")}`);
-  return { id: p.id, questions, contract, slides, layouts, findings, warnings, overflow, cost, seconds, truncated: first.truncated, error: first.error };
+  return { id: p.id, questions, contract, firstSlide: first.firstMs !== undefined ? first.firstMs / 1000 : undefined, slides, layouts, findings, warnings, overflow, cost, seconds, truncated: first.truncated, error: first.error };
 }
 
 async function main() {
@@ -746,14 +775,15 @@ async function main() {
   const lines = [
     `# QA suite ${stamp} against ${URL}`,
     "",
-    "| id | slides | layouts | findings | warnings | contract | over limit | cost | s |",
-    "|---|---|---|---|---|---|---|---|---|",
-    ...results.map((r) => `| ${r.id} | ${r.slides.length} | ${r.layouts.join(", ")} | ${r.findings.join("; ") || "ok"} | ${r.warnings.join("; ")} | ${r.contract ? `${Math.round(r.contract.share * 100)}%` : "-"} | ${r.overflow.length} | $${r.cost.toFixed(3)} | ${r.seconds.toFixed(0)} |`),
+    "| id | slides | layouts | findings | warnings | contract | over limit | cost | 1st slide s | s |",
+    "|---|---|---|---|---|---|---|---|---|---|",
+    ...results.map((r) => `| ${r.id} | ${r.slides.length} | ${r.layouts.join(", ")} | ${r.findings.join("; ") || "ok"} | ${r.warnings.join("; ")} | ${r.contract ? `${Math.round(r.contract.share * 100)}%` : "-"} | ${r.overflow.length} | $${r.cost.toFixed(3)} | ${r.firstSlide?.toFixed(1) ?? "-"} | ${r.seconds.toFixed(0)} |`),
     "",
     `Passed ${results.filter((r) => !r.findings.length).length}/${results.length}. Total cost $${results.reduce((a, r) => a + r.cost, 0).toFixed(3)}.`,
     (() => {
       const c = results.filter((r) => r.contract);
-      return `Contract: ${c.length ? Math.round((c.reduce((a, r) => a + r.contract!.share, 0) / c.length) * 100) : 0}% satisfied on average over ${c.length} decks.`;
+      const f = results.filter((r) => r.firstSlide !== undefined).map((r) => r.firstSlide!).sort((a, b) => a - b);
+      return `First slide after ${f.length ? f[Math.floor(f.length / 2)].toFixed(1) : "-"}s (median), ${f.length ? (f.reduce((a, b) => a + b, 0) / f.length).toFixed(1) : "-"}s (mean). Contract: ${c.length ? Math.round((c.reduce((a, r) => a + r.contract!.share, 0) / c.length) * 100) : 0}% satisfied on average over ${c.length} decks.`;
     })(),
     "",
     "## Over limit",
@@ -765,7 +795,7 @@ async function main() {
   writeFileSync(join(dir, "report.md"), lines.join("\n"));
   console.log(`\nreport: ${dir}/report.md`);
   console.log(lines.find((l) => l.startsWith("Passed ")));
-  console.log(lines.find((l) => l.startsWith("Contract: ")));
+  console.log(lines.find((l) => l.startsWith("First slide after ")));
 }
 
 main();

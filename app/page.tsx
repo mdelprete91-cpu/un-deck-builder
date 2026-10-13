@@ -23,8 +23,8 @@ import { undash } from "@/lib/slides/pages/schema";
 import { normalizePage, PAGE_BLOCK_LIMITS, RAIL_BLOCKS, panelTone, tableHeads, type PageBlock, type PageBlockType } from "@/lib/slides/pages/schema";
 import { defaultContent, denseContent } from "@/lib/slides/defaults";
 import { familyOf } from "@/lib/slides/families";
-import { countFromBrief, languageOf, lastSlideFromBrief, seriesFromBrief, uniformFromBrief, MIN_SLIDES_WITH_CHAPTERS, TIERS_REQUEST } from "@/lib/slides/brief";
-import { makeRhythm, stripInventedYear, type RhythmOptions } from "@/lib/slides/rhythm";
+import { countFromBrief, countIsCeiling, languageOf, lastSlideFromBrief, seriesFromBrief, uniformFromBrief, MIN_SLIDES_WITH_CHAPTERS, TIERS_REQUEST } from "@/lib/slides/brief";
+import { makeRhythm, stripInventedYear, yearTimelineMonths, type RhythmOptions } from "@/lib/slides/rhythm";
 import { dropMetaNotes, tidyModelSlide } from "@/lib/slides/tidy";
 import { BLOCK_LABELS, presetStack } from "@/lib/slides/pages/presets";
 import { clearSaved, openSession, saveDeck } from "@/lib/slides/storage";
@@ -340,7 +340,9 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
             let content = normalizeSlide(raw, { brandId: state.brandId, context: String(body.brief ?? "") });
             if (!content) continue;
             if (opts.dropChapters && CHAPTER_LAYOUTS.has(content.layoutId)) continue;
-            if (rhythm) content = rhythm(stripInventedYear(content, String(body.brief ?? "")));
+            // The sources a timeline month may take its year from: the brief, the answers, the attached text.
+            const sources = [String(body.brief ?? ""), String(body.briefNotes ?? ""), ...((body.attachments as Attachment[] | undefined) ?? []).map((a) => (a.kind === "text" ? a.text : ""))].join(" ");
+            if (rhythm) content = rhythm(yearTimelineMonths(stripInventedYear(content, String(body.brief ?? "")), sources));
             if (!content) continue;
             content = tidyModelSlide(content);
             // A note about the brief is not the slide's: it goes to the sidebar.
@@ -821,7 +823,9 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
     const perItem = !twoPager && seriesFromBrief(brief);
     // The closing slide is on top of the brief's number (Mario, 12 Oct 2026),
     // and with a series the cover too.
-    const wanted = count === undefined ? undefined : perItem ? count + 2 : count + 1;
+    // "8 slides max" is a ceiling: the closing slide stays inside it (A5, 13 Oct 2026).
+    const ceiling = !twoPager && countIsCeiling(brief);
+    const wanted = count === undefined ? undefined : perItem ? count + 2 : ceiling ? count : count + 1;
     const rhythm = { series: perItem, uniform: uniformFromBrief(brief), cap: twoPager ? undefined : wanted };
     const briefNotes = briefQ?.brief === brief && briefQ.analysis ? compileInsights(briefQ.analysis, briefQ.answers) : undefined;
     // The last content slide the brief or the answers prescribe: the brief's
@@ -845,6 +849,7 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
         attachments,
         briefNotes,
         lastContent,
+        countIsCeiling: ceiling || undefined,
         brandLabel: theme.label,
         chapters,
         format: state.format,
@@ -934,7 +939,7 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
     // whole series (the streaming pass could only impose what it had seen),
     // and the closing slide the model may have left out.
     if (received > 0) {
-      dispatch({ type: "MERGE_CONTINUATIONS" });
+      dispatch({ type: "MERGE_CONTINUATIONS", series: rhythm.series || rhythm.uniform });
       if (rhythm.uniform) dispatch({ type: "UNIFY_LAYOUTS" });
       dispatch({ type: "ENSURE_CLOSING" });
     }

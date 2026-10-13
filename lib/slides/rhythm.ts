@@ -1,4 +1,5 @@
 import { isChartLayout, PRIMARY_ARRAY, type LayoutId, type SlideContent } from "./schema";
+import { compactFigure, figuresShown, isBareMonth, isFillerStats, isMixedFunnel, repeatsEarlier, yearOfMonth } from "./repeats";
 
 /**
  * Deterministic passes over the slides as they stream in. None of them
@@ -323,9 +324,13 @@ function sortRanking(content: SlideContent): SlideContent {
 
 /** The figures a slide shows as its point: hero stat, stat values. */
 function figuresOf(content: SlideContent): string[] {
-  const norm = (v: string) => v.replace(/\s+/g, "").toLowerCase();
-  if (content.layoutId === "big-stat" || content.layoutId === "single-stat") return content.stat ? [norm(content.stat)] : [];
-  if (STATS_FAMILY.has(content.layoutId)) return (content.stats ?? []).map((x) => norm(x.value)).filter(Boolean);
+  // As numbers, so "2.2M+" on a stat and 2,200,000 on a chart are one figure (13 Oct 2026).
+  if (content.layoutId === "big-stat" || content.layoutId === "single-stat" || STATS_FAMILY.has(content.layoutId)) return figuresShown(content);
+  // A chart repeats only when it brings two figures or more, all shown before.
+  if (isChartLayout(content.layoutId)) {
+    const f = figuresShown(content);
+    return f.length >= 2 ? f : [];
+  }
   return [];
 }
 
@@ -335,17 +340,63 @@ function figuresOf(content: SlideContent): string[] {
  * schools mapped" on three slides, 27 Sep 2026, content QA), and an agenda
  * with no chapters to list goes.
  */
-export function finishDeck(slides: SlideContent[]): SlideContent[] {
+export function finishDeck(slides: SlideContent[], opts: { series?: boolean } = {}): SlideContent[] {
   const shown = new Set<string>();
   const out: SlideContent[] = [];
   for (const s of slides) {
     const figures = figuresOf(s);
     if (figures.length && figures.every((f) => shown.has(f))) continue;
+    // The slides the top-up and the contract added never went through the
+    // streaming pass: a content slide that only says again what earlier ones
+    // said goes here too (A1, 13 Oct 2026). Never in a prescribed series.
+    if (!opts.series && !NO_REPEAT_CHECK.has(s.layoutId) && repeatsEarlier(s, out.filter((x) => !NO_REPEAT_CHECK.has(x.layoutId)))) continue;
     figures.forEach((f) => shown.add(f));
     out.push(s);
   }
   const chapters = out.some((s) => s.layoutId === "section-divider");
   return chapters ? out : out.filter((s) => s.layoutId !== "agenda");
+}
+
+/** Structure, not content: never a sentence-by-sentence repeat. */
+const NO_REPEAT_CHECK = new Set<string>(["cover", "agenda", "section-divider", "thank-you", "partner"]);
+
+/**
+ * A funnel that is not one (values that grow, a step under 1% of the one
+ * before: schools and countries in one funnel, 13 Oct 2026). Its figures go
+ * on a stat grid, compact as a stat prints them; the caller drops it when an
+ * earlier slide already showed them all.
+ */
+function fixMixedFunnel(content: SlideContent): SlideContent {
+  if (!isMixedFunnel(content)) return content;
+  const { bars, series: _series, ...rest } = content;
+  void _series;
+  return { ...rest, layoutId: "stat-grid", stats: (bars ?? []).slice(0, 6).map((b) => ({ value: compactFigure(b.value), label: b.label })) };
+}
+
+/**
+ * Figures that only count things ("1 regional partner", "2 streams") are a
+ * list: each figure goes into its row's label, the count it qualifies stays
+ * beside it (A2b, 13 Oct 2026).
+ */
+function fixFillerStats(content: SlideContent): SlideContent {
+  if (!isFillerStats(content)) return content;
+  const { stats, ...rest } = content;
+  const blocks = (stats ?? []).map((x) => ({ label: x.value.trim(), body: x.label }));
+  return { ...rest, layoutId: blocks.length <= 4 ? "four-cards" : "list", blocks };
+}
+
+/**
+ * Dense columns with one point each at most are three columns (A3, 13 Oct
+ * 2026): the point is the column's body, as fixLonelyGrid moves a lone card.
+ */
+function fixSparseColumns(content: SlideContent): SlideContent {
+  if (content.layoutId !== "bullet-columns" || !content.blocks?.length || content.density === "high") return content;
+  if (!content.blocks.every((b) => (b.items?.filter((x) => x.trim()).length ?? 0) <= 1)) return content;
+  return {
+    ...content,
+    layoutId: "three-columns",
+    blocks: content.blocks.slice(0, 3).map((b) => ({ label: b.label, body: (b.items?.find((x) => x.trim()) ?? b.body ?? "").replace(/^-\s*/, "") })),
+  };
 }
 
 /** Layouts whose items are a figure and a label. */
@@ -384,6 +435,9 @@ export function makeRhythm(opts: RhythmOptions = {}): (content: SlideContent) =>
   let uniformLayout: LayoutId | null = null;
   /** What each accepted content slide said, for the repeat check. */
   const said = new Set<string>();
+  /** The content slides accepted so far, and the figures they showed (A1, A2a). */
+  const acceptedContent: SlideContent[] = [];
+  const figuresSeen = new Set<string>();
   /** The label sets of the content slides accepted in this chapter, for the near-repeat check. */
   let labelSets: Set<string>[] = [];
   /** Library photos already placed: the same picture twice goes back to the placeholder. */
@@ -411,7 +465,7 @@ export function makeRhythm(opts: RhythmOptions = {}): (content: SlideContent) =>
       }
       return content;
     }
-    const fixed = fixEmptySection(fixHeroWithoutFigure(fixNonNumericStats(fixLonelyTimeline(sortRanking(fixLonelyGrid(fixDiagonalSeries(fixFlagChart(content))))))));
+    const fixed = fixEmptySection(fixHeroWithoutFigure(fixNonNumericStats(fixLonelyTimeline(sortRanking(fixLonelyGrid(fixFillerStats(fixSparseColumns(fixDiagonalSeries(fixMixedFunnel(fixFlagChart(content)))))))))));
     // A dropped slide never counts against the cap.
     if (!fixed || isRepeatChart(fixed, lastChart)) return null;
     const signature = signatureOf(fixed);
@@ -420,12 +474,18 @@ export function makeRhythm(opts: RhythmOptions = {}): (content: SlideContent) =>
     // "Map, Connect, Monitor" (the evaluation of 12 Oct 2026). Three labels or
     // more, three quarters of them on one earlier slide of this chapter. A
     // prescribed series repeats its labels by design and is left alone.
+    // A funnel turned stat grid whose figures an earlier slide showed: gone (A2a).
+    if (isMixedFunnel(content) && figuresShown(fixed).every((f) => figuresSeen.has(f))) return null;
+    // Every sentence already said on an earlier slide: gone before the top-up, so the deck fills the place (A1).
+    if (!opts.series && !opts.uniform && repeatsEarlier(fixed, acceptedContent)) return null;
     if (!opts.series && !opts.uniform) {
       const labels = labelSet(fixed);
       if (labels.size >= 3 && labelSets.some((prev) => [...labels].filter((l) => prev.has(l)).length / labels.size >= 0.75)) return null;
       if (labels.size >= 2) labelSets.push(labels);
     }
     said.add(signature);
+    acceptedContent.push(fixed);
+    figuresShown(fixed).forEach((f) => figuresSeen.add(f));
     content = fixed;
     if (content.image && /^\/library\//.test(content.image)) {
       if (photos.has(content.image)) {
@@ -460,6 +520,23 @@ export function makeRhythm(opts: RhythmOptions = {}): (content: SlideContent) =>
     settle(layoutId);
     return layoutId === content.layoutId ? content : { ...content, layoutId };
   };
+}
+
+/**
+ * A timeline label that is a month with no year reads as this year
+ * ("October", "December" on a deck from a 2025 article, 13 Oct 2026). When
+ * the sources give that month with one year, the label takes it (A6).
+ */
+export function yearTimelineMonths(content: SlideContent, sources: string): SlideContent {
+  if ((content.layoutId !== "timeline" && content.layoutId !== "timeline-phases") || !content.blocks?.length) return content;
+  let changed = false;
+  const blocks = content.blocks.map((b) => {
+    const year = isBareMonth(b.label) ? yearOfMonth(b.label, sources) : undefined;
+    if (!year) return b;
+    changed = true;
+    return { ...b, label: `${b.label.trim()} ${year}` };
+  });
+  return changed ? { ...content, blocks } : content;
 }
 
 /**
