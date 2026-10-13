@@ -12,6 +12,10 @@ import { meaningful, parseFigure } from "./repeats";
 export interface TextSource {
   /** "giga.global", "the brief", "report.pdf": what the menu and a footnote call it. */
   label: string;
+  /** Where it is: the menu says "Attached file · report.docx", "Knowledge base · giga.global". */
+  kind?: "brief" | "answers" | "file" | "page" | "kb" | "facts" | "replica";
+  /** A knowledge-base page's title. */
+  title?: string;
   url?: string;
   /** YYYY-MM-DD. */
   date?: string;
@@ -27,6 +31,8 @@ export interface TextSource {
    * gave, if any. Editing the text drops it.
    */
   verified?: { at: string; source?: string };
+  /** The source's name or footnote the editor wrote for it (SourceModal.tsx). */
+  given?: string;
 }
 
 /** The text at a data-edit path ("blocks.2.body") of a slide or a page, or "". */
@@ -86,9 +92,11 @@ function closest(text: string, sentences: Sentence[]): { s: Sentence; score: num
   let best: { s: Sentence; score: number } | null = null;
   for (const s of sentences) {
     const shared = words.filter((w) => s.words.has(w)).length / Math.max(1, words.length);
-    // A figure the sentence holds is the strongest sign it is the source.
+    // A text with a figure comes from where the figure is (Mario, 13 Oct 2026:
+    // "$2.4M" must name the file or the page that holds 2.4M): a sentence
+    // holding it ranks above any that only shares words.
     const fig = figures.length ? figures.filter((f) => s.figures.has(f)).length / figures.length : 0;
-    const score = figures.length ? 0.5 * shared + 0.5 * fig : shared;
+    const score = figures.length ? (fig > 0 ? 0.6 + 0.25 * fig + 0.15 * shared : 0.5 * shared) : shared;
     // The user's own words win a tie: they know them.
     if (!best || score > best.score + 1e-9 || (Math.abs(score - best.score) < 1e-9 && s.source.own && !best.s.source.own)) best = { s, score };
   }
@@ -115,6 +123,8 @@ export function attribute(slide: object, sources: Source[], opts: { unreadable?:
     const s = hit!.s;
     out[path] = {
       label: s.source.label,
+      ...(s.source.kind ? { kind: s.source.kind } : {}),
+      ...(s.source.title ? { title: s.source.title.slice(0, 120) } : {}),
       ...(s.source.url ? { url: s.source.url } : {}),
       ...(s.source.date ? { date: s.source.date } : {}),
       quote: s.text.length > 240 ? `${s.text.slice(0, 237).trimEnd()}…` : s.text,

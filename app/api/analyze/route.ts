@@ -14,6 +14,7 @@ import {
 
 import { countFromBrief, languageOf, outlineFromBrief } from "@/lib/slides/brief";
 import { briefFindings } from "@/lib/slides/brief-checks";
+import { kbBackground, kbLive } from "@/lib/slides/kb";
 
 export const runtime = "nodejs";
 
@@ -80,6 +81,11 @@ export async function POST(request: Request): Promise<Response> {
   if (kind === "brief") {
     const lang = languageOf(text) ?? "English";
     const outline = outlineFromBrief(text, countFromBrief(text));
+    // What the knowledge base would give this deck, when it is on: the
+    // questions do not ask for what Giga's own pages already say (Connectivity
+    // Credits, 13 Oct 2026: "how does the mechanism work?" with the answer on
+    // connectivitycredits.org).
+    const kb = kbLive() ? kbBackground(text, { scarce: true, withFiles: files.length > 0 }) : null;
     // The count is the client's own question (app/page.tsx, countConflict): not asked twice.
     const found = briefFindings(text).filter((f) => f.kind !== "count");
     const countAsked = briefFindings(text).some((f) => f.kind === "count");
@@ -90,6 +96,7 @@ export async function POST(request: Request): Promise<Response> {
       found.length ? `Checks already found:\n${found.map((f) => `- ${f.hint} (brief: "${f.about}")`).join("\n")}` : "Checks already found: none.",
       files.length ? `Files attached: ${files.join(", ")}.${material ? "" : " Their content is not shown here: do not ask for what such files would normally hold."}` : "No file is attached.",
       material ? `What the attached files say (cut):\n<<<\n${material}\n>>>` : "",
+      kb && kb.kind === "text" ? `What Giga's own websites say on this, which the deck can use (cut):\n<<<\n${kb.text.slice(0, 6000)}\n>>>` : "",
       `The brief is in ${lang}: write the summary, the questions and the options in ${lang}.`,
     ];
     content.push({ type: "input_text", text: parts.filter(Boolean).join("\n\n") });

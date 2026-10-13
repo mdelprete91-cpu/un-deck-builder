@@ -15,7 +15,7 @@ import { fetchLinkedPages } from "@/lib/slides/links-server";
 import { languageOf, MAX_SLIDES } from "@/lib/slides/brief";
 import { cleanVoice } from "@/lib/slides/voice";
 import { yearTimelineMonths } from "@/lib/slides/rhythm";
-import { kbBackground } from "@/lib/slides/kb";
+import { kbBackground, kbLive } from "@/lib/slides/kb";
 import { checkFigures, indexSources, type Source } from "@/lib/slides/provenance";
 import { attribute } from "@/lib/slides/attribution";
 import { GIGA_FACTS } from "@/lib/slides/giga-facts";
@@ -23,22 +23,22 @@ import { GIGA_FACTS } from "@/lib/slides/giga-facts";
 /** The request's sources, each with what a footnote would call it. */
 function sourcesOf(body: GenerateBody): Source[] {
   const out: Source[] = [
-    { label: "the brief", text: body.brief ?? "", own: true },
-    { label: "your answers", text: body.briefNotes ?? "", own: true },
-    ...GIGA_FACTS.map((f) => ({ label: f.source.replace(/^https?:\/\//, "").replace(/\/$/, ""), text: f.fact, date: f.verified, url: /^https?:/.test(f.source) ? f.source : `https://${f.source}/`, own: false })),
+    { label: "the brief", text: body.brief ?? "", own: true, kind: "brief" },
+    { label: "your answers", text: body.briefNotes ?? "", own: true, kind: "answers" },
+    ...GIGA_FACTS.map((f) => ({ label: f.source.replace(/^https?:\/\//, "").replace(/\/$/, ""), text: f.fact, date: f.verified, url: /^https?:/.test(f.source) ? f.source : `https://${f.source}/`, own: false, kind: "facts" as const })),
     // A replica's source is the file it rebuilds.
-    ...(body.source ? [{ label: "the source file", text: body.source, own: true }] : []),
+    ...(body.source ? [{ label: "the source file", text: body.source, own: true, kind: "replica" as const }] : []),
   ];
   for (const a of body.attachments ?? []) {
     if (a.kind !== "text") continue;
     if (a.background) {
       // One knowledge-base attachment holds several pages: "# title (Source, url, read date)".
       for (const part of a.text.split(/\n(?=# )/)) {
-        const head = /^# .*\((?:[^,]*), (https?:\/\/[^,]+), read (\d{4}-\d{2}-\d{2})\)/.exec(part);
-        out.push({ label: head ? new URL(head[1]).host.replace(/^www\./, "") : "knowledge base", text: part, date: head?.[2], url: head?.[1], own: false });
+        const head = /^# (.*?) \((?:[^,]*), (https?:\/\/[^,]+), read (\d{4}-\d{2}-\d{2})\)/.exec(part);
+        out.push({ label: head ? new URL(head[2]).host.replace(/^www\./, "") : "knowledge base", text: part, date: head?.[3], url: head?.[2], own: false, kind: "kb", title: head?.[1] });
       }
-    } else if (/^https?:\/\//.test(a.name)) out.push({ label: new URL(a.name).host.replace(/^www\./, ""), text: a.text, date: a.published, url: a.name, own: false });
-    else out.push({ label: a.name, text: a.text, own: true });
+    } else if (/^https?:\/\//.test(a.name)) out.push({ label: new URL(a.name).host.replace(/^www\./, ""), text: a.text, date: a.published, url: a.name, own: false, kind: "page" });
+    else out.push({ label: a.name, text: a.text, own: true, kind: "file" });
   }
   return out;
 }
@@ -50,7 +50,7 @@ import { materialScore, SCARCE_MATERIAL } from "@/lib/slides/brief";
  * The knowledge base is not live yet (Mario, 13 Oct 2026: it did not pass the
  * quality gate; it ships when a fair measure says it helps). Off, it adds nothing.
  */
-const KB_LIVE = false;
+const KB_LIVE = kbLive();
 
 function background(body: GenerateBody, given: Attachment[]): Attachment[] {
   if (!KB_LIVE) return [];

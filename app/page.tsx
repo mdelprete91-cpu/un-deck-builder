@@ -18,7 +18,8 @@ import LanguageMenu from "@/components/LanguageMenu";
 import EditChoice from "@/components/EditChoice";
 import LogoMenu from "@/components/LogoMenu";
 import TextMenu from "@/components/TextMenu";
-import { textAt } from "@/lib/slides/attribution";
+import SourceModal from "@/components/SourceModal";
+import { citation, textAt } from "@/lib/slides/attribution";
 import { figuresIn } from "@/lib/slides/provenance";
 import PartnerLogoModal from "@/components/PartnerLogoModal";
 import { apply, detectLang, LANG_LABELS, LANG_NAMES, plan, newEdits, remember, snapshot, textFields, uiStrings, type DeckLang, type Job, type Lang } from "@/lib/slides/i18n";
@@ -527,6 +528,14 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
   useEffect(() => {
     wizardRef.current = wizard;
   }, [wizard]);
+  /**
+   * Subjects already read and found clear, by id: the wizard steps over them
+   * instead of stopping on "Nothing to ask" (a file and a brief both clear,
+   * 13 Oct 2026: the brief finished while the file was still on screen, so
+   * its own pass-over came too early). A ref, since the analyses finish
+   * after their await.
+   */
+  const clearRef = useRef(new Set<string>());
   const [briefQ, setBriefQ] = useState<{ brief: string; analysis?: SheetAnalysis; answers: SheetAnswers; error?: string; asked?: boolean } | null>(null);
   /** A brief that mentions a file with none attached: asked first, keyed to the brief's text. */
   const [noFileQ, setNoFileQ] = useState<{ brief: string; answers: SheetAnswers; asked?: boolean } | null>(null);
@@ -546,6 +555,7 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
   /** `app/api/analyze` reads one file next to the brief; the result sits on the attachment. */
   const analyzeAttachment = async (a: Attachment, brief: string) => {
     if (!canQuestion(a)) return;
+    clearRef.current.delete(a.id);
     const spreadsheet = a.kind === "text" && !!a.spreadsheet;
     // A PowerPoint file or a PDF is always asked what to do with it, first (Mario, 28 Sep 2026).
     const withUse = (analysis: SheetAnalysis): SheetAnalysis =>
@@ -589,6 +599,7 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
   };
   /** A subject that turned out clear while the wizard was waiting on it moves the wizard on. */
   const passOver = (id: string) => {
+    clearRef.current.add(id);
     const w = wizardRef.current;
     if (w && w.queue[0] === id) advanceFrom(w);
   };
@@ -600,6 +611,7 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
    * its answer sets the deck's length.
    */
   const analyzeBrief = async (brief: string) => {
+    clearRef.current.delete("brief");
     setBriefQ({ brief, answers: {} });
     const conflict = countConflict(brief);
     const countQ: SheetAnalysis["questions"] = conflict
@@ -672,7 +684,7 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
     markAsked(w.queue[0]);
     // The length is moot once the file is to be replicated, answered just before.
     // So is the brief's: a replica follows its source, not the brief's outline.
-    const rest = w.queue.slice(1).filter((id) => (id !== "length" && id !== "brief") || !replicaChosen());
+    const rest = w.queue.slice(1).filter((id) => ((id !== "length" && id !== "brief") || !replicaChosen()) && !clearRef.current.has(id));
     if (rest.length) setWizard({ ...w, queue: rest });
     else {
       setWizard(null);
@@ -1984,36 +1996,41 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
   const [logoMenu, setLogoMenu] = useState<{ x: number; y: number } | null>(null);
   /** The right click on a text of the active slide or page: its source, its check, a footnote. */
   const [textMenu, setTextMenu] = useState<{ index: number; path: string; x: number; y: number } | null>(null);
+  /** "Add a source name or footnote": the dialog for one text, opened from the menu. */
+  const [sourceModal, setSourceModal] = useState<{ index: number; path: string } | null>(null);
   /**
-   * A verification set or taken off, or a footnote added: the whole slide
-   * replaced in one step, so one undo takes it back.
+   * The dialog's answer, or a verification taken off: the source's name
+   * kept on the text, a footnote on the slide, the check, all in one
+   * REPLACE_SLIDE so one undo takes it back.
    */
-  const verifyText = (index: number, path: string, source: string | undefined | null) => {
-    const slide = state.slides[index];
+  const saveSource = (index: number, path: string, r: { text: string; footnote: boolean; verified: boolean } | null) => {
+    let slide = state.slides[index];
     if (!slide) return;
     const sources = { ...(slide.sources ?? {}) };
     const cur = sources[path] ?? { label: "", quote: "", match: "none" as const };
-    if (source === null) {
-      const { verified: _off, ...rest } = cur;
-      void _off;
-      sources[path] = rest;
-    } else sources[path] = { ...cur, verified: { at: new Date().toISOString().slice(0, 10), ...(source ? { source } : {}) } };
+    const { verified: _old, ...rest } = cur;
+    void _old;
+    if (!r) sources[path] = rest;
+    else {
+      sources[path] = {
+        ...rest,
+        ...(r.text ? { given: r.text } : {}),
+        ...(r.verified ? { verified: { at: new Date().toISOString().slice(0, 10), ...(r.text ? { source: r.text } : {}) } } : {}),
+      };
+      if (r.footnote && !isPage(slide)) {
+        const SUP = "⁰¹²³⁴⁵⁶⁷⁸⁹";
+        const { notes = "", sources: _s, ...content } = slide;
+        void _s;
+        const used = [...JSON.stringify(content)].map((c) => SUP.indexOf(c)).filter((d) => d > 0);
+        const n = Math.min(9, Math.max(0, ...used) + 1);
+        const marked = setPath(slide, path, `${textAt(slide, path).replace(/\s+$/, "")}${SUP[n]}`) as typeof slide;
+        const line = r.text ? `${n}. ${r.text}` : `${n}. `;
+        slide = { ...marked, notes: notes.trim() ? `${notes.trimEnd()}\n${line}` : line };
+      }
+    }
     dispatch({ type: "REPLACE_SLIDE", index, content: { ...slide, sources } });
-  };
-  const footnoteText = (index: number, path: string, note: string) => {
-    const slide = state.slides[index];
-    if (!slide || isPage(slide)) return;
-    const SUP = "⁰¹²³⁴⁵⁶⁷⁸⁹";
-    const { notes = "", sources: _s, ...rest } = slide;
-    void _s;
-    const used = [...JSON.stringify(rest)].map((c) => SUP.indexOf(c)).filter((d) => d > 0);
-    const n = Math.min(9, Math.max(0, ...used) + 1);
-    const text = textAt(slide, path).replace(/\s+$/, "");
-    const withMark = setPath(slide, path, `${text}${SUP[n]}`) as typeof slide;
-    const line = `${n}. ${note}`.trimEnd() + (note ? "" : " ");
-    dispatch({ type: "REPLACE_SLIDE", index, content: { ...withMark, notes: notes.trim() ? `${notes.trimEnd()}\n${line}` : line } });
-    // An empty note waits for its words: the caret goes there.
-    if (!note) setFocusRequest({ path: "notes" });
+    // An empty footnote waits for its words: the caret goes there.
+    if (r?.footnote && !r.text) setFocusRequest({ path: "notes" });
   };
   /** The deck is being translated into this language (switchLanguage). */
   const [translating, setTranslating] = useState<Lang | null>(null);
@@ -2408,30 +2425,41 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
                       }}
                     />
                   )}
-                  {textMenu && state.slides[textMenu.index] && (() => {
-                    const slide = state.slides[textMenu.index];
-                    const close = () => setTextMenu(null);
+                  {textMenu && state.slides[textMenu.index] && (
+                    <TextMenu
+                      x={textMenu.x}
+                      y={textMenu.y}
+                      source={state.slides[textMenu.index].sources?.[textMenu.path]}
+                      recorded={Object.keys(state.slides[textMenu.index].sources ?? {}).length > 0}
+                      onAddSource={() => {
+                        setSourceModal({ index: textMenu.index, path: textMenu.path });
+                        setTextMenu(null);
+                      }}
+                      onUnverify={() => {
+                        saveSource(textMenu.index, textMenu.path, null);
+                        setTextMenu(null);
+                      }}
+                      onClose={() => setTextMenu(null)}
+                    />
+                  )}
+                  {sourceModal && state.slides[sourceModal.index] && (() => {
+                    const slide = state.slides[sourceModal.index];
+                    const src = slide.sources?.[sourceModal.path];
+                    const text = textAt(slide, sourceModal.path);
+                    // What the builder found, or what was given before.
+                    const initial = src?.verified?.source ?? src?.given ?? (src && src.match !== "none" && src.label && src.kind !== "brief" && src.kind !== "answers" ? citation(src) : "");
                     return (
-                      <TextMenu
-                        x={textMenu.x}
-                        y={textMenu.y}
-                        source={slide.sources?.[textMenu.path]}
-                        recorded={!!slide.sources && Object.keys(slide.sources).length > 0}
-                        hasFigure={figuresIn(textAt(slide, textMenu.path)).length > 0}
-                        canFootnote={!isPage(slide) && !NO_NOTES.has(slide.layoutId) && textMenu.path !== "notes"}
-                        onFootnote={(note) => {
-                          footnoteText(textMenu.index, textMenu.path, note);
-                          close();
+                      <SourceModal
+                        quoted={text}
+                        initial={initial}
+                        canFootnote={!isPage(slide) && !NO_NOTES.has(slide.layoutId) && sourceModal.path !== "notes"}
+                        hasFigure={figuresIn(text).length > 0}
+                        verified={!!src?.verified}
+                        onSave={(r) => {
+                          saveSource(sourceModal.index, sourceModal.path, r);
+                          setSourceModal(null);
                         }}
-                        onVerify={(source) => {
-                          verifyText(textMenu.index, textMenu.path, source);
-                          close();
-                        }}
-                        onUnverify={() => {
-                          verifyText(textMenu.index, textMenu.path, null);
-                          close();
-                        }}
-                        onClose={close}
+                        onClose={() => setSourceModal(null)}
                       />
                     );
                   })()}

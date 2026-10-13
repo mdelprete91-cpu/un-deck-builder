@@ -1610,11 +1610,20 @@ Conventions:
   the model writes in its own words, so "close" is honest wording, not a promise. It is in the
   schema (zod keeps it), saved with the deck, never drawn nor exported.
 - **The right click on a text** opens `TextMenu.tsx` (SlideFrame's `onTextMenu`): where it comes
-  from, then, for a text with a figure, **Mark as verified…** with a source of the editor's own or
-  none (UNICEF must not say anything wrong: a person certifies the figures), and **Add a footnote**
-  on slides with a footnote row: the next superscript at the end of the text and "n. source" in
-  `notes`, one `REPLACE_SLIDE`, so one undo. Editing a text marks its source `edited` and drops
-  its verification (`EDIT_FIELD`).
+  from, by kind and name (`Source.kind`: "Attached file · report.docx", "Knowledge base ·
+  connectivitycredits.org · page title", "Linked page · giga.global", "Giga facts", "Your brief"),
+  with the date it was read, the passage and how close it is. A text with a figure takes the
+  source sentence that holds the figure first (`closest` in attribution.ts). Then **Add a source
+  name or footnote…** opens `SourceModal.tsx` (Mario, 13 Oct 2026: a dialog, since the text can be
+  long): one text, filled in with the source found; "Show it as a footnote on the slide" (the next
+  superscript after the text and "n. text" in `notes`; not on pages or layouts in `NO_NOTES`); and,
+  for a figure, "I checked this figure: mark it as verified" (UNICEF must not say anything wrong:
+  a person certifies the figures, with the source written or none). All in one `REPLACE_SLIDE`
+  (`saveSource` in page.tsx), so one undo. Editing a text marks its source `edited` and drops its
+  verification (`EDIT_FIELD`). Chart values are not texts: no menu on them yet.
+- **The knowledge base locally:** `kbLive()` (kb.ts) is false in production; `KB_LIVE_LOCAL=1`
+  turns it on in development. When on, the brief's analysis also sees what Giga's sites say, so
+  the wizard does not ask for what they hold.
 - **Placeholders and verified texts are marked on the editing stage only**, with the CSS Custom
   Highlight API (`::highlight(deck-placeholder)`, white with a dashed accent underline;
   `::highlight(deck-verified)`, an accent underline): ranges over the text, never markup, so

@@ -401,12 +401,15 @@ export const slideContentSchema = z.object({
       z.string(),
       z.object({
         label: z.string(),
+        kind: z.enum(["brief", "answers", "file", "page", "kb", "facts", "replica"]).optional(),
+        title: z.string().optional(),
         url: z.string().optional(),
         date: z.string().optional(),
         quote: z.string(),
         match: z.enum(["high", "partial", "none"]),
         edited: z.boolean().optional(),
         verified: z.object({ at: z.string(), source: z.string().optional() }).optional(),
+        given: z.string().optional(),
       }),
     )
     .optional(),

@@ -22,6 +22,10 @@ export interface Source {
   date?: string;
   /** The page, when the source is one. */
   url?: string;
+  /** What kind of source it is, for the editor's menu ("Attached file · report.docx"). */
+  kind?: "brief" | "answers" | "file" | "page" | "kb" | "facts" | "replica";
+  /** A knowledge-base page's own title. */
+  title?: string;
   /** The user's own words or files: never footnoted (they know where it comes from). */
   own: boolean;
 }
@@ -153,7 +157,13 @@ export function checkFigures(slide: SlideContent, index: Map<string, Source[]>, 
   const pages = [...cited].filter((s) => !s.own);
   if (pages.length && !NO_NOTES.has(out.layoutId)) {
     const when = (d?: string) => (d ? `, ${new Date(`${d}T12:00:00Z`).toLocaleString("en-GB", { month: "long", year: "numeric", timeZone: "UTC" })}` : "");
-    const line = `Source: ${[...new Set(pages.map((s) => `${s.label}${when(s.date)}`))].join("; ")}.`;
+    // One entry a site: "giga.global, October 2026", not that and a bare "giga.global" too.
+    const bySite = new Map<string, string>();
+    for (const s of pages) {
+      const text = `${s.label}${when(s.date)}`;
+      if (!bySite.has(s.label) || text.length > bySite.get(s.label)!.length) bySite.set(s.label, text);
+    }
+    const line = `Source: ${[...bySite.values()].join("; ")}.`;
     out.notes = out.notes?.trim() ? `${out.notes.trim()} ${line}` : line;
   }
   return { slide: out, removed, cited: pages };

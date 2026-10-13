@@ -108,6 +108,14 @@ export function rankPages(query: string): { page: KbPage; source: KbSource; scor
  */
 const OWN = /\b(giga|unicef|digital inclusion|digital impact|connectivity credits?|spectrum certificates?|giga ?maps?|giga ?meter|daily check app)\b/i;
 
+/**
+ * The knowledge base reaches decks only once it passes the quality gate
+ * (CONTEXT.md): off in production, on locally with KB_LIVE_LOCAL=1 to test it.
+ */
+export function kbLive(): boolean {
+  return process.env.NODE_ENV !== "production" && process.env.KB_LIVE_LOCAL === "1";
+}
+
 export function kbBackground(query: string, opts: { scarce: boolean; withFiles: boolean }): Attachment | null {
   if (!opts.scarce && !opts.withFiles) return null;
   if (!OWN.test(query)) return null;
