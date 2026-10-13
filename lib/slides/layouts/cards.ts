@@ -246,11 +246,17 @@ export function list(s: Slide, t: BrandTheme): string {
   // and shrinks. The row aligns to the top: stretched, the label would
   // fill the row's height and autofit would read that as overflow.
   const bodyFit = lines * LINE + 8;
+  // A label takes two lines before it shrinks (Mario, 13 Oct 2026: "Financing
+  // solutions (internal and external)" came out at half size on one line),
+  // and its column widens with the longest label so two lines hold it: two
+  // LABEL36 lines are 96px, and six rows of that still end inside the zone.
+  const longest = Math.max(0, ...blocks.map((b) => (b.label ?? "").length));
+  const labelW = longest <= 14 ? 220 : longest <= 30 ? 340 : 440;
   const rows = blocks
     .map(
       (b, i) =>
         `<div class="ars" ${item(`blocks.${i}`)} style="display:flex;align-items:flex-start;gap:40px;padding:${PAD}px 0;border-bottom:1px solid ${HAIRLINE};${dly(8 + i * 6)}">` +
-        `<div ${ed(`blocks.${i}.label`, 50)} style="flex:0 0 220px;${LABEL36}color:var(--accent);">${esc(b.label)}</div>` +
+        `<div ${ed(`blocks.${i}.label`, 96)} style="flex:0 0 ${labelW}px;${LABEL36}color:var(--accent);">${esc(b.label)}</div>` +
         `<div ${ed(`blocks.${i}.body`, bodyFit)} style="flex:1;padding-top:4px;${BODY30}color:#000000;">${esc(b.body)}</div>` +
         `</div>`,
     )
