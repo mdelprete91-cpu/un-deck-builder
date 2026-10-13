@@ -42,13 +42,13 @@ export const PAGE_CATALOG: PageCatalogEntry[] = [
   },
   {
     type: "title",
-    usage: "A big page title, to open page 2 when it starts with a new theme",
+    usage: "The piece's title: once, at the top of page 1. A new theme further on opens with a heading",
     fields: "heading(<=55 chars), highlight(2-3 words copied exactly from heading, set in the accent, may be empty)",
     shape: "a page or product title without a picture",
-    signals: "a product or programme name with its promise; a new theme opening a page",
+    signals: "a product or programme name with its promise, at the top of page 1",
     role: "structure",
     capacity: "1-2 lines; ~70pt",
-    never: "never for a figure ('2.3M Schools') or a partner name; never a title the document does not have",
+    never: "never anywhere but the top of page 1 (a new part on page 2 opens with a heading); never for a figure ('2.3M Schools') or a partner name; never a title the document does not have",
   },
   {
     type: "section",

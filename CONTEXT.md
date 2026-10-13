@@ -1646,4 +1646,7 @@ Conventions:
   side title, or the one above it); run in the fit pass once blocks have their pages.
 - **Goldens**: `tools/twopager-golden.json` holds `spectrum` and `songbird` rebuilt from Mario's
   pptx with our blocks, next to `usPartnerships` (the Digital Inclusion brief).
+- **One title, at the top of page one** (Mario, 13 Oct 2026): any other `title` block becomes a
+  `heading` with the same words (`oneTitle`, pages/restore.ts, in the fit pass), the catalog and the
+  prompt say so, and the block menu adds a heading when "Page title" is dropped anywhere else.
 

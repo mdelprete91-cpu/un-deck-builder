@@ -9,7 +9,7 @@ import { ensureId, isChartLayout, isPage, normalizeSlide, overLimits, PRIMARY_AR
 import { renderSlide } from "@/lib/slides/layouts";
 import { A4_PX, pageDateNow } from "@/lib/slides/pages/a4";
 import { fitPage, flowOver, pullForward, type Resizer } from "@/lib/slides/pages/fit";
-import { continueNumbering, dropStatEchoes, fillStatFigures, isMastheadLine, putBackLines, checkRhythm, layoutIssues, shapeReplica, tidyBriefPieces, unwrapLines } from "@/lib/slides/pages/restore";
+import { continueNumbering, oneTitle, dropStatEchoes, fillStatFigures, isMastheadLine, putBackLines, checkRhythm, layoutIssues, shapeReplica, tidyBriefPieces, unwrapLines } from "@/lib/slides/pages/restore";
 import { logoFor } from "@/lib/slides/pages/logos";
 import { fillPagePhotos } from "@/lib/slides/library";
 import BlockRail from "@/components/BlockRail";
@@ -832,7 +832,7 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
     // rewritten on its own keeps its blocks where they are.
     const placed = opts.dated && pages.length > 1 ? await pullForward(fillPagePhotos(pages, state.brief) as Slide[], theme) : fillPagePhotos(pages, state.brief);
     // A numbered list carried over to the next page counts on (2, 3, 4), once the blocks have their pages.
-    const filled = from === 0 ? continueNumbering(placed) : placed;
+    const filled = from === 0 ? continueNumbering(oneTitle(placed)) : placed;
     // A page emptied by pullForward goes (from the end, so indexes hold).
     const emptied: number[] = [];
     for (let i = 0; i < filled.length; i++) {

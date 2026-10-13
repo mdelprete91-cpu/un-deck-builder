@@ -758,7 +758,9 @@ function reduce(state: DeckState, action: DeckAction): DeckState {
       if (stack.length >= MAX_BLOCKS_PER_PAGE) return state;
       const clone = structuredClone(slide);
       const at = Math.max(0, Math.min(action.at, stack.length));
-      (clone.stack ??= []).splice(at, 0, defaultBlock(action.blockType));
+      // The title opens page one; anywhere else the same block is a heading.
+      const type = action.blockType === "title" && !(action.index === 0 && at === 0) ? "heading" : action.blockType;
+      (clone.stack ??= []).splice(at, 0, defaultBlock(type));
       const slides = [...state.slides];
       slides[action.index] = clone;
       return { ...state, ...remember(state), slides };

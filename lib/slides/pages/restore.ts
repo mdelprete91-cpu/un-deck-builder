@@ -388,6 +388,18 @@ export function layoutIssues(pages: SlideContent[]): string[] {
 }
 
 /**
+ * One title, at the top of page one (Mario, 13 Oct 2026: "the title goes
+ * only at the start of the first page; elsewhere use headings"). Any other
+ * title block becomes a heading with the same words.
+ */
+export function oneTitle(pages: SlideContent[]): SlideContent[] {
+  return pages.map((p, pi) => ({
+    ...p,
+    stack: (p.stack ?? []).map((b, bi) => (b.type === "title" && !(pi === 0 && bi === 0) ? { type: "heading" as const, heading: b.heading ?? "" } : b)),
+  }));
+}
+
+/**
  * A numbered list that runs from the foot of one page to the top of the next
  * counts on (Songbird: asks 1 on page one, 2–4 on page two), unless the
  * second opens a part of its own (another side title).
