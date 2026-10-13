@@ -33,7 +33,7 @@ export async function readPdfSlides(data: ArrayBuffer): Promise<{ text: string; 
     // Runs to lines. A number alone is a chart label with its own position;
     // a bullet glyph (often a private-use character of a symbol font) marks
     // the start of a point.
-    type Line = { text: string; size: number; x: number; y: number; bullet: boolean };
+    type Line = { text: string; size: number; x: number; y: number; bullet: boolean; end: number };
     const lines: Line[] = [];
     let cur: Line | null = null;
     const BULLET = /^[\s\u0000-\u001F\u007F-\u009F\uE000-\uF8FF•▪●■◦·]+/;
@@ -51,11 +51,15 @@ export async function readPdfSlides(data: ArrayBuffer): Promise<{ text: string; 
         lines.push(cur);
         cur = null;
       }
-      if (!cur) cur = { text: "", size: 0, x: e, y, bullet: false };
+      if (!cur) cur = { text: "", size: 0, x: e, y, bullet: false, end: e };
       // A bullet glyph marks the point and carries no text (nor its own size).
       if (!cur.text.trim() && /[\u0000-\u001F\u007F-\u009F\uE000-\uF8FF•▪●■◦·]/.test(str)) cur.bullet = true;
       const bare = str.replace(/[\u0000-\u001F\u007F-\u009F\uE000-\uF8FF]/g, "");
+      // Two runs on one line with a gap between them and no space glyph are
+      // two words ("A" "partnership" read as "Apartnership", 13 Oct 2026).
+      if (cur.text && !/[\s(\[/-]$/.test(cur.text) && !/^[\s),.:;!?%\]/-]/.test(bare) && e - cur.end > size * 0.15) cur.text += " ";
       cur.text += bare;
+      cur.end = e + ((it as { width?: number }).width ?? 0);
       if (bare.trim()) cur.size = Math.max(cur.size, size);
       if (it.hasEOL) {
         lines.push(cur);

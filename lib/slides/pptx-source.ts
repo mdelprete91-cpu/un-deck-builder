@@ -93,7 +93,8 @@ function paragraphs(xml: string, fallbackSize = 0): Para[] {
   const out: Para[] = [];
   for (const m of xml.matchAll(/<a:p>([\s\S]*?)<\/a:p>|<a:p\s[^>]*>([\s\S]*?)<\/a:p>/g)) {
     const body = m[1] ?? m[2] ?? "";
-    const text = decode([...body.matchAll(/<a:t(?:\s[^>]*)?>([\s\S]*?)<\/a:t>/g)].map((t) => t[1]).join(""))
+    // A soft line break between two runs is a space: "Rural" <a:br/> "reach" read as "Ruralreach" (13 Oct 2026).
+    const text = decode([...body.replace(/<a:br\b[^>]*\/>/g, "<a:t> </a:t>").matchAll(/<a:t(?:\s[^>]*)?>([\s\S]*?)<\/a:t>/g)].map((t) => t[1]).join(""))
       .replace(/\s+/g, " ")
       .trim();
     if (!text) continue;
