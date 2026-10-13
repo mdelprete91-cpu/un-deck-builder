@@ -115,6 +115,272 @@ export const LIBRARY: LibraryImage[] = [
     useFor: "only when the slide is about the Giga Technology Center in Geneva, the Geneva team or office",
     places: ["Switzerland"],
   },
+  // The photo set Mario added on 13 Oct 2026 (UNICEF photos, OneDrive). Places
+  // only where the picture itself says it (a flag, a language on the board, a
+  // school's name); the rest is described by what it shows.
+  {
+    id: "steppe-donkey",
+    label: "A girl riding a donkey to school, Kyrgyzstan",
+    description: "A girl in a teal coat with a school backpack rides a donkey across a dry steppe under a deep blue sky; Kyrgyzstan.",
+    useFor: "the journey to school, remote and rural schools, the last mile, Kyrgyzstan or Central Asia",
+    places: ["Kyrgyzstan"],
+  },
+  {
+    id: "kyrgyz-computer-lab",
+    label: "Pupils in a school computer lab, Kyrgyzstan",
+    description: "Two girls in school uniforms smile at a computer screen, boys in red blazers at the next desks, the Kyrgyz flag on the wall.",
+    useFor: "computer labs, digital skills, connected schools, Kyrgyzstan",
+    places: ["Kyrgyzstan"],
+  },
+  {
+    id: "kyrgyz-teacher-lab",
+    label: "A teacher guiding pupils at computers, Kyrgyzstan",
+    description: "A teacher in a headscarf leans over two boys typing at computers, a girl in front, the Kyrgyz flag behind.",
+    useFor: "teachers, digital skills, training, connected classrooms, Kyrgyzstan",
+    places: ["Kyrgyzstan"],
+  },
+  {
+    id: "kyrgyz-school-door",
+    label: "Pupils leaving a rural school, Kyrgyzstan",
+    description: "A girl and a boy in black uniforms read a book together as they walk out of a small brick school with the Kyrgyz flag on its roof. Portrait.",
+    useFor: "rural schools, the school as a place, Kyrgyzstan",
+    places: ["Kyrgyzstan"],
+  },
+  {
+    id: "classroom-tablet-pair",
+    label: "Two pupils sharing a tablet",
+    description: "A boy and a girl in white school shirts look at a tablet together at a classroom desk, classmates behind.",
+    useFor: "learning on devices, digital content in class, children learning together",
+  },
+  {
+    id: "steps-tablets-group",
+    label: "Pupils with tablets on the school steps",
+    description: "A dozen pupils in white shirts sit on school steps in pairs, looking at tablets.",
+    useFor: "learning on devices, what connectivity brings to a whole school, children",
+  },
+  {
+    id: "two-women-phone",
+    label: "Two young women looking at a phone",
+    description: "Two young women in headscarves, one in red, one in black with glasses, smile at a smartphone against a dark wall.",
+    useFor: "girls' and women's digital inclusion, mobile access, young people online",
+  },
+  {
+    id: "tent-classroom-visit",
+    label: "A visitor among children in a tent classroom",
+    description: "A smiling woman in a field vest sits among children at desks in a white tent classroom.",
+    useFor: "field visits, education in emergencies, displaced children",
+  },
+  {
+    id: "youth-laptop-lab",
+    label: "Young people around a laptop",
+    description: "Young men gather round a laptop while one explains something on the screen; a hands-on training room.",
+    useFor: "youth digital skills, training, coding, young people",
+  },
+  {
+    id: "girl-tablet-pink",
+    label: "A girl using a tablet in class",
+    description: "A girl in a pink jacket works on a tablet at a blue desk, classmates with tablets behind her.",
+    useFor: "learning on devices, girls and technology, digital learning",
+  },
+  {
+    id: "masked-boy-writing",
+    label: "A boy in a face mask writing in class",
+    description: "A boy in a face mask writes in his exercise book in a full classroom of masked pupils.",
+    useFor: "education continuity, the pandemic, keeping schools open",
+  },
+  {
+    id: "empty-classroom",
+    label: "An empty classroom",
+    description: "An empty classroom with blue chairs, worn desks, a blackboard and breeze-block walls.",
+    useFor: "schools without connectivity, school closures, infrastructure gaps, the need",
+  },
+  {
+    id: "madagascar-reading",
+    label: "A young woman reading a schoolbook, Madagascar",
+    description: "A young woman in a red and yellow wrap reads a Malagasy schoolbook, sitting on a bed in a wooden room; Madagascar.",
+    useFor: "learning at home, girls' education, Madagascar",
+    places: ["Madagascar"],
+  },
+  {
+    id: "classroom-unicef-bags",
+    label: "UNICEF school bags on classroom desks",
+    description: "An empty classroom with blue UNICEF school bags laid on every desk, French lessons on the blackboard.",
+    useFor: "back to school, school supplies, UNICEF support to schools, French-speaking countries",
+  },
+  {
+    id: "masked-hands-up",
+    label: "Masked pupils raising their hands",
+    description: "Pupils in brown uniforms and face masks raise their hands at wooden desks.",
+    useFor: "education continuity, the pandemic, participation in class",
+  },
+  {
+    id: "girl-smile-classroom",
+    label: "A girl smiling in class",
+    description: "A girl in an orange top and sequined headscarf smiles over her shoulder at her desk, a blackboard full of writing behind.",
+    useFor: "girls' education, the joy of learning, a hopeful opening",
+  },
+  {
+    id: "two-girls-phone",
+    label: "Two girls sharing a phone outdoors",
+    description: "Two girls in headscarves look at a phone together beside a white wall in bright sun.",
+    useFor: "mobile access, girls and technology, young people online",
+  },
+  {
+    id: "teacher-tablet-girl",
+    label: "A teacher showing a girl a tablet",
+    description: "A teacher in a blue striped hijab shows a tablet to a smiling girl in a white dress, a blackboard behind.",
+    useFor: "teachers, learning on devices, girls' education",
+  },
+  {
+    id: "girl-chalkboard-sums",
+    label: "A girl writing sums on the blackboard",
+    description: "A smiling girl in a white headscarf writes additions in chalk on a blackboard.",
+    useFor: "learning outcomes, numeracy, girls' education",
+  },
+  {
+    id: "girl-tablet-blackboard",
+    label: "A girl reading a tablet before the blackboard",
+    description: "A girl in a navy hijab reads a tablet in front of a blackboard covered in French handwriting.",
+    useFor: "learning on devices, girls and technology, French-speaking countries",
+  },
+  {
+    id: "tablet-maths-game",
+    label: "A maths game on a tablet",
+    description: "Close-up of hands holding a tablet with a multiplication game, a blue UNICEF school bag on the desk.",
+    useFor: "digital learning content, learning apps, devices in schools",
+  },
+  {
+    id: "ethiopia-alphabet",
+    label: "A boy at the alphabet board, Ethiopia",
+    description: "A boy points with a stick at the English alphabet chalked on a green board, Amharic notes beside; Ethiopia.",
+    useFor: "foundational learning, literacy, Ethiopia",
+    places: ["Ethiopia"],
+  },
+  {
+    id: "girl-chalk-smile",
+    label: "A laughing girl holding chalk",
+    description: "Close portrait of a girl in a floral headscarf laughing, holding up a stick of chalk before a blackboard.",
+    useFor: "girls' education, the joy of learning, a hopeful opening or closing",
+  },
+  {
+    id: "young-woman-tablet",
+    label: "A young woman smiling at a tablet",
+    description: "A young woman in a leather jacket smiles at a tablet against a warm orange wall.",
+    useFor: "young people online, digital skills, adolescent girls",
+  },
+  {
+    id: "unicef-desk-readers",
+    label: "Two boys reading at a UNICEF desk",
+    description: "Two boys read a book together at a wooden desk stamped 'Don de l'Unicef', a classroom behind.",
+    useFor: "UNICEF's support to schools, reading, French-speaking countries",
+  },
+  {
+    id: "girl-answers-class",
+    label: "A girl answering in front of the class, DR Congo",
+    description: "A girl in a white blouse raises her hand at the front of a classroom, lessons in French and Swahili on the blackboard; DR Congo.",
+    useFor: "participation, girls' education, DR Congo",
+    places: ["DRC", "Congo"],
+  },
+  {
+    id: "cameroon-tablet-pair",
+    label: "Pupils on tablets, Cameroon",
+    description: "A girl smiles at the camera over her tablet, a boy beside her, at an outdoor table among plants; a school in Cameroon.",
+    useFor: "learning on devices, digital learning, Cameroon",
+    places: ["Cameroon"],
+  },
+  {
+    id: "cameroon-girl-tablet",
+    label: "A girl holding a tablet, Cameroon",
+    description: "A girl in a yellow EPA Melen school uniform holds a tablet, pupils working on tablets behind; Cameroon.",
+    useFor: "learning on devices, girls and technology, Cameroon",
+    places: ["Cameroon"],
+  },
+  {
+    id: "cameroon-boy-tablet",
+    label: "A boy using a tablet, Cameroon",
+    description: "A boy in a green school smock looks up from his tablet at a wooden table among plants; Cameroon.",
+    useFor: "learning on devices, digital learning, Cameroon",
+    places: ["Cameroon"],
+  },
+  {
+    id: "girls-yellow-hijab",
+    label: "Girls writing in class",
+    description: "Girls in yellow hijabs write in their notebooks at a long worn desk.",
+    useFor: "girls' education, learning, secondary school",
+  },
+  {
+    id: "crowded-classroom",
+    label: "A crowded classroom",
+    description: "A teacher holds up a ruler before a packed classroom of children sitting on the floor, all hands raised.",
+    useFor: "the scale of need, overcrowded schools, teachers, demand for learning",
+  },
+  {
+    id: "girl-portrait",
+    label: "Portrait of a schoolgirl",
+    description: "A teenage girl with a turquoise backpack looks into the camera against a white wooden wall; Asia.",
+    useFor: "a child's voice, adolescent girls, a quote or story slide",
+  },
+  {
+    id: "three-girls-reading",
+    label: "Three girls laughing over a book",
+    description: "Three girls in colourful headscarves laugh as they share a book at a classroom desk.",
+    useFor: "girls' education, reading, the joy of learning",
+  },
+  {
+    id: "girl-tablet-tent",
+    label: "A girl with a tablet in front of a tent",
+    description: "A girl with wind-blown hair and a mask under her chin holds a tablet before a white tent.",
+    useFor: "education in emergencies, displaced children, learning on devices",
+  },
+  {
+    id: "classroom-laughing",
+    label: "A girl laughing in class",
+    description: "A teenage girl in a green uniform laughs over a booklet, classmates behind her in a dim classroom.",
+    useFor: "adolescent girls, secondary school, the joy of learning",
+  },
+  {
+    id: "girls-headphones-tablet",
+    label: "Two girls on a tablet in a straw classroom",
+    description: "Two girls in white headscarves, one with headphones, laugh at a tablet inside a straw hut.",
+    useFor: "learning on devices, education in emergencies, out-of-school children",
+  },
+  {
+    id: "teacher-headphones-hut",
+    label: "A teacher helping a girl on a tablet",
+    description: "A teacher in a white headscarf helps a girl in red with headphones use a tablet, inside a straw hut classroom.",
+    useFor: "teachers, learning on devices, education in emergencies",
+  },
+  {
+    id: "mural-painting",
+    label: "Children painting a mural",
+    description: "Young children in white T-shirts paint a black and white mural of houses outdoors.",
+    useFor: "community, creativity, children's participation",
+  },
+  {
+    id: "timor-learning-app",
+    label: "A girl showing a learning app, Timor-Leste",
+    description: "A smiling girl in a red T-shirt holds up a phone showing the 'Eskola ba Uma' learning platform; Timor-Leste.",
+    useFor: "learning at home, digital learning platforms, Timor-Leste",
+    places: ["Timor-Leste"],
+  },
+  {
+    id: "girl-phone-ladder",
+    label: "A girl with a phone on a wooden ladder",
+    description: "A smiling girl sits on the wooden ladder of a house on stilts, holding a phone; Southeast Asia.",
+    useFor: "mobile access at home, children online, reaching every child",
+  },
+  {
+    id: "boy-phone-park",
+    label: "A boy smiling at his phone outdoors",
+    description: "A boy in a green school polo smiles at his phone at a picnic table under trees.",
+    useFor: "young people online, mobile learning, digital access",
+  },
+  {
+    id: "woman-laptop-sofa",
+    label: "A young woman working on a laptop",
+    description: "A young woman in a grey hijab smiles behind a laptop on a carved wooden sofa.",
+    useFor: "young people's digital skills, online work and study",
+  },
 ];
 
 /**
@@ -122,7 +388,7 @@ export const LIBRARY: LibraryImage[] = [
  * (Mario, 27 Sep 2026: the AI-generated placeholder is never to be shown).
  * Handed out in turn so a deck does not repeat one picture.
  */
-export const CHILDREN_PHOTOS = ["students-tablet", "laptop-smile", "tablet-lesson", "mountain-walk", "health-centre"];
+export const CHILDREN_PHOTOS = ["students-tablet", "laptop-smile", "tablet-lesson", "mountain-walk", "health-centre", "kyrgyz-computer-lab", "cameroon-tablet-pair", "cameroon-girl-tablet", "cameroon-boy-tablet", "timor-learning-app", "classroom-tablet-pair", "teacher-tablet-girl", "tablet-maths-game", "unicef-desk-readers", "girls-headphones-tablet"];
 
 /** The picture an empty photo slot shows: a photo of children, never the AI placeholder. */
 export const DEFAULT_PHOTO = "/library/students-tablet.jpg";
