@@ -524,7 +524,16 @@ or a drop on the box. They exist to give the model the facts; they are **not** d
   question (`countConflict`, id `count`, first), never the model's: its answer sets `count` in
   `runGenerate`. The answers compile into `briefNotes` as "question answer", rank with the brief
   and count as the user's own source for the figures check. The checks raise nothing on the 31
-  regression briefs. `DOCUMENT_ANALYSIS_INSTRUCTIONS` asks only where the material could become
+  regression briefs. A missing-content doubt can be answered "No data yet: leave a placeholder"
+  (`PLACEHOLDER_ANSWER`, Mario, 13 Oct 2026), and a skipped one counts the same (left to the model,
+  a skipped "What did not" came back as "No issues were identified."): `compileInsights` tells the
+  model to show a bracketed placeholder naming what goes there ("[Total budget 2027]"), filled in
+  by hand later.
+- **No slide text talks about the brief** (13 Oct 2026: 71 texts in the QA decks, "The brief
+  identifies a funding gap but provides no amount", "Funding gap amount not provided"). The
+  prompt's NEVER WRITE ABOUT THE BRIEF rule, and `stripMetaText` (`tidy.ts`, run inside
+  `dropMetaNotes`) takes such sentences out of every text but the title, with "[To be defined]"
+  and "TBD"; a block emptied by it goes with its label. `DOCUMENT_ANALYSIS_INSTRUCTIONS` asks only where the material could become
   two different decks and neither it nor the brief settles it (several projects or countries in
   one file, a report the deck could follow in part, two scenarios, a term the slides would have
   to explain), and says an empty list is the right answer otherwise. A clear document leaves the

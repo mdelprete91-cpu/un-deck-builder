@@ -1,4 +1,4 @@
-import { countFromBrief, outlineRuns } from "./brief";
+import { countFromBrief, outlineFromBrief, outlineRuns } from "./brief";
 import { figuresIn, spelledToDigits } from "./provenance";
 
 /**
@@ -11,7 +11,7 @@ import { figuresIn, spelledToDigits } from "./provenance";
  * itself (`countQuestion`), since its answer sets the deck's length.
  */
 export interface BriefFinding {
-  kind: "count" | "parts" | "shares" | "date";
+  kind: "count" | "parts" | "shares" | "date" | "list";
   /** One plain sentence for the analysis' prompt. */
   hint: string;
   /** The words of the brief it is about. */
@@ -120,9 +120,25 @@ function dateFindings(brief: string, today: Date): BriefFinding[] {
   return out;
 }
 
+/**
+ * Slides of the outline whose items only the presenter knows: "12. Decisions
+ * needed from this meeting", "11. Risks and open questions", a timeline, next
+ * steps, a budget. The model went through the outline in order and ran out
+ * of questions before them (tech review, 13 Oct 2026), so they are named to
+ * it, in this order, to check before anything else. The parts check says
+ * when a phase list was announced and left empty; these go to the model only
+ * when the brief names none of the items under the slide's own line.
+ */
+const LIST_SLIDE = /\b(decisions?|decide|risks?|open questions?|next steps?|timeline|roadmap|milestones?|budget|costs?|team|owners?|the ask|asks?|recommendations?|decisioni|rischi|prossimi passi|decisiones|riesgos|pr[oó]ximos pasos)\b/i;
+function listFindings(brief: string): BriefFinding[] {
+  return outlineFromBrief(brief, countFromBrief(brief))
+    .filter((o) => LIST_SLIDE.test(o.title))
+    .map((o) => ({ kind: "list" as const, about: `${o.order}. ${o.title}`, hint: `Slide ${o.order} ("${o.title}") is a list only the presenter knows: ask for its items unless the brief gives them.` }));
+}
+
 export function briefFindings(brief: string, today = new Date()): BriefFinding[] {
   const count = countFinding(brief);
-  return [...(count ? [count] : []), ...partsFindings(brief), ...sharesFindings(brief), ...dateFindings(brief, today)];
+  return [...(count ? [count] : []), ...listFindings(brief), ...partsFindings(brief), ...sharesFindings(brief), ...dateFindings(brief, today)];
 }
 
 /** The count finding alone, with both numbers, for the client's own question. */

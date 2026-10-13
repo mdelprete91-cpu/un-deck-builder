@@ -105,7 +105,59 @@ export function tidyModelSlide<T extends SlideContent>(content: T): T {
  */
 export const META_NOTE = /\b(the brief|the material|not specified|does not (specify|give|provide|define|prescribe))\b/i;
 export function dropMetaNotes<T extends SlideContent>(slide: T): { slide: T; dropped?: string } {
-  if (!slide.notes || !META_NOTE.test(slide.notes)) return { slide };
-  const { notes, ...rest } = slide;
+  const clean = stripMetaText(slide);
+  if (!clean.notes || !META_NOTE.test(clean.notes)) return { slide: clean };
+  const { notes, ...rest } = clean;
   return { slide: rest as T, dropped: notes };
+}
+
+/**
+ * The same talk about the brief in the slide's own text (Mario, 13 Oct 2026:
+ * a skipped question came back as "The brief does not specify what worked."
+ * on the slide; 71 such texts in the QA decks of September and October,
+ * "Funding gap amount not provided in the brief", "The brief identifies no
+ * specific risks"). The sentence goes, the rest of the text stays; a list
+ * item or a block left with nothing goes too. Titles are left alone.
+ */
+const META_TEXT = [
+  /\b(?:the|this|your) brief\b/i,
+  /\b(?:does not|doesn't|did not|do not) (?:specify|give|provide|define|prescribe|establish|say|mention|state|include)\b/i,
+  /\bnot (?:specified|provided|given|stated|established|quantified)\b(?:\s+(?:in|by)\s+(?:the\s+)?[\w ]{0,24})?\s*[.;:]?\s*$/i,
+  // A placeholder in place of content: "[To be defined]", "TBD".
+  /^\s*\[?\s*(?:to be (?:defined|confirmed|determined|added)|tbd|tbc)\s*\]?\s*\.?\s*$/i,
+  /\b(?:gives?|provides?|offers?) no (?:figures?|amounts?|details?|evidence|data|counts?|numbers?|results?|specifics?)\b/i,
+];
+const isMeta = (sentence: string) => META_TEXT.some((re) => re.test(sentence));
+function cleanText(text: string | undefined): string | undefined {
+  if (!text || !META_TEXT.some((re) => re.test(text))) return text;
+  return text
+    .split(/(?<=[.!?;])\s+/)
+    .filter((x) => !isMeta(x))
+    .join(" ")
+    .trim();
+}
+export function stripMetaText<T extends SlideContent>(slide: T): T {
+  const out: T = { ...slide };
+  for (const k of ["subtitle", "body", "support", "takeaway"] as const) {
+    if (typeof out[k] === "string") (out as Record<string, unknown>)[k] = cleanText(out[k] as string);
+  }
+  if (out.bullets) out.bullets = out.bullets.map((b) => cleanText(b) ?? "").filter((b) => b.trim());
+  if (out.stats) out.stats = out.stats.filter((x) => !isMeta(x.value)).map((x) => ({ ...x, label: cleanText(x.label) ?? x.label }));
+  if (out.blocks) {
+    out.blocks = out.blocks
+      .map((b) => {
+        const had = !!(b.body?.trim() || b.items?.length || b.stats?.length);
+        const c = {
+          ...b,
+          body: cleanText(b.body) ?? b.body,
+          ...(b.items ? { items: b.items.map((x) => cleanText(x) ?? "").filter((x) => x.trim()) } : {}),
+          ...(b.stats ? { stats: b.stats.filter((x) => !isMeta(x.value)).map((x) => ({ ...x, label: cleanText(x.label) ?? x.label })) } : {}),
+        };
+        return { c, had };
+      })
+      // A block emptied by the cleaning goes with its label: "Costs" over nothing reads as a hole.
+      .filter(({ c, had }) => c.body?.trim() || c.items?.length || c.stats?.length || (!had && c.label?.trim() && !isMeta(c.label)))
+      .map(({ c }) => c);
+  }
+  return out;
 }

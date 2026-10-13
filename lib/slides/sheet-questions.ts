@@ -32,6 +32,8 @@ export interface SheetQuestion {
   attach?: string;
   /** A brief's doubt: the words of the brief it is about, quoted above the question. */
   about?: string;
+  /** A doubt about missing material: the answer can be a placeholder the user fills in later (PLACEHOLDER_ANSWER). */
+  placeholder?: boolean;
 }
 
 export interface SheetAnalysis {
@@ -92,6 +94,13 @@ export const MAX_BRIEF_QUESTIONS = 5;
 export const DOUBT_IDS = ["doubt-1", "doubt-2", "doubt-3", "doubt-4", "doubt-5"] as const;
 /** The client's own question when the brief names one slide count and lists another (lib/slides/brief-checks.ts). */
 export const COUNT_DOUBT_ID = "count";
+/**
+ * The answer that says "I do not have it yet" (Mario, 13 Oct 2026: when the
+ * user wants something in the deck and has no figure, offer to type it or to
+ * leave a placeholder to fill in by hand). The deck then shows a bracketed
+ * placeholder naming what goes there, never an invented value.
+ */
+export const PLACEHOLDER_ANSWER = "[placeholder]";
 /** How compileInsights names each slot's answer, and slotsFromNotes reads it back. */
 export const SLOT_LABELS: Record<BriefSlot, string> = { purpose: "Purpose:", facts: "Facts:", ask: "The ask:", audience: "Audience:" };
 
@@ -150,15 +159,16 @@ export const BRIEF_ANALYSIS_INSTRUCTIONS = `You read a deck brief for a deck bui
 
 DOUBTS (ids doubt-1, doubt-2, … in order):
 1. Inconsistencies: figures that do not add up or contradict each other, dates that have passed or do not follow, a count that does not match a list, two statements that cannot both be true. The "Checks already found" below are certain or nearly: ask about each one unless the brief itself resolves it.
-2. Missing content for a slide the brief prescribes: for each slide of its outline, or each part it announces ("a plan in 3 phases", "the decisions needed", "a diagram of the current architecture"), check that the brief or the files give the material to fill it. When they do not, ask for exactly that material, naming the slide: "Slide 12 asks for the decisions needed from this meeting: which decisions?". Ask about the slides where an invented answer would mislead (decisions, phases, dates, owners, components, figures, risks), not about slides the brief's own words can fill.
-3. Real ambiguities: a term, acronym, name or reference that could be read two ways and would change the slides.
-SLOTS (only if questions are left, ids are the slot names):
+2. Missing content for a slide the brief prescribes: for each slide of its outline, or each part it announces ("a plan in 3 phases", "the decisions needed", "a diagram of the current architecture"), check that the brief or the files give the material to fill it. When they do not, ask for exactly that material, naming the slide: "Slide 12 asks for the decisions needed from this meeting: which decisions?". A slide whose content is a list only the presenter knows is empty unless the brief gives its items: decisions needed, phases or steps, risks, open questions, next steps with dates or owners, a budget, a team, the boxes and arrows of an architecture or process diagram the brief does not describe part by part, a model or schema it names without saying what it holds. Go through the prescribed slides and find every such slide, then ask first about the ones where an invented answer would mislead the most: decisions, phases or steps, risks and open questions, dates and owners, figures; then the models and diagrams; then the rest. The slides named in "Checks already found" come first; then go on with the other empty slides (a diagram, a model) until the questions run out, rather than stopping early. Merge two slides into one question when they are about one thing. Leave alone the slides the brief's own words can fill (a context, pain points it lists, a proposal it spells out, goals that follow from its problems).
+   A figure the brief wants shown and does not give (a budget, a target, a result, a cost, a date) is always worth a question, naming the figure: "Slide 5 asks for the 2027 budget: what is the amount?". The user can type it or leave a placeholder.
+3. Real ambiguities: a term, acronym, name or reference that could be read two ways and would change the slides. A date without a year is this year (or the coming one when it is a plan): never ask which year.
+SLOTS (only if questions are left, at most three of them, ids are the slot names):
 4. purpose: what the deck is for, only if the brief does not say it.
 5. facts: if the brief gives no figures and no file is attached, what the deck should rely on: attaching a file, or only the public figures already allowed.
 6. ask: what the audience should do or decide at the end, only if the brief does not say it and the purpose is not to report.
 7. audience: who will see it, only if the brief names no one.
 
-"about" quotes the few words of the brief the question is about, exactly as written (empty for a slot about something the brief does not mention). For a doubt about missing content use "text": the options are two to four short starting points drawn from the brief that the user can pick and complete (for the phases: "Pilot, then …"), never invented facts. For an inconsistency use "single", the options being the readings that could be right. "single" for purpose, facts and audience; "multi" for ask. Options name the brief's country, organisation and audience, short and concrete, never "Other". "why" is one short line on what the answer changes in the deck. Never ask about colours, layouts, fonts or style, never ask what the brief or the files already say, never ask two questions about one thing. A brief that is complete and consistent gets an empty list: that is the right answer, never a question for its own sake. Write in the brief's language.`;
+"about" quotes the few words of the brief the question is about, exactly as written (empty for a slot about something the brief does not mention). For a doubt about missing content use "text": the options are two to four short starting points the user can pick and complete (for the phases: "Pilot, then …"), each different from the others and never a copy of the brief's words or of "about"; when there is no sensible starting point, no options. Never invented facts. For an inconsistency use "single", the options being the readings that could be right. "single" for purpose, facts and audience; "multi" for ask. Options name the brief's country, organisation and audience, short and concrete, never "Other". "why" is one short line on what the answer changes in the deck. Never ask about colours, layouts, fonts or style, never ask what the brief or the files already say, never ask two questions about one thing. A brief that is complete and consistent gets an empty list: that is the right answer, never a question for its own sake. Write in the brief's language.`;
 
 /**
  * A document (PDF, Word, PowerPoint, text) is read the other way round: it
@@ -226,6 +236,10 @@ export function normalizeBriefAnalysis(raw: unknown): SheetAnalysis | null {
   const questions = a.questions
     .filter((q) => order(q.id) >= 0)
     .sort((x, y) => order(x.id) - order(y.id))
+    // "Which year?" for "6 to 9 Oct" or "a sprint in Nov": the year is plain, the rule in the instructions or not.
+    .filter((q) => !/\b(what|which) years?\b|\bwhat year\b|\bquale anno\b|\bqu[eé] a[nñ]o\b/i.test(q.question))
+    // Three slots at most: a vague brief once got all four (13 Oct 2026).
+    .filter((q, i, all) => !(BRIEF_SLOTS as readonly string[]).includes(q.id) || all.slice(0, i + 1).filter((x) => (BRIEF_SLOTS as readonly string[]).includes(x.id)).length <= 3)
     .slice(0, MAX_BRIEF_QUESTIONS)
     // Purpose, facts and audience are one answer each (the instructions say
     // so); normalizeAnalysis would make "…a file with figures to use?" a
@@ -234,6 +248,10 @@ export function normalizeBriefAnalysis(raw: unknown): SheetAnalysis | null {
     // is one answer, whatever its words.
     .map((q) => (q.id !== "ask" && q.kind === "multi" && (BRIEF_SLOTS as readonly string[]).includes(q.id) ? { ...q, kind: "single" as const } : q))
     .map((q) => ((DOUBT_IDS as readonly string[]).includes(q.id) && (kinds.get(q.id) === "single" || kinds.get(q.id) === "text") ? { ...q, kind: kinds.get(q.id) as QuestionKind } : q))
+    // A chip that repeats the quoted words adds nothing (bullet-dump, 13 Oct 2026).
+    .map((q) => (q.kind === "text" ? { ...q, options: q.options.filter((o) => o.toLowerCase() !== (q.about ?? "").toLowerCase()) } : q))
+    // Missing material can be left as a placeholder to fill in by hand.
+    .map((q) => ((DOUBT_IDS as readonly string[]).includes(q.id) && q.kind === "text" ? { ...q, placeholder: true } : q))
     .map((q) => {
       if (q.id !== "facts") return q;
       // The model words the option in the brief's language; the one about a file is the one that opens the picker.
@@ -316,7 +334,15 @@ export function compileInsights(analysis: SheetAnalysis, answers: SheetAnswers):
     if (q.id === USE_QUESTION_ID) continue;
     const a = answers[q.id];
     const text = Array.isArray(a) ? a.filter(Boolean).join(", ") : (a ?? "").trim();
-    if (!text) continue;
+    // Missing material skipped is a placeholder too: left to the model it was
+    // filled with "No issues were identified." (13 Oct 2026).
+    if (!text && !q.placeholder) continue;
+    if (!text || text === PLACEHOLDER_ANSWER) {
+      lines.push(
+        `${q.question} The user has no data for this yet: show it as a placeholder in square brackets that names what goes there (for example "[Total budget 2027]" or "[Decision 1]"), to be filled in by hand; never invent it.`,
+      );
+      continue;
+    }
     // A slot's answer is labelled, so the pipeline can read it back (slotsFromNotes).
     const label = SLOT_LABELS[q.id as BriefSlot];
     lines.push(label ? `${label} ${text.replace(/\.$/, "")}.` : `${q.question} ${text}.`);

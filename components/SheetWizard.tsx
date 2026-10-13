@@ -3,7 +3,7 @@
 import { ArrowLeft, ArrowRight, Check, FileSpreadsheet, FileText, GalleryHorizontal, MessageSquareText, Paperclip, RotateCcw, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import Button from "@/components/Button";
-import { answeredCount, type MaterialKind, type SheetAnalysis, type SheetAnswers, type SheetQuestion } from "@/lib/slides/sheet-questions";
+import { answeredCount, PLACEHOLDER_ANSWER, type MaterialKind, type SheetAnalysis, type SheetAnswers, type SheetQuestion } from "@/lib/slides/sheet-questions";
 
 /** What the dialog is asking about: a file, or the brief itself. */
 export interface WizardSubject {
@@ -160,16 +160,29 @@ export default function SheetWizard({
 
                   {q.kind === "text" ? (
                     <div key={q.id} className="mt-4">
-                      <textarea
-                        autoFocus
-                        rows={3}
-                        value={typeof answers[q.id] === "string" ? (answers[q.id] as string) : ""}
-                        onChange={(e) => set(q.id, e.target.value)}
-                        placeholder="Your answer"
-                        className={`${INPUT} resize-y`}
-                      />
+                      {answers[q.id] === PLACEHOLDER_ANSWER ? (
+                        // No data yet: the slide gets a bracketed placeholder to fill in by hand.
+                        <div className="flex min-h-[86px] items-start justify-between gap-3 rounded-lg border border-giga/40 bg-giga-tint px-3 py-2.5 text-sm text-giga">
+                          <span>
+                            <span className="block font-medium">A placeholder goes on the slide</span>
+                            <span className="mt-0.5 block text-[13px] text-giga/80">In square brackets, naming what is missing, for you to fill in after.</span>
+                          </span>
+                          <Button variant="ghost" onClick={() => set(q.id, "")}>
+                            Type it instead
+                          </Button>
+                        </div>
+                      ) : (
+                        <textarea
+                          autoFocus
+                          rows={3}
+                          value={typeof answers[q.id] === "string" ? (answers[q.id] as string) : ""}
+                          onChange={(e) => set(q.id, e.target.value)}
+                          placeholder="Your answer"
+                          className={`${INPUT} resize-y`}
+                        />
+                      )}
                       {/* Starting points from the brief: a click puts one in the answer, to complete. */}
-                      {q.options.length > 0 && (
+                      {answers[q.id] !== PLACEHOLDER_ANSWER && (q.options.length > 0 || q.placeholder) && (
                         <div className="mt-2 flex flex-wrap gap-1.5">
                           {q.options.map((opt) => (
                             <button
@@ -184,7 +197,19 @@ export default function SheetWizard({
                               {opt}
                             </button>
                           ))}
+                          {q.placeholder && (
+                            <button
+                              type="button"
+                              onClick={() => set(q.id, PLACEHOLDER_ANSWER)}
+                              className="rounded-full border border-dashed border-giga/50 px-3 py-1 text-[13px] text-giga transition-colors duration-100 hover:bg-giga-tint focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-giga/30"
+                            >
+                              No data yet: leave a placeholder
+                            </button>
+                          )}
                         </div>
+                      )}
+                      {q.placeholder && answers[q.id] !== PLACEHOLDER_ANSWER && (
+                        <p className="mt-2 text-[13px] text-ink-faint">Skipped, it stays a placeholder on the slide: nothing is made up.</p>
                       )}
                     </div>
                   ) : (
