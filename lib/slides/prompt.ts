@@ -315,7 +315,7 @@ function messageFor(body: GenerateBody): string {
         : typeof body.count === "number"
           ? body.countIsCeiling
             ? `Produce at most ${body.count} slides in all, counting the cover and the closing slide${chaptersCount}.${body.lastContent?.trim() ? ` Slide ${body.count - 1} is the last content slide the brief prescribes: ${body.lastContent.trim()}.` : ""}`
-            : `Produce exactly ${body.count} slides counting the cover${chaptersCount}, then the closing slide on top: ${body.count + 1} in all.${body.lastContent?.trim() ? ` Slide ${body.count} is the last content slide the brief prescribes: ${body.lastContent.trim()}.` : ""}`
+            : `Produce exactly ${body.count + 1} slides in all: the cover, ${body.count - 1} more slides${chaptersCount}, then the closing slide.${body.lastContent?.trim() ? ` Slide ${body.count} is the last content slide the brief prescribes: ${body.lastContent.trim()}.` : ""}`
           : `Choose the number of slides yourself (typically ${thin ? "5 to 7" : "8-14"}; when the brief asks to carry long material in full, as many as it takes, up to ${MAX_SLIDES}). A "page" in the brief means a slide.`;
       // The closing slide is outside the count since 12 Oct 2026, so a slide
       // the brief puts last ("12. Decisions needed") is no longer cut for it.

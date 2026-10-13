@@ -881,7 +881,7 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
       const closed = kept.some((k) => k.layoutId === "thank-you");
       const missing = wanted - received - (closed ? 0 : 1);
       if (missing <= 0) break;
-      received += await runGeneration(
+      const added = await runGeneration(
         {
           mode: "add",
           brief,
@@ -895,6 +895,12 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
         },
         { replace: false, collectInsert: true, dropChapters: !chapters, rhythm, onInserted: track },
       );
+      received += added;
+      // A request that added nothing is not asked again: it costs a deck's worth of input for no slide.
+      if (added === 0) {
+        attempt++;
+        break;
+      }
     }
     // The contract, within the same two add requests: a slide the brief
     // prescribes, or its last slide, that the deck does not have is asked for

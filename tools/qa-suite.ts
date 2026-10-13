@@ -515,6 +515,10 @@ async function runPrompt(p: Prompt): Promise<Result> {
     cost += usage(add.usage);
     const n = place(add, missing);
     warnings.push(`topped up: +${n} after a short deck of ${slides.length - n}`);
+    if (n === 0) {
+      attempt++;
+      break;
+    }
   }
   // The brief's contract, as runGenerate checks it: a prescribed slide or last slide the deck lacks is one add request within the two.
   cost += usage(contractRes?.usage);
