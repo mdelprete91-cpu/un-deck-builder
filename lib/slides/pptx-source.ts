@@ -407,13 +407,17 @@ export function classify(raws: Raw[]): { text: string; slides: SourceSlide[] } {
     let title = r.title;
     let body = lines;
     if (!title) {
-      const sized = r.paras.filter((p) => lines.includes(p.text));
+      // A big figure or a placeholder ("x", "TBD", "[…]") is set large too, but it is never the heading
+      // (Digital Inclusion 13: a stat left as "x" became the slide's title).
+      const headLike = (t: string) => t.trim().length >= 4 && /\p{L}{2,}/u.test(t) && !/^\s*\[.*\]\s*$|^\s*(tbd|tbc|x+)\s*$/i.test(t);
+      const sized = r.paras.filter((p) => lines.includes(p.text) && headLike(p.text));
       const top = Math.max(0, ...sized.map((p) => p.size));
       const sizes = sized.map((p) => p.size).sort((a, b) => a - b);
       const median = sizes[Math.floor(sizes.length / 2)] ?? 0;
       const head = top > median ? sized.find((p) => p.size === top) : undefined;
-      title = head?.text ?? lines[0]?.replace(/^- /, "") ?? "";
-      const at = lines.indexOf(head?.text ?? lines[0]);
+      const first = lines.find((l) => headLike(l.replace(/^- /, ""))) ?? lines[0];
+      title = head?.text ?? first?.replace(/^- /, "") ?? "";
+      const at = lines.indexOf(head?.text ?? first);
       body = lines.filter((_, i) => i !== at);
     }
     const words = [title, ...body].join(" ").split(/\s+/).filter(Boolean).length;

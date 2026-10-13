@@ -51,7 +51,15 @@ export function planReplica(slides: SourceSlide[]): { steps: ReplicateStep[]; co
   const ignore = runningLines(slides);
   const hasBody = (s: SourceSlide) => sourceUnits(s, ignore).lines.length > 1;
   let closing: SourceSlide | undefined;
+  // The source's own last word: a final title-only slide ("Digital inclusion
+  // for every child", Digital Inclusion deck, 13 Oct 2026) is its closing
+  // slide, in its words, not the default "Thanks".
+  let closingLine = "";
   for (const [idx, s] of slides.entries()) {
+    if (s.kind === "divider" && idx === slides.length - 1 && !hasBody(s) && s.title.trim()) {
+      closingLine = s.title.trim();
+      continue;
+    }
     if (s.kind === "divider" && opensNothing(idx) && s.words > words(s.title)) {
       steps.push({ kind: "content", source: s });
       continue;
@@ -86,12 +94,13 @@ export function planReplica(slides: SourceSlide[]): { steps: ReplicateStep[]; co
     // closing: the closing slide is added at the end (ENSURE_CLOSING)
   }
   if (closing) steps.push({ kind: "content", source: closing });
+  if (closingLine) steps.push({ kind: "fixed", content: { layoutId: "thank-you", title: closingLine } });
   // The deck's own ceiling: content first, the structure gives way (a
   // divider left with no content after it goes too). Content never does: a
   // source with more content slides than the ceiling replicates past it
   // (nothing technical caps a deck at 40; the deck file takes 200).
   while (steps.length + 1 > MAX_SLIDES) {
-    const i = steps.map((st) => st.kind).lastIndexOf("fixed");
+    const i = steps.map((st) => (st.kind === "fixed" && st.content.layoutId !== "thank-you" ? "fixed" : st.kind)).lastIndexOf("fixed");
     if (i < 0) break;
     steps.splice(i, 1);
   }
