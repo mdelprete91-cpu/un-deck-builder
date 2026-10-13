@@ -819,8 +819,11 @@ function reduce(state: DeckState, action: DeckAction): DeckState {
       slides[action.index] = clone;
       return { ...state, ...remember(state), slides };
     }
-    case "FLOW_PAGES":
-      return { ...state, slides: action.slides.map((s) => ("id" in s && s.id ? (s as Slide) : ensureId(s))) };
+    case "FLOW_PAGES": {
+      const slides = action.slides.map((s) => ("id" in s && s.id ? (s as Slide) : ensureId(s)));
+      // A page emptied by the flow goes: the view stays on a page that exists.
+      return { ...state, slides, activeIndex: Math.min(state.activeIndex, Math.max(0, slides.length - 1)) };
+    }
     case "MOVE_BLOCK": {
       const slide = state.slides[action.index];
       if (!slide || !isPage(slide)) return state;

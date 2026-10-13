@@ -123,10 +123,13 @@ const ROOM = 45;
  * never emptied, and a banner or a title never moves: it opens its page.
  * Measured at the regular setting, before the fit pass tightens anything.
  */
-export async function pullForward(pages: Slide[], t: BrandTheme): Promise<Slide[]> {
+export async function pullForward(pages: Slide[], t: BrandTheme, opts: { edit?: boolean } = {}): Promise<Slide[]> {
   const out = pages.map((p) => ({ ...p, stack: [...(p.stack ?? [])] }));
   const total = out.length;
-  const over = (p: Slide, i: number) => measurePage({ ...p, pageFit: "regular" }, t, i, total);
+  // After an edit (Mario, 13 Oct 2026: "if I make room, bring the second
+  // page's block onto the first"), pages are measured as they are set, and the
+  // last block of a page may come up too: the empty page then goes.
+  const over = (p: Slide, i: number) => measurePage(opts.edit ? p : { ...p, pageFit: "regular" }, t, i, total);
   for (let i = 0; i < out.length - 1; i++) {
     for (let guard = 0; guard < 12; guard++) {
       if (-(await over(out[i], i)) < ROOM) break;
@@ -141,7 +144,7 @@ export async function pullForward(pages: Slide[], t: BrandTheme): Promise<Slide[
         out[i + 1] = { ...out[i + 1], stack: next.slice(1) };
         break;
       }
-      if (!head || next.length < 2 || head.type === "banner" || head.type === "title") break;
+      if (!head || (next.length < 2 && !opts.edit) || head.type === "banner" || head.type === "title") break;
       const whole = { ...out[i], stack: [...out[i].stack!, head] };
       if ((await over(whole, i)) <= 0) {
         out[i] = whole;

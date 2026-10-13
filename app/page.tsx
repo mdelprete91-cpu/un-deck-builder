@@ -2136,8 +2136,13 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
     const timer = setTimeout(async () => {
       if ((document.activeElement as HTMLElement | null)?.isContentEditable) return;
       const flowed = await flowOver(slides, theme);
+      // Room made on a page: the next page's first block comes up when it fits whole.
+      const base = (flowed ?? slides) as Slide[];
+      const pulled = (await pullForward(base, theme, { edit: true })).filter((p) => (p.stack?.length ?? 0) > 0);
+      const moved = pulled.length !== base.length || pulled.some((p, i) => p.stack?.length !== base[i].stack?.length);
+      const next = moved ? pulled : flowed;
       // Measured on pages that have changed since: the next run has them.
-      if (flowed && latestSlides.current === slides) dispatch({ type: "FLOW_PAGES", slides: flowed });
+      if (next && latestSlides.current === slides) dispatch({ type: "FLOW_PAGES", slides: next });
     }, 500);
     return () => clearTimeout(timer);
   }, [twoPager, state.slides, state.status, fitting, translating, theme]);
