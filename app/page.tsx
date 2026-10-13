@@ -2730,7 +2730,9 @@ function Toolbar({
   // pair: same pill, same stroke. Disabled only changes the ink, not the
   // shape, so the two never look like different controls.
   return (
-    <div className="flex items-center gap-3 border-b border-hairline bg-surface px-4 py-2.5">
+    // Above the canvas (z-30): the Download menu opens over the page and its
+    // side bar (z-20), which came later in the DOM and won the tie (13 Oct 2026).
+    <div className="relative z-30 flex items-center gap-3 border-b border-hairline bg-surface px-4 py-2.5">
       <DeckName name={name} onRename={onRename} />
       <div className="ml-auto flex shrink-0 items-center gap-2" data-tour="download">
         {languageMenu}
