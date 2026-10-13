@@ -18,7 +18,7 @@
  */
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { countFromBrief, countIsCeiling, lastSlideFromBrief, seriesFromBrief, uniformFromBrief, MIN_SLIDES_WITH_CHAPTERS, TIERS_REQUEST } from "../lib/slides/brief";
+import { outlineFromBrief, countFromBrief, countIsCeiling, lastSlideFromBrief, seriesFromBrief, uniformFromBrief, MIN_SLIDES_WITH_CHAPTERS, TIERS_REQUEST } from "../lib/slides/brief";
 import { normalizeSlide, overLimits, type LayoutId, type SlideContent } from "../lib/slides/schema";
 import { dropMetaNotes, META_NOTE, tidyModelSlide } from "../lib/slides/tidy";
 import { yearTimelineMonths } from "../lib/slides/rhythm";
@@ -464,9 +464,8 @@ async function runPrompt(p: Prompt): Promise<Result> {
     const analysis = res.ok ? ((await res.json()) as { questions?: { id: string; question: string; options: string[] }[] }) : null;
     questions = (analysis?.questions ?? []).map((q) => `[${q.id}] ${q.question}${q.options.length ? ` (${q.options.join(" / ")})` : ""}`);
   }
-  const contractCall = fetch(`${URL}/api/contract`, { method: "POST", headers: { "content-type": "application/json", cookie }, body: JSON.stringify({ brief, briefNotes: p.briefNotes }) })
-    .then((r) => (r.ok ? r.json() : null))
-    .catch(() => null) as Promise<{ contract?: BriefContract; usage?: { inputTokens: number; outputTokens: number } } | null>;
+  // The brief's contract, read from the brief itself, as runGenerate does.
+  const contractRes: { contract?: BriefContract; usage?: { inputTokens: number; outputTokens: number } } = { contract: { slides: outlineFromBrief(brief, count).map((x) => ({ ...x, mustContain: [] })), lastContent: "", entities: [] } };
   const first = await generate({ mode: "generate", brief, attachments, briefNotes: p.briefNotes, lastContent, countIsCeiling: ceiling || undefined, brandLabel: BRAND_LABEL, chapters, format: "slides", count, perItem });
   // gpt-6-luna list price (25 Sep 2026), the same as GenerationReadout.
   const usage = (u?: { inputTokens: number; outputTokens: number }) => (u ? (u.inputTokens * 0.1 + u.outputTokens * 0.5) / 1_000_000 : 0);
@@ -518,7 +517,6 @@ async function runPrompt(p: Prompt): Promise<Result> {
     warnings.push(`topped up: +${n} after a short deck of ${slides.length - n}`);
   }
   // The brief's contract, as runGenerate checks it: a prescribed slide or last slide the deck lacks is one add request within the two.
-  const contractRes = await contractCall;
   cost += usage(contractRes?.usage);
   let gap: ContractGap | null = null;
   if (!first.truncated && slides.length && (contractRes?.contract || lastContent)) {

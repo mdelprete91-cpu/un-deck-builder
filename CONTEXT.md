@@ -332,17 +332,15 @@ offer.
   (`slotsFromNotes`), or a purpose that asks for something (`purposeAsks`). With a count the line is
   positional ("Slide 12 is the last content slide the brief prescribes: …"): the bare "comes right
   before the closing slide" was ignored for a quote slide.
-- **The brief's contract** (`lib/slides/contract.ts`, `app/api/contract`, 12 Oct 2026): a side call
-  (`CONTRACT_MODEL`, gpt-6-luna, reasoning low), fired with the generation and never shown to the
-  model that writes the deck, reads the brief, the answers and the linked pages into
-  `{ slides, lastContent, entities }`. `checkContract` matches the finished deck (title words,
-  stemmed, half of them; or every `mustContain` term; section dividers count) and a missing
-  prescribed slide or last slide becomes one add request with its title and `after`, within the
-  same two add requests as the top-up and **never past the brief's number**: on a full deck a
-  missed match is likelier the same slide under other words (tech-review came back with fifteen
-  slides for twelve before this cap). Missing entities only go to the console ("Not in the deck:
-  ITU") and to the suite's report, never to the user. The suite reports the share of the contract
-  each deck meets.
+- **The brief's contract** (`lib/slides/contract.ts`) is read from the brief itself: its numbered
+  outline (`outlineFromBrief`, the outline as long as the named count or, with none, of three items
+  or more, cover and closing items left out) and its last content slide. Until 13 Oct 2026 a side
+  call to the model read it (`/api/contract`); it cost a third more per deck than production and
+  the part that brought quality was this deterministic one, so the call is gone (Mario: same cost
+  as production, quality kept). `checkContract` matches the finished deck (title words, stemmed,
+  half of them; section dividers count) and a missing prescribed slide or last slide becomes one
+  add request with its title and `after`, within the same two add requests as the top-up and never
+  past the brief's number.
 - **The brief's structure comes first.** When the brief prescribes one slide per item, the titles,
   or what goes on each slide, the system prompt tells the model to follow it to the letter: every
   item gets its slide, titles are copied as written, and every slide of the series takes a layout

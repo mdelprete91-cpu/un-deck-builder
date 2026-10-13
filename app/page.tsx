@@ -23,7 +23,7 @@ import { undash } from "@/lib/slides/pages/schema";
 import { normalizePage, PAGE_BLOCK_LIMITS, RAIL_BLOCKS, panelTone, tableHeads, type PageBlock, type PageBlockType } from "@/lib/slides/pages/schema";
 import { defaultContent, denseContent } from "@/lib/slides/defaults";
 import { familyOf } from "@/lib/slides/families";
-import { countFromBrief, countIsCeiling, languageOf, lastSlideFromBrief, seriesFromBrief, uniformFromBrief, MIN_SLIDES_WITH_CHAPTERS, TIERS_REQUEST } from "@/lib/slides/brief";
+import { outlineFromBrief, countFromBrief, countIsCeiling, languageOf, lastSlideFromBrief, seriesFromBrief, uniformFromBrief, MIN_SLIDES_WITH_CHAPTERS, TIERS_REQUEST } from "@/lib/slides/brief";
 import { makeRhythm, stripInventedYear, yearTimelineMonths, type RhythmOptions } from "@/lib/slides/rhythm";
 import { dropMetaNotes, tidyModelSlide } from "@/lib/slides/tidy";
 import { BLOCK_LABELS, presetStack } from "@/lib/slides/pages/presets";
@@ -832,14 +832,10 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
     // own words, else the answered ask, else a purpose that asks for something.
     const slots = slotsFromNotes(briefNotes);
     const lastContent = twoPager ? undefined : (lastSlideFromBrief(brief, count) ?? slots.ask ?? (purposeAsks(slots.purpose) ? slots.purpose : undefined));
-    // The brief's contract, read on the side while the deck is written
-    // (lib/slides/contract.ts); any failure leaves the deck as it comes.
-    const contractCall: Promise<BriefContract | null> = twoPager
-      ? Promise.resolve(null)
-      : fetch("/api/contract", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ brief, briefNotes }) })
-          .then((r) => (r.ok ? r.json() : null))
-          .then((j: { contract?: BriefContract } | null) => j?.contract ?? null)
-          .catch(() => null);
+    // The brief's contract, read from the brief itself: its numbered outline
+    // and its last slide. No side call to the model (Mario, 13 Oct 2026:
+    // same cost as production).
+    const contract: BriefContract | null = twoPager ? null : { slides: outlineFromBrief(brief, count).map((s) => ({ ...s, mustContain: [] })), lastContent: "", entities: [] };
     const kept: SlideContent[] = [];
     let truncated = false;
     let received = await runGeneration(
@@ -904,8 +900,7 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
     // prescribes, or its last slide, that the deck does not have is asked for
     // by its title and place. Entities only go to the console.
     if (!twoPager && received > 0 && !truncated) {
-      const contract = await Promise.race([contractCall, new Promise<null>((r) => setTimeout(() => r(null), 20_000))]);
-      const gap = contract || lastContent ? checkContract(deck, contract ?? { slides: [], lastContent: "", entities: [] }, lastContent) : null;
+      const gap = contract?.slides.length || lastContent ? checkContract(deck, contract ?? { slides: [], lastContent: "", entities: [] }, lastContent) : null;
       if (gap?.entities.length) console.info(`Not in the deck: ${gap.entities.join(", ")}`);
       // Never past the brief's number: a prescribed slide the matching missed
       // is likelier there under other words than absent (tech-review, 12 Oct

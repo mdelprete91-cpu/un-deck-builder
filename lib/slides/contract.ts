@@ -16,49 +16,6 @@ export interface BriefContract {
   entities: string[];
 }
 
-/** Model and reasoning for the contract, in one place. */
-export const CONTRACT_MODEL = { model: "gpt-6-luna", effort: "low" } as const;
-
-export const CONTRACT_INSTRUCTIONS = `You read a slide deck brief, the user's answers about it and any page it links to, and list what the finished deck must contain, without writing the deck. "slides": only the slides the brief itself prescribes, by an outline or by naming a slide ("a slide on the budget"), each with its 1-based order when the brief gives one (0 when it does not), its title as the brief words it, and up to three terms from the brief that slide must carry; [] when the brief prescribes no slide. Never list the cover or the closing slide. "lastContent": what the deck must end on just before the closing slide, as the brief or the answers word it ("3 questions to open the discussion", "a clear ask", "the Ministry names a focal point"); "" when nothing is prescribed. "entities": up to six organisations, places and figures the brief or the linked page names as central to the subject (the partners leading or funding the work, the country, the headline figure), each as written; never an organisation the brief only mentions in passing. Write in the brief's language.`;
-
-export const CONTRACT_SCHEMA = {
-  type: "object",
-  properties: {
-    slides: {
-      type: "array",
-      items: {
-        type: "object",
-        properties: { order: { type: "integer" }, title: { type: "string" }, mustContain: { type: "array", items: { type: "string" } } },
-        required: ["order", "title", "mustContain"],
-        additionalProperties: false,
-      },
-    },
-    lastContent: { type: "string" },
-    entities: { type: "array", items: { type: "string" } },
-  },
-  required: ["slides", "lastContent", "entities"],
-  additionalProperties: false,
-} as const;
-
-/** What the model handed back, in shape: strings trimmed, empties dropped, lists capped. */
-export function normalizeContract(raw: unknown): BriefContract {
-  const r = (raw ?? {}) as { slides?: unknown; lastContent?: unknown; entities?: unknown };
-  const str = (v: unknown) => (typeof v === "string" ? v.trim() : "");
-  const slides = (Array.isArray(r.slides) ? r.slides : [])
-    .map((x) => {
-      const s = (x ?? {}) as { order?: unknown; title?: unknown; mustContain?: unknown };
-      return {
-        order: typeof s.order === "number" && Number.isFinite(s.order) ? Math.max(0, Math.round(s.order)) : 0,
-        title: str(s.title),
-        mustContain: (Array.isArray(s.mustContain) ? s.mustContain : []).map(str).filter(Boolean).slice(0, 3),
-      };
-    })
-    .filter((s) => s.title)
-    .slice(0, 40);
-  const entities = (Array.isArray(r.entities) ? r.entities : []).map(str).filter(Boolean).slice(0, 6);
-  return { slides, lastContent: str(r.lastContent), entities };
-}
-
 const STOP = new Set(["a", "an", "the", "and", "or", "of", "for", "to", "in", "on", "with", "from", "this", "that", "our", "your", "its", "by", "at", "vs", "il", "la", "le", "di", "e", "per", "con", "del", "della", "el", "los", "las", "de", "y", "para"]);
 /** Words that carry meaning, lower-cased, accents and punctuation off. */
 export function tokens(text: string): string[] {

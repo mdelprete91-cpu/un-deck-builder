@@ -211,3 +211,26 @@ export function materialScore(brief: string, opts: { attachedChars?: number; ans
   return words + 3 * figures + Math.min(60, Math.round((opts.attachedChars ?? 0) / 100)) + 6 * (opts.answered ?? 0);
 }
 const BRIEF_STOP = new Set("the and for with that this from into about our your their are was were will have has can a an of to in on by as at is it be or di del della per con che una uno dei delle sul sulla los las para con por que una".split(" "));
+
+/**
+ * The slides a numbered outline prescribes ("2. Current architecture … 12.
+ * Decisions needed"), read from the brief itself: the outline as long as the
+ * named count, or, with no count, any outline of three items or more. Cover
+ * and closing items are left out. This is the part of the brief's contract
+ * that brought quality, without the side call to the model it cost (Mario,
+ * 13 Oct 2026: same cost as production, quality kept).
+ */
+export function outlineFromBrief(brief: string, count: number | undefined): { order: number; title: string }[] {
+  const runs: { n: number; text: string }[][] = [];
+  for (const m of brief.matchAll(OUTLINE_LINE)) {
+    const it = { n: Number(m[1]), text: m[2] };
+    if (it.n === 1 || !runs.length) runs.push([it]);
+    else runs[runs.length - 1].push(it);
+  }
+  const ok = (r: { n: number }[]) => r.every((it, i) => it.n === i + 1);
+  const outline = runs.find((r) => ok(r) && (count !== undefined ? r.length === count : r.length >= 3));
+  if (!outline) return [];
+  return outline
+    .filter((it) => !/^(title|cover|title slide|thanks?|thank you|contacts?|q ?& ?a|questions?)$/i.test(it.text.replace(/\s*\(.*\)\s*$/, "").trim()))
+    .map((it) => ({ order: it.n, title: it.text.replace(/\s*\(.*\)\s*$/, "").trim() }));
+}
