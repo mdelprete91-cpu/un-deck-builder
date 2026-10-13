@@ -19,6 +19,7 @@ import EditChoice from "@/components/EditChoice";
 import LogoMenu from "@/components/LogoMenu";
 import TextMenu from "@/components/TextMenu";
 import { resultSheet, sourceSheetFromPdf, sourceSheetFromSlides } from "@/lib/slides/contact-sheet";
+import { closingFor } from "@/lib/slides/rhythm";
 import type { CheckProblem } from "@/lib/slides/replica-check";
 import type { SourceSlide } from "@/lib/slides/pptx-source";
 import SourceModal from "@/components/SourceModal";
@@ -1385,7 +1386,10 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
     // when the app had to split what the source slide carries (restore.ts).
     const results: (SlideContent[] | null | undefined)[] = steps.map((st) => {
       if (st.kind !== "fixed") return undefined;
-      const fixed = normalizeSlide(st.content, { brandId: state.brandId });
+      // A closing slide the source wrote ("Digital inclusion for every child") keeps its words.
+      const closingSlide = st.content.layoutId === "thank-you";
+      // It takes the deck's usual contact row (the layout needs one); its title stays the source's.
+      const fixed = normalizeSlide(closingSlide ? { ...closingFor(theme.label), ...st.content } : st.content, { brandId: state.brandId, keepClosingTitle: closingSlide });
       return fixed ? [fixed] : null;
     });
     // The fidelity check (lib/slides/fidelity.ts): each source slide against
