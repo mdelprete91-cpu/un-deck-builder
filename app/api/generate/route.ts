@@ -161,7 +161,7 @@ export async function POST(request: Request): Promise<Response> {
         : body.mode === "replicate"
           ? undefined
           : languageOf(body.brief ?? ""),
-    briefNotes: typeof body.briefNotes === "string" ? body.briefNotes.slice(0, 2000) : undefined,
+    briefNotes: typeof body.briefNotes === "string" ? body.briefNotes.slice(0, 4000) : undefined,
     lastContent: typeof body.lastContent === "string" ? body.lastContent.slice(0, 300) : undefined,
     // The model knows the date only from here (12 Oct 2026: an article of August 2025 told in the future tense).
     today: new Date().toISOString().slice(0, 10),

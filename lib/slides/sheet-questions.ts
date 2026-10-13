@@ -30,6 +30,8 @@ export interface SheetQuestion {
   custom?: { label: string; unit: string; min: number; max: number; detail?: string };
   /** The brief's facts slot: the option that means "I will attach a file", which stops the wizard at the file picker. */
   attach?: string;
+  /** A brief's doubt: the words of the brief it is about, quoted above the question. */
+  about?: string;
 }
 
 export interface SheetAnalysis {
@@ -72,8 +74,6 @@ export const SHEET_ANALYSIS_SCHEMA = {
 
 export type MaterialKind = "spreadsheet" | "document" | "brief";
 
-/** Under this many words a brief alone is read for the questions it raises; a longer one has said what it wants. */
-export const SHORT_BRIEF_WORDS = 40;
 
 /**
  * The slots a presenter fills before writing a deck (the evaluation of 12
@@ -83,11 +83,19 @@ export const SHORT_BRIEF_WORDS = 40;
  */
 export const BRIEF_SLOTS = ["purpose", "facts", "ask", "audience"] as const;
 export type BriefSlot = (typeof BRIEF_SLOTS)[number];
-export const MAX_BRIEF_QUESTIONS = 3;
+export const MAX_BRIEF_QUESTIONS = 5;
+/**
+ * What the brief leaves unclear, wrong or empty (Mario, 13 Oct 2026: "the
+ * model must ask when something is unclear, when some numbers do not add
+ * up"): asked before the slots, in the order the model found them.
+ */
+export const DOUBT_IDS = ["doubt-1", "doubt-2", "doubt-3", "doubt-4", "doubt-5"] as const;
+/** The client's own question when the brief names one slide count and lists another (lib/slides/brief-checks.ts). */
+export const COUNT_DOUBT_ID = "count";
 /** How compileInsights names each slot's answer, and slotsFromNotes reads it back. */
 export const SLOT_LABELS: Record<BriefSlot, string> = { purpose: "Purpose:", facts: "Facts:", ask: "The ask:", audience: "Audience:" };
 
-/** The brief's schema: the same shape, its ids limited to the slots. */
+/** The brief's schema: the same shape, its ids the doubts and the slots, each with the brief's words it is about. */
 export const BRIEF_ANALYSIS_SCHEMA = {
   ...SHEET_ANALYSIS_SCHEMA,
   properties: {
@@ -96,7 +104,12 @@ export const BRIEF_ANALYSIS_SCHEMA = {
       ...SHEET_ANALYSIS_SCHEMA.properties.questions,
       items: {
         ...SHEET_ANALYSIS_SCHEMA.properties.questions.items,
-        properties: { ...SHEET_ANALYSIS_SCHEMA.properties.questions.items.properties, id: { type: "string", enum: [...BRIEF_SLOTS] } },
+        properties: {
+          ...SHEET_ANALYSIS_SCHEMA.properties.questions.items.properties,
+          id: { type: "string", enum: [...DOUBT_IDS, ...BRIEF_SLOTS] },
+          about: { type: "string" },
+        },
+        required: [...SHEET_ANALYSIS_SCHEMA.properties.questions.items.required, "about"],
       },
     },
   },
@@ -127,15 +140,25 @@ const ASKING = /\b(ask|request|propos|convinc|secure|decid|decision|approv|commi
 export const purposeAsks = (purpose: string | undefined) => !!purpose && ASKING.test(purpose);
 
 /**
- * The brief on its own, when it is short: what a presenter would ask a
- * colleague before starting, only for the slots the brief leaves empty.
+ * Every brief, short or long, is read before the deck is written (Mario,
+ * 13 Oct 2026: a long technical brief came back with empty slides for the
+ * decisions, the phases and the diagrams, and the gaps were only listed
+ * after the deck; "it is important to improve the wizard rather than flag
+ * problems afterwards"). The model looks for doubts first, then the slots.
  */
-export const BRIEF_ANALYSIS_INSTRUCTIONS = `You read a deck brief for a deck builder used by UNICEF and Giga teams, before the deck is written, and ask only what a presenter would ask a colleague before starting, when the answer would change the slides. Write a one-sentence summary of the deck it asks for. Then check these slots in order and ask only about the empty ones, at most ${MAX_BRIEF_QUESTIONS} questions, each question's id being its slot:
-1. purpose: what the deck is for (introduce, ask for something, report results, get a decision). Skip it if the brief says it.
-2. facts: if the brief gives no figures and no file is attached, what the deck should rely on: attaching a file, or only the public figures already allowed.
-3. ask: what the audience should do or decide at the end. Skip it if the brief says it or the purpose is to report.
-4. audience: who will see it, only if the brief names no one.
-Options come from the brief: name its country, organisation and audience in them, short and concrete, two to five, never "Other". "single" for purpose, facts and audience; "multi" for ask. "why" is one short line on what the answer changes in the deck. Never ask about colours, layouts, fonts or slide count, and never ask what the brief already says. An empty list is the right answer for a brief that fills every slot. Write in the brief's language.`;
+export const BRIEF_ANALYSIS_INSTRUCTIONS = `You read a deck brief for a deck builder used by UNICEF and Giga teams, before the deck is written. The deck may only use what the brief, the user's answers and the attached files say: it never invents figures, names, dates, components or decisions. So ask now, the way a careful colleague would before starting, about anything that would otherwise leave a slide empty, wrong or made up. Write a one-sentence summary of the deck it asks for. Then the questions, at most ${MAX_BRIEF_QUESTIONS}, in this order:
+
+DOUBTS (ids doubt-1, doubt-2, … in order):
+1. Inconsistencies: figures that do not add up or contradict each other, dates that have passed or do not follow, a count that does not match a list, two statements that cannot both be true. The "Checks already found" below are certain or nearly: ask about each one unless the brief itself resolves it.
+2. Missing content for a slide the brief prescribes: for each slide of its outline, or each part it announces ("a plan in 3 phases", "the decisions needed", "a diagram of the current architecture"), check that the brief or the files give the material to fill it. When they do not, ask for exactly that material, naming the slide: "Slide 12 asks for the decisions needed from this meeting: which decisions?". Ask about the slides where an invented answer would mislead (decisions, phases, dates, owners, components, figures, risks), not about slides the brief's own words can fill.
+3. Real ambiguities: a term, acronym, name or reference that could be read two ways and would change the slides.
+SLOTS (only if questions are left, ids are the slot names):
+4. purpose: what the deck is for, only if the brief does not say it.
+5. facts: if the brief gives no figures and no file is attached, what the deck should rely on: attaching a file, or only the public figures already allowed.
+6. ask: what the audience should do or decide at the end, only if the brief does not say it and the purpose is not to report.
+7. audience: who will see it, only if the brief names no one.
+
+"about" quotes the few words of the brief the question is about, exactly as written (empty for a slot about something the brief does not mention). For a doubt about missing content use "text": the options are two to four short starting points drawn from the brief that the user can pick and complete (for the phases: "Pilot, then …"), never invented facts. For an inconsistency use "single", the options being the readings that could be right. "single" for purpose, facts and audience; "multi" for ask. Options name the brief's country, organisation and audience, short and concrete, never "Other". "why" is one short line on what the answer changes in the deck. Never ask about colours, layouts, fonts or style, never ask what the brief or the files already say, never ask two questions about one thing. A brief that is complete and consistent gets an empty list: that is the right answer, never a question for its own sake. Write in the brief's language.`;
 
 /**
  * A document (PDF, Word, PowerPoint, text) is read the other way round: it
@@ -176,7 +199,9 @@ export function normalizeAnalysis(raw: unknown): SheetAnalysis | null {
     let id = typeof x.id === "string" && x.id.trim() ? x.id.trim().slice(0, 40) : `q${questions.length + 1}`;
     while (seen.has(id)) id += "-";
     seen.add(id);
-    questions.push({ id, question, why: typeof x.why === "string" ? x.why.trim() : "", kind, options: kind === "text" ? [] : options });
+    const about = typeof x.about === "string" && x.about.trim() ? x.about.trim().slice(0, 200) : undefined;
+    // A text question's options are starting points the wizard offers as chips.
+    questions.push({ id, question, why: typeof x.why === "string" ? x.why.trim() : "", kind, options: kind === "text" ? options.slice(0, 4) : options, ...(about ? { about } : {}) });
     if (questions.length === MAX_QUESTIONS) break;
   }
   if (!summary && questions.length === 0) return null;
@@ -191,11 +216,13 @@ export function wantsFile(analysis: SheetAnalysis | undefined, answers: SheetAns
   return !!facts?.attach && answers.facts === facts.attach;
 }
 
-/** A brief's questions: slots only, in slot order, three at most. */
+/** A brief's questions: the count first, then the doubts, then the slots in slot order, five at most. */
 export function normalizeBriefAnalysis(raw: unknown): SheetAnalysis | null {
   const a = normalizeAnalysis(raw);
   if (!a) return null;
-  const order = (id: string) => BRIEF_SLOTS.indexOf(id as BriefSlot);
+  const ORDER: string[] = [COUNT_DOUBT_ID, ...DOUBT_IDS, ...BRIEF_SLOTS];
+  const order = (id: string) => ORDER.indexOf(id);
+  const kinds = new Map(Array.isArray((raw as { questions?: unknown }).questions) ? ((raw as { questions: { id?: unknown; kind?: unknown }[] }).questions.map((q) => [q?.id, q?.kind])) : []);
   const questions = a.questions
     .filter((q) => order(q.id) >= 0)
     .sort((x, y) => order(x.id) - order(y.id))
@@ -203,7 +230,10 @@ export function normalizeBriefAnalysis(raw: unknown): SheetAnalysis | null {
     // Purpose, facts and audience are one answer each (the instructions say
     // so); normalizeAnalysis would make "…a file with figures to use?" a
     // multiple choice, and the file option would no longer stop the wizard.
-    .map((q) => (q.id !== "ask" && q.kind === "multi" ? { ...q, kind: "single" as const } : q))
+    // A doubt keeps the kind the model gave it: "which readings are right"
+    // is one answer, whatever its words.
+    .map((q) => (q.id !== "ask" && q.kind === "multi" && (BRIEF_SLOTS as readonly string[]).includes(q.id) ? { ...q, kind: "single" as const } : q))
+    .map((q) => ((DOUBT_IDS as readonly string[]).includes(q.id) && (kinds.get(q.id) === "single" || kinds.get(q.id) === "text") ? { ...q, kind: kinds.get(q.id) as QuestionKind } : q))
     .map((q) => {
       if (q.id !== "facts") return q;
       // The model words the option in the brief's language; the one about a file is the one that opens the picker.

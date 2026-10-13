@@ -469,16 +469,16 @@ or a drop on the box. They exist to give the model the facts; they are **not** d
   question: Replicate, Reinterpret, Use as a source). **The questions are asked when Generate is pressed,
   not when the file lands** (Mario, 25 Sep 2026, later the same day: the model must read each file
   next to the whole brief). `onGenerate` in `app/page.tsx` builds a queue of subjects still to ask
-  (readable attachments without `asked`, plus `"brief"` when there is no file and the brief is under
-  `SHORT_BRIEF_WORDS`, plus `"length"` last when `countFromBrief` finds no count, the piece is not a
+  (readable attachments without `asked`, plus `"brief"` for every brief, long ones and ones with
+  files too, unless it is a two-pager or a replica (Mario, 13 Oct 2026), plus `"length"` last when `countFromBrief` finds no count, the piece is not a
   two-pager, no attached deck is set to Replicate and the brief is not a series (`seriesFromBrief`,
   "one slide per objective": its list sets the length, and a picked count would read as items)), starts their analyses and opens
   `components/SheetWizard.tsx` on the first. `"nofile"` comes first when no file is attached and the brief talks about one
   (`mentionsMissingFile`, Mario, 5 Oct 2026: a brief citing "the attached file" with nothing attached
   came back as a deck about the missing source); "Attach the file" stops and opens the file picker
   (the primary button reads "Choose file"), "Generate without it" goes on. `"length"` (Mario, 1 Oct 2026: most briefs name no
-  length) is a fixed question, `lengthAnalysis` in `sheet-questions.ts`: 5, 8, 10, 12 or 15 slides,
-  or "Let the builder decide"; `lengthOf` turns the answer into the `count` `runGenerate` sends when
+  length) is a fixed question, `lengthAnalysisFor` in `sheet-questions.ts`: Auto, 12 or 20 slides,
+  or a custom number; `lengthOf` turns the answer into the `count` `runGenerate` sends when
   the brief names none (Skip and "decide" send none, as before). Its answers are keyed to the
   brief's text (`lengthQ`), so a changed brief is asked again, and it drops out of the queue if the
   file question just before it was answered Replicate;
@@ -509,8 +509,22 @@ or a drop on the box. They exist to give the model the facts; they are **not** d
   "Reinterpret" line. The facts option about a file (`attach`, found by `ATTACH_OPTION` in the
   model's wording) stops the wizard at the file picker like "Attach the file" (`wantsFile`). Every
   question can be passed with the wizard's Skip; there is no "let the builder decide" option row.
-  The brief subject fires under `SHORT_BRIEF_WORDS` (40) with no file: 15 of the 24 regression
-  briefs, and one of the five evaluation briefs (thin-ministry); `DOCUMENT_ANALYSIS_INSTRUCTIONS` asks only where the material could become
+  **The brief's doubts are asked before the deck** (Mario, 13 Oct 2026: a long technical brief came
+  back with empty decisions, phases and diagrams, "improve the wizard rather than flag problems
+  afterwards"). Every brief is read, whatever its length, with the text of the attached files
+  (`material`, so nothing they say is asked) and the names of the ones the route cannot read. The
+  route adds the outline's slides (`outlineFromBrief`) and the free checks of
+  `lib/slides/brief-checks.ts` (`briefFindings`: a slide count the outline contradicts, parts
+  announced and never named, "3 phases"; shares of one whole past 100%; a plan dated in a year
+  gone), as "Checks already found". The model asks, at most five (`MAX_BRIEF_QUESTIONS`), doubts
+  first (`doubt-1…5`: inconsistencies, then the material missing for a prescribed slide where an
+  invented answer would mislead, then real ambiguities), the slots after. Each doubt quotes the
+  brief's words it is about (`about`, shown above the question); a missing-content doubt is
+  "text" with its options as chips that fill the answer. The count conflict is the client's own
+  question (`countConflict`, id `count`, first), never the model's: its answer sets `count` in
+  `runGenerate`. The answers compile into `briefNotes` as "question answer", rank with the brief
+  and count as the user's own source for the figures check. The checks raise nothing on the 31
+  regression briefs. `DOCUMENT_ANALYSIS_INSTRUCTIONS` asks only where the material could become
   two different decks and neither it nor the brief settles it (several projects or countries in
   one file, a report the deck could follow in part, two scenarios, a term the slides would have
   to explain), and says an empty list is the right answer otherwise. A clear document leaves the
@@ -668,8 +682,9 @@ guard, all pure functions, none touching the user's words:
 - **Notes about the brief stay off the slides** (12 Oct 2026: "The brief does not specify…" in
   the footnote row of most slides of a technical deck). `dropMetaNotes` (`tidy.ts`, `META_NOTE`)
   takes such a note off a generated or added slide, never a replica's (its notes are the
-  source's), and the sidebar lists them under "Gaps in the brief, kept off the slides" (`briefGaps`,
-  session state like `chaptersSkipped`, cleared by the next deck). The FOOTNOTES rule says it too.
+  source's), and they are shown nowhere (Mario, 13 Oct 2026: "nobody should see them"; the sidebar list
+  `briefGaps` was removed). The FOOTNOTES rule says it too. Gaps are prevented before the deck
+  instead: see "The brief's doubts are asked before the deck".
 - **Who did, said or asked something is the source's** (12 Oct 2026: mission notes said "they
   asked if GigaMaps can show schools without power", the government, and the deck wrote "The team
   asked"). One line in both RULES lists; the bare rule changed nothing in three runs, the concrete

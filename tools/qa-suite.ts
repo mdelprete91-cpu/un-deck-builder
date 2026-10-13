@@ -31,7 +31,7 @@ import { denseBeforeNormalize, densityHint, planReplica, withContentDensity } fr
 import { continuationLabel, estimateFits, restoreCover, restoreSlide } from "../lib/slides/restore";
 import { compareSlide, fidelityScore, isFlawed, planLeftovers, repairNote, runningLines, sourceUnits, totals, type Leftover, type SlideFidelity, type Totals } from "../lib/slides/fidelity";
 import { countriesIn, fillPhotos, photoPlaces } from "../lib/slides/library";
-import { SHORT_BRIEF_WORDS, purposeAsks, slotsFromNotes } from "../lib/slides/sheet-questions";
+import { purposeAsks, slotsFromNotes } from "../lib/slides/sheet-questions";
 import { isBareMonth, isFillerStats, isMixedFunnel, repeatsEarlier, yearOfMonth } from "../lib/slides/repeats";
 import { checkContract, type BriefContract, type ContractGap } from "../lib/slides/contract";
 import { isChartLayout } from "../lib/slides/schema";
@@ -457,9 +457,8 @@ async function runPrompt(p: Prompt): Promise<Result> {
   };
   if (p.use === "replicate") return replicatePrompt(p, brief, paths[0], t0);
   // The questions the editor's wizard would ask on this brief (onGenerate's own test).
-  const words = brief.split(/\s+/).filter(Boolean).length;
   let questions: string[] | undefined;
-  if (!attachments.length && words < SHORT_BRIEF_WORDS) {
+  if (!attachments.length && brief.trim()) {
     const res = await fetch(`${URL}/api/analyze`, { method: "POST", headers: { "content-type": "application/json", cookie }, body: JSON.stringify({ name: "brief", text: brief, kind: "brief" }) });
     const analysis = res.ok ? ((await res.json()) as { questions?: { id: string; question: string; options: string[] }[] }) : null;
     questions = (analysis?.questions ?? []).map((q) => `[${q.id}] ${q.question}${q.options.length ? ` (${q.options.join(" / ")})` : ""}`);

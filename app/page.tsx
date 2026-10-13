@@ -23,6 +23,7 @@ import { undash } from "@/lib/slides/pages/schema";
 import { normalizePage, PAGE_BLOCK_LIMITS, RAIL_BLOCKS, panelTone, tableHeads, type PageBlock, type PageBlockType } from "@/lib/slides/pages/schema";
 import { defaultContent, denseContent } from "@/lib/slides/defaults";
 import { familyOf } from "@/lib/slides/families";
+import { countConflict } from "@/lib/slides/brief-checks";
 import { outlineFromBrief, countFromBrief, countIsCeiling, languageOf, lastSlideFromBrief, seriesFromBrief, uniformFromBrief, MIN_SLIDES_WITH_CHAPTERS, TIERS_REQUEST } from "@/lib/slides/brief";
 import { makeRhythm, stripInventedYear, yearTimelineMonths, type RhythmOptions } from "@/lib/slides/rhythm";
 import { dropMetaNotes, tidyModelSlide } from "@/lib/slides/tidy";
@@ -44,7 +45,7 @@ import ChartDataPanel from "@/components/ChartDataPanel";
 import ImagePickerModal from "@/components/ImagePickerModal";
 import EditWithAiModal from "@/components/EditWithAiModal";
 import SheetWizard from "@/components/SheetWizard";
-import { compileInsights, normalizeAnalysis, purposeAsks, slotsFromNotes, SHORT_BRIEF_WORDS, wantsFile, USE_QUESTION_ID, fileUseOf, fileUseQuestion, lengthAnalysisFor, lengthOf, mentionsMissingFile, missingFileAnalysis, MISSING_FILE_QUESTION_ID, ATTACH_IT, preselectFileUse, type SheetAnalysis, type SheetAnswers } from "@/lib/slides/sheet-questions";
+import { compileInsights, normalizeAnalysis, normalizeBriefAnalysis, purposeAsks, slotsFromNotes, COUNT_DOUBT_ID, wantsFile, USE_QUESTION_ID, fileUseOf, fileUseQuestion, lengthAnalysisFor, lengthOf, mentionsMissingFile, missingFileAnalysis, MISSING_FILE_QUESTION_ID, ATTACH_IT, preselectFileUse, type SheetAnalysis, type SheetAnswers } from "@/lib/slides/sheet-questions";
 import { denseBeforeNormalize, densityHint, planReplica, withContentDensity, type ReplicateStep } from "@/lib/slides/replicate";
 import { compareSlide, fidelityScore, isFlawed, planLeftovers, repairNote, runningLines, sourceUnits, totals, type DeckFidelity, type Leftover, type SlideFidelity } from "@/lib/slides/fidelity";
 import { readPdfSlides } from "@/lib/slides/pdf-source";
@@ -587,19 +588,48 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
     const w = wizardRef.current;
     if (w && w.queue[0] === id) advanceFrom(w);
   };
-  /** The brief alone, keyed to its text: a changed brief is read again. */
+  /**
+   * The brief, keyed to its text: a changed brief is read again. Every brief
+   * is read, long ones too, next to what the attached files say (Mario, 13
+   * Oct 2026: ask before the deck rather than list the gaps after it). A
+   * slide count the brief contradicts is asked by the client itself, first:
+   * its answer sets the deck's length.
+   */
   const analyzeBrief = async (brief: string) => {
     setBriefQ({ brief, answers: {} });
+    const conflict = countConflict(brief);
+    const countQ: SheetAnalysis["questions"] = conflict
+      ? [
+          {
+            id: COUNT_DOUBT_ID,
+            question: `Your brief asks for ${conflict.named} slides, but its outline lists ${conflict.listed}. How many should the deck have?`,
+            why: "The deck is built to this length.",
+            kind: "single",
+            options: [`${conflict.named} slides`, `${conflict.listed} slides`],
+            about: conflict.about,
+          },
+        ]
+      : [];
+    const withCount = (a: SheetAnalysis): SheetAnalysis => ({ ...a, questions: [...countQ, ...a.questions] });
+    const material = attachments
+      .filter((a) => a.kind === "text" && !a.background)
+      .map((a) => `${a.name}:\n${(a as { text: string }).text.slice(0, 4000)}`)
+      .join("\n\n");
     try {
-      const res = await fetch("/api/analyze", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ name: "brief", text: brief, kind: "brief" }) });
+      const res = await fetch("/api/analyze", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ name: "brief", text: brief, kind: "brief", files: attachments.map((a) => a.name), material }),
+      });
       if (!res.ok) throw new Error((await res.text()) || `HTTP ${res.status}`);
-      const analysis = normalizeAnalysis(await res.json()) ?? { summary: "", questions: [] };
+      const analysis = withCount(normalizeBriefAnalysis(await res.json()) ?? { summary: "", questions: [] });
       setBriefQ((q) => (q?.brief === brief ? { ...q, analysis } : q));
       if (analysis.questions.length === 0) passOver("brief");
     } catch {
-      // A brief that could not be read is generated as written.
-      setBriefQ((q) => (q?.brief === brief ? { ...q, analysis: { summary: "", questions: [] } } : q));
-      passOver("brief");
+      // A brief that could not be read is generated as written, the count asked all the same.
+      const analysis = withCount({ summary: "", questions: [] });
+      setBriefQ((q) => (q?.brief === brief ? { ...q, analysis } : q));
+      if (!analysis.questions.length) passOver("brief");
     }
   };
   /** Every answer is kept as it is given and compiled into `insights`, the field the prompt reads. */
@@ -637,7 +667,8 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
     }
     markAsked(w.queue[0]);
     // The length is moot once the file is to be replicated, answered just before.
-    const rest = w.queue.slice(1).filter((id) => id !== "length" || !replicaChosen());
+    // So is the brief's: a replica follows its source, not the brief's outline.
+    const rest = w.queue.slice(1).filter((id) => (id !== "length" && id !== "brief") || !replicaChosen());
     if (rest.length) setWizard({ ...w, queue: rest });
     else {
       setWizard(null);
@@ -675,9 +706,10 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
     // answered went straight to the deck and the choice never showed).
     const undecidedDeck = (a: Attachment) => replicable(a) && !a.answers?.[USE_QUESTION_ID];
     const queue = attachments.filter(canQuestion).filter((a) => !a.asked || undecidedDeck(a)).map((a) => a.id);
-    const words = brief.trim().split(/\s+/).filter(Boolean).length;
-    const briefAlone = attachments.length === 0 && !twoPager && words > 0 && words < SHORT_BRIEF_WORDS;
-    if (briefAlone && !(briefQ?.brief === brief && briefQ.asked)) queue.push("brief");
+    // Every brief is read before the deck, whatever its length and with files
+    // too (Mario, 13 Oct 2026): what is unclear, missing or does not add up is
+    // asked now, not found in the deck. Not for a two-pager or a replica.
+    if (!twoPager && brief.trim() && !replicaChosen() && !(briefQ?.brief === brief && briefQ.asked)) queue.push("brief");
     // No length in the brief: ask for one, last. Not for a replica (it keeps
     // its source's length), nor for "one slide per objective": the brief's
     // list sets the length, and a picked 12 over 6 objectives read as 12
@@ -814,7 +846,13 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
     }
     // A two-pager is a fixed-length piece, so the count is the user's; a
     // slide deck takes the number the brief names, if any.
-    const count = twoPager ? state.count : (countFromBrief(brief) ?? (lengthQ?.brief === brief ? lengthOf(lengthQ.answers) : undefined));
+    // A count the brief contradicted takes the user's answer (lib/slides/brief-checks.ts).
+    const countAnswer = briefQ?.brief === brief ? parseInt(String(briefQ.answers[COUNT_DOUBT_ID] ?? ""), 10) : NaN;
+    const count = twoPager
+      ? state.count
+      : Number.isFinite(countAnswer)
+        ? countAnswer
+        : (countFromBrief(brief) ?? (lengthQ?.brief === brief ? lengthOf(lengthQ.answers) : undefined));
     // "Six slides" and chapters on cannot both hold: the agenda and the
     // dividers would leave one or two slides for the story. The count wins,
     // the deck goes out without chapters, and the sidebar says why.

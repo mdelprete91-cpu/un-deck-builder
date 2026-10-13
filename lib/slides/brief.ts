@@ -148,6 +148,16 @@ export function countIsCeiling(brief: string): boolean {
 
 /** A numbered outline line: "12. Decisions needed from this meeting". */
 const OUTLINE_LINE = /^\s*(\d{1,2})[.)]\s+(.+?)\s*$/gm;
+/** The brief's numbered lists, each run starting again at 1, with where each item starts. */
+export function outlineRuns(brief: string): { n: number; text: string; at: number }[][] {
+  const runs: { n: number; text: string; at: number }[][] = [];
+  for (const m of brief.matchAll(OUTLINE_LINE)) {
+    const it = { n: Number(m[1]), text: m[2], at: m.index };
+    if (it.n === 1 || !runs.length) runs.push([it]);
+    else runs[runs.length - 1].push(it);
+  }
+  return runs.filter((r) => r.every((it, i) => it.n === i + 1));
+}
 /** What closes a deck, as opposed to a last slide of content. */
 const CLOSING_ITEM = /\b(thanks?|thank you|grazie|gracias|merci|contacts?|contatti|contactos)\b/i;
 /** The brief naming its last slide: "a final slide with 3 questions", "end with a clear ask", "chiudi con le richieste". */

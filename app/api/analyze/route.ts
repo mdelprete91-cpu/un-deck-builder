@@ -12,7 +12,8 @@ import {
   type MaterialKind,
 } from "@/lib/slides/sheet-questions";
 
-import { languageOf } from "@/lib/slides/brief";
+import { countFromBrief, languageOf, outlineFromBrief } from "@/lib/slides/brief";
+import { briefFindings } from "@/lib/slides/brief-checks";
 
 export const runtime = "nodejs";
 
@@ -54,7 +55,7 @@ const MAX_PDF_BASE64 = 2_800_000;
  * model as the deck, reasoning off.
  */
 export async function POST(request: Request): Promise<Response> {
-  let body: { name?: unknown; text?: unknown; pdf?: unknown; kind?: unknown; brief?: unknown };
+  let body: { name?: unknown; text?: unknown; pdf?: unknown; kind?: unknown; brief?: unknown; material?: unknown; files?: unknown };
   try {
     body = (await request.json()) as typeof body;
   } catch {
@@ -64,14 +65,35 @@ export async function POST(request: Request): Promise<Response> {
   const kind: MaterialKind = body.kind === "spreadsheet" ? "spreadsheet" : body.kind === "brief" ? "brief" : "document";
   const text = typeof body.text === "string" ? body.text.slice(0, MAX_ANALYSIS_CHARS) : "";
   const pdf = typeof body.pdf === "string" && body.pdf.length <= MAX_PDF_BASE64 && BASE64.test(body.pdf) ? body.pdf : "";
-  const brief = typeof body.brief === "string" ? body.brief.slice(0, 4000).trim() : "";
+  const brief = typeof body.brief === "string" ? body.brief.slice(0, 8000).trim() : "";
+  // A brief's analysis sees what the attached files say, so it does not ask
+  // for what they already give: their text (cut), and the names of those it
+  // cannot read here (a PDF, an image).
+  const material = kind !== "brief" ? "" : typeof body.material === "string" ? body.material.slice(0, MAX_ANALYSIS_CHARS).trim() : "";
+  const files = Array.isArray(body.files) ? body.files.filter((f): f is string => typeof f === "string").slice(0, 10).map((f) => f.slice(0, 120)) : [];
   if (!text.trim() && !pdf) return new Response("Nothing to read", { status: 400 });
   if (!process.env.OPENAI_API_KEY) return new Response("OPENAI_API_KEY is not configured", { status: 500 });
 
   const content: ResponseInputContent[] = [];
   // The language is named, not left to "the brief's language": an English
   // brief once got its questions in Spanish (12 Oct 2026).
-  if (kind === "brief") content.push({ type: "input_text", text: `The user's brief for the deck: "${text}"\n\nThe brief is in ${languageOf(text) ?? "English"}: write the summary, the questions and the options in ${languageOf(text) ?? "English"}.` });
+  if (kind === "brief") {
+    const lang = languageOf(text) ?? "English";
+    const outline = outlineFromBrief(text, countFromBrief(text));
+    // The count is the client's own question (app/page.tsx, countConflict): not asked twice.
+    const found = briefFindings(text).filter((f) => f.kind !== "count");
+    const countAsked = briefFindings(text).some((f) => f.kind === "count");
+    const parts = [
+      `The user's brief for the deck: "${text}"`,
+      outline.length ? `Slides its outline prescribes:\n${outline.map((o) => `${o.order}. ${o.title}`).join("\n")}` : "",
+      countAsked ? "The slide count is asked separately: never ask about it." : "",
+      found.length ? `Checks already found:\n${found.map((f) => `- ${f.hint} (brief: "${f.about}")`).join("\n")}` : "Checks already found: none.",
+      files.length ? `Files attached: ${files.join(", ")}.${material ? "" : " Their content is not shown here: do not ask for what such files would normally hold."}` : "No file is attached.",
+      material ? `What the attached files say (cut):\n<<<\n${material}\n>>>` : "",
+      `The brief is in ${lang}: write the summary, the questions and the options in ${lang}.`,
+    ];
+    content.push({ type: "input_text", text: parts.filter(Boolean).join("\n\n") });
+  }
   else if (pdf) content.push({ type: "input_file", filename: name, file_data: `data:application/pdf;base64,${pdf}` });
   else content.push({ type: "input_text", text: `${kind === "spreadsheet" ? "Workbook" : "Material"} "${name}":\n<<<\n${text}\n>>>` });
   if (brief && kind !== "brief") content.push({ type: "input_text", text: `The user's brief for the deck: "${brief}"` });

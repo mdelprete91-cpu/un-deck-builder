@@ -147,21 +147,46 @@ export default function SheetWizard({
                       style={{ width: `${((step + 1) / questions.length) * 100}%` }}
                     />
                   </div>
-                  <p className="mt-5 text-base font-medium leading-snug text-ink">{q.question}</p>
+                  {/* The brief's own words the doubt is about, so the question reads in place. */}
+                  {q.about && (
+                    <p className="mt-5 line-clamp-2 text-[13px] italic text-ink-muted" data-hj-suppress>
+                      “{q.about}”
+                    </p>
+                  )}
+                  <p className={`${q.about ? "mt-1.5" : "mt-5"} text-base font-medium leading-snug text-ink`}>{q.question}</p>
                   {q.why && <p className="mt-1 text-[13px] text-ink-muted">{q.why}</p>}
                   {/* Several answers can be right: say so, the squares alone are easy to miss. */}
                   {q.kind === "multi" && <p className="mt-1 text-[13px] text-ink-faint">Choose one or more</p>}
 
                   {q.kind === "text" ? (
-                    <textarea
-                      key={q.id}
-                      autoFocus
-                      rows={3}
-                      value={typeof answers[q.id] === "string" ? (answers[q.id] as string) : ""}
-                      onChange={(e) => set(q.id, e.target.value)}
-                      placeholder="Your answer"
-                      className={`${INPUT} mt-4 resize-y`}
-                    />
+                    <div key={q.id} className="mt-4">
+                      <textarea
+                        autoFocus
+                        rows={3}
+                        value={typeof answers[q.id] === "string" ? (answers[q.id] as string) : ""}
+                        onChange={(e) => set(q.id, e.target.value)}
+                        placeholder="Your answer"
+                        className={`${INPUT} resize-y`}
+                      />
+                      {/* Starting points from the brief: a click puts one in the answer, to complete. */}
+                      {q.options.length > 0 && (
+                        <div className="mt-2 flex flex-wrap gap-1.5">
+                          {q.options.map((opt) => (
+                            <button
+                              key={opt}
+                              type="button"
+                              onClick={() => {
+                                const cur = typeof answers[q.id] === "string" ? (answers[q.id] as string).trim() : "";
+                                set(q.id, cur ? `${cur.replace(/[.;,]$/, "")}; ${opt}` : opt);
+                              }}
+                              className="rounded-full border border-hairline px-3 py-1 text-[13px] text-ink-muted transition-colors duration-100 hover:bg-mist hover:text-ink focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-giga/30"
+                            >
+                              {opt}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                   ) : (
                     <div key={q.id} role={q.kind === "multi" ? "group" : "radiogroup"} aria-label={q.question} className="mt-4 flex flex-col gap-1">
                       {q.options.map((opt, oi) => {
