@@ -1,0 +1,22 @@
+{
+ "source": "https://giga.global/",
+ "read": "2026-10-13",
+ "figures": [
+  {
+   "value": "2.2M+",
+   "label": "schools mapped"
+  },
+  {
+   "value": "136K+",
+   "label": "schools reporting real-time connectivity"
+  },
+  {
+   "value": "54",
+   "label": "countries engaged with Giga"
+  },
+  {
+   "value": "21",
+   "label": "countries where mapping and modeling has been completed"
+  }
+ ]
+}

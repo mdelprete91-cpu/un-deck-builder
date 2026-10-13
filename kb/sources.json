@@ -2,6 +2,25 @@
   "_doc": "Sources of the knowledge base (tools/kb-update.ts, weekly GitHub Action). Each source: what a brief may call it (aliases), where to read it, and how far to follow its own links. Mario's list, 13 Oct 2026.",
   "sources": [
     {
+      "id": "giga",
+      "name": "Giga",
+      "aliases": [
+        "giga",
+        "giga.global"
+      ],
+      "start": [
+        "https://giga.global/",
+        "https://giga.global/what-we-do/",
+        "https://giga.global/who-we-are/"
+      ],
+      "render": false,
+      "follow": {
+        "prefix": "https://giga.global/",
+        "max": 40
+      },
+      "facts": true
+    },
+    {
       "id": "giga-maps",
       "name": "Giga Maps",
       "aliases": [

@@ -1,0 +1,34 @@
+[
+  {
+    "name": "P",
+    "ref": "origin/main"
+  },
+  {
+    "name": "R1",
+    "ref": "059b4d3"
+  },
+  {
+    "name": "R1A",
+    "ref": "54b282d"
+  },
+  {
+    "name": "R1AC",
+    "ref": "cbd41ce",
+    "patch": [
+      {
+        "file": "app/api/generate/route.ts",
+        "from": "const moved = moveGaps(clean as SlideContent & { gaps?: string }, { sources: notesSources, placeholder: uiStrings(langFromName(body.language)).toDefine });",
+        "to": "const moved = { slide: (({ gaps: _g, ...r }) => r)(clean as SlideContent & { gaps?: string }) as SlideContent | null, gaps: [] as string[] }; void moveGaps; void notesSources; void uiStrings; void langFromName;"
+      },
+      {
+        "file": "lib/slides/prompt.ts",
+        "from": "- What the brief or the material does not give goes in \"gaps\", never on the slide (\"\" when nothing is missing); the slides still say everything the brief, the answers and the material do give.\n",
+        "to": ""
+      }
+    ]
+  },
+  {
+    "name": "ALL",
+    "ref": "cbd41ce"
+  }
+]

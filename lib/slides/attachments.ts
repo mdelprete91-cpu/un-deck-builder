@@ -70,6 +70,8 @@ export type Attachment =
       spreadsheet?: boolean;
       /** A linked page's publication date (YYYY-MM-DD), read from its markup: the model is told it next to today's. */
       published?: string;
+      /** The knowledge base's pages (lib/slides/kb.ts): background, below everything a person gave. */
+      background?: boolean;
     } & Questioned);
 
 /** The kinds the model reads and may have questions about (images are looked at, not questioned). */

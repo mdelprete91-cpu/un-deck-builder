@@ -1,111 +1,40 @@
 # Knowledge base, week of 2026-10-13
 
-- Giga Maps: new page https://maps.giga.global/about
-- Connectivity Credits: new page https://www.connectivitycredits.org/
-- Giga Meter: new page https://meter.giga.global/
-- Giga Meter: new page https://meter.giga.global/self-hosting
-- Giga Meter: new page https://meter.giga.global/self-hosting/installation
-- Giga Meter: new page https://meter.giga.global/self-hosting/docker
-- Spectrum Certificates: new page https://spectrumcertificates.org/
-- UNICEF Digital Impact Division and Digital Inclusion: new page https://www.unicef.org/digitalimpact/digital-inclusion
-- UNICEF Digital Impact Division and Digital Inclusion: new page https://www.unicef.org/digitalimpact/
-- UNICEF Digital Impact Division and Digital Inclusion: new page https://www.unicef.org/digitalimpact/about-digital-inclusion
-- UNICEF Digital Impact Division and Digital Inclusion: new page https://www.unicef.org/digitalimpact/what-we-do
-- UNICEF Digital Impact Division and Digital Inclusion: new page https://www.unicef.org/digitalimpact/Who-we-are
-- UNICEF Digital Impact Division and Digital Inclusion: new page https://www.unicef.org/digitalimpact/stories
-- UNICEF Digital Impact Division and Digital Inclusion: new page https://www.unicef.org/digitalimpact/data-and-resources
-- UNICEF Digital Impact Division and Digital Inclusion: new page https://www.unicef.org/digitalimpact/take-action
-- UNICEF Digital Impact Division and Digital Inclusion: new page https://www.unicef.org/digitalimpact/what-we-do/technology-for-emergencies
-- UNICEF Digital Impact Division and Digital Inclusion: new page https://www.unicef.org/digitalimpact/what-we-do/digital-and-technology-development
-- UNICEF Digital Impact Division and Digital Inclusion: new page https://www.unicef.org/digitalimpact/what-we-do/girls-and-technology
-- UNICEF Digital Impact Division and Digital Inclusion: new page https://www.unicef.org/digitalimpact/what-we-do/digital-health
-- UNICEF Digital Impact Division and Digital Inclusion: new page https://www.unicef.org/digitalimpact/what-we-do/digital-education
-- UNICEF Digital Impact Division and Digital Inclusion: new page https://www.unicef.org/digitalimpact/what-we-do/digital-transformation
-- UNICEF Digital Impact Division and Digital Inclusion: new page https://www.unicef.org/digitalimpact/what-we-do/digital-public-goods
-- UNICEF Digital Impact Division and Digital Inclusion: new page https://www.unicef.org/digitalimpact/what-we-do/child-safety-online
-- UNICEF Digital Impact Division and Digital Inclusion: new page https://www.unicef.org/digitalimpact/what-we-do/artificial-intelligence-children
-- UNICEF Digital Impact Division and Digital Inclusion: new page https://www.unicef.org/digitalimpact/digital-public-infrastructure-dpi
-- UNICEF Digital Impact Division and Digital Inclusion: new page https://www.unicef.org/digitalimpact/stories/gambia-puts-its-health-facilities-map
-- UNICEF Digital Impact Division and Digital Inclusion: new page https://www.unicef.org/digitalimpact/stories/connecting-places-where-children-learn-and-receive-care
-- UNICEF Digital Impact Division and Digital Inclusion: new page https://www.unicef.org/digitalimpact/homepage
-- UNICEF Digital Impact Division and Digital Inclusion: new page https://www.unicef.org/digitalimpact/featured-stories
-- UNICEF Digital Impact Division and Digital Inclusion: new page https://www.unicef.org/digitalimpact/podcasts
-- UNICEF Digital Impact Division and Digital Inclusion: new page https://www.unicef.org/digitalimpact/stories/putting-children-centre-independent-ai-evaluation
-- UNICEF Digital Impact Division and Digital Inclusion: new page https://www.unicef.org/digitalimpact/what-we-do/girls-and-technology-arch
-- UNICEF Digital Impact Division and Digital Inclusion: new page https://www.unicef.org/digitalimpact/what-we-do/digital-education-arch
-- UNICEF Digital Impact Division and Digital Inclusion: new page https://www.unicef.org/digitalimpact/unicef-information-security-hall-fame
-- UNICEF Digital Impact Division and Digital Inclusion: new page https://www.unicef.org/digitalimpact/featured-videos
-- UNICEF Digital Impact Division and Digital Inclusion: new page https://www.unicef.org/digitalimpact/bits-and-bytes-podcasts
-- UNICEF Digital Impact Division and Digital Inclusion: new page https://www.unicef.org/digitalimpact/connectivity-cast-podcasts
-- UNICEF Digital Impact Division and Digital Inclusion: new page https://www.unicef.org/digitalimpact/featured-publications
-- UNICEF Digital Impact Division and Digital Inclusion: new page https://www.unicef.org/digitalimpact/stories/when-phone-becomes-lifeline-families-emergencies
-- UNICEF Digital Impact Division and Digital Inclusion: new page https://www.unicef.org/digitalimpact/rapid-geospatial-response-unit
-- UNICEF Digital Impact Division and Digital Inclusion: new page https://www.unicef.org/digitalimpact/impact-based-flood-forecasting
-- UNICEF Digital Impact Division and Digital Inclusion: new page https://www.unicef.org/digitalimpact/stories/tablets-and-deep-rooted-traditions-indigenous-adolescents-showcase-their-culture-online
-- UNICEF Digital Impact Division and Digital Inclusion: new page https://www.unicef.org/digitalimpact/meri-life
-- UNICEF Digital Impact Division and Digital Inclusion: new page https://www.unicef.org/digitalimpact/disha-chatbot-digital-agents-comprehensive-primary-health-care-india
-- UNICEF Digital Impact Division and Digital Inclusion: new page https://www.unicef.org/digitalimpact/reports/ict-annual-report-2025
-- UNICEF Digital Impact Division and Digital Inclusion: new page https://www.unicef.org/digitalimpact/oky-digital-menstruation-and-adolescent-health-learning-platform
-- UNICEF Digital Impact Division and Digital Inclusion: new page https://www.unicef.org/digitalimpact/stories/indigenous-adolescents-use-technology-preserve-healing-through-nature
-- UNICEF Digital Impact Division and Digital Inclusion: new page https://www.unicef.org/digitalimpact/equipping-young-people-data-and-drone-education
-- UNICEF Digital Impact Division and Digital Inclusion: new page https://www.unicef.org/digitalimpact/oky-menstruation-education-and-period-tracker-app-girls-girls
-- UNICEF Digital Impact Division and Digital Inclusion: new page https://www.unicef.org/digitalimpact/documents/results-assessment-oky-digital-solution-and-adolescent-girls
-- UNICEF Digital Impact Division and Digital Inclusion: new page https://www.unicef.org/digitalimpact/reports/using-girl-centred-design-digital-health-product-localisation
-- UNICEF Digital Impact Division and Digital Inclusion: new page https://www.unicef.org/digitalimpact/campaign-digitization-real-time-monitoring
-- UNICEF Digital Impact Division and Digital Inclusion: new page https://www.unicef.org/digitalimpact/digital-health-other-resources
-- UNICEF Digital Impact Division and Digital Inclusion: new page https://www.unicef.org/digitalimpact/laaha
-- UNICEF Digital Impact Division and Digital Inclusion: new page https://www.unicef.org/digitalimpact/blog/digital-users-digital-builders
-- UNICEF Digital Impact Division and Digital Inclusion: new page https://www.unicef.org/digitalimpact/scaling-real-time-messaging-impact-children-dpg-rapidpro
-- UNICEF Digital Impact Division and Digital Inclusion: new page https://www.unicef.org/digitalimpact/advancing-early-childhood-development-through-dpg-bebbo-parenting-app
-- UNICEF Digital Impact Division and Digital Inclusion: new page https://www.unicef.org/digitalimpact/reports/safeguarding-digital-public-infrastructure-children
-- UNICEF Digital Impact Division and Digital Inclusion: new page https://www.unicef.org/digitalimpact/reports/why-digital-public-infrastructure-matters-children
-- UNICEF Digital Impact Division and Digital Inclusion: new page https://www.unicef.org/digitalimpact/reports/2024-state-digital-public-goods-ecosystem
-- UNICEF Digital Impact Division and Digital Inclusion: new page https://www.unicef.org/digitalimpact/unicef-ai-strategy-2025-2030-ai-every-child
-- UNICEF Digital Impact Division and Digital Inclusion: new page https://www.unicef.org/digitalimpact/davos-2026-putting-children-center-digital-future
-- UNICEF Digital Impact Division and Digital Inclusion: new page https://www.unicef.org/digitalimpact/bhashini-ai-making-languages-more-accessible-digital-technology
-- UNICEF Digital Impact Division and Digital Inclusion: new page https://www.unicef.org/digitalimpact/stories/lesothos-digital-public-infrastructure-drive
-- UNICEF Digital Impact Division and Digital Inclusion: new page https://www.unicef.org/digitalimpact/stories/how-lesotho-protecting-children-and-their-families-digital-age
-- UNICEF Digital Impact Division and Digital Inclusion: new page https://www.unicef.org/digitalimpact/topics/digital-technology
-- UNICEF Digital Impact Division and Digital Inclusion: new page https://www.unicef.org/digitalimpact/topics/digital-health
-- UNICEF Digital Impact Division and Digital Inclusion: new page https://www.unicef.org/digitalimpact/topics/digital-public-goods
-- UNICEF Digital Impact Division and Digital Inclusion: new page https://www.unicef.org/digitalimpact/topics/digital-transformation
-- UNICEF Digital Impact Division and Digital Inclusion: new page https://www.unicef.org/digitalimpact/topics/technology-development-0
-- UNICEF Digital Impact Division and Digital Inclusion: new page https://www.unicef.org/digitalimpact/topics/gambia
-- UNICEF Digital Impact Division and Digital Inclusion: new page https://www.unicef.org/digitalimpact/topics/global
-- UNICEF Digital Impact Division and Digital Inclusion: new page https://www.unicef.org/digitalimpact/topics/digital-inclusion
-- UNICEF Digital Impact Division and Digital Inclusion: new page https://www.unicef.org/digitalimpact/topics/girls-and-technology
-- UNICEF Digital Impact Division and Digital Inclusion: new page https://www.unicef.org/digitalimpact/topics/technology-emergencies
-- UNICEF Digital Impact Division and Digital Inclusion: new page https://www.unicef.org/digitalimpact/topics/information-and-communication-technology
-- UNICEF Digital Impact Division and Digital Inclusion: new page https://www.unicef.org/digitalimpact/stories/coalition-launched-advance-childrens-rights-age-artificial-intelligence
-- UNICEF Digital Impact Division and Digital Inclusion: new page https://www.unicef.org/digitalimpact/topics/artificial-intelligence
-- UNICEF Digital Impact Division and Digital Inclusion: new page https://www.unicef.org/digitalimpact/ictd-annual-report-2024-0
-- UNICEF Digital Impact Division and Digital Inclusion: new page https://www.unicef.org/digitalimpact/safeguarding-children-digital-age
-- UNICEF Digital Impact Division and Digital Inclusion: new page https://www.unicef.org/digitalimpact/topics/digital-tools
-- UNICEF Digital Impact Division and Digital Inclusion: new page https://www.unicef.org/digitalimpact/topics/humanitarian-action-and-emergencies
-- UNICEF Digital Impact Division and Digital Inclusion: new page https://www.unicef.org/digitalimpact/topics/democratic-republic-congo
-- UNICEF Digital Impact Division and Digital Inclusion: new page https://www.unicef.org/digitalimpact/topics/girls-education
-- UNICEF Digital Impact Division and Digital Inclusion: new page https://www.unicef.org/digitalimpact/topics/digital-education
-- UNICEF Digital Impact Division and Digital Inclusion: new page https://www.unicef.org/digitalimpact/topics/brazil
-- UNICEF Digital Impact Division and Digital Inclusion: new page https://www.unicef.org/digitalimpact/topics/technology-development
-- UNICEF Digital Impact Division and Digital Inclusion: new page https://www.unicef.org/digitalimpact/blog/championing-digital-inclusion-oky-and-girls-disabilities
-- UNICEF Digital Impact Division and Digital Inclusion: new page https://www.unicef.org/digitalimpact/oki-videos
-- UNICEF Digital Impact Division and Digital Inclusion: new page https://www.unicef.org/digitalimpact/topics/indigenous-peoples
-- UNICEF Digital Impact Division and Digital Inclusion: new page https://www.unicef.org/digitalimpact/reports/digital-tool-selection-guidebook-health-campaigns
-- UNICEF Digital Impact Division and Digital Inclusion: new page https://www.unicef.org/digitalimpact/topics/digital-technology-0
-- UNICEF Digital Impact Division and Digital Inclusion: new page https://www.unicef.org/digitalimpact/topics/diaries
-- UNICEF Digital Impact Division and Digital Inclusion: new page https://www.unicef.org/digitalimpact/topics/impact
-- UNICEF Digital Impact Division and Digital Inclusion: new page https://www.unicef.org/digitalimpact/topics/insights
-- UNICEF Digital Impact Division and Digital Inclusion: new page https://www.unicef.org/digitalimpact/topics/opinion
-- UNICEF Digital Impact Division and Digital Inclusion: new page https://www.unicef.org/digitalimpact/topics/digital-literacy
-- UNICEF Digital Impact Division and Digital Inclusion: new page https://www.unicef.org/digitalimpact/blog/cybersecurity-gaps-put-children-risk-collaboration-closes-them
-- UNICEF Digital Impact Division and Digital Inclusion: new page https://www.unicef.org/digitalimpact/blog/protecting-children-borderless-digital-world
-- UNICEF Digital Impact Division and Digital Inclusion: new page https://www.unicef.org/digitalimpact/blog/why-children-change-way-we-need-think-about-data-and-ai
-- UNICEF Digital Impact Division and Digital Inclusion: new page https://www.unicef.org/digitalimpact/blog/ai-divide-new-fault-line-we-cannot-ignore
-- UNICEF Digital Impact Division and Digital Inclusion: new page https://www.unicef.org/digitalimpact/topics/digital-public-infrastructure
-- UNICEF Digital Impact Division and Digital Inclusion: new page https://www.unicef.org/digitalimpact/topics/lesotho
-- UNICEF Digital Impact Division and Digital Inclusion: new page https://www.unicef.org/digitalimpact/topics/social-inclusion
-- UNICEF Digital Impact Division and Digital Inclusion: new page https://www.unicef.org/digitalimpact/topics/oky
-- UNICEF Digital Impact Division and Digital Inclusion: new page https://www.unicef.org/digitalimpact/reports/building-safer-digital-futures
-- UNICEF Digital Impact Division and Digital Inclusion: new page https://www.unicef.org/digitalimpact/topics/child-online-protection
-- UNICEF Digital Impact Division and Digital Inclusion: new page https://www.unicef.org/digitalimpact/topics/child-protection
-- UNICEF Digital Impact Division and Digital Inclusion: new page https://www.unicef.org/digitalimpact/topics/child-rights
+- **Giga's headline figures changed**: 2.2M+ schools mapped | 136K+ schools reporting real-time connectivity | 54 countries engaged with Giga | 21 countries where mapping and modeling has been completed (were: none). They go into every Giga deck: check them before merging.
+- Giga: https://giga.global/impact changed
+- UNICEF Digital Impact Division and Digital Inclusion: https://www.unicef.org/digitalimpact/rapid-geospatial-response-unit changed; figures now: Ray ID: a49deedf1ebe0132; no longer: Ray ID: a49de9a9481cc768
+- UNICEF Digital Impact Division and Digital Inclusion: https://www.unicef.org/digitalimpact/scaling-real-time-messaging-impact-children-dpg-rapidpro changed; figures now: Ray ID: a49def1e4fe2aa75; no longer: Ray ID: a49de9e598e4205d
+- UNICEF Digital Impact Division and Digital Inclusion: https://www.unicef.org/digitalimpact/topics/digital-technology changed; figures now: Ray ID: a49def48f8923914; no longer: Ray ID: a49dea109cf65001
+- UNICEF Digital Impact Division and Digital Inclusion: https://www.unicef.org/digitalimpact/topics/digital-health changed; figures now: Ray ID: a49def5bca45efbc; no longer: Ray ID: a49dea204da37fa4
+- UNICEF Digital Impact Division and Digital Inclusion: https://www.unicef.org/digitalimpact/topics/digital-public-goods changed; figures now: Ray ID: a49def6dae9a05be; no longer: Ray ID: a49dea33bb09cb8c
+- UNICEF Digital Impact Division and Digital Inclusion: https://www.unicef.org/digitalimpact/topics/digital-transformation changed; figures now: Ray ID: a49def824db70a11; no longer: Ray ID: a49dea48d9c4bec0
+- UNICEF Digital Impact Division and Digital Inclusion: https://www.unicef.org/digitalimpact/topics/technology-development-0 changed; figures now: Ray ID: a49def94ce07c952; no longer: Ray ID: a49dea5dc9d9de8e
+- UNICEF Digital Impact Division and Digital Inclusion: https://www.unicef.org/digitalimpact/topics/gambia changed; figures now: Ray ID: a49defabbd932d20; no longer: Ray ID: a49dea6cb9b61e2d
+- UNICEF Digital Impact Division and Digital Inclusion: https://www.unicef.org/digitalimpact/topics/global changed; figures now: Ray ID: a49defbf9f61fc18; no longer: Ray ID: a49dea7e2df1ea88
+- UNICEF Digital Impact Division and Digital Inclusion: https://www.unicef.org/digitalimpact/topics/digital-impact changed; figures now: Ray ID: a49defd0abe581ab; no longer: Ray ID: a49dea8f59535f97
+- UNICEF Digital Impact Division and Digital Inclusion: https://www.unicef.org/digitalimpact/topics/digital-inclusion changed; figures now: Ray ID: a49defe12825883e; no longer: Ray ID: a49dea9ebbbc369b
+- UNICEF Digital Impact Division and Digital Inclusion: https://www.unicef.org/digitalimpact/topics/girls-and-technology changed; figures now: Ray ID: a49deff38a060568; no longer: Ray ID: a49deaae4b6d787b
+- UNICEF Digital Impact Division and Digital Inclusion: https://www.unicef.org/digitalimpact/topics/technology-emergencies changed; figures now: Ray ID: a49df00eacc58bd6; no longer: Ray ID: a49deac469518248
+- UNICEF Digital Impact Division and Digital Inclusion: https://www.unicef.org/digitalimpact/topics/information-and-communication-technology changed; figures now: Ray ID: a49df021b94d7560; no longer: Ray ID: a49dead7ab79d643
+- UNICEF Digital Impact Division and Digital Inclusion: https://www.unicef.org/digitalimpact/topics/artificial-intelligence changed; figures now: Ray ID: a49df03a191bd700; no longer: Ray ID: a49deaec6ff170a2
+- UNICEF Digital Impact Division and Digital Inclusion: https://www.unicef.org/digitalimpact/topics/digital-tools changed; figures now: Ray ID: a49df0628e0090ac; no longer: Ray ID: a49deb093caae5f3
+- UNICEF Digital Impact Division and Digital Inclusion: https://www.unicef.org/digitalimpact/topics/humanitarian-action-and-emergencies changed; figures now: Ray ID: a49df0715b7cc105; no longer: Ray ID: a49deb194b50823f
+- UNICEF Digital Impact Division and Digital Inclusion: https://www.unicef.org/digitalimpact/topics/democratic-republic-congo changed; figures now: Ray ID: a49df083695fffb9; no longer: Ray ID: a49deb299c21fe38
+- UNICEF Digital Impact Division and Digital Inclusion: https://www.unicef.org/digitalimpact/topics/girls-education changed; figures now: Ray ID: a49df0963f4bc814; no longer: Ray ID: a49deb38fcbe056b
+- UNICEF Digital Impact Division and Digital Inclusion: https://www.unicef.org/digitalimpact/topics/digital-education changed; figures now: Ray ID: a49df0af7b9712b9; no longer: Ray ID: a49deb4e3c2d05cd
+- UNICEF Digital Impact Division and Digital Inclusion: https://www.unicef.org/digitalimpact/topics/brazil changed; figures now: Ray ID: a49df112b88fb849; no longer: Ray ID: a49deb66ef69ffbc
+- UNICEF Digital Impact Division and Digital Inclusion: https://www.unicef.org/digitalimpact/topics/technology-development changed; figures now: Ray ID: a49df1241a048e97; no longer: Ray ID: a49deb77098f3567
+- UNICEF Digital Impact Division and Digital Inclusion: https://www.unicef.org/digitalimpact/topics/indigenous-peoples changed; figures now: Ray ID: a49df13b2c6b7ff7; no longer: Ray ID: a49deb8bfe36318a
+- UNICEF Digital Impact Division and Digital Inclusion: https://www.unicef.org/digitalimpact/topics/digital-technology-0 changed; figures now: Ray ID: a49df14fbfb2d6b0; no longer: Ray ID: a49debaa0e52ef5e
+- UNICEF Digital Impact Division and Digital Inclusion: https://www.unicef.org/digitalimpact/topics/diaries changed; figures now: Ray ID: a49df15f5cdee63f; no longer: Ray ID: a49debc3edda825d
+- UNICEF Digital Impact Division and Digital Inclusion: https://www.unicef.org/digitalimpact/topics/impact changed; figures now: Ray ID: a49df16ebc618062; no longer: Ray ID: a49debdcaade5c5c
+- UNICEF Digital Impact Division and Digital Inclusion: https://www.unicef.org/digitalimpact/topics/insights changed; figures now: Ray ID: a49df181d94be6c7; no longer: Ray ID: a49debee2fe8f27e
+- UNICEF Digital Impact Division and Digital Inclusion: https://www.unicef.org/digitalimpact/topics/opinion changed; figures now: Ray ID: a49df1961c58d6ef; no longer: Ray ID: a49dec046cb2a606
+- UNICEF Digital Impact Division and Digital Inclusion: https://www.unicef.org/digitalimpact/topics/digital-literacy changed; figures now: Ray ID: a49df1a5cddefe99; no longer: Ray ID: a49dec160ed58212
+- UNICEF Digital Impact Division and Digital Inclusion: https://www.unicef.org/digitalimpact/topics/digital-public-infrastructure changed; figures now: Ray ID: a49df1c4ff262076; no longer: Ray ID: a49dec3e0d251b59
+- UNICEF Digital Impact Division and Digital Inclusion: https://www.unicef.org/digitalimpact/topics/lesotho changed; figures now: Ray ID: a49df1de1ee674e8; no longer: Ray ID: a49dec540f79d657
+- UNICEF Digital Impact Division and Digital Inclusion: https://www.unicef.org/digitalimpact/topics/social-inclusion changed; figures now: Ray ID: a49df1ef3aced600; no longer: Ray ID: a49dec62d9ec31b5
+- UNICEF Digital Impact Division and Digital Inclusion: https://www.unicef.org/digitalimpact/topics/oky changed; figures now: Ray ID: a49df201fae696a2; no longer: Ray ID: a49dec73da9bc95c
+- UNICEF Digital Impact Division and Digital Inclusion: https://www.unicef.org/digitalimpact/topics/child-online-protection changed; figures now: Ray ID: a49df2180d4e3389; no longer: Ray ID: a49dec8cadb7e5b4
+- UNICEF Digital Impact Division and Digital Inclusion: https://www.unicef.org/digitalimpact/topics/child-protection changed; figures now: Ray ID: a49df2260d5ec1cf; no longer: Ray ID: a49dec9c18252896
+- UNICEF Digital Impact Division and Digital Inclusion: https://www.unicef.org/digitalimpact/topics/child-rights changed; figures now: Ray ID: a49df23e1ce67f9e; no longer: Ray ID: a49decb0e9747fca

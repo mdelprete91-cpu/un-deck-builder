@@ -199,16 +199,22 @@ const HAS_CHAPTERS =
  * the instructions about layouts and counts stay where they always were.
  */
 function attachmentsNote(body: GenerateBody): string {
-  const n = body.attachments?.length ?? 0;
-  if (n === 0) return "";
-  const names = body.attachments!.map((a) => `"${a.name}"`).join(", ");
-  const sheets = body.attachments!.some((a) => a.kind === "text" && a.spreadsheet);
-  const answered = body.attachments!.some((a) => a.kind !== "image" && a.insights?.trim());
+  // Background from the knowledge base fills gaps; it never makes the deck "about" it (Mario, 13 Oct 2026).
+  const background = body.attachments?.some((a) => a.kind === "text" && a.background)
+    ? "\n\nThe \"Background\" pages come from the organisations' own websites, with the date they were read. Use them only for what the brief, the user's answers and the attached material do not give; on any conflict those win, being more recent. When background pages disagree on a figure, use the most recent and give its date."
+    : "";
+  const own = (body.attachments ?? []).filter((a) => !(a.kind === "text" && a.background));
+  const n = own.length;
+  if (n === 0) return background;
+  const names = own.map((a) => `"${a.name}"`).join(", ");
+  const sheets = own.some((a) => a.kind === "text" && a.spreadsheet);
+  const answered = own.some((a) => a.kind !== "image" && a.insights?.trim());
   return (
     `\n\nAttached reference material (${n} item${n === 1 ? "" : "s"}: ${names}) precedes this message.` +
     (answered ? " The user answered questions about the material; those answers rank with the brief, above the material itself." : "") +
     ` The ${body.format === "two-pager" ? "pages are" : "deck is"} about this material: take the subject, structure, facts, figures and names from it. The brief comes first on everything it says (length, angle, audience, which organisations to feature); where the brief is silent, the material decides. Keep the organisations the material names as leading, funding or delivering the work. Quote numbers exactly as they appear, copied digit by digit (3,323 is not 3,523), never invent what is not there, and do not copy long passages verbatim.` +
-    (sheets ? SPREADSHEET_NOTE : "")
+    (sheets ? SPREADSHEET_NOTE : "") +
+    background
   );
 }
 
@@ -240,7 +246,7 @@ export function buildUserContent(body: GenerateBody): ResponseInputContent[] {
       blocks.push({ type: "input_text", text: `Attached image: "${a.name}"` });
       blocks.push({ type: "input_image", image_url: `data:${a.mediaType};base64,${a.data}`, detail: "auto" });
     } else {
-      const label = /^https?:\/\//.test(a.name) ? "Linked page" : a.spreadsheet ? "Attached spreadsheet" : "Attached file";
+      const label = a.background ? "Background" : /^https?:\/\//.test(a.name) ? "Linked page" : a.spreadsheet ? "Attached spreadsheet" : "Attached file";
       const insights = a.insights?.trim() ? `\n${a.spreadsheet ? "What to draw from this spreadsheet" : "About this file, from the user"}: ${a.insights.trim()}` : "";
       blocks.push({
         type: "input_text",

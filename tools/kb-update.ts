@@ -22,6 +22,8 @@ interface Source {
   start: string[];
   render?: boolean;
   follow?: { prefix: string; max: number };
+  /** The source whose home gives Giga's headline figures (kb/giga-facts.json, read by lib/slides/giga-facts.ts). */
+  facts?: boolean;
 }
 export interface KbPage {
   url: string;
@@ -110,6 +112,8 @@ async function readPage(url: string, render: boolean): Promise<{ page: Omit<KbPa
     title ||= /^Title:\s*(.+)$/m.exec(r.text)?.[1]?.trim() ?? "";
   }
   if (text.length < 200) return { page: null, html };
+  // A bot check instead of the page (Cloudflare): nothing to keep.
+  if (/\bRay ID:|Just a moment|Checking your browser|Enable JavaScript and cookies/i.test(text)) return { page: null, html: "" };
   // htmlToText puts the title first; keep it once.
   if (title && text.startsWith(title)) text = text.slice(title.length).trim();
   return { page: { url, title: title.replace(/\s*\|\s*UNICEF.*$/i, "").trim(), text: text.slice(0, MAX_TEXT), figures: sentencesWithFigures(text) }, html };
@@ -168,6 +172,19 @@ async function crawl(src: Source): Promise<Omit<KbPage, "read">[]> {
     prevUrls.filter((u) => !pages.some((p) => p.url === u)).forEach((u) => changes.push(`- ${src.name}: page gone ${u}`));
     out.push({ id: src.id, name: src.name, aliases: src.aliases, pages });
     console.log(`${src.id}: ${pages.length} pages, ${pages.reduce((a, p) => a + p.text.length, 0)} chars`);
+  }
+  // Giga's headline figures, figure line then label line on the home page.
+  const factsSrc = sources.find((s) => s.facts);
+  const home = factsSrc && out.find((s) => s.id === factsSrc.id)?.pages.find((p) => p.url.replace(/\/$/, "") === factsSrc.start[0].replace(/\/$/, ""));
+  if (home) {
+    const lines = home.text.split("\n").map((l) => l.trim());
+    const figures = lines.flatMap((l, i) => (/^[\d.,]+\s?[MKB]?\+?$/.test(l) && lines[i + 1] ? [{ value: l, label: lines[i + 1].replace(/\s*to foster.*$/, "").replace(/\.$/, "") }] : []));
+    const prev = existsSync("kb/giga-facts.json") ? (JSON.parse(readFileSync("kb/giga-facts.json", "utf8")) as { figures: { value: string; label: string }[] }) : { figures: [] };
+    const said = (f: { value: string; label: string }[]) => f.map((x) => `${x.value} ${x.label}`).join(" | ");
+    if (figures.length) {
+      if (said(prev.figures) !== said(figures)) changes.unshift(`- **Giga's headline figures changed**: ${said(figures)} (were: ${said(prev.figures) || "none"}). They go into every Giga deck: check them before merging.`);
+      writeFileSync("kb/giga-facts.json", JSON.stringify({ source: home.url, read: said(prev.figures) === said(figures) ? (prev as { read?: string }).read ?? home.read : TODAY, figures }, null, 1) + "\n");
+    } else changes.unshift("- Giga's headline figures could not be read from the home page: kb/giga-facts.json kept as it was.");
   }
   writeFileSync("kb/index.json", JSON.stringify({ sources: out }, null, 1) + "\n");
   writeFileSync("kb/CHANGES.md", `# Knowledge base, week of ${TODAY}\n\n${changes.length ? changes.join("\n") : "No change on the sites this week."}\n`);

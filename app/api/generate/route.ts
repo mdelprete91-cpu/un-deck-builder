@@ -15,7 +15,21 @@ import { fetchLinkedPages } from "@/lib/slides/links-server";
 import { languageOf, MAX_SLIDES } from "@/lib/slides/brief";
 import { cleanVoice } from "@/lib/slides/voice";
 import { yearTimelineMonths } from "@/lib/slides/rhythm";
-import { kbAttachments } from "@/lib/slides/kb";
+import { kbBackground } from "@/lib/slides/kb";
+import type { Attachment } from "@/lib/slides/attachments";
+import { materialScore, SCARCE_MATERIAL } from "@/lib/slides/brief";
+
+/** The knowledge base for this request: scarce material, or the user's files beside it (Mario, 13 Oct 2026). */
+function background(body: GenerateBody, given: Attachment[]): Attachment[] {
+  const brief = body.brief ?? "";
+  const attachedChars = given.reduce((n, a) => n + (a.kind === "text" ? a.text.length : a.kind === "pdf" ? 20_000 : 2_000), 0);
+  // Answered slots ("Purpose: … The ask: …"), or any answer given.
+  const notes = body.briefNotes ?? "";
+  const answered = (notes.match(/\b(Purpose|Facts|The ask|Audience):/g) ?? []).length || (notes.trim() ? 1 : 0);
+  const scarce = materialScore(brief, { attachedChars, answered }) < SCARCE_MATERIAL;
+  const kb = kbBackground(`${brief} ${notes}`, { scarce, withFiles: given.length > 0 });
+  return kb ? [kb] : [];
+}
 import type { SlideContent } from "@/lib/slides/schema";
 import { LANG_NAMES } from "@/lib/slides/i18n";
 
@@ -107,8 +121,8 @@ export async function POST(request: Request): Promise<Response> {
   const linked = oneSlide ? [] : await fetchLinkedPages(body.brief ?? "");
   body = {
     ...body,
-    // The knowledge base's pages on what the brief names (lib/slides/kb.ts), never on a replica.
-    attachments: [...attachments, ...linked, ...(oneSlide || body.source ? [] : kbAttachments(body.brief ?? ""))],
+    // The knowledge base as background when the material is scarce or files sit beside it (lib/slides/kb.ts), never on a replica or a rewrite.
+    attachments: [...attachments, ...linked, ...(oneSlide || body.source ? [] : background(body, [...attachments, ...linked]))],
     // A replicated slide keeps the source's language, whatever the brief's.
     // The deck's language once it has been switched (lib/slides/i18n.ts), else the brief's.
     language:

@@ -375,18 +375,29 @@ offer.
 
 ## Knowledge base
 
-Mario, 13 Oct 2026. `kb/index.json` holds the pages of Giga Maps, Giga Meter, Connectivity Credits,
-Spectrum Certificates and the whole UNICEF Digital Impact site (`kb/sources.json`: aliases, start
-pages, how far to follow links), cleaned to text with the day each page was first read as it is.
-`tools/kb-update.ts` reads them (plain fetch, Jina for pages built by JavaScript; stylesheets,
-scripts and privacy pages skipped; navigation lines and HTML entities cleaned) and writes
-`kb/CHANGES.md`. `.github/workflows/kb-update.yml` runs it every Monday and opens a pull request
-when anything changed; merging deploys. No API key: the model reads the pages only when a deck
-needs them. `kbAttachments` (`lib/slides/kb.ts`) gives a brief that names a source (by its
-aliases, whole words) that source's pages as one reference attachment, the pages sharing most
-words with the brief first, 12k characters at most, labelled with the read date; never to a
-replica or a rewrite. The system prompt does not change. A brief that only says "Giga" gets
-nothing from here (giga.global is not a source): `GIGA_FACTS` covers it.
+Mario, 13 Oct 2026. `kb/index.json` holds the pages of giga.global, Giga Maps, Giga Meter,
+Connectivity Credits, Spectrum Certificates and the whole UNICEF Digital Impact site
+(`kb/sources.json`: aliases, start pages, how far to follow links), cleaned to text with the day
+each page was first read as it is. `tools/kb-update.ts` reads them (plain fetch, Jina for pages
+built by JavaScript; stylesheets, scripts, privacy and bot-check pages skipped; navigation lines
+and HTML entities cleaned), writes `kb/CHANGES.md`, and reads Giga's headline figures off the
+giga.global home into `kb/giga-facts.json`, which `GIGA_FACTS` (`lib/slides/giga-facts.ts`) now
+reads: the figures in every Giga deck change only through the weekly pull request
+(`.github/workflows/kb-update.yml`, Mondays) that Mario merges, and CHANGES.md says so first.
+
+**A reserve, not a source of subject** (Mario: "in case there are gaps in the brief, if there is
+material that fits; files the user attaches come first, they are fresher"). `background()` in
+the generate route adds one "Background" attachment (`kbBackground`, `lib/slides/kb.ts`) only
+when the brief names Giga, UNICEF or one of the products (`OWN`: the subject rule above) and
+either the material is scarce (`materialScore` < `SCARCE_MATERIAL`, 30: the brief's meaningful
+words, three points a figure, attached text, six an answered question; thin-ministry 6,
+long-prose 188, an attached sheet ~70) or the user attached files (then only pages scoring
+`KB_THRESHOLD_WITH_FILES`). Pages: the named sources' start pages first, then BM25 over all pages
+(title counted twice, a named source counting half again, request words like "deck" ignored)
+above `KB_THRESHOLD`, 10k characters in all, a sentence repeated across pages kept once. Never on a
+replica or a rewrite. `attachmentsNote` keeps background out of "the deck is about this material"
+and says what it is for: what the brief, the answers and the files do not give, losing every
+conflict to them; between background pages the most recent figure wins, with its date.
 
 ## Attachments to the brief
 
@@ -1494,6 +1505,17 @@ Things worth knowing before touching it:
 3. `VERSION` in `storage.ts` is a separate counter for the localStorage shape. Bump it only if
    `Persisted` actually changed — bumping it logs out every returning user.
 4. Export a real deck with a photo, reopen it, and check the closing slide title survived.
+
+## Before a deploy
+
+Mario, 13 Oct 2026: changes to the generation logic that make it worse are not deployed.
+`npx tsx tools/qa-gate.ts tools/qa-gate.json 3 2` checks out each variant (a commit, commits to
+revert, literal patches to switch a part off) in its own worktree with its own dev server, runs
+that variant's own suite three times on today's cases, and scores every run with today's content
+judge and blocking checks (`.omc/qa/gate-<stamp>/gate.md`). A variant ships only if, against
+production: the judge's mean is not lower by more than 0.05, no criterion drops more than 0.15,
+the six retest briefs do not drop, and no new blocking finding appears. Passing is necessary,
+not sufficient: Mario still says yes.
 
 ## Working here
 

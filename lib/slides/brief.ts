@@ -188,3 +188,26 @@ export function lastSlideFromBrief(brief: string, count: number | undefined): st
   }
   return null;
 }
+
+/** "12 slides", "20-page": a length, not material. */
+const SLIDE_COUNT = /\b\d{1,2}\s*(?:-\s*)?(?:slides?|pages?|diapositiv\w*|pagine)\b/gi;
+/** Under this the brief gives little to build on: the knowledge base may fill the gaps (lib/slides/kb.ts). */
+export const SCARCE_MATERIAL = 30;
+
+/**
+ * How much material the deck has to work with (Mario, 13 Oct 2026): the
+ * brief's meaningful words past its length, three points a figure it gives,
+ * the attached text (a hundredth of its characters, sixty at most) and six
+ * points an answered question. Measured on the QA briefs: thin-ministry 7,
+ * count-giga 5, with its answers 25; long-prose 207, an attached sheet 70.
+ */
+export function materialScore(brief: string, opts: { attachedChars?: number; answered?: number } = {}): number {
+  const text = brief.replace(SLIDE_COUNT, " ");
+  const words = text
+    .toLowerCase()
+    .split(/[^\p{L}\p{N}]+/u)
+    .filter((w) => w.length > 2 && !/^\d/.test(w) && !BRIEF_STOP.has(w)).length;
+  const figures = (text.match(/\d[\d,.]*\s*%?/g) ?? []).length;
+  return words + 3 * figures + Math.min(60, Math.round((opts.attachedChars ?? 0) / 100)) + 6 * (opts.answered ?? 0);
+}
+const BRIEF_STOP = new Set("the and for with that this from into about our your their are was were will have has can a an of to in on by as at is it be or di del della per con che una uno dei delle sul sulla los las para con por que una".split(" "));
