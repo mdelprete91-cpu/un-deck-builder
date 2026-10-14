@@ -5,9 +5,13 @@ import ThemeProvider from "@/components/ThemeProvider";
 import TooltipLayer from "@/components/TooltipLayer";
 
 export const metadata: Metadata = {
+  // Absolute URLs for the link preview (app/opengraph-image.png) and the icons
+  // (app/icon.png, app/apple-icon.png, app/favicon.ico: the UNICEF emblem, not
+  // Vercel's triangle, Mario 14 Oct 2026).
+  metadataBase: new URL("https://un-deck-builder.vercel.app"),
   title: "UNICEF Deck Builder",
-  description:
-    "Generate branded UNICEF / Digital Impact Division slide decks from a prompt",
+  description: "Branded UNICEF decks and two-pagers from a brief",
+  openGraph: { title: "UNICEF Deck Builder", description: "Branded UNICEF decks and two-pagers from a brief", siteName: "UNICEF Deck Builder" },
 };
 
 export default function RootLayout({
