@@ -617,7 +617,8 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
   const analyzeBrief = async (brief: string) => {
     clearRef.current.delete("brief");
     setBriefQ({ brief, answers: {} });
-    const conflict = countConflict(brief);
+    // A two-pager is two pages: its brief's slide count is not a question.
+    const conflict = twoPager ? null : countConflict(brief);
     const countQ: SheetAnalysis["questions"] = conflict
       ? [
           {
@@ -639,7 +640,7 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
       const res = await fetch("/api/analyze", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ name: "brief", text: brief, kind: "brief", files: attachments.map((a) => a.name), material }),
+        body: JSON.stringify({ name: "brief", text: brief, kind: "brief", files: attachments.map((a) => a.name), material, format: twoPager ? "two-pager" : "slides" }),
       });
       if (!res.ok) throw new Error((await res.text()) || `HTTP ${res.status}`);
       const analysis = withCount(normalizeBriefAnalysis(await res.json()) ?? { summary: "", questions: [] });
@@ -729,7 +730,8 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
     // Every brief is read before the deck, whatever its length and with files
     // too (Mario, 13 Oct 2026): what is unclear, missing or does not add up is
     // asked now, not found in the deck. Not for a two-pager or a replica.
-    if (!twoPager && brief.trim() && !replicaChosen() && !(briefQ?.brief === brief && briefQ.asked)) queue.push("brief");
+    // A two-pager too (Mario, 14 Oct 2026: "its content comes out too bland"), with questions of its own.
+    if (brief.trim() && !replicaChosen() && !(briefQ?.brief === brief && briefQ.asked)) queue.push("brief");
     // No length in the brief: ask for one, last. Not for a replica (it keeps
     // its source's length), nor for "one slide per objective": the brief's
     // list sets the length, and a picked 12 over 6 objectives read as 12

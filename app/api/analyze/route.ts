@@ -56,7 +56,7 @@ const MAX_PDF_BASE64 = 2_800_000;
  * model as the deck, reasoning off.
  */
 export async function POST(request: Request): Promise<Response> {
-  let body: { name?: unknown; text?: unknown; pdf?: unknown; kind?: unknown; brief?: unknown; material?: unknown; files?: unknown };
+  let body: { name?: unknown; text?: unknown; pdf?: unknown; kind?: unknown; brief?: unknown; material?: unknown; files?: unknown; format?: unknown };
   try {
     body = (await request.json()) as typeof body;
   } catch {
@@ -80,6 +80,7 @@ export async function POST(request: Request): Promise<Response> {
   // brief once got its questions in Spanish (12 Oct 2026).
   if (kind === "brief") {
     const lang = languageOf(text) ?? "English";
+    const twoPager = body.format === "two-pager";
     const outline = outlineFromBrief(text, countFromBrief(text));
     // What the knowledge base would give this deck, when it is on: the
     // questions do not ask for what Giga's own pages already say (Connectivity
@@ -90,9 +91,15 @@ export async function POST(request: Request): Promise<Response> {
     const found = briefFindings(text).filter((f) => f.kind !== "count");
     const countAsked = briefFindings(text).some((f) => f.kind === "count");
     const parts = [
-      `The user's brief for the deck: "${text}"`,
-      outline.length ? `Slides its outline prescribes:\n${outline.map((o) => `${o.order}. ${o.title}`).join("\n")}` : "",
-      countAsked ? "The slide count is asked separately: never ask about it." : "",
+      `The user's brief for the ${twoPager ? "two-pager" : "deck"}: "${text}"`,
+      // A two-pager (Mario, 14 Oct 2026: written from a thin brief it came out bland): two printed A4
+      // pages, one title, a lede, a status, text parts that alternate with figures, pictures, points
+      // and asks, and the contacts at the foot. Its questions ask for what fills those.
+      twoPager
+        ? `This is a TWO-PAGER, not slides: two printed A4 pages for a partner, a donor or a regulator, laid out as a title, an intro paragraph, optionally the project's status, then text parts that alternate with stat cards, three-column items, pictures, numbered points or asks, and the contacts at the foot. Read "slide" in your instructions as "part of the two-pager". What makes one rich rather than bland is what only the user knows; ask for whichever of these the brief does not give, the most important first: the figures for its stat cards (what has been reached, with a date); the project's current status or stage; what it asks of the reader (the decisions, funding or partnerships wanted); its two or three concrete examples or results (a country, a school, a pilot); who to contact (name, role, email). Never ask about the number of slides or pages.`
+        : "",
+      !twoPager && outline.length ? `Slides its outline prescribes:\n${outline.map((o) => `${o.order}. ${o.title}`).join("\n")}` : "",
+      countAsked && !twoPager ? "The slide count is asked separately: never ask about it." : "",
       found.length ? `Checks already found:\n${found.map((f) => `- ${f.hint} (brief: "${f.about}")`).join("\n")}` : "Checks already found: none.",
       files.length ? `Files attached: ${files.join(", ")}.${material ? "" : " Their content is not shown here: do not ask for what such files would normally hold."}` : "No file is attached.",
       material ? `What the attached files say (cut):\n<<<\n${material}\n>>>` : "",

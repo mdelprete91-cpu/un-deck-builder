@@ -1665,4 +1665,10 @@ Conventions:
   (`PICTURE_ROOM`, 190pt) takes up to two full-width library pictures (`fillRoomWithPictures`,
   pages/fit.ts), set between two text blocks, else before the contacts, else at the end, each kept
   only while the page fits. Not for replicas.
+- **The brief's questions for a two-pager too** (Mario, 14 Oct 2026: "the content comes out too
+  bland"): the brief subject enters the wizard's queue for a two-pager as for a deck (not for a
+  replica), with `format: "two-pager"` to `/api/analyze`, which then asks, the most important first,
+  for what only the user knows: the stat cards' figures with a date, the project's status, what it
+  asks of the reader, two or three concrete examples, who to contact. No slide-count question.
+  Each missing-content answer can be typed or left as a placeholder, as on a deck.
 
