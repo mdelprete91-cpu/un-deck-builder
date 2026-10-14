@@ -90,7 +90,7 @@ export default function TextMenu({
                 {source.date && (
                   <span className="font-normal text-ink-muted">
                     {" · "}
-                    {source.kind === "kb" || source.kind === "page" ? "read " : source.kind === "facts" ? "checked " : ""}
+                    {source.kind === "kb" ? "read " : source.kind === "page" ? "published " : source.kind === "facts" ? "checked " : ""}
                     {when(source.date)}
                   </span>
                 )}

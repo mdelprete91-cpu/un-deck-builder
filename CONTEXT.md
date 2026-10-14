@@ -1672,3 +1672,18 @@ Conventions:
   asks of the reader, two or three concrete examples, who to contact. No slide-count question.
   Each missing-content answer can be typed or left as a placeholder, as on a deck.
 
+## Online sources are the brief's links
+
+- **The builder never searches the web on its own** (Mario, 14 Oct 2026): the user chooses the
+  sources, so every fact has one they know. People write the links in the brief, so the links in
+  the brief are the online sources: up to eight (`MAX_LINKS`), 60,000 characters a page and
+  200,000 in all (`fetchLinkedPages`).
+- **The composer shows them**: a moment after typing stops, each new link is read by
+  `/api/link` (`fetchPage`, no model call) and drawn as a chip under the brief: host, "Read · date",
+  or "Could not be read" in red, with the line "Only these pages are used as sources. The builder
+  never searches the web on its own…". The brief's questions get what the pages say as `material`.
+- **A brief that asks for research with no link** (`asksForResearch`, sheet-questions.ts: "search
+  the web", "cerca su internet", "do your own research", "busca en internet"…) opens the wizard on
+  "Add the sources to use", in the app's words; "Add links to the brief" puts the cursor on a new
+  "Sources: " line at its end. The analysis model never says itself that it cannot search.
+

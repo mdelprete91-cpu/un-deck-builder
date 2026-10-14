@@ -18,6 +18,7 @@ import LanguageMenu from "@/components/LanguageMenu";
 import EditChoice from "@/components/EditChoice";
 import LogoMenu from "@/components/LogoMenu";
 import TextMenu from "@/components/TextMenu";
+import { extractUrls, type LinkSource } from "@/lib/slides/links";
 import { resultSheet, sourceSheetFromPdf, sourceSheetFromSlides } from "@/lib/slides/contact-sheet";
 import { closingFor } from "@/lib/slides/rhythm";
 import type { CheckProblem } from "@/lib/slides/replica-check";
@@ -53,7 +54,7 @@ import ChartDataPanel from "@/components/ChartDataPanel";
 import ImagePickerModal from "@/components/ImagePickerModal";
 import EditWithAiModal from "@/components/EditWithAiModal";
 import SheetWizard from "@/components/SheetWizard";
-import { compileInsights, normalizeAnalysis, normalizeBriefAnalysis, purposeAsks, slotsFromNotes, COUNT_DOUBT_ID, wantsFile, USE_QUESTION_ID, fileUseOf, fileUseQuestion, lengthAnalysisFor, lengthOf, mentionsMissingFile, missingFileAnalysis, MISSING_FILE_QUESTION_ID, ATTACH_IT, preselectFileUse, type SheetAnalysis, type SheetAnswers } from "@/lib/slides/sheet-questions";
+import { compileInsights, normalizeAnalysis, normalizeBriefAnalysis, purposeAsks, slotsFromNotes, COUNT_DOUBT_ID, wantsFile, USE_QUESTION_ID, fileUseOf, fileUseQuestion, lengthAnalysisFor, lengthOf, mentionsMissingFile, missingFileAnalysis, MISSING_FILE_QUESTION_ID, ATTACH_IT, asksForResearch, researchAnalysis, RESEARCH_QUESTION_ID, ADD_LINKS, preselectFileUse, type SheetAnalysis, type SheetAnswers } from "@/lib/slides/sheet-questions";
 import { denseBeforeNormalize, densityHint, planReplica, withContentDensity, type ReplicateStep } from "@/lib/slides/replicate";
 import { compareSlide, fidelityScore, isFlawed, planLeftovers, repairNote, runningLines, sourceUnits, totals, type DeckFidelity, type Leftover, type SlideFidelity } from "@/lib/slides/fidelity";
 import { readPdfSlides } from "@/lib/slides/pdf-source";
@@ -543,6 +544,30 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
   const [briefQ, setBriefQ] = useState<{ brief: string; analysis?: SheetAnalysis; answers: SheetAnswers; error?: string; asked?: boolean } | null>(null);
   /** A brief that mentions a file with none attached: asked first, keyed to the brief's text. */
   const [noFileQ, setNoFileQ] = useState<{ brief: string; answers: SheetAnswers; asked?: boolean } | null>(null);
+  /** A brief that asks for research with no link in it: asked first, keyed to the brief's text. */
+  const [researchQ, setResearchQ] = useState<{ brief: string; answers: SheetAnswers; asked?: boolean } | null>(null);
+  /**
+   * The brief's links, read a moment after the user stops typing (Mario,
+   * 14 Oct 2026): the composer shows what the deck will draw on, and the
+   * brief's questions read what the pages say. By URL, for the session.
+   */
+  const [linkInfo, setLinkInfo] = useState<Record<string, LinkSource>>({});
+  const briefLinks = extractUrls(state.brief);
+  useEffect(() => {
+    const urls = extractUrls(state.brief).filter((u) => !linkInfo[u]);
+    if (!urls.length) return;
+    const timer = setTimeout(() => {
+      setLinkInfo((m) => ({ ...m, ...Object.fromEntries(urls.map((url) => [url, { url, status: "reading" as const }])) }));
+      for (const url of urls)
+        void fetch("/api/link", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ url }) })
+          .then((r) => r.json())
+          .then((d: { ok: boolean; host?: string; title?: string; published?: string; excerpt?: string; reason?: string }) =>
+            setLinkInfo((m) => ({ ...m, [url]: { url, status: d.ok ? "ok" : "failed", host: d.host, title: d.title, published: d.published, excerpt: d.excerpt, reason: d.reason } })),
+          )
+          .catch(() => setLinkInfo((m) => ({ ...m, [url]: { url, status: "failed", reason: "the page could not be reached" } })));
+    }, 1000);
+    return () => clearTimeout(timer);
+  }, [state.brief, linkInfo]);
   /** The deck's length, asked last when the brief names none; keyed to the brief's text like briefQ. */
   const [lengthQ, setLengthQ] = useState<{ brief: string; answers: SheetAnswers; asked?: boolean } | null>(null);
   /**
@@ -632,10 +657,11 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
         ]
       : [];
     const withCount = (a: SheetAnalysis): SheetAnalysis => ({ ...a, questions: [...countQ, ...a.questions] });
-    const material = attachments
-      .filter((a) => a.kind === "text" && !a.background)
-      .map((a) => `${a.name}:\n${(a as { text: string }).text.slice(0, 4000)}`)
-      .join("\n\n");
+    // What the files and the brief's links say: the questions never ask for it.
+    const material = [
+      ...attachments.filter((a) => a.kind === "text" && !a.background).map((a) => `${a.name}:\n${(a as { text: string }).text.slice(0, 4000)}`),
+      ...extractUrls(brief).flatMap((u) => (linkInfo[u]?.status === "ok" && linkInfo[u].excerpt ? [`${u}:\n${linkInfo[u].excerpt!.slice(0, 4000)}`] : [])),
+    ].join("\n\n");
     try {
       const res = await fetch("/api/analyze", {
         method: "POST",
@@ -656,6 +682,7 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
   /** Every answer is kept as it is given and compiled into `insights`, the field the prompt reads. */
   const onWizardAnswers = (id: string, answers: SheetAnswers) => {
     if (id === "nofile") setNoFileQ((q) => (q ? { ...q, answers } : q));
+    else if (id === "research") setResearchQ((q) => (q ? { ...q, answers } : q));
     else if (id === "length") setLengthQ((q) => (q ? { ...q, answers } : q));
     else if (id === "brief") setBriefQ((q) => (q ? { ...q, answers } : q));
     else
@@ -665,6 +692,7 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
   };
   const markAsked = (id: string) => {
     if (id === "nofile") setNoFileQ((q) => (q ? { ...q, asked: true } : q));
+    else if (id === "research") setResearchQ((q) => (q ? { ...q, asked: true } : q));
     else if (id === "length") setLengthQ((q) => (q ? { ...q, asked: true } : q));
     else if (id === "brief") setBriefQ((q) => (q ? { ...q, asked: true } : q));
     else setAttachments((list) => list.map((x) => (x.id === id && canQuestion(x) ? { ...x, asked: true } : x)));
@@ -672,6 +700,19 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
   /** The current subject is done (answered, skipped or clear): the next one, or the deck. */
   const advanceFrom = (w: { queue: string[]; intent: "generate" | "edit" }) => {
     // "Attach the file": stop here and open the picker; the next Generate goes on from the file.
+    // "Add links to the brief": stop, and put the cursor on a new line at its end for them.
+    if (w.queue[0] === "research" && researchQ?.answers[RESEARCH_QUESTION_ID] === ADD_LINKS) {
+      setWizard(null);
+      setResearchQ((q) => (q ? { ...q, asked: true } : q));
+      const next = `${state.brief.trimEnd()}\nSources: `;
+      dispatch({ type: "SET_BRIEF", brief: next });
+      requestAnimationFrame(() => {
+        const ta = document.querySelector<HTMLTextAreaElement>('[data-tour="prompt"] textarea');
+        ta?.focus();
+        ta?.setSelectionRange(next.length, next.length);
+      });
+      return;
+    }
     if (w.queue[0] === "nofile" && noFileQ?.answers[MISSING_FILE_QUESTION_ID] === ATTACH_IT) {
       setWizard(null);
       setNoFileQ(null);
@@ -708,6 +749,7 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
     if (!id) return null;
     if (id === "brief") return { id, title: "Your brief", kind: "brief", analysis: briefQ?.analysis, answers: briefQ?.answers ?? {}, error: briefQ?.error };
     if (id === "nofile") return { id, title: "No file attached", kind: "missing", analysis: missingFileAnalysis, answers: noFileQ?.answers ?? {} };
+    if (id === "research") return { id, title: "Add the sources to use", kind: "missing", analysis: researchAnalysis, answers: researchQ?.answers ?? {} };
     if (id === "length") return { id, title: "Deck length", kind: "length", analysis: lengthAnalysisFor(state.chapters), answers: lengthQ?.answers ?? {} };
     const a = attachments.find((x) => x.id === id);
     if (!a || !canQuestion(a)) return null;
@@ -750,6 +792,11 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
       if (lengthQ?.brief !== brief) setLengthQ({ brief, answers: {} });
     }
     // The brief talks about a file and none is attached: ask that first.
+    // The brief asks for research and gives no link: the sources are the user's to choose, asked first of all.
+    if (asksForResearch(brief) && !(researchQ?.brief === brief && researchQ.asked)) {
+      toAsk.unshift("research");
+      if (researchQ?.brief !== brief) setResearchQ({ brief, answers: {} });
+    }
     if (attachments.length === 0 && mentionsMissingFile(brief) && !(noFileQ?.brief === brief && noFileQ.asked)) {
       toAsk.unshift("nofile");
       if (noFileQ?.brief !== brief) setNoFileQ({ brief, answers: {} });
@@ -758,7 +805,7 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
     queue.length = 0;
     queue.push(...toAsk);
     for (const id of queue) {
-      if (id === "length" || id === "nofile") continue;
+      if (id === "length" || id === "nofile" || id === "research") continue;
       if (id === "brief") {
         if (briefQ?.brief !== brief) void analyzeBrief(brief);
       } else {
@@ -2178,6 +2225,7 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
         onAttach={onAttach}
         onRemoveAttachment={onRemoveAttachment}
         onOpenSheet={(id) => setWizard({ queue: [id], intent: "edit" })}
+        sources={briefLinks.map((url) => linkInfo[url] ?? { url, status: "reading" as const })}
         attachError={attachError}
         chaptersSkipped={chaptersSkipped}
         fidelity={fidelity}
@@ -2225,12 +2273,13 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
             subject={wizardSubject}
             finalLabel={
               (wizardSubject.id === "nofile" && noFileQ?.answers[MISSING_FILE_QUESTION_ID] === ATTACH_IT) ||
+              (wizardSubject.id === "research" && researchQ?.answers[RESEARCH_QUESTION_ID] === ADD_LINKS) ||
               (wizardSubject.id === "brief" && wantsFile(briefQ?.analysis, briefQ?.answers ?? {}))
                 ? "Choose file"
                 : wizard.intent === "generate" && wizard.queue.length === 1
                   ? "Generate"
                   : wizard.queue.length > 1
-                    ? ["length", "brief", "nofile"].includes(wizard.queue[1]) ? "Next" : "Next file"
+                    ? ["length", "brief", "nofile", "research"].includes(wizard.queue[1]) ? "Next" : "Next file"
                     : "Done"
             }
             onAnswers={(answers) => onWizardAnswers(wizardSubject.id, answers)}

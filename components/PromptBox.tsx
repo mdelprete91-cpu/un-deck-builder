@@ -1,13 +1,13 @@
 "use client";
 
-import { ArrowUp, LoaderCircle, Plus } from "lucide-react";
+import { ArrowUp, Globe, LoaderCircle, Plus, TriangleAlert } from "lucide-react";
 import Switch from "@/components/Switch";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { ATTACHMENT_ACCEPT, type Attachment } from "@/lib/slides/attachments";
 import AttachmentsRow from "@/components/AttachmentsRow";
 import SheetInsights from "@/components/SheetInsights";
 import Button from "@/components/Button";
-import { splitLinks } from "@/lib/slides/links";
+import { splitLinks, type LinkSource } from "@/lib/slides/links";
 
 /**
  * The brief composer: one rounded surface that holds everything a Generate
@@ -38,6 +38,7 @@ export default function PromptBox({
   blocked = false,
   hasSlides,
   twoPager = false,
+  sources = [],
 }: {
   brief: string;
   onBrief: (brief: string) => void;
@@ -55,6 +56,8 @@ export default function PromptBox({
   hasSlides: boolean;
   /** A two-pager has no chapters, and the brief describes a printed piece. */
   twoPager?: boolean;
+  /** The brief's links, read as they are written: the deck's only online sources. */
+  sources?: LinkSource[];
 }) {
   const textRef = useRef<HTMLTextAreaElement>(null);
   const mirrorRef = useRef<HTMLDivElement>(null);
@@ -172,14 +175,48 @@ export default function PromptBox({
           />
         </div>
 
-        {attachments.length > 0 && (
+        {(attachments.length > 0 || sources.length > 0) && (
           <div className="flex flex-col gap-2 px-3 pb-1">
-            <AttachmentsRow
-              attachments={attachments}
-              disabled={generating}
-              onRemove={onRemoveAttachment}
-            />
-            <SheetInsights attachments={attachments} disabled={generating} onOpen={onOpenSheet} twoPager={twoPager} />
+            {attachments.length > 0 && (
+              <>
+                <AttachmentsRow attachments={attachments} disabled={generating} onRemove={onRemoveAttachment} />
+                <SheetInsights attachments={attachments} disabled={generating} onOpen={onOpenSheet} twoPager={twoPager} />
+              </>
+            )}
+            {/* The brief's links are its sources (Mario, 14 Oct 2026): what was read, what was not, and why only these. */}
+            {sources.length > 0 && (
+              <div>
+                <div className="flex flex-wrap items-center gap-1.5">
+                  {sources.map((s) => (
+                    <a
+                      key={s.url}
+                      href={s.url}
+                      target="_blank"
+                      rel="noreferrer"
+                      title={s.status === "failed" ? `${s.url}: ${s.reason ?? "could not be read"}` : `${s.title ?? s.url}\n${s.url}`}
+                      className={`inline-flex h-7 max-w-full items-center gap-1.5 rounded-full px-2 text-xs font-medium transition-colors duration-150 ${
+                        s.status === "failed" ? "bg-status-red-bg text-status-red" : "bg-giga-tint text-giga hover:bg-giga-100"
+                      }`}
+                    >
+                      {s.status === "reading" ? (
+                        <LoaderCircle size={12} className="animate-spin" aria-hidden />
+                      ) : s.status === "failed" ? (
+                        <TriangleAlert size={12} aria-hidden />
+                      ) : (
+                        <Globe size={12} aria-hidden />
+                      )}
+                      <span className="max-w-[150px] truncate" data-hj-suppress>{s.host ?? s.url}</span>
+                      <span className="text-[10px] font-normal opacity-75">
+                        {s.status === "reading" ? "Reading…" : s.status === "failed" ? "Could not be read" : s.published ? `Read · ${new Date(`${s.published}T12:00:00Z`).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" })}` : "Read"}
+                      </span>
+                    </a>
+                  ))}
+                </div>
+                <p className="mt-1.5 text-[12px] leading-snug text-ink-faint">
+                  Only these pages are used as sources. The builder never searches the web on its own, so every fact comes from a source you chose.
+                </p>
+              </div>
+            )}
           </div>
         )}
 

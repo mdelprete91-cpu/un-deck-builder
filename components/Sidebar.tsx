@@ -11,6 +11,7 @@ import GenerationReadout from "@/components/GenerationReadout";
 import FidelityReport from "@/components/FidelityReport";
 import type { DeckFidelity } from "@/lib/slides/fidelity";
 import PromptBox from "@/components/PromptBox";
+import type { LinkSource } from "@/lib/slides/links";
 import Select from "@/components/Select";
 
 interface SidebarProps {
@@ -25,6 +26,8 @@ interface SidebarProps {
   onAttach: (files: File[]) => Promise<void> | void;
   onRemoveAttachment: (id: string) => void;
   onOpenSheet: (id: string) => void;
+  /** The brief's links, read as they are written (PromptBox). */
+  sources?: LinkSource[];
   attachError: string | null;
   /** Set when the last generation left chapters out because the brief named too few slides. */
   chaptersSkipped: number | null;
@@ -59,6 +62,7 @@ export default function Sidebar({
   onAttach,
   onRemoveAttachment,
   onOpenSheet,
+  sources = [],
   attachError,
   chaptersSkipped,
   fidelity,
@@ -151,6 +155,7 @@ export default function Sidebar({
           blocked={!!attachError}
           hasSlides={hasSlides}
           twoPager={state.format === "two-pager"}
+          sources={sources}
         />
         {attachError && (
           <div className="mt-2 rounded-lg border border-status-red-border bg-status-red-bg p-3 text-xs leading-relaxed text-status-red">

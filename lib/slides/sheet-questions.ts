@@ -168,7 +168,7 @@ SLOTS (only if questions are left, at most three of them, ids are the slot names
 6. ask: what the audience should do or decide at the end, only if the brief does not say it and the purpose is not to report.
 7. audience: who will see it, only if the brief names no one.
 
-Each question is one short sentence of 12 words or fewer, plain, no preamble ("Which decisions should this meeting take?", not "For slide 12, which asks for…": "about" already says where); "why" is 8 words or fewer. "about" quotes the few words of the brief the question is about, exactly as written (empty for a slot about something the brief does not mention). For a doubt about missing content use "text": the options are two to four short starting points the user can pick and complete (for the phases: "Pilot, then …"), each different from the others and never a copy of the brief's words or of "about"; when there is no sensible starting point, no options. Never invented facts. For an inconsistency use "single", the options being the readings that could be right. "single" for purpose, facts and audience; "multi" for ask. Options name the brief's country, organisation and audience, short and concrete, never "Other". "why" is one short line on what the answer changes in the deck. Never ask about colours, layouts, fonts or style, never ask what the brief, the files or Giga's websites (when shown) already say, never ask what the slides should cover when that material can fill them, never ask two questions about one thing. A brief that is complete and consistent gets an empty list: that is the right answer, never a question for its own sake. Write in the brief's language.`;
+Each question is one short sentence of 12 words or fewer, plain, no preamble ("Which decisions should this meeting take?", not "For slide 12, which asks for…": "about" already says where); "why" is 8 words or fewer. "about" quotes the few words of the brief the question is about, exactly as written (empty for a slot about something the brief does not mention). For a doubt about missing content use "text": the options are two to four short starting points the user can pick and complete (for the phases: "Pilot, then …"), each different from the others and never a copy of the brief's words or of "about"; when there is no sensible starting point, no options. Never invented facts. For an inconsistency use "single", the options being the readings that could be right. "single" for purpose, facts and audience; "multi" for ask. Options name the brief's country, organisation and audience, short and concrete, never "Other". "why" is one short line on what the answer changes in the deck. Never write that you cannot search the web, browse or check sources online: the app tells the user that itself. Never ask about colours, layouts, fonts or style, never ask what the brief, the files or Giga's websites (when shown) already say, never ask what the slides should cover when that material can fill them, never ask two questions about one thing. A brief that is complete and consistent gets an empty list: that is the right answer, never a question for its own sake. Write in the brief's language.`;
 
 /**
  * A document (PDF, Word, PowerPoint, text) is read the other way round: it
@@ -419,6 +419,33 @@ const MENTIONS_FILE =
 export function mentionsMissingFile(brief: string): boolean {
   return MENTIONS_FILE.test(brief) && !/https?:\/\//i.test(brief);
 }
+/**
+ * A brief that asks the builder to research on its own ("search the web",
+ * "cerca su internet", "do your own analysis"). The builder never does
+ * (Mario, 14 Oct 2026): the user chooses the sources, so every fact has one
+ * they know. The wizard says so, in the app's words, and asks for the links.
+ */
+const ASKS_RESEARCH =
+  /\b(search (?:the )?(?:web|internet|online)|(?:web|online|internet) (?:search|research)|look (?:it )?(?:up )?online|browse the web|do (?:your|some) (?:own )?research|research (?:it|this|online)|find the latest|your own analysis|cerca(?:re)? (?:su|in) (?:internet|rete|web|google)|ricerca (?:su|in) internet|fai (?:una|tu (?:la|una)) ricerca|analisi tua|tua analisi|fai (?:un'|una )?analisi (?:tua|autonoma)|busca(?:r)? en (?:internet|la web|google)|investiga en internet|cherche(?:r)? sur (?:internet|le web))\b/i;
+export function asksForResearch(brief: string): boolean {
+  return ASKS_RESEARCH.test(brief) && !/https?:\/\//i.test(brief);
+}
+export const RESEARCH_QUESTION_ID = "research";
+export const ADD_LINKS = "Add links to the brief";
+export const researchAnalysis: SheetAnalysis = {
+  summary: "Your brief asks for research. The builder does not search the web on its own: you choose the sources, so you keep control of where every fact comes from.",
+  questions: [
+    {
+      id: RESEARCH_QUESTION_ID,
+      question: "Paste the links of the pages to draw on in your brief?",
+      why: "",
+      kind: "single",
+      options: [ADD_LINKS, "Go on without links"],
+      details: ["Puts the cursor at the end of the brief, on a new line for the links", "The deck uses the brief, your answers and Giga's own facts only"],
+    },
+  ],
+};
+
 export const MISSING_FILE_QUESTION_ID = "missing-file";
 export const ATTACH_IT = "Attach the file";
 export const missingFileAnalysis: SheetAnalysis = {

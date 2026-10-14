@@ -21,13 +21,19 @@ const THIN_PAGE = 80;
 const MAX_BYTES = 1_500_000;
 const PRIVATE_HOST = /^(localhost|127\.|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.|0\.|\[::1\]|.*\.local)$/i;
 
+/** All linked pages together hold at most this much text: eight long pages would swamp the prompt. */
+const MAX_LINKED_TOTAL = 200_000;
+
 export async function fetchLinkedPages(brief: string): Promise<Attachment[]> {
   const urls = extractUrls(brief);
-  const pages = await Promise.all(urls.map(fetchPage));
-  return pages.filter((p): p is Attachment => p !== null);
+  const pages = (await Promise.all(urls.map(fetchPage))).filter((p): p is Attachment => p !== null);
+  const total = pages.reduce((n, p) => n + (p.kind === "text" ? p.text.length : 0), 0);
+  if (total <= MAX_LINKED_TOTAL) return pages;
+  const share = Math.floor(MAX_LINKED_TOTAL / pages.length);
+  return pages.map((p) => (p.kind === "text" && p.text.length > share ? { ...p, text: p.text.slice(0, share), bytes: share, truncated: true } : p));
 }
 
-async function fetchPage(url: string): Promise<Attachment | null> {
+export async function fetchPage(url: string): Promise<Attachment | null> {
   let parsed: URL;
   try {
     parsed = new URL(url);
