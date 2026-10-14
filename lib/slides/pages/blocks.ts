@@ -84,15 +84,12 @@ const banner: BlockRender = (b, { path }) =>
       `</div>`,
   );
 
-/** Page title, one phrase in the accent (build.py:336). */
+/**
+ * Page title, all in ink (Mario, 14 Oct 2026: "titles are only black, no
+ * alternating black and cyan"): `highlight` is kept in the data, not drawn.
+ */
 const title: BlockRender = (b, { path }) => {
-  const text = b.heading ?? "";
-  const hl = (b.highlight ?? "").trim();
-  const at = hl ? text.indexOf(hl) : -1;
-  const inner =
-    at >= 0
-      ? `${esc(text.slice(0, at))}<span style="color:${ACCENT};">${esc(hl)}</span>${esc(text.slice(at + hl.length))}`
-      : esc(text);
+  const inner = esc(b.heading ?? "");
   return full(`<div ${edP(`${path}.heading`)} style="${TYPE.title}color:${PALETTE.ink};white-space:pre-line;">${inner}</div>`);
 };
 

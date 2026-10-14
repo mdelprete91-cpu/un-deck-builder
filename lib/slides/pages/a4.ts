@@ -168,12 +168,15 @@ export function pageFooter(label: string, fallback: string, index: number): stri
  * accent is set. `data-page-zone` is the fixed area the flow must fit in and
  * `data-page-flow` the flow itself: fit.ts and the editor compare the two.
  */
-export function pageSection(t: BrandTheme, top: number, chrome: string, flow: string): string {
+export function pageSection(t: BrandTheme, top: number, chrome: string, flow: string, foot = "", footGap = 0): string {
   return (
     `<section data-page-fit style="position:relative;width:${pt(A4.w)};height:${pt(A4.h)};background:${PALETTE.white};` +
     `font-family:${OPEN_SANS};color:${PALETTE.ink};overflow:hidden;--accent:${t.accent};">` +
     chrome +
-    `<div data-page-zone style="position:absolute;left:0;top:${pt(top)};width:${pt(A4.w)};height:${pt(GRID.bottom - top)};overflow:hidden;">` +
-    `<div data-page-flow style="display:flow-root;">${flow}</div></div></section>`
+    `<div data-page-zone style="position:absolute;left:0;top:${pt(top)};width:${pt(A4.w)};height:${pt(GRID.bottom - top)};overflow:hidden;display:flex;flex-direction:column;">` +
+    `<div data-page-flow style="display:flow-root;flex:none;">${flow}</div>` +
+    // The foot (contacts) sits at the bottom of the zone; its gap is padding, so its height counts it.
+    (foot ? `<div data-page-foot style="display:flow-root;flex:none;margin-top:auto;padding-top:${pt(footGap)};">${foot}</div>` : "") +
+    `</div></section>`
   );
 }

@@ -23,16 +23,19 @@ export function renderPage(slide: Slide, t: BrandTheme, ctx?: PageCtx): string {
   const fit: PageFit = slide.pageFit ?? "regular";
   const d = DENSITY[fit];
   const first = (ctx?.index ?? 0) === 0;
+  // Contacts close the page at its foot (Mario, 14 Oct 2026: "we put the
+  // contacts at the end of the page"), wherever the text above them ends.
+  const footAt = stack.length > 1 && stack[stack.length - 1].type === "contacts" ? stack.length - 1 : -1;
+  const draw = (block: (typeof stack)[number], i: number, gap: number) => {
+    const render = BLOCKS[block.type];
+    return render ? `<div data-block="${i}" style="position:relative;margin-top:${pt(gap)};">${render(block, { t, d, path: `stack.${i}` })}</div>` : "";
+  };
   const flow = stack
-    .map((block, i) => {
-      const render = BLOCKS[block.type];
-      if (!render) return "";
-      const gap = i === 0 ? 0 : spaceBefore(stack[i - 1].type, block.type, d);
-      return `<div data-block="${i}" style="position:relative;margin-top:${pt(gap)};">${render(block, { t, d, path: `stack.${i}` })}</div>`;
-    })
+    .map((block, i) => (i === footAt ? "" : draw(block, i, i === 0 ? 0 : spaceBefore(stack[i - 1].type, block.type, d))))
     .join("");
+  const foot = footAt >= 0 ? draw(stack[footAt], footAt, 0) : "";
   const chrome =
     (first ? pageMasthead(t, slide.pageDate || pageDateNow(), slide.pageLogo) : "") +
     pageFooter(slide.footerLabel ?? "", t.footerLabel, ctx?.index ?? 0);
-  return pageSection(t, first ? GRID.topFirst : GRID.topBare, chrome, flow);
+  return pageSection(t, first ? GRID.topFirst : GRID.topBare, chrome, flow, foot, footAt >= 0 ? spaceBefore(stack[footAt - 1].type, "contacts", d) : 0);
 }

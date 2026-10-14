@@ -43,7 +43,7 @@ export const PAGE_CATALOG: PageCatalogEntry[] = [
   {
     type: "title",
     usage: "The piece's title: once, at the top of page 1. A new theme further on opens with a heading",
-    fields: "heading(<=55 chars), highlight(2-3 words copied exactly from heading, set in the accent, may be empty)",
+    fields: "heading(<=55 chars), highlight(always empty: the title is all in black)",
     shape: "a page or product title without a picture",
     signals: "a product or programme name with its promise, at the top of page 1",
     role: "structure",

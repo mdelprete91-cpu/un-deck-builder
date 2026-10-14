@@ -22,7 +22,9 @@ export function measureFlow(root: ParentNode): number | null {
   const flow = root.querySelector<HTMLElement>("[data-page-flow]");
   if (!zone || !flow) return null;
   // offsetHeight is unscaled layout size, so this holds on a scaled stage too.
-  return (flow.offsetHeight - zone.offsetHeight) / PX;
+  // The foot (contacts at the bottom) takes its own height out of the zone.
+  const foot = root.querySelector<HTMLElement>("[data-page-foot]");
+  return (flow.offsetHeight + (foot?.offsetHeight ?? 0) - zone.offsetHeight) / PX;
 }
 
 let host: HTMLDivElement | null = null;
@@ -262,7 +264,7 @@ async function flowOnce(pages: Slide[], t: BrandTheme): Promise<Slide[] | null> 
     await document.fonts.ready;
     const zone = host!.querySelector<HTMLElement>("[data-page-zone]");
     if (!zone || (measureFlow(host!) ?? 0) <= 1) continue;
-    const limit = zone.getBoundingClientRect().bottom + 1;
+    const limit = zone.getBoundingClientRect().bottom + 1 - (host!.querySelector<HTMLElement>("[data-page-foot]")?.getBoundingClientRect().height ?? 0);
     const blocks = [...host!.querySelectorAll<HTMLElement>("[data-page-flow] > [data-block]")];
     const b = blocks.findIndex((n) => n.getBoundingClientRect().bottom > limit);
     if (b < 0) continue;

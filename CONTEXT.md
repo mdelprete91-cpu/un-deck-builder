@@ -1656,4 +1656,8 @@ Conventions:
   `breakTextRuns` breaks what is left without inventing a word: a closing list becomes `numbered`,
   a section of points only becomes `numbered`, three bold-labelled items become `pillars`. Briefs and
   reinterpreted files only; a replica keeps its source's order.
+- **Titles in ink, contacts at the foot** (Mario, 14 Oct 2026): the `title` block draws all in ink
+  (`highlight` is kept, not drawn; the catalog asks for it empty). A `contacts` block that ends a
+  page sits at the bottom of the zone (`data-page-foot` in a4.ts `pageSection`); `measureFlow`
+  adds its height to the flow's, and `flowOnce` stops the flow above it.
 
