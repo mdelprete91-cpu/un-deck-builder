@@ -8,7 +8,7 @@ import { checkContract, type BriefContract } from "@/lib/slides/contract";
 import { ensureId, isChartLayout, isPage, normalizeSlide, overLimits, PRIMARY_ARRAY, type LayoutId, type Slide, type SlideContent } from "@/lib/slides/schema";
 import { renderSlide } from "@/lib/slides/layouts";
 import { A4_PX, pageDateNow } from "@/lib/slides/pages/a4";
-import { fitPage, flowOver, pullForward, type Resizer } from "@/lib/slides/pages/fit";
+import { fillRoomWithPictures, fitPage, flowOver, pullForward, type Resizer } from "@/lib/slides/pages/fit";
 import { breakTextRuns, continueNumbering, oneTitle, dropStatEchoes, fillStatFigures, isMastheadLine, putBackLines, checkRhythm, layoutIssues, shapeReplica, tidyBriefPieces, unwrapLines } from "@/lib/slides/pages/restore";
 import { logoFor } from "@/lib/slides/pages/logos";
 import { fillPagePhotos } from "@/lib/slides/library";
@@ -844,7 +844,12 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
       const page = { ...filled[i], id: `fit-${index}` } as Slide;
       if (opts.dated && index === 0 && !page.pageDate) page.pageDate = pageDateNow();
       // A replica keeps every word: its pages may only be set tighter.
-      const { slide } = await fitPage(page, theme, index, total, opts.keepText ? { shorten: async () => null } : resize);
+      const { slide: fitted } = await fitPage(page, theme, index, total, opts.keepText ? { shorten: async () => null } : resize);
+      // A new piece (not a replica) fills a page left half empty with pictures, not words.
+      const slide =
+        opts.dated && !opts.keepText
+          ? await fillRoomWithPictures(fitted, theme, index, total, (p) => fillPagePhotos([...filled.filter((_, k) => k !== i), p], state.brief).at(-1) as Slide)
+          : fitted;
       const { id: _id, ...content } = slide;
       void _id;
       dispatch({ type: "REPLACE_SLIDE", index, content });

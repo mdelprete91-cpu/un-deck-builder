@@ -1660,4 +1660,9 @@ Conventions:
   (`highlight` is kept, not drawn; the catalog asks for it empty). A `contacts` block that ends a
   page sits at the bottom of the zone (`data-page-foot` in a4.ts `pageSection`); `measureFlow`
   adds its height to the flow's, and `flowOnce` stops the flow above it.
+- **No big void: pictures fill a page, not words** (Mario, 14 Oct 2026). Page one fills before page
+  two (`pullForward`, and after edits). A new piece's page left with about a third or more empty
+  (`PICTURE_ROOM`, 190pt) takes up to two full-width library pictures (`fillRoomWithPictures`,
+  pages/fit.ts), set between two text blocks, else before the contacts, else at the end, each kept
+  only while the page fits. Not for replicas.
 

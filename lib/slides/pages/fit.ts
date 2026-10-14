@@ -170,6 +170,33 @@ export async function pullForward(pages: Slide[], t: BrandTheme, opts: { edit?: 
   return out;
 }
 
+/** A picture block's height (blocks.ts `figure`) and the room worth one: about a third of a page. */
+const PICTURE_ROOM = 190;
+const TEXTLIKE = new Set(["section", "asks", "lede", "numbered", "table"]);
+
+/**
+ * A page left with a lot of room fills it with pictures, not words (Mario,
+ * 14 Oct 2026: "fill the page so there is no big void"; "visual blocks to
+ * fill"): up to two full-width pictures from the library, each set between
+ * two text blocks so it also breaks the run (else before the contacts, else
+ * at the end), kept only while the page still fits. `photos` fills the
+ * empty picture slots (library.ts fillPagePhotos).
+ */
+export async function fillRoomWithPictures(page: Slide, t: BrandTheme, index: number, total: number, photos: (p: Slide) => Slide): Promise<Slide> {
+  let current = page;
+  for (let added = 0; added < 2; added++) {
+    const room = -(await measurePage(current, t, index, total));
+    if (room < PICTURE_ROOM) break;
+    const stack = current.stack ?? [];
+    let at = stack.findIndex((b, i) => i > 0 && TEXTLIKE.has(stack[i - 1].type) && TEXTLIKE.has(b.type));
+    if (at < 0) at = stack.length && stack[stack.length - 1].type === "contacts" ? stack.length - 1 : stack.length;
+    const tryPage = photos({ ...current, stack: [...stack.slice(0, at), { type: "figure", body: "" } as PageBlock, ...stack.slice(at)] });
+    if ((await measurePage(tryPage, t, index, total)) > 0) break;
+    current = tryPage;
+  }
+  return current;
+}
+
 /** Blocks whose rows can run on to the next page; the rest move whole. */
 const SPLITS = new Set(["section", "table", "numbered", "compare", "asks", "contacts"]);
 
