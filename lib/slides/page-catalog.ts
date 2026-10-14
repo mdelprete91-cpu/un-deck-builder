@@ -59,7 +59,7 @@ export const PAGE_CATALOG: PageCatalogEntry[] = [
     signals: "paragraphs or a short list under a heading",
     role: "narrative",
     capacity: "1-8 paragraphs or bullets; ~15pt a line",
-    never: "never three in a row; never for figures, settings or side-by-side columns; split one over ~900 chars",
+    never: "never two in a row (a section is followed by a block that is not running text); never for figures, settings or side-by-side columns; split one over ~900 chars",
   },
   {
     type: "stats",
@@ -234,7 +234,7 @@ export const ARCHETYPES = [
     name: "Programme or advocacy brief",
     when: "Presenting what a team or programme does and why (the problem, how it works, the evidence, where it applies), like the Digital Inclusion brief",
     page1:
-      "title (the promise in one sentence), lede (who we are and what we do, the team's name in bold), section (how it works), section (why it exists) followed by stats (3, the most striking figure as the accent card, in orange), section (how we work) followed by pillars (3: an icon, a bold label, a short text each)",
+      "title (the promise in one sentence), lede (who we are and what we do, the team's name in bold), section (how it works and why it exists) followed by stats (3, the most striking figure as the accent card, in orange), section (how we work) followed by pillars (3: an icon, a bold label, a short text each)",
     page2: "photos (where the model applies: 4 or 5 settings, a title and a short caption each), section (proven at scale, one sentence) followed by stats (6, a 3x2 grid of results)",
   },
   {
@@ -256,7 +256,7 @@ export const ARCHETYPES = [
     name: "Product or tool brief",
     when: "Explaining a tool, a product or a pilot to a partner or a regulator: what it is, where it stands, what is asked (the Spectrum Certificates and Lunar pieces)",
     page1: "title (the product and what it does), callout (its status: 'Status:' then where it stands), section (what it is), screens (two screenshots of the tool, prototype included; always when the brief asks for them)",
-    page2: "section (each ask by audience, its points as a numbered list), section (other contexts or uses, numbered), contacts (names, roles and emails)",
+    page2: "section (the ask to the main audience) followed by numbered (its points), section (other contexts or uses) followed by numbered (its points), contacts (names, roles and emails)",
   },
   {
     id: "programme-ask",

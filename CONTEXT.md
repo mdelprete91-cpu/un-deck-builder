@@ -1649,4 +1649,11 @@ Conventions:
 - **One title, at the top of page one** (Mario, 13 Oct 2026): any other `title` block becomes a
   `heading` with the same words (`oneTitle`, pages/restore.ts, in the fit pass), the catalog and the
   prompt say so, and the block menu adds a heading when "Page title" is dropped anywhere else.
+- **Text, then something else, then text** (Mario, 14 Oct 2026): a piece opens with the title, an
+  optional full-width lede, an optional status callout; after that never two running-text blocks
+  (`section`, `asks`; `TEXT_RUN` in pages/restore.ts) in a row. The prompt and the archetypes say so,
+  `layoutIssues` makes two in a row a reason for the relayout, `checkRhythm` reports it, and
+  `breakTextRuns` breaks what is left without inventing a word: a closing list becomes `numbered`,
+  a section of points only becomes `numbered`, three bold-labelled items become `pillars`. Briefs and
+  reinterpreted files only; a replica keeps its source's order.
 

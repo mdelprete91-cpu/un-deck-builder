@@ -9,7 +9,7 @@ import { ensureId, isChartLayout, isPage, normalizeSlide, overLimits, PRIMARY_AR
 import { renderSlide } from "@/lib/slides/layouts";
 import { A4_PX, pageDateNow } from "@/lib/slides/pages/a4";
 import { fitPage, flowOver, pullForward, type Resizer } from "@/lib/slides/pages/fit";
-import { continueNumbering, oneTitle, dropStatEchoes, fillStatFigures, isMastheadLine, putBackLines, checkRhythm, layoutIssues, shapeReplica, tidyBriefPieces, unwrapLines } from "@/lib/slides/pages/restore";
+import { breakTextRuns, continueNumbering, oneTitle, dropStatEchoes, fillStatFigures, isMastheadLine, putBackLines, checkRhythm, layoutIssues, shapeReplica, tidyBriefPieces, unwrapLines } from "@/lib/slides/pages/restore";
 import { logoFor } from "@/lib/slides/pages/logos";
 import { fillPagePhotos } from "@/lib/slides/library";
 import BlockRail from "@/components/BlockRail";
@@ -1055,7 +1055,8 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
       }
     }
     if (received > 0 && twoPager) {
-      pieces = tidyBriefPieces(pieces);
+      // Text, then something else, then text: what the relayout left in a row is broken where it safely can be.
+      pieces = tidyBriefPieces(breakTextRuns(pieces));
       const logo = pieceLogo(brief);
       await fitPages(logo ? [{ ...pieces[0], pageLogo: logo }, ...pieces.slice(1)] : pieces, 0, { dated: true });
     }

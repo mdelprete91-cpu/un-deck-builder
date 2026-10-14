@@ -330,6 +330,13 @@ export function shapeReplica(pages: SlideContent[], source: string): SlideConten
   return paged.filter((p) => (p.stack?.length ?? 0) > 0);
 }
 
+/**
+ * Running text: two of them in a row make the page heavy (Mario, 14 Oct
+ * 2026: "a text part, then something else, then a text part"). The lede
+ * under the title is the opening, not part of a run.
+ */
+const TEXT_RUN = new Set(["section", "asks"]);
+
 /** Blocks that give a page somewhere for the eye to land. */
 // Numbered asks in their circles count (Songbird's page 2 is only that).
 const ANCHORS = new Set(["banner", "stats", "photos", "figure", "split", "screens", "pillars", "panels", "numbered"]);
@@ -349,8 +356,8 @@ export function checkRhythm(pages: SlideContent[], plan: { block: string; page: 
     let run = 0;
     for (const b of stack) {
       // An opening paragraph with no label of its own (wide) is not part of a run.
-      run = b.type === "section" && !b.wide && b.rail?.trim() ? run + 1 : 0;
-      if (run === 3) notes.push(`Page ${i + 1} has three text sections in a row.`);
+      run = TEXT_RUN.has(b.type) && !b.wide && (b.type !== "section" || b.rail?.trim()) ? run + 1 : 0;
+      if (run === 2) notes.push(`Page ${i + 1} has two text sections in a row.`);
     }
   });
   if (plan.length) {
@@ -376,8 +383,8 @@ export function layoutIssues(pages: SlideContent[]): string[] {
     if (stack.length && !stack.some((b) => ANCHORS.has(b.type))) issues.push(`page ${i + 1} has no figures, photos, cards or table`);
     let run = 0;
     for (const b of stack) {
-      run = b.type === "section" ? run + 1 : 0;
-      if (run === 3) issues.push(`page ${i + 1} has three text sections in a row`);
+      run = TEXT_RUN.has(b.type) && !b.wide ? run + 1 : 0;
+      if (run === 2) issues.push(`page ${i + 1} has two text sections in a row`);
     }
   });
   const sections = blocks.filter((b) => b.type === "section").length;
@@ -385,6 +392,55 @@ export function layoutIssues(pages: SlideContent[]): string[] {
   const kinds = new Set(blocks.map((b) => b.type)).size;
   if (kinds < 4) issues.push(`only ${kinds} kinds of block`);
   return issues;
+}
+
+/**
+ * Two text sections in a row that the relayout left, broken without
+ * inventing or dropping a word: the first one's closing list becomes a
+ * numbered block; else a second one made only of points becomes numbered;
+ * else one of three bold-labelled items becomes pillars. Anything else is
+ * left as it is (Review says so).
+ */
+export function breakTextRuns(pages: SlideContent[]): SlideContent[] {
+  const listed = (it: PageItem) => it.kind === "bullet" || it.kind === "number";
+  const asNumbered = (rail: string | undefined, items: PageItem[]): PageBlock => ({
+    type: "numbered",
+    ...(rail?.trim() ? { rail } : {}),
+    items: items.map((it) => ({ ...it, kind: undefined, label: "", body: [it.label, it.body].filter((x) => x?.trim()).join(" ") })),
+  });
+  const pillarsOf = (b: PageBlock): PageBlock | null =>
+    b.type === "section" && b.items?.length === 3 && b.items.every((it) => it.label?.trim() && it.body?.trim() && !listed(it))
+      ? { type: "pillars", ...(b.rail?.trim() ? { rail: b.rail } : {}), items: b.items.map((it) => ({ ...it, kind: undefined })) }
+      : null;
+  return pages.map((p) => {
+    const stack = [...(p.stack ?? [])];
+    for (let i = 0; i + 1 < stack.length; i++) {
+      const [a, b] = [stack[i], stack[i + 1]];
+      if (!(TEXT_RUN.has(a.type) && TEXT_RUN.has(b.type) && !a.wide && !b.wide)) continue;
+      const aItems = a.items ?? [];
+      // The first one's closing points, two to six of them, as numbered under it.
+      let k = aItems.length;
+      while (k > 0 && listed(aItems[k - 1])) k--;
+      const tail = aItems.slice(k);
+      if (a.type === "section" && k > 0 && tail.length >= 2 && tail.length <= 6) {
+        stack.splice(i, 1, { ...a, items: aItems.slice(0, k) }, asNumbered(undefined, tail));
+        continue;
+      }
+      const bItems = b.items ?? [];
+      if (b.type === "section" && bItems.length >= 2 && bItems.length <= 6 && bItems.every(listed)) {
+        stack.splice(i + 1, 1, asNumbered(b.rail, bItems));
+        continue;
+      }
+      const pb = pillarsOf(b) ?? null;
+      if (pb) {
+        stack.splice(i + 1, 1, pb);
+        continue;
+      }
+      const pa = pillarsOf(a);
+      if (pa) stack.splice(i, 1, pa);
+    }
+    return { ...p, stack };
+  });
 }
 
 /**
