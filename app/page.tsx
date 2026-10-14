@@ -830,7 +830,8 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
     };
     // A new piece fills page one before page two (pullForward); a page
     // rewritten on its own keeps its blocks where they are.
-    const placed = opts.dated && pages.length > 1 ? await pullForward(fillPagePhotos(pages, state.brief) as Slide[], theme) : fillPagePhotos(pages, state.brief);
+    // A page empties when all it held fits above (Mario, 14 Oct 2026: "I do not go to the second page unless the first is full"): it then goes.
+    const placed = opts.dated && pages.length > 1 ? await pullForward(fillPagePhotos(pages, state.brief) as Slide[], theme, { edit: true }) : fillPagePhotos(pages, state.brief);
     // A numbered list carried over to the next page counts on (2, 3, 4), once the blocks have their pages.
     const filled = from === 0 ? continueNumbering(oneTitle(placed)) : placed;
     // A page emptied by pullForward goes (from the end, so indexes hold).
@@ -2144,7 +2145,8 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
       const flowed = await flowOver(slides, theme);
       // Room made on a page: the next page's first block comes up when it fits whole.
       const base = (flowed ?? slides) as Slide[];
-      const pulled = (await pullForward(base, theme, { edit: true })).filter((p) => (p.stack?.length ?? 0) > 0);
+      // A page left with pictures only (the filler, its text gone up) goes too.
+      const pulled = (await pullForward(base, theme, { edit: true })).filter((p, i) => (p.stack?.length ?? 0) > 0 && !(i > 0 && p.stack!.every((b) => b.type === "figure")));
       const moved = pulled.length !== base.length || pulled.some((p, i) => p.stack?.length !== base[i].stack?.length);
       const next = moved ? pulled : flowed;
       // Measured on pages that have changed since: the next run has them.
