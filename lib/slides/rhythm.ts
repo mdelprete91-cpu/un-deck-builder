@@ -351,14 +351,23 @@ function figuresOf(content: SlideContent): string[] {
  */
 export function finishDeck(slides: SlideContent[], opts: { series?: boolean } = {}): SlideContent[] {
   const shown = new Set<string>();
+  /**
+   * The categories of the charts so far. A slide titled with one is that
+   * item's own slide ("a chart, then one slide on each item"): its figure is
+   * the chart's by design, and its wording the same as its siblings': both
+   * checks dropped "Teacher training" in two gate runs out of three (18 Oct 2026).
+   */
+  const charted = new Set<string>();
   const out: SlideContent[] = [];
   for (const s of slides) {
     const figures = figuresOf(s);
-    if (figures.length && figures.every((f) => shown.has(f))) continue;
+    const item = charted.has((s.title ?? "").trim().toLowerCase());
+    if (isChartLayout(s.layoutId)) (s.bars ?? []).forEach((b) => charted.add((b.label ?? "").trim().toLowerCase()));
+    if (!item && figures.length && figures.every((f) => shown.has(f))) continue;
     // The slides the top-up and the contract added never went through the
     // streaming pass: a content slide that only says again what earlier ones
     // said goes here too (A1, 13 Oct 2026). Never in a prescribed series.
-    if (!opts.series && !NO_REPEAT_CHECK.has(s.layoutId) && repeatsEarlier(s, out.filter((x) => !NO_REPEAT_CHECK.has(x.layoutId)))) continue;
+    if (!item && !opts.series && !NO_REPEAT_CHECK.has(s.layoutId) && repeatsEarlier(s, out.filter((x) => !NO_REPEAT_CHECK.has(x.layoutId)))) continue;
     figures.forEach((f) => shown.add(f));
     out.push(s);
   }

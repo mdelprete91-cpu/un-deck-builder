@@ -633,7 +633,9 @@ guard, all pure functions, none touching the user's words:
   numbers under ten ("1 regional partner") become cards with the figure as the label
   (`fixFillerStats`). Dense columns with one point each become three columns
   (`fixSparseColumns`). `finishDeck` compares figures as numbers (`parseFigure`: "2.2M+" is
-  2,200,000) and drops a chart of two figures or more that earlier slides all showed. A timeline
+  2,200,000) and drops a chart of two figures or more that earlier slides all showed. Neither
+  check drops a slide titled with a category of an earlier chart: that is the item's own slide
+  ("a chart, then one slide on each item"), and both dropped "Teacher training" (18 Oct 2026). A timeline
   month with no year takes the year the sources give it (`yearTimelineMonths`, in the route too,
   where the linked pages are). "8 slides max", "at most", "fino a" make the number a ceiling
   (`countIsCeiling`): the closing slide is inside it and the prescribed last slide is count - 1.
