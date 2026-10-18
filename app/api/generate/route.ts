@@ -18,14 +18,14 @@ import { yearTimelineMonths } from "@/lib/slides/rhythm";
 import { kbBackground, kbLive } from "@/lib/slides/kb";
 import { checkFigures, indexSources, type Source } from "@/lib/slides/provenance";
 import { attribute } from "@/lib/slides/attribution";
-import { GIGA_FACTS } from "@/lib/slides/giga-facts";
+import { GIGA_FACTS, GIGA_PILLARS } from "@/lib/slides/giga-facts";
 
 /** The request's sources, each with what a footnote would call it. */
 function sourcesOf(body: GenerateBody): Source[] {
   const out: Source[] = [
     { label: "the brief", text: body.brief ?? "", own: true, kind: "brief" },
     { label: "your answers", text: body.briefNotes ?? "", own: true, kind: "answers" },
-    ...GIGA_FACTS.map((f) => ({ label: f.source.replace(/^https?:\/\//, "").replace(/\/$/, ""), text: f.fact, date: f.verified, url: /^https?:/.test(f.source) ? f.source : `https://${f.source}/`, own: false, kind: "facts" as const })),
+    ...[...GIGA_FACTS, GIGA_PILLARS].map((f) => ({ label: f.source.replace(/^https?:\/\//, "").replace(/\/$/, ""), text: f.fact, date: f.verified, url: /^https?:/.test(f.source) ? f.source : `https://${f.source}/`, own: false, kind: "facts" as const })),
     // A replica's source is the file it rebuilds.
     ...(body.source ? [{ label: "the source file", text: body.source, own: true, kind: "replica" as const }] : []),
   ];

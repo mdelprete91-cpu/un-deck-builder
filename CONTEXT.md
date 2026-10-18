@@ -286,7 +286,9 @@ offer.
   schools mapped, 136K+ reporting real-time connectivity, 54 countries engaged, 21 with mapping and
   modeling completed; the old "146 countries" was in no source; since 18 Oct 2026 the four pillars
   by name, Map, Model, Finance, Contract, after decks wrote "Map, Model, Monitor" and "Mappare,
-  Monitorare, Connettere"). Re-read the site before changing a figure and move the date; `defaults.ts` follows the same figures. `attachmentsNote` also asks to
+  Monitorare, Connettere"; they are `GIGA_PILLARS`, outside the shared facts line, and reach the
+  user turn only when the brief, the answers or the material name Giga, `pillarsNote` in prompt.ts:
+  in the facts line the gate found them in five decks that never named Giga). Re-read the site before changing a figure and move the date; `defaults.ts` follows the same figures. `attachmentsNote` also asks to
   keep the organisations the material names as leading, funding or delivering the work (a Giga
   Accelerator article led by ITU and UNICEF came back without ITU); the partner roster is used only
   when the brief names partners; the lockup sentence in the user turn says it sets logo and

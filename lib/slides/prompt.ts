@@ -10,7 +10,7 @@ import type { DeckFormat } from "./state";
 import { PARTNER_NAMES } from "./partners";
 import { AI_ICONS } from "./icon-set";
 import { LIBRARY } from "./library";
-import { GIGA_FACTS_LINE } from "./giga-facts";
+import { GIGA_FACTS_LINE, GIGA_PILLARS } from "./giga-facts";
 
 /**
  * System prompt: layout catalog + brand voice. Kept tight — prompt size
@@ -263,7 +263,19 @@ export function buildUserContent(body: GenerateBody): ResponseInputContent[] {
 
 /** The user turn: today's date, then what the request asks (messageFor). */
 export function buildUserMessage(body: GenerateBody): string {
-  return `${body.today ? `Today is ${body.today}.\n\n` : ""}${messageFor(body)}`;
+  return `${body.today ? `Today is ${body.today}.\n\n` : ""}${messageFor(body)}${pillarsNote(body)}`;
+}
+
+/**
+ * Giga's pillars, only for a request that names Giga (GIGA_PILLARS): the one
+ * place a deck may name how Giga works, never a reason to add a slide on it.
+ */
+function pillarsNote(body: GenerateBody): string {
+  const own = (body.attachments ?? []).filter((a) => !(a.kind === "text" && a.background));
+  const said = [body.brief, body.briefNotes, body.instruction, ...own.map((a) => (a.kind === "text" ? a.text : a.name))].join("\n");
+  return /\bgiga\b/i.test(said)
+    ? `\n\nWhen a slide says how Giga works, these are its pillars, by name and in order (${GIGA_PILLARS.source}): ${GIGA_PILLARS.fact}. They are never a slide of their own unless the brief asks how Giga works.`
+    : "";
 }
 
 function messageFor(body: GenerateBody): string {

@@ -27,16 +27,22 @@ const note = (label: string) => (/real-time connectivity/i.test(label) ? `${labe
 
 export const GIGA_FACTS: GigaFact[] = [
   { fact: "Giga is a joint partnership between UNICEF and ITU, established in 2019, to connect every school to the internet", source: "giga.global", verified: READ.read },
-  // The four pillars by name: without them decks wrote "Map, Model, Monitor"
-  // and "Mappare, Monitorare, Connettere" (18 Oct 2026, read on giga.global that day).
-  {
-    fact: "Giga works in four pillars, always these and in this order: Map (identify schools and monitor their connectivity in real time), Model (the infrastructure and investment needed), Finance (mobilise capital through innovative instruments and partnerships), Contract (streamline public procurement); Capacity Development runs across them",
-    source: "giga.global",
-    verified: "2026-10-18",
-  },
   ...READ.figures.map((f) => ({ fact: `${f.value} ${note(f.label)}`, source: READ.source, verified: READ.read })),
   { fact: "website giga.global", source: "giga.global", verified: READ.read },
 ];
+
+/**
+ * Giga's four pillars by name: without them decks about Giga wrote "Map,
+ * Model, Monitor" and "Mappare, Monitorare, Connettere" (18 Oct 2026, read on
+ * giga.global that day). They reach the model only when the brief, the
+ * answers or the material name Giga (pillarsNote in prompt.ts): in the shared
+ * facts line they turned up in five decks of the gate that never named Giga.
+ */
+export const GIGA_PILLARS: GigaFact = {
+  fact: "Giga works in four pillars, in this order: Map (identify schools and monitor their connectivity in real time), Model (the infrastructure and investment needed), Finance (mobilise capital through innovative instruments and partnerships), Contract (streamline public procurement); Capacity Development runs across them",
+  source: "giga.global",
+  verified: "2026-10-18",
+};
 
 /** The facts as the prompts list them, in one line. */
 export const GIGA_FACTS_LINE = GIGA_FACTS.map((f) => f.fact).join("; ");
