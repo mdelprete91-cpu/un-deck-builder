@@ -98,8 +98,11 @@ export function section(
     `--accent:${t.accent};--accent-deep:${t.deep};--accent-light:${t.light};` +
     `--accent-soft:${t.soft};--accent-soft2:${t.soft2};--panel-deep:${t.panelDeep};` +
     `--panel-light:${t.panelLight};--panel-light-stroke:${t.panelLightStroke};`;
+  // A white slide takes the brand's page colour (UNICEF DI's light grey), so
+  // every light layout changes here, once.
+  const page = bg === "#FFFFFF" && t.page ? t.page : bg;
   return (
-    `<section style="position:relative;width:1920px;height:1080px;background:${bg};` +
+    `<section style="position:relative;width:1920px;height:1080px;background:${page};` +
     `font-family:${OPEN_SANS};color:${color};overflow:hidden;${vars}">` +
     `<div style="position:absolute;inset:0;">${inner}</div></section>`
   );
@@ -114,6 +117,7 @@ export type Surface = "light" | "dark";
  * keep their aspect ratios.
  */
 export function footer(t: BrandTheme, surface: Surface, logoSurface?: Surface): string {
+  if (t.look === "di") return diFooter(t, surface, logoSurface);
   // On right-photo layouts the logo sits on the image while the label stays
   // on the page background: logoSurface (from the slide's computed logoTone)
   // overrides the logo variant only.
@@ -127,8 +131,27 @@ export function footer(t: BrandTheme, surface: Surface, logoSurface?: Surface): 
   );
 }
 
+/**
+ * The UNICEF DI footer (DI Deck Template.pdf): the chapter name in orange
+ * bottom-left, the site in cyan beside it, the "unicef for every child"
+ * lockup bottom-right, cyan on the page and white on a coloured surface.
+ * No chapter (a deck without dividers), no chapter name: the site stays.
+ */
+function diFooter(t: BrandTheme, surface: Surface, logoSurface?: Surface): string {
+  const dark = surface === "dark";
+  const logo = (logoSurface ?? surface) === "dark" ? t.logoDark : t.logoLight;
+  const h = Math.round(60 * (logo.scale ?? 1));
+  const text = `position:absolute;top:992px;font-family:${MANROPE};font-weight:500;font-size:20px;line-height:1.4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;`;
+  return (
+    (t.chapter ? `<div style="${text}left:100px;width:440px;color:${dark ? "#FFFFFF" : t.highlight};">${esc(t.chapter)}</div>` : "") +
+    (t.site ? `<div style="${text}left:580px;width:440px;color:${dark ? "#FFFFFF" : t.accent};">${esc(t.site)}</div>` : "") +
+    `<img src="${logo.src}" alt="" style="position:absolute;right:95px;top:${980 - h / 2}px;height:${h}px;width:auto;">`
+  );
+}
+
 /** Cover footer: accent 30px label + full-color logo, larger (450px row at top 916). */
 export function coverFooter(t: BrandTheme): string {
+  if (t.look === "di") return diFooter({ ...t, chapter: undefined, site: undefined }, "dark");
   const filter = t.logoCover.filter ? `filter:${t.logoCover.filter};` : "";
   const h = Math.round(94 * (t.logoCover.scale ?? 1));
   return (
@@ -236,12 +259,35 @@ export function heading60(
  * stage and the presenter mount the live scene over it (lib/slides/aura-live.ts
  * and the HTML runtime). Paint first, content above.
  */
-export function aura(kind: "cover" | "closing"): string {
+export function aura(kind: "cover" | "closing", t?: BrandTheme): string {
+  // UNICEF DI has no aura: its cover and closing are the template's dot maps.
+  if (t?.backgrounds) return backdrop(t.backgrounds[kind]);
   return (
     `<div data-aura="${kind}" aria-hidden="true" style="position:absolute;inset:0;overflow:hidden;pointer-events:none;">` +
     `<img src="/aura/${kind}.jpg" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block;">` +
     `</div>`
   );
+}
+
+/**
+ * A full-bleed still behind the content (UNICEF DI's dot maps). An <img>, not
+ * a CSS background, so the HTML export inlines it and the PPTX walker sees a
+ * picture.
+ */
+export function backdrop(src: string): string {
+  return (
+    `<div aria-hidden="true" style="position:absolute;inset:0;overflow:hidden;pointer-events:none;">` +
+    `<img src="${src}" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block;">` +
+    `</div>`
+  );
+}
+
+/**
+ * UNICEF DI headings (DI Deck Template.pdf): Manrope regular, small and black,
+ * where the other templates set 80px medium. Same box, so geometry holds.
+ */
+export function diHeading(t: BrandTheme): string {
+  return t.look === "di" ? "font-weight:400;font-size:58px;line-height:1.15;letter-spacing:-.01em;" : "";
 }
 
 /** Light→dark accent shades for charts (donut segments, bars), template order. */

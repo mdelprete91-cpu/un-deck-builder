@@ -21,8 +21,10 @@ import {
   displayTitle,
   heading80,
 } from "./shared";
+import * as di from "./di";
 
 export function cover(s: Slide, t: BrandTheme): string {
+  if (t.look === "di") return di.cover(s, t);
   return section(
     t,
     "#FFFFFF",
@@ -42,6 +44,7 @@ export function cover(s: Slide, t: BrandTheme): string {
  * shrinks together only when it cannot fit.
  */
 export function agenda(s: Slide, t: BrandTheme): string {
+  if (t.look === "di") return di.agenda(s, t);
   const items = (s.bullets ?? [])
     .map(
       (bullet, i) =>
@@ -62,6 +65,7 @@ export function agenda(s: Slide, t: BrandTheme): string {
 }
 
 export function sectionDivider(s: Slide, t: BrandTheme): string {
+  if (t.look === "di") return di.sectionDivider(s, t);
   return section(
     t,
     "var(--accent)",
@@ -71,6 +75,7 @@ export function sectionDivider(s: Slide, t: BrandTheme): string {
 }
 
 export function bigStat(s: Slide, t: BrandTheme): string {
+  if (t.look === "di") return di.bigStat(s, t);
   return section(
     t,
     "var(--accent-deep)",
@@ -82,6 +87,7 @@ export function bigStat(s: Slide, t: BrandTheme): string {
 }
 
 export function quote(s: Slide, t: BrandTheme): string {
+  if (t.look === "di") return di.quote(s, t);
   return section(
     t,
     t.quoteBg,
@@ -218,6 +224,7 @@ export function partners(s: Slide, t: BrandTheme): string {
       );
     })
     .join("");
+  if (t.look === "di") return di.partners(s, t, cells);
   return section(
     t,
     "var(--accent)",
@@ -240,6 +247,7 @@ function closingTitle(s: Slide, t: BrandTheme): string {
 }
 
 export function thankYou(s: Slide, t: BrandTheme): string {
+  if (t.look === "di") return di.thankYou(t);
   const contacts = (s.contacts ?? [])
     .slice(0, 2)
     .map(

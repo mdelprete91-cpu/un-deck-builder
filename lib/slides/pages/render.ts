@@ -7,6 +7,8 @@ import type { PageFit } from "./schema";
 export interface PageCtx {
   index: number;
   total: number;
+  /** The slide's chapter (chapterAt), for the UNICEF DI footer. */
+  chapter?: string;
 }
 
 /**

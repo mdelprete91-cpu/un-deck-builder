@@ -3,6 +3,7 @@ import type { DeckState } from "./state";
 import { renderSlide } from "./layouts";
 import { AUTOFIT_JS } from "./autofit";
 import { deckStateScript } from "./deck-file";
+import { chapterAt } from "./chapters";
 
 /**
  * Serialize the deck into one self-contained HTML file:
@@ -190,7 +191,7 @@ export async function buildHtmlDeck(
   // every `src="/…"` it finds anywhere in this string, and a user can type
   // that text into a slide title. Assemble it in step 3 instead.
   let body = slides
-    .map((s) => `<div class="deck-slide">${renderSlide(s, theme)}</div>`)
+    .map((s, i) => `<div class="deck-slide">${renderSlide(s, theme, { index: i, total: slides.length, chapter: chapterAt(slides, i) })}</div>`)
     .join("\n");
 
   const assetPaths = new Set<string>();

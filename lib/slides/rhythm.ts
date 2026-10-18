@@ -268,7 +268,9 @@ export function closingFor(brandLabel?: string): SlideContent {
   const contact =
     brandLabel === "Giga"
       ? { name: "Giga Team", role: "Giga", location: "Geneva, Switzerland", email: "giga@unicef.org" }
-      : { name: `${brandLabel ?? "UNICEF"} team`, role: "", location: "", email: "" };
+      : brandLabel === "UNICEF DI"
+        ? { name: "Digital Inclusion team", role: "UNICEF", location: "", email: "digitalinclusion@unicef.org" }
+        : { name: `${brandLabel ?? "UNICEF"} team`, role: "", location: "", email: "" };
   return { layoutId: "thank-you", title: "Thanks", contacts: [contact] };
 }
 

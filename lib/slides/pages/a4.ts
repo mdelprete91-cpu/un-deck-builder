@@ -128,7 +128,7 @@ export function pageDateNow(): string {
 export function pageMasthead(t: BrandTheme, date: string, programmeLogo?: string): string {
   const m = GRID.margin;
   let logo: string;
-  if (t.id === "inclusion") {
+  if (t.id === "inclusion" || t.id === "di") {
     const wordW = 88.5;
     const wordH = (wordW * 92.33) / 647.12;
     logo =

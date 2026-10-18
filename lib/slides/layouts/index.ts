@@ -9,6 +9,7 @@ import * as progressLayout from "./progress";
 import * as dense from "./dense";
 import { DENSE_RENDERERS } from "./density";
 import { renderPage, type PageCtx } from "../pages/render";
+import { diHeading } from "./shared";
 
 /**
  * `ctx` is optional so every slide renderer stays assignable unchanged: only
@@ -69,14 +70,23 @@ export const LAYOUTS: Record<LayoutId, { label: string; render: RenderFn }> = {
   "a4-page": { label: "A4 page", render: renderPage },
 };
 
+/** The other templates' slide headings, 80px and 60px Manrope medium. */
+const HEADING_STYLE = /(data-edit="title"[^>]*?style="[^"]*?)font-weight:500;font-size:(?:80|60)px;line-height:[\d.]+;letter-spacing:-\.022em;/;
+
 export function renderSlide(slide: Slide, theme: BrandTheme, ctx?: PageCtx): string {
   const def = LAYOUTS[slide.layoutId];
   if (!def) return "";
+  // The chapter the caller worked out from the deck, for the UNICEF DI footer.
+  const t = ctx?.chapter ? { ...theme, chapter: ctx.chapter } : theme;
   // The high-density variant when the slide asks for it and the layout has one.
   const denseRender = slide.density === "high" ? DENSE_RENDERERS[slide.layoutId] : undefined;
-  const html = denseRender ? denseRender(slide, theme) : def.render(slide, theme, ctx);
+  let html = denseRender ? denseRender(slide, t) : def.render(slide, t, ctx);
+  // UNICEF DI sets every slide heading smaller and regular: here, once, on the
+  // title node, so the renderers keep their geometry and their own styles.
+  // Its big figures are light (61%, 100% in the template): same size, weight 300.
+  if (t.look === "di") html = html.replace(HEADING_STYLE, `$1${diHeading(t)}`).replace(/font-weight:[45]00;font-size:(144|213)px;/g, "font-weight:300;font-size:$1px;");
   // Footnotes sit in the footer row of any content slide: added here, once,
   // inside the section's content box, so no renderer has to know about them.
-  const note = dense.footnote(slide);
+  const note = dense.footnote(slide, t);
   return note ? html.replace(/<\/div><\/section>$/, `${note}</div></section>`) : html;
 }

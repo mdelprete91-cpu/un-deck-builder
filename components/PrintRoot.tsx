@@ -5,6 +5,7 @@ import { isPage, type Slide } from "@/lib/slides/schema";
 import type { BrandTheme } from "@/lib/slides/brand";
 import { renderSlide } from "@/lib/slides/layouts";
 import { autofitAll } from "@/lib/slides/autofit";
+import { chapterAt } from "@/lib/slides/chapters";
 
 /** Full-size copies of every slide, visible only when printing. */
 export default function PrintRoot({ slides, theme }: { slides: Slide[]; theme: BrandTheme }) {
@@ -34,7 +35,7 @@ export default function PrintRoot({ slides, theme }: { slides: Slide[]; theme: B
           // the 1920x1080 sheet. The class is what picks the paper size.
           className={isPage(slide) ? "print-page slide-root page-root" : "print-slide slide-root"}
           dangerouslySetInnerHTML={{
-            __html: renderSlide(slide, theme, { index: i, total: slides.length }),
+            __html: renderSlide(slide, theme, { index: i, total: slides.length, chapter: chapterAt(slides, i) }),
           }}
         />
       ))}

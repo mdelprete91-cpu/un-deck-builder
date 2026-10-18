@@ -57,6 +57,8 @@ export function stagesSlide(s: Slide, t: BrandTheme, mode: "progress" | "timelin
   const colW = 1720 / n;
   const cx = (i: number) => Math.round(100 + colW * (i + 0.5));
   const midY = TRACK + TRACK_H / 2;
+  // The stage in progress: orange on UNICEF DI (DI Deck Template.pdf p16), the accent elsewhere.
+  const hot = t.highlight ?? "var(--accent)";
 
   const x0 = cx(0);
   const x1 = cx(n - 1);
@@ -75,11 +77,11 @@ export function stagesSlide(s: Slide, t: BrandTheme, mode: "progress" | "timelin
         state === "done" || state === "date"
           ? `background:var(--accent);`
           : state === "current"
-            ? `background:#FFFFFF;border:7px solid var(--accent);box-sizing:border-box;`
+            ? `background:#FFFFFF;border:7px solid ${hot};box-sizing:border-box;`
             : state === "next"
               ? `background:#FFFFFF;border:4px solid ${NEXT_RING};box-sizing:border-box;`
               : `background:#FFFFFF;border:5px solid var(--accent);box-sizing:border-box;`;
-      const inner = state === "done" ? TICK : state === "current" ? `<div style="width:18px;height:18px;border-radius:50%;background:var(--accent);"></div>` : "";
+      const inner = state === "done" ? TICK : state === "current" ? `<div style="width:18px;height:18px;border-radius:50%;background:${hot};"></div>` : "";
       const status = state === "done" ? (t.ui?.done ?? "Done") : state === "current" ? (t.ui?.inProgress ?? "In progress") : state === "next" ? (t.ui?.next ?? "Next") : "";
       const number = String(i + 1).padStart(2, "0");
       const accentText = state === "done" || state === "current" || state === "plain";
@@ -98,12 +100,12 @@ export function stagesSlide(s: Slide, t: BrandTheme, mode: "progress" | "timelin
         // date under the dot the space above the track sat empty).
         (state === "date"
           ? `<div style="position:absolute;left:10px;bottom:${BOX_H - (midY - top) + 34}px;width:${w}px;text-align:center;"><div ${ed(`blocks.${i}.label`, 96)} style="font-family:${MANROPE};font-weight:600;font-size:${dense ? 30 : 36}px;line-height:1.25;letter-spacing:-.01em;color:var(--accent);">${esc(stage.label)}</div></div>`
-          : `<div style="position:absolute;left:0;top:0;width:100%;text-align:center;font-family:${MANROPE};font-weight:600;font-size:26px;line-height:1.3;color:${accentText ? "var(--accent)" : "#8F8F8F"};">${number}${status ? `<span style="font-weight:500;color:#6F6F6F;"> · ${status}</span>` : ""}</div>`) +
+          : `<div style="position:absolute;left:0;top:0;width:100%;text-align:center;font-family:${MANROPE};font-weight:600;font-size:26px;line-height:1.3;color:${state === "current" ? hot : accentText ? "var(--accent)" : "#8F8F8F"};">${number}${status ? `<span style="font-weight:500;color:#6F6F6F;"> · ${status}</span>` : ""}</div>`) +
         `<div class="af" ${state === "date" ? "" : `data-set="current" data-value="${i + 1}" title="Mark this stage as in progress"`} style="position:absolute;left:${cx(i) - left - size / 2}px;top:${midY - top - size / 2}px;width:${size}px;height:${size}px;border-radius:50%;${node}display:flex;align-items:center;justify-content:center;${dly(14 + i * 8)}">${inner}</div>` +
         `<div style="position:absolute;left:10px;top:${state === "date" ? midY - top + 44 : 168}px;width:${w}px;text-align:center;">` +
         (state === "date"
           ? ""
-          : `<div ${ed(`blocks.${i}.label`, 96)} style="font-family:${MANROPE};font-weight:600;font-size:${dense ? 30 : 36}px;line-height:1.25;letter-spacing:-.01em;color:${state === "current" ? "var(--accent)" : "#161616"};">${esc(stage.label)}</div>`) +
+          : `<div ${ed(`blocks.${i}.label`, 96)} style="font-family:${MANROPE};font-weight:600;font-size:${dense ? 30 : 36}px;line-height:1.25;letter-spacing:-.01em;color:${state === "current" ? hot : "#161616"};">${esc(stage.label)}</div>`) +
         // A dense stage with points (a replica's, or one given a second point
         // with Enter) lists them, left-aligned under the centred label; a
         // stage with only its body keeps the paragraph.

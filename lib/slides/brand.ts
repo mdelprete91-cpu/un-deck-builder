@@ -1,5 +1,5 @@
 import type { UiStrings } from "./i18n";
-export type BrandId = "giga" | "unicef" | "did" | "inclusion";
+export type BrandId = "giga" | "unicef" | "did" | "inclusion" | "di";
 
 export interface BrandTheme {
   id: BrandId;
@@ -48,6 +48,28 @@ export interface BrandTheme {
   logoDark: { src: string; filter?: string; scale?: number };
   /** Full-color logo used on the cover slide */
   logoCover: { src: string; filter?: string; scale?: number };
+  /**
+   * The UNICEF DI template (DI Deck Template.pdf, Mario, 18 Oct 2026) and
+   * only it sets these: its own look, not the two-surface rule of the other
+   * UNICEF lockups. Absent, every renderer draws exactly what it drew before.
+   */
+  look?: "di";
+  /** Light slides' page colour (the template's #F8F8F8); white when absent. */
+  page?: string;
+  /** The dark surface: big numbers, statements, section dividers. */
+  dark?: string;
+  /** The chapter name in the footer and the current item (agenda, progress). */
+  highlight?: string;
+  /** Website in the footer, next to the chapter name. */
+  site?: string;
+  /** The dot-map backgrounds, without text, from the template. */
+  backgrounds?: { cover: string; agenda: string; dark: string; closing: string };
+  /**
+   * The chapter this slide sits in, set per slide by the caller from the
+   * deck (chapterAt in lib/slides/chapters.ts), like `ui`. Only the DI
+   * footer prints it.
+   */
+  chapter?: string;
 }
 
 const GIGA_LOCKUP = "/logos/giga-unicef-itu-horizontal.svg";
@@ -116,7 +138,54 @@ const CYAN_PALETTE = {
   sectionImage: { bg: "#FFFFFF", title: UNICEF_CYAN, body: "#161616", surface: "light" },
 } satisfies Partial<BrandTheme>;
 
+/**
+ * The UNICEF DI template (DI Deck Template.pdf, Mario, 18 Oct 2026): cyan,
+ * a deep blue as the second chart series and a navy dark surface, on a light
+ * grey page. Colours sampled from the PDF.
+ */
+const DI_CYAN = "#00AEEF";
+const DI_DEEP = "#0B6BA8";
+const DI_NAVY = "#1A293C";
+const DI_PALETTE = {
+  accent: DI_CYAN,
+  deep: DI_CYAN,
+  light: "#F8F8F8",
+  soft: "rgba(255,255,255,.72)",
+  soft2: "rgba(255,255,255,.78)",
+  panelDeep: DI_CYAN,
+  panelLight: "#FFFFFF",
+  panelLightStroke: DI_CYAN,
+  // A ramp, darkest first like the other palettes: charts take the first n
+  // reversed (chartShades), so mixed hues here read as random bar colours.
+  barShades: [DI_NAVY, DI_DEEP, DI_CYAN, "#67CEF5", "#C0EBFB"],
+  chartSeries: [DI_CYAN, DI_DEEP, DI_NAVY, "#67CEF5", "#FE7910", "#80BD41"],
+  // The quote runs on the page, its author in the chapter orange.
+  quoteBg: "#F8F8F8",
+  quoteAuthor: "#FE7910",
+  sectionImage: { bg: DI_CYAN, title: "#FFFFFF", body: "#FFFFFF", surface: "dark" },
+} satisfies Partial<BrandTheme>;
+
 export const BRANDS: Record<BrandId, BrandTheme> = {
+  di: {
+    id: "di",
+    label: "UNICEF DI",
+    ...DI_PALETTE,
+    footerLabel: "Digital Inclusion",
+    logoLight: { src: "/templates/di/unicef-cyan.svg", scale: 1.2 },
+    logoDark: { src: "/templates/di/unicef-white.svg", scale: 1.2 },
+    logoCover: { src: "/templates/di/unicef-white.svg", scale: 1.2 },
+    look: "di",
+    page: "#F8F8F8",
+    dark: DI_NAVY,
+    highlight: "#FE7910",
+    site: "digitalinclusion.global",
+    backgrounds: {
+      cover: "/templates/di/cover.jpg",
+      agenda: "/templates/di/agenda.jpg",
+      dark: "/templates/di/dark.jpg",
+      closing: "/templates/di/closing.jpg",
+    },
+  },
   did: {
     id: "did",
     label: "UNICEF DID",
@@ -162,11 +231,12 @@ export const BRANDS: Record<BrandId, BrandTheme> = {
 export const BRAND_IDS = Object.keys(BRANDS) as BrandId[];
 
 /**
- * What the Logo menu offers, in this order. "giga" is not on it (Mario, 15 Sep
- * 2026): it stays in BRANDS so a deck saved with that lockup still opens and
- * renders, but nobody starts a new one with it.
+ * What the Template menu offers, in this order: UNICEF DI first, the default
+ * since 18 Oct 2026. "giga" is not on it (Mario, 15 Sep 2026): it stays in
+ * BRANDS so a deck saved with that lockup still opens and renders, but nobody
+ * starts a new one with it.
  */
-export const PICKER_BRAND_IDS: BrandId[] = ["inclusion", "did", "unicef"];
+export const PICKER_BRAND_IDS: BrandId[] = ["di", "inclusion", "did", "unicef"];
 
 /** Narrow untrusted input (a reopened deck file) to a brand we actually ship. */
 export function isBrandId(value: unknown): value is BrandId {

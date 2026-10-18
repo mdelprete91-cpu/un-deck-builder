@@ -5,6 +5,7 @@ import { isPage, type Slide } from "./schema";
 import type { BrandTheme } from "./brand";
 import { renderSlide } from "./layouts";
 import { autofitAll } from "./autofit";
+import { chapterAt } from "./chapters";
 
 /**
  * Export the deck as a .pptx with editable text.
@@ -79,7 +80,7 @@ export async function exportPptxDeck(
   try {
     await document.fonts.ready;
     for (let i = 0; i < slides.length; i++) {
-      host.innerHTML = renderSlide(slides[i], theme, { index: i, total: slides.length });
+      host.innerHTML = renderSlide(slides[i], theme, { index: i, total: slides.length, chapter: chapterAt(slides, i) });
       await withTimeout(waitForImages(host), 8000, "images");
       autofitAll(host);
       const slide = pptx.addSlide();

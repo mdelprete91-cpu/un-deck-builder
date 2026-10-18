@@ -104,3 +104,17 @@ export function planFromAnswer(titles: string[], raw: unknown): ChapterPlan {
     .map((c) => ({ title: (c.title as string).trim().slice(0, 60), start: titles[(c.start as number) - 1] }))
     .slice(0, 4);
 }
+
+/**
+ * The chapter a slide sits in: the title of the last section divider before
+ * it, for the UNICEF DI footer (the template's orange "Chapter name"). The
+ * divider itself, the structural slides and anything before the first divider
+ * have none, so a deck without chapters shows only the site.
+ */
+export function chapterAt<T extends SlideContent>(slides: T[], i: number): string | undefined {
+  if (STRUCTURAL.has(slides[i]?.layoutId ?? "")) return undefined;
+  for (let k = i - 1; k >= 0; k--) {
+    if (slides[k]?.layoutId === "section-divider") return slides[k].title?.replace(/\s+/g, " ").trim() || undefined;
+  }
+  return undefined;
+}

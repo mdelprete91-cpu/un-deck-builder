@@ -5,6 +5,7 @@ import { renderSlide } from "./layouts";
 import type { SourceSlide } from "./pptx-source";
 import { rasterizeSlide } from "./rasterize";
 import { isPage, type Slide } from "./schema";
+import { chapterAt } from "./chapters";
 
 /**
  * The two contact sheets of a replica's visual check (replica-check.ts):
@@ -174,7 +175,7 @@ export async function resultSheet(slides: Slide[], theme: BrandTheme): Promise<s
   try {
     await document.fonts.ready;
     for (let i = 0; i < slides.length; i++) {
-      host.innerHTML = renderSlide(slides[i], theme, { index: i, total: slides.length });
+      host.innerHTML = renderSlide(slides[i], theme, { index: i, total: slides.length, chapter: chapterAt(slides, i) });
       await withTimeout(waitForImages(host), 8000, "images").catch(() => undefined);
       autofitAll(host);
       const png = await withTimeout(rasterizeSlide(host, w, h, undefined, TILE_W / w), 15000, "capture");

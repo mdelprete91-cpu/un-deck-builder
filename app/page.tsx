@@ -47,7 +47,7 @@ import { computeLogoTone, FULL_BLEED_TONE, RIGHT_PANEL_TONE, type ToneGeometry }
 import { ICON_LIBRARY, ICON_NAMES } from "@/lib/slides/icons";
 import Button, { ICON_SIZE } from "@/components/Button";
 import GlassFan from "@/components/GlassFan";
-import { chapterCandidates, needsChapterPlan, type ChapterPlan } from "@/lib/slides/chapters";
+import { chapterAt, chapterCandidates, needsChapterPlan, type ChapterPlan } from "@/lib/slides/chapters";
 import Sidebar from "@/components/Sidebar";
 import SlideFrame, { readImageFile } from "@/components/SlideFrame";
 import ChartDataPanel from "@/components/ChartDataPanel";
@@ -1893,7 +1893,7 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
 
   const isChart = !!active && isChartLayout(active.layoutId);
   const activeHtml = active
-    ? renderSlide(active, theme, { index: state.activeIndex, total: state.slides.length })
+    ? renderSlide(active, theme, { index: state.activeIndex, total: state.slides.length, chapter: chapterAt(state.slides, state.activeIndex) })
     : "";
   const hasImage = activeHtml.includes("data-image");
 

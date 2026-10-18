@@ -18,9 +18,11 @@ import {
   heading60,
   heading80,
 } from "./shared";
+import * as di from "./di";
 
 /** Agenda detail: 1–3 numbered columns on deep background. */
 export function threeColumns(s: Slide, t: BrandTheme): string {
+  if (t.look === "di") return di.threeColumns(s, t);
   const blocks = (s.blocks ?? []).slice(0, 3);
   const { xs, width } = columns(Math.min(blocks.length, 3));
   const cols = blocks

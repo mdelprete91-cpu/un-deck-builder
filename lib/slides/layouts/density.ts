@@ -1,7 +1,7 @@
 import type { Slide, LayoutId } from "../schema";
 import type { BrandTheme } from "../brand";
 import { iconInner } from "../icons";
-import { MANROPE, OPEN_SANS, HAIRLINE, esc, ed, dly, item, columns, section, footer, photoPanel, chartShades } from "./shared";
+import { MANROPE, OPEN_SANS, HAIRLINE, esc, ed, dly, item, columns, section, footer, photoPanel, chartShades, backdrop } from "./shared";
 import { DENSE, CARD, BOTTOM, GAP, BAND_H, topOf, title, pointsOf, bullets, band, hasBand } from "./dense";
 import { seriesColors } from "./charts";
 import { fmt, signedValue, numeric } from "./stats";
@@ -100,16 +100,19 @@ function threeColumns(s: Slide, t: BrandTheme): string {
   const top = topOf(s);
   const h = BOTTOM - top;
   const { xs, width } = columns(Math.max(blocks.length, 1));
-  const ink = { text: "#FFFFFF", dot: "var(--accent-soft)" };
+  // UNICEF DI runs them on the page, cyan headers and black points, no numbers (DI Deck Template.pdf p4).
+  const di = t.look === "di";
+  const ink = di ? { text: "#000000", dot: "var(--accent)" } : { text: "#FFFFFF", dot: "var(--accent-soft)" };
   const cols = blocks
     .map(
       (_, i) =>
         `<div class="ars" ${item(`blocks.${i}`, "left")} style="position:absolute;left:${xs[i]}px;top:${top}px;width:${width}px;height:${h}px;${dly(10 + i * 8)}">` +
-        `<div style="font-family:${MANROPE};font-weight:600;font-size:44px;line-height:1.1;color:var(--accent-soft);margin-bottom:16px;">${i + 1}</div>` +
-        cardText(s, i, h - 64, "cols", ink, "#FFFFFF") +
+        (di ? "" : `<div style="font-family:${MANROPE};font-weight:600;font-size:44px;line-height:1.1;color:var(--accent-soft);margin-bottom:16px;">${i + 1}</div>`) +
+        cardText(s, i, h - (di ? 0 : 64), "cols", ink, di ? "var(--accent)" : "#FFFFFF") +
         `</div>`,
     )
     .join("");
+  if (di) return section(t, "#FFFFFF", "#000000", title(s) + cols + footer(t, "light"));
   return section(t, "var(--accent-deep)", "#FFFFFF", title(s, "#FFFFFF") + cols + footer(t, "dark"));
 }
 
@@ -218,14 +221,17 @@ function twoStats(s: Slide, t: BrandTheme): string {
 /** One figure and the paragraph that explains it; `dark` is the big-stat surface. */
 function oneStat(s: Slide, t: BrandTheme, dark: boolean): string {
   const top = topOf(s);
-  const color = dark ? "#FFFFFF" : "var(--accent)";
+  // UNICEF DI's dark surface is navy with the dot map, the figure light cyan (p13).
+  const di = dark && !!t.dark;
+  const color = di ? "#8FD8F8" : dark ? "#FFFFFF" : "var(--accent)";
   const text = dark ? "#FFFFFF" : "#000000";
   const hasTitle = !!s.title?.trim();
   return section(
     t,
-    dark ? "var(--accent-deep)" : "#FFFFFF",
+    di ? t.dark! : dark ? "var(--accent-deep)" : "#FFFFFF",
     text,
-    (hasTitle ? title(s, text) : "") +
+    (di && t.backgrounds ? backdrop(t.backgrounds.dark) : "") +
+      (hasTitle ? title(s, text) : "") +
       `<div class="ar" ${ed("stat", 200)} style="position:absolute;left:100px;top:${hasTitle ? top : 100}px;width:720px;${STAT(180, color)}">${esc(s.stat)}</div>` +
       (s.support?.trim()
         ? `<div ${item("support")} style="position:absolute;left:880px;top:${hasTitle ? top + 16 : 116}px;width:940px;"><div class="ar" ${ed("support", BOTTOM - (hasTitle ? top : 100) - 40)} style="${DENSE}font-size:28px;line-height:1.45;color:${text};padding-right:28px;box-sizing:border-box;${dly(14)}">${esc(s.support)}</div></div>`
@@ -303,7 +309,7 @@ function xLabels(labels: string[], y: number, colW: number): string {
     .map((l, i) => {
       const cx = P.x + colW * (i + 0.5);
       return rotated
-        ? `<div class="ars" ${ed(`bars.${i}.label`, 30)} style="position:absolute;z-index:2;left:${Math.round(cx - 140)}px;top:${y + 6}px;width:140px;text-align:right;${AXIS}color:#000000;transform:rotate(-45deg);transform-origin:right top;white-space:nowrap;overflow:hidden;${dly(18 + i)}">${esc(l)}</div>`
+        ? `<div class="ars" style="position:absolute;z-index:2;left:${Math.round(cx - 140)}px;top:${y + 6}px;width:140px;${dly(18 + i)}"><div ${ed(`bars.${i}.label`, 30)} style="text-align:right;${AXIS}color:#000000;transform:rotate(-45deg);transform-origin:right top;white-space:nowrap;overflow:hidden;">${esc(l)}</div></div>`
         : `<div class="ars" ${ed(`bars.${i}.label`, 60)} style="position:absolute;z-index:2;left:${Math.round(cx - colW / 2 + 4)}px;top:${y}px;width:${Math.round(colW - 8)}px;text-align:center;${AXIS}color:#000000;${dly(18 + i * 2)}">${esc(l)}</div>`;
     })
     .join("");
@@ -357,7 +363,7 @@ function columnsChart(s: Slide, t: BrandTheme, mode: "single" | "grouped" | "sta
         const label = showValues
           ? `<div style="position:absolute;left:${Math.round(x0)}px;top:${total < 0 ? down + 6 : up - px - 10}px;width:${Math.round(colW)}px;${VALUE(px)}">${fmt(total)}</div>`
           : "";
-        return `<div class="agh" ${item(`bars.${i}`)} style="position:absolute;left:0;top:0;width:0;height:0;${dly(10 + i * 2)}">${segs}${label}</div>`;
+        return `<div class="agh" ${item(`bars.${i}`)} style="position:absolute;left:0;top:0;width:0;height:0;transform-origin:0 ${y + zero}px;${dly(10 + i * 2)}">${segs}${label}</div>`;
       }
       const groupW = mode === "grouped" ? Math.min(colW * 0.8, 70 * k) : Math.min(colW * 0.64, 110);
       const barW = mode === "grouped" ? (groupW - 6 * (k - 1)) / k : groupW;
@@ -374,7 +380,7 @@ function columnsChart(s: Slide, t: BrandTheme, mode: "single" | "grouped" | "sta
           );
         })
         .join("");
-      return `<div class="agh" ${item(`bars.${i}`)} style="position:absolute;left:0;top:0;width:0;height:0;${dly(10 + i * 2)}">${inner}</div>`;
+      return `<div class="agh" ${item(`bars.${i}`)} style="position:absolute;left:0;top:0;width:0;height:0;transform-origin:0 ${y + zero}px;${dly(10 + i * 2)}">${inner}</div>`;
     })
     .join("");
   return section(

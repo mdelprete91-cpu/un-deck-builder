@@ -82,7 +82,7 @@ export interface DeckState {
 
 export const initialDeckState: DeckState = {
   name: DEFAULT_DECK_NAME,
-  brandId: "did",
+  brandId: "di",
   format: "slides",
   brief: "",
   count: 8,

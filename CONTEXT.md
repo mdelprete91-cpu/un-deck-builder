@@ -24,6 +24,12 @@ Deployed on Vercel as `un-deck-builder`. One env var: `OPENAI_API_KEY`.
 
 Do not change these without asking Mario first. They are decisions, not defaults.
 
+**UNICEF DI is the exception to rules 1 to 4** (Mario, 18 Oct 2026, from `DI Deck Template.pdf`).
+It is the default template and has a look of its own: light grey page, navy dark surfaces with dot
+maps, a deep blue as second chart series, orange for the chapter name and the current item. The
+rules below still hold for UNICEF, Digital Impact Division and Digital Inclusion. See "Template
+UNICEF DI".
+
 1. **One palette for every lockup on the menu, and it is fixed.** UNICEF, Digital Impact Division
    and Digital Inclusion all run on the cyan palette (Mario, 17 Sep 2026, when UNICEF moved off the
    Giga palette). Switching between them changes the logo lockup and the footer label only, never
@@ -81,6 +87,34 @@ Do not change these without asking Mario first. They are decisions, not defaults
    CSS. The same markup has to survive the editor preview, the thumbnails, the print root, the
    self-contained HTML export, and the PPTX capture. A class that only exists in `globals.css`
    breaks the exports silently.
+
+## Template UNICEF DI
+
+The default template since 18 Oct 2026 (`BRANDS.di`, first on the Template menu with the "default"
+tag, `initialDeckState.brandId`). Its source is `DI Deck Template.pdf` (51 flat pages, Mario's
+Downloads). A deck or session saved with another template keeps it.
+
+- **Tokens** on `BrandTheme`, set only by `di`: `look: "di"`, `page` `#F8F8F8` (every slide a
+  renderer paints `#FFFFFF` takes it, in `section()`), `dark` navy `#1A293C`, `highlight` orange
+  `#FE7910`, `site` "digitalinclusion.global", `backgrounds`. Accent `#00AEEF`, chart series cyan,
+  `#0B6BA8`, navy. Absent on the other brands, so their markup is byte-identical
+  (`.omc/markup-brands.ts`, 952 cases, checked on the day).
+- **Footer** (`diFooter` in `layouts/shared.ts`): the chapter name in orange at left 100, the site in
+  cyan at 580, the cyan "unicef for every child" lockup on the right (white on coloured surfaces).
+  The chapter comes from `chapterAt(slides, i)` (`lib/slides/chapters.ts`: the last section divider
+  before the slide), passed as `ctx.chapter` to `renderSlide` by every deck caller. No divider, no
+  chapter name. Footnotes sit higher on this template (top 932) so they clear the site.
+- **Headings** are Manrope 400 at 58px: `renderSlide` rewrites the 80px and 60px heading style on the
+  title node, and sets the 144/213px figures in weight 300. Geometry is unchanged.
+- **Own shapes** in `layouts/di.ts`: cover, agenda, section divider, big stat, quote, three columns,
+  partners. They sit on the dot maps in `public/templates/di/` (`cover`, `agenda`, `dark`, taken
+  from the PDF pages with the text painted out; the Figma originals are in file
+  `x7speYP8iz3KqFV9L4TX0i`, node 207-1792). No aura on this template.
+- **The closing slide is fixed** (Mario, 19 Oct 2026): `closing.jpg` is the whole Figma frame
+  "Closing slide" (node 207-2023, words, tagline and email included), drawn as is. The slide's
+  title, contacts and channels stay in the deck and come back on another template.
+- **Progress**: the stage in progress is orange (`t.highlight`). A4 pages use the Digital Inclusion
+  masthead.
 
 ## The pipeline in one screen
 

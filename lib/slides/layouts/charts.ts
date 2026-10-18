@@ -109,7 +109,7 @@ function xLabels(bars: Slide["bars"], colW: number, editable = true): string {
       const cx = PLOT.x + colW * (i + 0.5);
       const edit = editable ? ed(`bars.${i}.label`, rotated ? 30 : 80) : "";
       return rotated
-        ? `<div class="ars" ${edit} style="position:absolute;left:${Math.round(cx - 150)}px;top:${LABEL_TOP + 4}px;width:150px;text-align:right;font-family:${OPEN_SANS};font-weight:500;font-size:22px;line-height:1.2;color:#000000;transform:rotate(-45deg);transform-origin:right top;white-space:nowrap;overflow:hidden;${dly(20 + i * 2)}">${esc(b.label)}</div>`
+        ? `<div class="ars" style="position:absolute;left:${Math.round(cx - 150)}px;top:${LABEL_TOP + 4}px;width:150px;${dly(20 + i * 2)}"><div ${edit} style="text-align:right;font-family:${OPEN_SANS};font-weight:500;font-size:22px;line-height:1.2;color:#000000;transform:rotate(-45deg);transform-origin:right top;white-space:nowrap;overflow:hidden;">${esc(b.label)}</div></div>`
         : `<div class="ars" ${edit} style="position:absolute;left:${Math.round(cx - w / 2)}px;top:${LABEL_TOP}px;width:${w}px;text-align:center;font-family:${OPEN_SANS};font-weight:500;font-size:${px}px;line-height:1.3;color:#000000;${dly(20 + i * 4)}">${esc(b.label)}</div>`;
     })
     .join("");

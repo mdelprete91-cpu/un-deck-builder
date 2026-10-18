@@ -276,9 +276,19 @@ export const UNICEF_CHANNELS: Channel[] = [
   { label: "LinkedIn", value: "/unicef" },
 ];
 
+/** The UNICEF DI template closes on Digital Inclusion's site and address (DI Deck Template.pdf). */
+export const DI_CHANNELS: Channel[] = [
+  { label: "Website", value: "digitalinclusion.global" },
+  { label: "Email", value: "digitalinclusion@unicef.org" },
+  { label: "Instagram", value: "@unicef" },
+  { label: "X", value: "@unicef" },
+  { label: "LinkedIn", value: "/unicef" },
+];
+
 /** The social row a closing slide is seeded with, by lockup. */
 export function channelsFor(brandId?: string): Channel[] {
-  return (brandId === "giga" || !brandId ? DEFAULT_CHANNELS : UNICEF_CHANNELS).map((c) => ({ ...c }));
+  const row = brandId === "giga" || !brandId ? DEFAULT_CHANNELS : brandId === "di" ? DI_CHANNELS : UNICEF_CHANNELS;
+  return row.map((c) => ({ ...c }));
 }
 
 export interface ImagePos {

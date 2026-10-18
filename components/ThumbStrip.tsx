@@ -12,6 +12,7 @@ import { A4_PX } from "@/lib/slides/pages/a4";
 import Button from "@/components/Button";
 import SlideFrame from "./SlideFrame";
 import type { DeckAction } from "@/lib/slides/state";
+import { chapterAt } from "@/lib/slides/chapters";
 
 /**
  * Picker order: the AI list, then the manual-only layouts, except that Full
@@ -294,7 +295,7 @@ export default function ThumbStrip({
           >
             <div className="pointer-events-none">
               <SlideFrame
-                html={renderSlide(slide, theme, { index: i, total: slides.length })}
+                html={renderSlide(slide, theme, { index: i, total: slides.length, chapter: chapterAt(slides, i) })}
                 size={twoPager ? A4_PX : undefined}
                 className={`${twoPager ? "aspect-[595/842]" : "aspect-video"} w-full`}
               />

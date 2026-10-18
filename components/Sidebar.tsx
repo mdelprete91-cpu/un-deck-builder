@@ -3,7 +3,7 @@
 import { CircleHelp, Plus } from "lucide-react";
 import { useState } from "react";
 import { BRANDS, PICKER_BRAND_IDS, type BrandId } from "@/lib/slides/brand";
-import type { DeckState, DeckAction, DeckFormat } from "@/lib/slides/state";
+import { initialDeckState, type DeckState, type DeckAction, type DeckFormat } from "@/lib/slides/state";
 import type { Attachment } from "@/lib/slides/attachments";
 import Button from "@/components/Button";
 import ThemeToggle from "@/components/ThemeToggle";
@@ -93,16 +93,21 @@ export default function Sidebar({
       </div>
 
       {/* Settings rows in the ChatGPT register: label left, value right, no
-          rule between them. Logo lockup: colors stay Giga on every option,
-          only logo and footer change. Document picks slides or the A4
-          two-pager, on every lockup. */}
+          rule between them. Template: UNICEF DI, the default, has its own
+          look (colours, type, footer); the other lockups share the cyan
+          palette and change only logo and footer. Document picks slides or
+          the A4 two-pager, on every template. */}
       <div className="flex flex-col">
         <div className="flex h-9 items-center justify-between gap-3">
-          <span className="text-sm text-ink">Logo</span>
+          <span className="text-sm text-ink">Template</span>
           <Select
-            ariaLabel="Logo lockup"
+            ariaLabel="Template"
             value={state.brandId}
-            options={PICKER_BRAND_IDS.map((id: BrandId) => ({ value: id, label: BRANDS[id].label }))}
+            options={PICKER_BRAND_IDS.map((id: BrandId) => ({
+              value: id,
+              label: BRANDS[id].label,
+              badge: id === initialDeckState.brandId ? "default" : undefined,
+            }))}
             onChange={(brandId) => dispatch({ type: "SET_BRAND", brandId })}
           />
         </div>
