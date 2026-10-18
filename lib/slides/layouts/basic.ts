@@ -227,6 +227,18 @@ export function partners(s: Slide, t: BrandTheme): string {
   );
 }
 
+/**
+ * The closing slide's title. The model's is always "Thanks" (normalizeSlide):
+ * in a deck in another language that default is the language's own word, so
+ * an Italian deck closes on "Grazie!", not "Thanks" (18 Oct 2026). A title the
+ * user wrote is theirs.
+ */
+function closingTitle(s: Slide, t: BrandTheme): string {
+  const own = s.title?.trim();
+  if (own === "Thanks" && t.ui?.thanks && t.ui.thanks !== "Thank you!") return t.ui.thanks;
+  return s.title ?? t.ui?.thanks ?? "Thank you!";
+}
+
 export function thankYou(s: Slide, t: BrandTheme): string {
   const contacts = (s.contacts ?? [])
     .slice(0, 2)
@@ -260,7 +272,9 @@ export function thankYou(s: Slide, t: BrandTheme): string {
     "var(--accent)",
     "#FFFFFF",
     aura("closing") +
-      `<div class="ar" ${ed("title")} style="position:absolute;left:100px;top:100px;width:1720px;font-family:${MANROPE};font-weight:500;font-size:144px;line-height:1;letter-spacing:-.02em;color:#FFFFFF;">${esc(s.title ?? t.ui?.thanks ?? "Thank you!")}</div>` +
+      // A budget for the title: a replica keeps the source's closing words, and
+      // "A gigabit, priced in the open" ran over the contact (18 Oct 2026).
+      `<div class="ar" ${ed("title", 250)} style="position:absolute;left:100px;top:100px;width:1720px;font-family:${MANROPE};font-weight:500;font-size:144px;line-height:1;letter-spacing:-.02em;color:#FFFFFF;">${esc(closingTitle(s, t))}</div>` +
       contacts +
       `<div style="position:absolute;left:100px;top:898px;width:1720px;opacity:.8;display:flex;gap:40px;">${channels}</div>`,
   );

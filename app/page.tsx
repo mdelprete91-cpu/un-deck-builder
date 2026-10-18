@@ -54,7 +54,7 @@ import ChartDataPanel from "@/components/ChartDataPanel";
 import ImagePickerModal from "@/components/ImagePickerModal";
 import EditWithAiModal from "@/components/EditWithAiModal";
 import SheetWizard from "@/components/SheetWizard";
-import { compileInsights, normalizeAnalysis, normalizeBriefAnalysis, purposeAsks, slotsFromNotes, COUNT_DOUBT_ID, wantsFile, USE_QUESTION_ID, fileUseOf, fileUseQuestion, lengthAnalysisFor, lengthOf, mentionsMissingFile, missingFileAnalysis, MISSING_FILE_QUESTION_ID, ATTACH_IT, asksForResearch, researchAnalysis, RESEARCH_QUESTION_ID, ADD_LINKS, preselectFileUse, type SheetAnalysis, type SheetAnswers } from "@/lib/slides/sheet-questions";
+import { askedAlready, compileInsights, normalizeAnalysis, normalizeBriefAnalysis, purposeAsks, slotsFromNotes, COUNT_DOUBT_ID, wantsFile, USE_QUESTION_ID, fileUseOf, fileUseQuestion, lengthAnalysisFor, lengthOf, mentionsMissingFile, missingFileAnalysis, MISSING_FILE_QUESTION_ID, ATTACH_IT, asksForResearch, researchAnalysis, RESEARCH_QUESTION_ID, ADD_LINKS, preselectFileUse, type SheetAnalysis, type SheetAnswers } from "@/lib/slides/sheet-questions";
 import { denseBeforeNormalize, densityHint, planReplica, withContentDensity, type ReplicateStep } from "@/lib/slides/replicate";
 import { compareSlide, fidelityScore, isFlawed, planLeftovers, repairNote, runningLines, sourceUnits, totals, type DeckFidelity, type Leftover, type SlideFidelity } from "@/lib/slides/fidelity";
 import { readPdfSlides } from "@/lib/slides/pdf-source";
@@ -255,6 +255,8 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
       replace: boolean;
       targetIndex?: number;
       collectInsert?: boolean;
+      /** A top-up of a deck just made: coming back empty is not an error the user has to read. */
+      topUp?: boolean;
       preserve?: Partial<SlideContent>;
       dropChapters?: boolean;
       /**
@@ -411,6 +413,13 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
             throw new Error(event.message ?? "Generation failed");
           }
         }
+      }
+      // A top-up that adds nothing leaves the deck as it is: no red box under a
+      // finished deck (18 Oct 2026, an eight-slide sheet deck said "no usable slides").
+      if (received === 0 && opts.topUp) {
+        console.info("[generate] the top-up added no slide");
+        dispatch({ type: "GENERATION_DONE" });
+        return 0;
       }
       if (received === 0) throw new Error("The model returned no usable slides. Try rephrasing the prompt.");
       if (opts.collectInsert && collected.length > 0) {
@@ -747,14 +756,32 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
   const wizardSubject: (WizardSubject & { id: string }) | null = (() => {
     const id = wizard?.queue[0];
     if (!id) return null;
-    if (id === "brief") return { id, title: "Your brief", kind: "brief", analysis: briefQ?.analysis, answers: briefQ?.answers ?? {}, error: briefQ?.error };
+    if (id === "brief") {
+      // What a file's questions already asked is not asked again about the brief.
+      const fileQuestions = attachments.filter(canQuestion).filter((a) => a.asked).flatMap((a) => a.analysis?.questions.map((q) => q.question) ?? []);
+      const analysis = briefQ?.analysis && fileQuestions.length ? { ...briefQ.analysis, questions: briefQ.analysis.questions.filter((q) => !askedAlready(q.question, fileQuestions)) } : briefQ?.analysis;
+      return { id, title: "Your brief", kind: "brief", analysis, answers: briefQ?.answers ?? {}, error: briefQ?.error };
+    }
     if (id === "nofile") return { id, title: "No file attached", kind: "missing", analysis: missingFileAnalysis, answers: noFileQ?.answers ?? {} };
     if (id === "research") return { id, title: "Add the sources to use", kind: "missing", analysis: researchAnalysis, answers: researchQ?.answers ?? {} };
     if (id === "length") return { id, title: "Deck length", kind: "length", analysis: lengthAnalysisFor(state.chapters), answers: lengthQ?.answers ?? {} };
     const a = attachments.find((x) => x.id === id);
     if (!a || !canQuestion(a)) return null;
-    return { id, title: a.name, kind: a.kind === "text" && a.spreadsheet ? "spreadsheet" : "document", analysis: a.analysis, answers: a.answers ?? {}, error: a.analysisError };
+    // A deck to replicate keeps every text and figure as it is: what to show
+    // or leave out is moot, so the use question is its only one (18 Oct 2026:
+    // Replicate went on to "include the figures to confirm, or omit them?").
+    const analysis =
+      a.analysis && replicable(a) && fileUseOf(a.answers) === "replicate"
+        ? { ...a.analysis, questions: a.analysis.questions.filter((q) => q.id === USE_QUESTION_ID) }
+        : a.analysis;
+    return { id, title: a.name, kind: a.kind === "text" && a.spreadsheet ? "spreadsheet" : "document", analysis, answers: a.answers ?? {}, error: a.analysisError };
   })();
+  // The brief's questions left empty once a file's answered the same ones: passed over, as an empty read is.
+  const briefEmptied = wizardSubject?.id === "brief" && !!briefQ?.analysis?.questions.length && wizardSubject.analysis?.questions.length === 0;
+  useEffect(() => {
+    if (briefEmptied) passOver("brief");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [briefEmptied]);
   /** The Generate press: first the questions still to ask, then the deck. */
   const onGenerate = () => {
     const brief = state.brief;
@@ -1001,6 +1028,8 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
           mode: "add",
           brief,
           attachments,
+          // The answers too: without them the top-up rewrote an answered table with "[Main blocker]" (18 Oct 2026).
+          briefNotes,
           instruction: `The deck must have ${wanted} slides and has ${received}. Add the ${missing} still missing: ${perItem ? "the items of the brief that have no slide yet, one slide each" : "beats of the brief and the material not yet covered"}, never a repeat of an existing slide.`,
           count: missing,
           brandLabel: theme.label,
@@ -1008,7 +1037,7 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
           format: state.format,
           existingSlides: kept.map((k) => light(k as (typeof state.slides)[number])),
         },
-        { replace: false, collectInsert: true, dropChapters: !chapters, rhythm, onInserted: track },
+        { replace: false, collectInsert: true, topUp: true, dropChapters: !chapters, rhythm, onInserted: track },
       );
       received += added;
       // A request that added nothing is not asked again: it costs a deck's worth of input for no slide.
@@ -1043,7 +1072,7 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
             format: state.format,
             existingSlides: deck.map((k) => light(k as (typeof state.slides)[number])),
           },
-          { replace: false, collectInsert: true, dropChapters: !chapters, rhythm: { ...rhythm, cap: undefined }, onInserted: track },
+          { replace: false, collectInsert: true, topUp: true, dropChapters: !chapters, rhythm: { ...rhythm, cap: undefined }, onInserted: track },
         );
       }
     }

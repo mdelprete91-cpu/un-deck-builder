@@ -1,5 +1,6 @@
 import { isChartLayout, PRIMARY_ARRAY, type LayoutId, type SlideContent } from "./schema";
 import { compactFigure, figuresShown, isBareMonth, isFillerStats, isMixedFunnel, repeatsEarlier, yearOfMonth } from "./repeats";
+import { countriesIn } from "./library";
 
 /**
  * Deterministic passes over the slides as they stream in. None of them
@@ -310,9 +311,17 @@ function fixFlagChart(content: SlideContent): SlideContent {
 
 /** A label that is a date or a phase ("Q1", "2026", "Phase 2"): two timelines for two years share them without repeating. */
 const DATE_LABEL = /^(?:q[1-4](?:\s+\d{4})?|h[12](?:\s+\d{4})?|\d{4}|(?:phase|step|stage|fase|passo|paso|etapa|wave|round)\s*\d{1,2}|\d{1,2})$/i;
-/** A content slide's block labels, as a set, dates and phases left out. */
+/**
+ * A label that is a country's name alone. The same three countries head the
+ * overview, the comparison table and the contacts without any of them being a
+ * repeat: as labels they dropped the answered comparison table and the
+ * contacts of a three-country workshop deck (18 Oct 2026), and the top-up
+ * wrote them again without the user's answers.
+ */
+const isCountryLabel = (l: string) => countriesIn(l).some((c) => c === l);
+/** A content slide's block labels, as a set, dates, phases and country names left out. */
 function labelSet(content: SlideContent): Set<string> {
-  return new Set((content.blocks ?? []).map((b) => (b.label ?? "").trim().toLowerCase()).filter((l) => l && !DATE_LABEL.test(l)));
+  return new Set((content.blocks ?? []).map((b) => (b.label ?? "").trim().toLowerCase()).filter((l) => l && !DATE_LABEL.test(l) && !isCountryLabel(l)));
 }
 
 /** A ranking is sorted: the catalog says so, and the model sometimes forgets (Mombasa before Nakuru). */

@@ -59,7 +59,9 @@ export default function SheetWizard({
   const analysis = s.analysis;
   const Glyph = GLYPH[s.kind];
   const questions = analysis?.questions ?? [];
-  const [step, setStep] = useState(0);
+  const [rawStep, setStep] = useState(0);
+  // The list can shrink under the step: Replicate leaves a deck with its use question alone.
+  const step = Math.min(rawStep, Math.max(0, (analysis?.questions.length ?? 1) - 1));
   /** What is typed in a question's custom row, by question id, before it is a valid number. */
   const [drafts, setDrafts] = useState<Record<string, string>>({});
   const answers = s.answers;
@@ -76,7 +78,7 @@ export default function SheetWizard({
   }, [onClose]);
 
   const set = (id: string, value: string | string[]) => onAnswers({ ...answers, [id]: value });
-  const next = () => (last ? onDone() : setStep((n) => n + 1));
+  const next = () => (last ? onDone() : setStep(step + 1));
   const skipQuestion = () => {
     if (q) {
       const rest = { ...answers };
@@ -350,7 +352,7 @@ export default function SheetWizard({
               </Button>
               <div className="flex items-center gap-2">
                 {step > 0 && (
-                  <Button variant="secondary" icon={ArrowLeft} onClick={() => setStep((n) => n - 1)}>
+                  <Button variant="secondary" icon={ArrowLeft} onClick={() => setStep(step - 1)}>
                     Back
                   </Button>
                 )}

@@ -284,8 +284,9 @@ offer.
   from one constant, `GIGA_FACTS` in `lib/slides/giga-facts.ts`, each with its source and the
   date it was read (12 Oct 2026, giga.global: a joint UNICEF and ITU partnership since 2019, 2.2M+
   schools mapped, 136K+ reporting real-time connectivity, 54 countries engaged, 21 with mapping and
-  modeling completed; the old "146 countries" was in no source). Re-read the site before changing a
-  figure and move the date; `defaults.ts` follows the same figures. `attachmentsNote` also asks to
+  modeling completed; the old "146 countries" was in no source; since 18 Oct 2026 the four pillars
+  by name, Map, Model, Finance, Contract, after decks wrote "Map, Model, Monitor" and "Mappare,
+  Monitorare, Connettere"). Re-read the site before changing a figure and move the date; `defaults.ts` follows the same figures. `attachmentsNote` also asks to
   keep the organisations the material names as leading, funding or delivering the work (a Giga
   Accelerator article led by ITU and UNICEF came back without ITU); the partner roster is used only
   when the brief names partners; the lockup sentence in the user turn says it sets logo and
@@ -528,7 +529,28 @@ or a drop on the box. They exist to give the model the facts; they are **not** d
   (`PLACEHOLDER_ANSWER`, Mario, 13 Oct 2026), and a skipped one counts the same (left to the model,
   a skipped "What did not" came back as "No issues were identified."): `compileInsights` tells the
   model to show a bracketed placeholder naming what goes there ("[Total budget 2027]"), filled in
-  by hand later.
+  by hand later. **A placeholder only for what the brief leaves out** (18 Oct 2026): a doubt raised
+  about an outline item that already lists its contents ("Timeline for 2027 by quarter: Q1 data
+  refresh, …"), skipped, turned the four quarters into "[Q1 activities and timing]". So a skipped
+  or placeholder doubt tells the model to take every value the brief and the files give first,
+  wherever they give it, and bracket only the rest; an answered one says "Answer: … Use it as
+  given". The notes go one per line (run together, five placeholder notes drowned the one real
+  answer). The analysis prompt says an outline item with its contents after a colon is filled.
+- **The wizard does not ask twice** (18 Oct 2026). Replicate leaves a deck with its use question
+  alone (what to show or leave out is moot in a copy); a brief's question that a file's questions
+  already asked in other words (`askedAlready`: most of the shorter question's words in the other)
+  is passed over, and a brief left with none is passed over like an empty read. A question about
+  readings that exclude each other (two figures for one cost, "include or omit") stays single
+  choice (`EITHER`), even when "use" or "include" would make it multi. A sheet question never
+  splits what the brief asks for together. "End with a clear ask" names the slide, not the ask:
+  the ask is asked.
+- **The top-up carries the answers** (`briefNotes` on the add request, 18 Oct 2026: without them a
+  dropped comparison table came back as "[Main blocker]"), and a top-up that adds nothing is no
+  red box under a finished deck (`topUp`). **Country names are not repeated labels**: the
+  near-repeat check in `rhythm.ts` leaves them out of the label sets, since the overview, the
+  comparison table and the contacts of a three-country deck all head their rows with the same
+  three countries. **An outline that ends on the closing** ("12. Closing") holds the closing slide
+  inside its number: `countIsCeiling` is true and the bare "Closing" is no content slide.
 - **No slide text talks about the brief** (13 Oct 2026: 71 texts in the QA decks, "The brief
   identifies a funding gap but provides no amount", "Funding gap amount not provided"). The
   prompt's NEVER WRITE ABOUT THE BRIEF rule, and `stripMetaText` (`tidy.ts`, run inside
@@ -734,6 +756,37 @@ deck, a flat text in file order. Now:
   "Chart legend: a | b | c" after the chart's data, not footnotes. Every slide keeps `boxes`:
   each text box and chart with its place in slide fractions, what the rebuild reads the source's
   structure from (29 Sep 2026).
+- **What the reader drops and keeps** (15-18 Oct 2026, "The price of a gigabit": its replica came
+  back with "2.2 billion" as a title, "The problem" as a label on every card and "Figures written on
+  the slide (…): 96, 54, ., 9" as slide text). The placeholder type is read from the `<p:ph>` tag
+  apart (one regex with an optional `type` never captured it, so no title placeholder was ever the
+  title and slide numbers stayed). **The footer band** is the bottom tenth (`FOOTER_BAND`): a 1-3
+  digit box there is the slide number and goes; a short line there that repeats on two slides, or
+  sits in a row with furniture (the site), is furniture too, under the quarter threshold. **A
+  figure in display type** (28pt and up, `STAT_SIZE`) is a stat value and stays in place over its
+  caption; only small numbers are chart labels. Punctuation alone is not a figure, the circles 1, 2,
+  3 of a sequence are ordinals, a symbol that means something (✅) stays. Two hand-broken lines of
+  one heading ("Where We" / "Are Now") are one title. **A key-value grid** (three rows or more of a
+  short key and a wider value box right beside it, the values one column with nothing between them)
+  reads "Band: 3.5 GHz, 40 MHz" on one line; read column by column, the seven keys came before the
+  seven values and the model paired them wrong. Two equal columns of figures, or a figure with its
+  caption under it (the Gambia "Benefits | USD 229 million / GDP growth"), are not a grid.
+  `tools/pptx-source-test.ts` builds each case as a small pptx (no model, no server): run it after
+  any change here, with `tools/fidelity-test.ts`, and diff the reader's text on the local decks.
+- **Text the layout does not draw is text the reader never sees**, though fidelity counts it as kept
+  (`foldUndrawn` in `normalizeSlide`, 18 Oct 2026): on a standard card layout a block's `items`
+  join its `body`, top-level `stats` become cards while there is room, else the band (and the
+  slide takes its high-density variant, which draws it); a `big-stat` with a title becomes
+  `single-stat`, which draws one. The high-density cards draw a block's `body` before its points.
+  More items than a layout holds go to its roomier sibling before the clamp cuts them
+  (`OVERFLOW_TO`: two-stats → stat-grid, three-columns → four-cards). A `chart-text` with fewer than
+  three points draws columns, not a line (two categories read as a trend). The closing title has a
+  fit budget: a replica keeps the source's closing words. The reader's figures note never reaches a
+  slide (`stripMetaText`), and a figure is never shortened to a field's limit ("70 to 200×", not "70").
+- **Not solved yet**: a table beside other text (slide 13 of the gigabit deck, "Why now" and a
+  three-row table) still comes back as bullet columns, every word kept and the cells flattened,
+  although the replicate note says a table is always a matrix. A deterministic table → matrix pass
+  is the next step.
 - **A PDF is read the same way, page by page** (`lib/slides/pdf-source.ts`, 28 Sep 2026): pdf.js
   runs become lines, lines become paragraphs (a point opens at a bullet glyph, often a control or
   private-use character, a size change or a gap; a word broken at a hyphen is mended), a number
@@ -1228,6 +1281,9 @@ deck's original first.
 `lib/slides/i18n.ts` holds it: `state.slides` is always the language on screen, and `state.lang`
 keeps every language's text field by field (`textFields`, paths in `setPath`'s format).
 
+- A deck written in another language closes on that language's word ("Grazie!", `closingTitle` in
+  `layouts/basic.ts`: the model's title is always "Thanks"), and the figures check writes its source
+  line in it ("Fonte: giga.global, ottobre 2026", 18 Oct 2026).
 - A switch (`switchLanguage` in `app/page.tsx`) photographs the screen into the current language
   (`snapshot`), takes from memory every field the target already has whose original has not changed
   (edits included, nothing re-sent), and translates only the rest through `/api/translate`, in

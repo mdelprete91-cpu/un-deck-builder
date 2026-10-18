@@ -125,11 +125,22 @@ const META_TEXT = [
   /\bnot (?:specified|provided|given|stated|established|quantified)\b(?:\s+(?:in|by)\s+(?:the\s+)?[\w ]{0,24})?\s*[.;:]?\s*$/i,
   // A placeholder in place of content: "[To be defined]", "TBD".
   /^\s*\[?\s*(?:to be (?:defined|confirmed|determined|added)|tbd|tbc)\s*\]?\s*\.?\s*$/i,
+  // A sentence about the placeholders themselves: "schools covered, main blocker and next milestone remain to be completed." (18 Oct 2026).
+  /\b(?:remains?|are|is|still) to be (?:completed|confirmed|defined|added|filled(?: in)?|provided)\b/i,
   /\b(?:gives?|provides?|offers?) no (?:figures?|amounts?|details?|evidence|data|counts?|numbers?|results?|specifics?)\b/i,
 ];
-const isMeta = (sentence: string) => META_TEXT.some((re) => re.test(sentence));
+/**
+ * The reader's note on a source slide's figures ("Figures written on the slide
+ * (chart labels; these win over chart data): 96, 54, ., 9"), copied onto a
+ * replica as text (15 Oct 2026). It goes whole: split at its ";" it kept half.
+ */
+const FIGURES_NOTE = /(?:Figures|Chart labels) written on the slide\b[^\n]*/gi;
+const isMeta = (sentence: string) => META_TEXT.some((re) => re.test(sentence)) || /(?:Figures|Chart labels) written on the slide\b/i.test(sentence);
 function cleanText(text: string | undefined): string | undefined {
-  if (!text || !META_TEXT.some((re) => re.test(text))) return text;
+  if (!text) return text;
+  if (FIGURES_NOTE.test(text)) text = text.replace(FIGURES_NOTE, "").trim();
+  FIGURES_NOTE.lastIndex = 0;
+  if (!META_TEXT.some((re) => re.test(text!))) return text;
   return text
     .split(/(?<=[.!?;])\s+/)
     .filter((x) => !isMeta(x))

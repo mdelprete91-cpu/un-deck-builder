@@ -142,8 +142,21 @@ export function countIsCeiling(brief: string): boolean {
   const after = brief.slice(m.index + m[0].length, m.index + m[0].length + 20);
   return (
     /\b(?:max(?:imum)?|at most|no more than|not more than|up to|massimo|al massimo|fino a|non più di|como m[aá]ximo|hasta|au plus|maximum)\s*$/i.test(before) ||
-    /^\s*(?:max(?:imum)?|at most|tops|al massimo|massimo|como m[aá]ximo|maximum)\b/i.test(after)
+    /^\s*(?:max(?:imum)?|at most|tops|al massimo|massimo|como m[aá]ximo|maximum)\b/i.test(after) ||
+    outlineEndsClosed(brief, countFromBrief(brief))
   );
+}
+
+/**
+ * The brief's own outline, as long as its number, ends on the closing slide
+ * ("12. Closing", "12. Thanks and contacts"): that slide is the deck's
+ * closing, inside the number. Read as content, "12 slides … 12. Closing" came
+ * back as a photo titled "Closing", then "Thanks", thirteen in all (18 Oct 2026).
+ */
+function outlineEndsClosed(brief: string, count: number | undefined): boolean {
+  if (count === undefined) return false;
+  const outline = outlineRuns(brief).find((r) => r.length >= 2 && r.length === count);
+  return !!outline && isClosingItem(outline[outline.length - 1].text);
 }
 
 /** A numbered outline line: "12. Decisions needed from this meeting". */
@@ -160,6 +173,9 @@ export function outlineRuns(brief: string): { n: number; text: string; at: numbe
 }
 /** What closes a deck, as opposed to a last slide of content. */
 const CLOSING_ITEM = /\b(thanks?|thank you|grazie|gracias|merci|contacts?|contatti|contactos)\b/i;
+/** An outline item that is only the word for the end: "Closing", "Closing slide", "Chiusura". */
+const CLOSING_ONLY = /^\s*(?:closing|close|closure|the end|end|wrap[- ]up|chiusura|cierre|fin|cl[oô]ture)(?:\s+(?:slide|remarks))?\s*[.:]?\s*$/i;
+const isClosingItem = (text: string) => CLOSING_ITEM.test(text) || CLOSING_ONLY.test(text);
 /** The brief naming its last slide: "a final slide with 3 questions", "end with a clear ask", "chiudi con le richieste". */
 const LAST_SLIDE = [
   /\b(?:a |the )?(?:final|last|closing|concluding) slide (?:with|on|for|about|that|listing|of)\s+([^.\n]+)/i,
@@ -190,11 +206,11 @@ export function lastSlideFromBrief(brief: string, count: number | undefined): st
   const outline = runs.find((r) => count !== undefined && r.length >= 2 && r.length === count && r.every((it, i) => it.n === i + 1));
   if (outline) {
     const last = outline[outline.length - 1].text;
-    if (!CLOSING_ITEM.test(last)) return last;
+    if (!isClosingItem(last)) return last;
   }
   for (const re of LAST_SLIDE) {
     const m = re.exec(brief);
-    if (m && !CLOSING_ITEM.test(m[1])) return m[1].trim().replace(/[,;:]$/, "");
+    if (m && !isClosingItem(m[1])) return m[1].trim().replace(/[,;:]$/, "");
   }
   return null;
 }
@@ -241,6 +257,6 @@ export function outlineFromBrief(brief: string, count: number | undefined): { or
   const outline = runs.find((r) => ok(r) && (count !== undefined ? r.length === count : r.length >= 3));
   if (!outline) return [];
   return outline
-    .filter((it) => !/^(title|cover|title slide|thanks?|thank you|contacts?|q ?& ?a|questions?)$/i.test(it.text.replace(/\s*\(.*\)\s*$/, "").trim()))
+    .filter((it) => !/^(title|cover|title slide|thanks?|thank you|contacts?|q ?& ?a|questions?)$/i.test(it.text.replace(/\s*\(.*\)\s*$/, "").trim()) && !CLOSING_ONLY.test(it.text))
     .map((it) => ({ order: it.n, title: it.text.replace(/\s*\(.*\)\s*$/, "").trim() }));
 }

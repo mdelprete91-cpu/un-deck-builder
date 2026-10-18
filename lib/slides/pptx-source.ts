@@ -133,7 +133,12 @@ function readTable(xml: string): string {
   return rows.length ? `Table:\n${rows.map((r) => `| ${r.join(" | ")} |`).join("\n")}` : "";
 }
 
-export const PURE_NUMBER = /^[-–+~]?\s?[\d.,]+\s?%?$/;
+// A digit is required: the full stop left alone in its own text box after a
+// placeholder ("[basis to add]" "."), read as a figure, became a chart label
+// (The price of a gigabit, 15 Oct 2026).
+export const PURE_NUMBER = /^[-–+~]?\s?(?=[\d.,]*\d)[\d.,]+\s?%?$/;
+/** A figure set in display type (28pt and up) is a stat's value, never a chart label. */
+const STAT_SIZE = 2800;
 export const FOOTNOTE = /^(\d{1,2}[.)]\s|[¹²³⁴⁵⁶⁷⁸⁹])/;
 
 export interface Raw {
@@ -147,6 +152,12 @@ export interface Raw {
   extras: string[];
   /** Agenda candidates: the bullet paragraphs and their colours. */
   paras: Para[];
+  /**
+   * Short lines set in the slide's footer band (a PowerPoint slide only). A
+   * line found there on two slides or more is the footer's furniture (the
+   * chapter name "The problem", the site) and leaves the text in `classify`.
+   */
+  footer?: string[];
 }
 
 /**
@@ -192,6 +203,30 @@ function shapesOf(xml: string): { xml: string; i: number; x: number; y: number; 
   return out;
 }
 
+/**
+ * A heading broken by hand over two paragraphs of one box ("Where We" / "Are
+ * Now", "Our" / "partners" on the Djibouti deck) is one line: read apart, the
+ * heading was half of it. Only display type (20pt and up; body text stops at 18), words not figures,
+ * the first line without a full stop.
+ */
+function joinDisplayLines(paras: Para[]): Para[] {
+  const out: Para[] = [];
+  const display = (p: Para) => p.size >= 2000 && /\p{L}/u.test(p.text) && !PURE_NUMBER.test(p.text);
+  for (const p of paras) {
+    const prev = out[out.length - 1];
+    if (prev && display(prev) && display(p) && prev.size === p.size && prev.level === p.level && !/[.!?:]$/.test(prev.text)) {
+      out[out.length - 1] = { ...prev, text: `${prev.text} ${p.text}` };
+    } else out.push(p);
+  }
+  return out;
+}
+
+/** An organisation handle, a site or "12 | Name" in a footer. */
+const HANDLE_LINE = /^(@\S+|(www\.)?[a-z0-9-]+\.(org|com|global|net)(\/\S*)?|\d{1,3}\s*\|\s*\S+)$/i;
+
+/** Where the footer starts, as a share of the slide's height. */
+const FOOTER_BAND = 0.9;
+
 async function readSlide(zip: JSZip, path: string, n: number, slideWidth: number, slideHeight = slideWidth * 0.5625): Promise<Raw | null> {
   const xml = await zip.file(path)?.async("string");
   if (!xml) return null;
@@ -212,9 +247,41 @@ async function readSlide(zip: JSZip, path: string, n: number, slideWidth: number
   const narrow = shapes.filter((sh) => !wide(sh));
   const narrowTop = Math.min(...narrow.map((sh) => sh.y));
   const column = (x: number) => Math.floor((x / slideWidth) * 6);
+  // A key-value grid (Band | 3.5 GHz, 40 MHz; Area | One district; …): each
+  // value sits in the row of its key, just right of it. Read column by column,
+  // the seven keys came out before the seven values, and the replica paired
+  // them wrongly (18 Oct 2026). Three rows or more: each value reads after its key.
+  const keyOf = new Map<number, { x: number; y: number }>();
+  /** A key's value, read onto the key's own line ("Band: 3.5 GHz, 40 MHz"): two boxes read as one fact. */
+  const valueOf = new Map<number, string>();
+  const oneLine = (sh: { xml: string }) => sh.xml.startsWith("<p:sp") && paragraphs(sh.xml).length === 1;
+  const pairs = narrow
+    .filter((k) => oneLine(k) && /\p{L}/u.test(paragraphs(k.xml)[0].text) && paragraphs(k.xml)[0].text.split(/\s+/).length <= 3)
+    .map((k) => ({
+      k,
+      // The value's box is wider than its key's: two equal columns side by side (a stat grid) are not keys and values.
+      v: narrow.find((v) => v !== k && oneLine(v) && v.w > k.w * 1.5 && Math.abs(v.y - k.y) <= slideHeight * 0.01 && v.x > k.x && v.x - (k.x + k.w) <= slideWidth * 0.03),
+    }))
+    .filter((p): p is { k: (typeof narrow)[number]; v: (typeof narrow)[number] } => !!p.v);
+  for (const p of pairs) {
+    // A grid: three rows or more, the values in one column with nothing else
+    // between them (a figure with its caption under it is not a value of a key:
+    // the Gambia "Benefits | USD 229 million / GDP growth" rows stay as they read).
+    const rows = pairs.filter((q) => Math.abs(q.k.x - p.k.x) <= slideWidth * 0.01 && Math.abs(q.v.x - p.v.x) <= slideWidth * 0.01);
+    if (rows.length < 3) continue;
+    const ys = rows.map((q) => q.v.y);
+    const values = new Set(rows.map((q) => q.v.i));
+    const between = narrow.some((o) => !values.has(o.i) && Math.abs(o.x - p.v.x) <= slideWidth * 0.01 && o.y > Math.min(...ys) && o.y < Math.max(...ys));
+    if (!between) {
+      keyOf.set(p.v.i, { x: p.k.x, y: p.k.y });
+      valueOf.set(p.k.i, paragraphs(p.v.xml)[0].text);
+    }
+  }
+  const colX = (sh: { i: number; x: number }) => keyOf.get(sh.i)?.x ?? sh.x;
+  const rowY = (sh: { i: number; y: number }) => keyOf.get(sh.i)?.y ?? sh.y;
   const ordered = [
     ...shapes.filter((sh) => wide(sh) && sh.y <= narrowTop).sort((p, q) => p.y - q.y),
-    ...narrow.sort((p, q) => column(p.x) - column(q.x) || p.y - q.y || p.i - q.i),
+    ...narrow.sort((p, q) => column(colX(p)) - column(colX(q)) || rowY(p) - rowY(q) || p.x - q.x || p.i - q.i),
     ...shapes.filter((sh) => wide(sh) && sh.y > narrowTop).sort((p, q) => p.y - q.y),
   ];
 
@@ -270,13 +337,30 @@ async function readSlide(zip: JSZip, path: string, n: number, slideWidth: number
       }
       continue;
     }
-    const ph = /<p:ph\b[^>]*?(?:type="(\w+)")?[^>]*\/?>/.exec(shape);
-    const phType = ph?.[1] ?? (ph ? "body" : "");
+    // The type is read from the tag apart: with the attribute optional inside
+    // one pattern it was never captured, so every title placeholder read as a
+    // body and the largest figure became the heading ("2.2 billion" over "The
+    // frontier is moving…"), and slide numbers stayed (15 Oct 2026).
+    const ph = /<p:ph\b[^>]*>/.exec(shape)?.[0];
+    const phType = ph ? (/\btype="(\w+)"/.exec(ph)?.[1] ?? "body") : "";
     if (phType === "sldNum" || phType === "dt" || phType === "ftr") continue;
     // A shape's own default size (its list style), for runs that set none.
     const shapeSize = Number(/<a:lstStyle>[\s\S]*?\bsz="(\d+)"[\s\S]*?<\/a:lstStyle>/.exec(shape)?.[1] ?? 0);
-    const paras = paragraphs(shape, shapeSize);
+    if (keyOf.has(sh.i)) continue;
+    const read = joinDisplayLines(paragraphs(shape, shapeSize));
+    const value = valueOf.get(sh.i);
+    const paras = value !== undefined && read.length === 1 ? [{ ...read[0], text: `${read[0].text}: ${value}` }] : read;
     if (!paras.length) continue;
+    // Nothing to read in a box of punctuation alone (a full stop, a dash);
+    // a symbol that means something (✅ in a table of checks) stays.
+    if (paras.every((p) => /^[\s.,;:·•|/\\–—-]+$/.test(p.text))) continue;
+    // The footer band: the slide number drawn as a text box goes, a short
+    // line is kept and noted, for classify to drop when other slides repeat it.
+    if (sh.y >= slideHeight * FOOTER_BAND && paras.length === 1) {
+      const t = paras[0].text;
+      if (PURE_NUMBER.test(t) && /^\d{1,3}$/.test(t.trim())) continue;
+      if (t.split(/\s+/).length <= 6 && !/[.!?]$/.test(t)) (raw.footer ??= []).push(t);
+    }
     if ((phType === "title" || phType === "ctrTitle") && !raw.title) {
       raw.title = paras.map((p) => p.text).join(" ");
       continue;
@@ -287,7 +371,7 @@ async function readSlide(zip: JSZip, path: string, n: number, slideWidth: number
     const base = Math.min(...paras.map((p) => p.level));
     const box: string[] = [];
     for (const p of paras) {
-      if (PURE_NUMBER.test(p.text)) raw.figures.push({ text: p.text, x: shapeX, y: shapeY });
+      if (PURE_NUMBER.test(p.text) && p.size < STAT_SIZE) raw.figures.push({ text: p.text, x: shapeX, y: shapeY });
       // A numbered line in small type, or any sentence in 8pt or less, is a footnote.
       else if (p.size > 0 && ((FOOTNOTE.test(p.text) && p.size <= 1000) || (p.size <= 800 && p.text.length > 25))) raw.footnotes.push(p.text);
       else {
@@ -330,7 +414,15 @@ function figureLine(figures: { text: string; x: number; y: number }[]): string {
     (rows.get(key) ?? rows.set(key, []).get(key)!).push(f);
   }
   const axis = [...rows.values()].sort((a, b) => b.length - a.length)[0]?.sort((a, b) => a.x - b.x) ?? [];
-  if (axis.length < 3) return `Figures written on the slide (chart labels; these win over chart data): ${figures.map((f) => f.text).join(", ")}`;
+  if (axis.length < 3) {
+    // Step numbers in their circles (1, 2, 3 beside "Pool demand", "Publish
+    // the prices"…) are ordinals, not data: as a "figure" the replica wrote
+    // "1, 2, 3" on the slide.
+    const singles = figures.filter((f) => /^[1-9]$/.test(f.text.trim())).map((f) => Number(f.text));
+    const ordinals = singles.length >= 2 && [...singles].sort((a, b) => a - b).every((v, i) => v === i + 1);
+    const kept = ordinals ? figures.filter((f) => !/^[1-9]$/.test(f.text.trim())) : figures;
+    return kept.length ? `Figures written on the slide (chart labels; these win over chart data): ${kept.map((f) => f.text).join(", ")}` : "";
+  }
   const cols = axis.map((a) => ({ label: a.text, x: a.x, values: [] as { text: string; y: number }[] }));
   for (const f of figures) {
     if (axis.includes(f) || /^[1-9]$/.test(f.text)) continue; // 1-9 alone are note markers
@@ -395,7 +487,18 @@ export function classify(raws: Raw[]): { text: string; slides: SourceSlide[] } {
   const seen = new Map<string, number>();
   for (const r of raws) if (!isNamedAgenda(r)) for (const l of new Set(r.lines)) seen.set(l, (seen.get(l) ?? 0) + 1);
   const boiler = new Set([...seen].filter(([, c]) => raws.length >= 4 && c > raws.length * 0.25).map(([l]) => l));
-  const HANDLE = /^(@\S+|(www\.)?[a-z0-9-]+\.(org|com|global|net)(\/\S*)?|\d{1,3}\s*\|\s*\S+)$/i;
+  // The footer's chapter name changes with the chapter ("The problem" on four
+  // slides, "The funding case" on five), so no one name reaches a quarter of
+  // the deck: a short line in the footer band on two slides or more is
+  // furniture too. Left in, it became a block's label on every slide of the
+  // chapter (The price of a gigabit, 15 Oct 2026).
+  const footerSeen = new Map<string, number>();
+  for (const r of raws) for (const l of new Set(r.footer ?? [])) footerSeen.set(l, (footerSeen.get(l) ?? 0) + 1);
+  for (const [l, c] of footerSeen) if (c >= 2) boiler.add(l);
+  // A footer that holds furniture is furniture all along its row: "The vision"
+  // is on one slide only, beside the site every slide repeats.
+  for (const r of raws) if ((r.footer ?? []).some((l) => boiler.has(l) || HANDLE_LINE.test(l))) for (const l of r.footer ?? []) boiler.add(l);
+  const HANDLE = HANDLE_LINE;
 
   const agendaTexts = new Set<string>();
   let agendaSeen = 0;
@@ -436,7 +539,8 @@ export function classify(raws: Raw[]): { text: string; slides: SourceSlide[] } {
     const parts = [`Title: ${title}`];
     if (body.length) parts.push(body.join("\n"));
     for (const e of r.extras) if (e) parts.push(e);
-    if (r.figures.length) parts.push(figureLine(r.figures));
+    const figureNote = r.figures.length ? figureLine(r.figures) : "";
+    if (figureNote) parts.push(figureNote);
     if (r.footnotes.length) parts.push(`Footnotes: ${r.footnotes.join(" ")}`);
     const slide: SourceSlide = { n: r.n, kind, title, text: parts.join("\n"), words };
     if (r.boxes?.length) {

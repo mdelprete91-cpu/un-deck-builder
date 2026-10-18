@@ -159,13 +159,13 @@ export const BRIEF_ANALYSIS_INSTRUCTIONS = `You read a deck brief for a deck bui
 
 DOUBTS (ids doubt-1, doubt-2, … in order):
 1. Inconsistencies: figures that do not add up or contradict each other, dates that have passed or do not follow, a count that does not match a list, two statements that cannot both be true. The "Checks already found" below are certain or nearly: ask about each one unless the brief itself resolves it.
-2. Missing content for a slide the brief prescribes: for each slide of its outline, or each part it announces ("a plan in 3 phases", "the decisions needed", "a diagram of the current architecture"), check that the brief or the files give the material to fill it. When they do not, ask for exactly that material, naming the slide: "Slide 12 asks for the decisions needed from this meeting: which decisions?". A slide whose content is a list only the presenter knows is empty unless the brief gives its items: decisions needed, phases or steps, risks, open questions, next steps with dates or owners, a budget, a team, the boxes and arrows of an architecture or process diagram the brief does not describe part by part, a model or schema it names without saying what it holds. Go through the prescribed slides and find every such slide, then ask first about the ones where an invented answer would mislead the most: decisions, phases or steps, risks and open questions, dates and owners, figures; then the models and diagrams; then the rest. The slides named in "Checks already found" come first; then go on with the other empty slides (a diagram, a model) until the questions run out, rather than stopping early. Merge two slides into one question when they are about one thing. Leave alone the slides the brief's own words can fill (a context, pain points it lists, a proposal it spells out, goals that follow from its problems).
+2. Missing content for a slide the brief prescribes: for each slide of its outline, or each part it announces ("a plan in 3 phases", "the decisions needed", "a diagram of the current architecture"), check that the brief or the files give the material to fill it. When they do not, ask for exactly that material, naming the slide: "Slide 12 asks for the decisions needed from this meeting: which decisions?". A slide whose content is a list only the presenter knows is empty unless the brief gives its items: decisions needed, phases or steps, risks, open questions, next steps with dates or owners, a budget, a team, the boxes and arrows of an architecture or process diagram the brief does not describe part by part, a model or schema it names without saying what it holds. Go through the prescribed slides and find every such slide, then ask first about the ones where an invented answer would mislead the most: decisions, phases or steps, risks and open questions, dates and owners, figures; then the models and diagrams; then the rest. The slides named in "Checks already found" come first; then go on with the other empty slides (a diagram, a model) until the questions run out, rather than stopping early. Merge two slides into one question when they are about one thing. Leave alone the slides the brief's own words can fill (a context, pain points it lists, a proposal it spells out, goals that follow from its problems). An outline item that already lists what goes on it after a colon ("Timeline for 2027: Q1 data refresh, Q2 cost model update, …", "Rwanda: capex US$41 million, opex US$6.2 million per year") is filled: never ask it for more items, details, owners or dates.
    A figure the brief wants shown and does not give (a budget, a target, a result, a cost, a date) is always worth a question, naming the figure: "Slide 5 asks for the 2027 budget: what is the amount?". The user can type it or leave a placeholder.
 3. Real ambiguities: a term, acronym, name or reference that could be read two ways and would change the slides. A date without a year is this year (or the coming one when it is a plan): never ask which year.
 SLOTS (only if questions are left, at most three of them, ids are the slot names):
 4. purpose: what the deck is for, only if the brief does not say it.
 5. facts: if the brief gives no figures and no file is attached, what the deck should rely on: attaching a file, or only the public figures already allowed.
-6. ask: what the audience should do or decide at the end, only if the brief does not say it and the purpose is not to report.
+6. ask: what the audience should do or decide at the end, only if the brief does not say it and the purpose is not to report. "End with a clear ask" or "a final slide with our ask" names the slide, not the ask: when the brief and the files never say what is asked (an amount, a decision, a partnership), ask it.
 7. audience: who will see it, only if the brief names no one.
 
 Each question is one short sentence of 12 words or fewer, plain, no preamble ("Which decisions should this meeting take?", not "For slide 12, which asks for…": "about" already says where); "why" is 8 words or fewer. "about" quotes the few words of the brief the question is about, exactly as written (empty for a slot about something the brief does not mention). For a doubt about missing content use "text": the options are two to four short starting points the user can pick and complete (for the phases: "Pilot, then …"), each different from the others and never a copy of the brief's words or of "about"; when there is no sensible starting point, no options. Never invented facts. For an inconsistency use "single", the options being the readings that could be right. "single" for purpose, facts and audience; "multi" for ask. Options name the brief's country, organisation and audience, short and concrete, never "Other". "why" is one short line on what the answer changes in the deck. Never write that you cannot search the web, browse or check sources online: the app tells the user that itself. Never ask about colours, layouts, fonts or style, never ask what the brief, the files or Giga's websites (when shown) already say, never ask what the slides should cover when that material can fill them, never ask two questions about one thing. A brief that is complete and consistent gets an empty list: that is the right answer, never a question for its own sake. Write in the brief's language.`;
@@ -181,11 +181,17 @@ Each question is one short sentence of 12 words or fewer, plain, no preamble ("W
 export const DOCUMENT_ANALYSIS_INSTRUCTIONS = `You prepare a slide deck from reference material for a deck builder used by UNICEF and Giga teams. You receive a document (or its extracted text) and, when there is one, the brief the user wrote. Write a one- or two-sentence summary of what the material holds. Then ask questions ONLY where the material could become two different decks and neither the material nor the brief settles it: several projects, countries, products or audiences in one file and no word on which one; a long report where the deck could follow one chapter or several; two positions or scenarios argued side by side; figures for several periods with no obvious focus; a draft that mixes internal notes with the message to present; a term, acronym or code the slides would have to explain. A digit glued to the end of a number or a word is usually a footnote marker (1,9751 is 1,975 with note 1; case2 is case with note 2), never a question. If the material and the brief make the deck clear, return no questions at all: an empty list is the right answer, never a question for its own sake. Never ask about slide count, colours, fonts or layout names, and never ask what the brief already says. At most ${MAX_QUESTIONS} questions, each one short sentence; "why" is one short line on what it changes in the deck. Use "multi" whenever the options can hold together in one deck (two scenarios, several countries, periods, sections, figures or audiences the deck could cover side by side), so the user can pick more than one: a question about what to show, present, cover or include is always "multi". "single" only when the question asks for one thing by nature (the main one, the headline, the lead) or the options exclude each other; "text" only when no list fits. Every option is quoted from the material: a chapter title, a country, a project name, a period, a figure, exactly as written, two to six of them, never invented and never "Other". Ids are short slugs. Write in English.`;
 
 /** What the model is told before it sees the table. */
-export const SHEET_ANALYSIS_INSTRUCTIONS = `You prepare a slide deck from a spreadsheet for a deck builder used by UNICEF and Giga teams. You receive the workbook as one table per sheet (first row usually the headers). Write a one- or two-sentence summary of what it holds, then ask the ${MAX_QUESTIONS} or fewer questions whose answers the data cannot give and that change which slides get made: which sheet or which columns should lead when there are several; which comparison to draw (across rows, across periods, a ranking, a share of a total); which figure deserves the headline; which span of rows or periods to show when there are many; what a column means when its header is ambiguous or a code; which audience or angle when the numbers could tell two stories. Skip anything the data already settles and never ask about slide count, colours, fonts or layout names. Each question is one short sentence; "why" is one short line on what it changes in the deck. Use "multi" whenever the options can hold together in one deck (two scenarios, several countries, periods, sections, figures or audiences the deck could cover side by side), so the user can pick more than one: a question about what to show, present, cover or include is always "multi". "single" only when the question asks for one thing by nature (the main one, the headline, the lead) or the options exclude each other; "text" only when no list fits. Every option is quoted from the file: a sheet name, a column header, a row label, a value or a period exactly as written, two to six of them, never invented and never "Other". Ids are short slugs. Write in English.`;
+export const SHEET_ANALYSIS_INSTRUCTIONS = `You prepare a slide deck from a spreadsheet for a deck builder used by UNICEF and Giga teams. You receive the workbook as one table per sheet (first row usually the headers). Write a one- or two-sentence summary of what it holds, then ask the ${MAX_QUESTIONS} or fewer questions whose answers the data cannot give and that change which slides get made: which sheet or which columns should lead when there are several; which comparison to draw (across rows, across periods, a ranking, a share of a total); which figure deserves the headline; which span of rows or periods to show when there are many; what a column means when its header is ambiguous or a code; which audience or angle when the numbers could tell two stories. Skip anything the data already settles, and anything the brief settles: never ask the user to choose between things the brief asks for together ("what the counts show and what to fix first" wants both). Never ask about slide count, colours, fonts or layout names. Each question is one short sentence; "why" is one short line on what it changes in the deck. Use "multi" whenever the options can hold together in one deck (two scenarios, several countries, periods, sections, figures or audiences the deck could cover side by side), so the user can pick more than one: a question about what to show, present, cover or include is always "multi". "single" only when the question asks for one thing by nature (the main one, the headline, the lead) or the options exclude each other; "text" only when no list fits. Every option is quoted from the file: a sheet name, a column header, a row label, a value or a period exactly as written, two to six of them, never invented and never "Other". Ids are short slugs. Write in English.`;
 
 /** A shape check on what the model or a file handed back; drops what does not fit. */
 const SHOW_WHAT = /\b(present|show|include|cover|use|feature|highlight|compare)(s|d|ed|n|ing)?\b/i;
 const ONE_THING = /\b(main|primary|headline|lead|leading|anchor|single|one|first|focus on)\b/i;
+/**
+ * A choice between readings that exclude each other: two figures for one
+ * cost, "include them or omit them". Made "multi" by "use"/"include", it read
+ * "Choose one or more" over USD 37.7 and USD 39.7 million for the same cost (18 Oct 2026).
+ */
+const EITHER = /\b(conflict\w*|contradict\w*|inconsisten\w*|discrepan\w*|or omit|or leave out|or drop|or another)\b|\bwhich (?:\S+ ){0,3}(?:figure|cost|count|number|value|amount|total|date|year|price|budget)\b(?! and)/i;
 
 export function normalizeAnalysis(raw: unknown): SheetAnalysis | null {
   if (typeof raw !== "object" || raw === null) return null;
@@ -202,7 +208,9 @@ export function normalizeAnalysis(raw: unknown): SheetAnalysis | null {
     // both figures on offer (the Gambia costs, 28 Sep 2026, rule in the
     // instructions or not): what to show is several answers unless the
     // question asks for the one main thing.
-    if (kind === "single" && SHOW_WHAT.test(question) && !ONE_THING.test(question)) kind = "multi";
+    const why = typeof x.why === "string" ? x.why : "";
+    if (kind === "single" && SHOW_WHAT.test(question) && !ONE_THING.test(question) && !EITHER.test(`${question} ${why}`)) kind = "multi";
+    if (kind === "multi" && EITHER.test(`${question} ${why}`)) kind = "single";
     const options = (Array.isArray(x.options) ? x.options : []).filter((o): o is string => typeof o === "string" && o.trim() !== "").map((o) => o.trim()).slice(0, 6);
     if (!question) continue;
     if (kind !== "text" && options.length < 2) continue;
@@ -323,6 +331,32 @@ export function preselectFileUse<T extends { analysis?: SheetAnalysis; answers?:
   return { ...x, answers, insights: compileInsights(x.analysis, answers) };
 }
 
+/** A question's content words, for telling two wordings of one question apart. */
+const questionWords = (q: string) =>
+  new Set(
+    q
+      .toLowerCase()
+      .split(/[^\p{L}\p{N}]+/u)
+      .filter((w) => w.length > 3 && !/^(which|what|should|would|could|does|deck|slides?|before|after|with|from|that|this|these|those|your|their|present|cover|show|include|make|request|need|use|feature|highlight)$/.test(w)),
+  );
+/**
+ * True when a question was already asked about a file, in other words. The
+ * brief's questions are read at the same press as the files', so they cannot
+ * see the file's answers: "Which three fixes should the Ministry make before
+ * the next upload?" came right after the sheet's "Which three Ministry fixes
+ * should the deck request…?" had been answered (18 Oct 2026).
+ */
+export function askedAlready(question: string, asked: string[]): boolean {
+  const a = questionWords(question);
+  if (a.size < 2) return false;
+  return asked.some((other) => {
+    const b = questionWords(other);
+    const shared = [...a].filter((w) => b.has(w)).length;
+    // Most of the shorter question's words in the other: "Which three Ministry fixes should the deck present?" and "Which Ministry fixes should the deck cover?".
+    return shared >= 2 && shared / Math.min(a.size, b.size) >= 0.6;
+  });
+}
+
 export function compileInsights(analysis: SheetAnalysis, answers: SheetAnswers): string {
   const lines: string[] = [];
   // Only a file has a use: a brief's answers once carried "Reinterpret this
@@ -335,19 +369,25 @@ export function compileInsights(analysis: SheetAnalysis, answers: SheetAnswers):
     const a = answers[q.id];
     const text = Array.isArray(a) ? a.filter(Boolean).join(", ") : (a ?? "").trim();
     // Missing material skipped is a placeholder too: left to the model it was
-    // filled with "No issues were identified." (13 Oct 2026).
+    // filled with "No issues were identified." (13 Oct 2026). But only for
+    // what the brief leaves out: a doubt raised about an outline item that
+    // already lists its contents ("Q1 data refresh, Q2 cost model update…"),
+    // skipped, turned all four quarters into "[Q1 activities and timing]"
+    // and the answered comparison table into "[Main blocker]" (18 Oct 2026).
     if (!text && !q.placeholder) continue;
     if (!text || text === PLACEHOLDER_ANSWER) {
       lines.push(
-        `${q.question} The user has no data for this yet: show it as a placeholder in square brackets that names what goes there (for example "[Total budget 2027]" or "[Decision 1]"), to be filled in by hand; never invent it.`,
+        `${q.question} No answer beyond the brief: first take every value the brief and the files give for it, wherever they give it (a count, a stage or a date stated on another slide of the outline goes in its cell), word for word; only what none of them gives is a placeholder in square brackets that names what goes there (for example "[Total budget 2027]" or "[Decision 1]"), to be filled in by hand; never invent it.`,
       );
       continue;
     }
     // A slot's answer is labelled, so the pipeline can read it back (slotsFromNotes).
     const label = SLOT_LABELS[q.id as BriefSlot];
-    lines.push(label ? `${label} ${text.replace(/\.$/, "")}.` : `${q.question} ${text}.`);
+    lines.push(label ? `${label} ${text.replace(/\.$/, "")}.` : `${q.question} Answer: ${text.replace(/\.$/, "")}. Use it as given, never a placeholder in its place.`);
   }
-  return lines.join(" ");
+  // One answer per line: run together, five placeholder notes drowned the one
+  // real answer between them.
+  return lines.join("\n");
 }
 
 /** How many of the questions carry an answer. */

@@ -486,6 +486,61 @@ const ARRAY_LIMITS: Partial<Record<LayoutId, Partial<Record<ArrayField, [number,
   cascade: { blocks: [1, 4] },
 };
 
+/** Card layouts whose standard renderer draws a block's label and body only, and no top-level stats. */
+const CARD_LAYOUTS = new Set<LayoutId>(["three-columns", "four-cards", "list", "steps", "icon-cards", "callout", "example-image-left", "example-image-right"]);
+/** Layouts that draw the top-level `stats`. */
+const STATS_DRAWN = new Set<LayoutId>(["stat-grid", "brand-equity", "two-stats"]);
+/** Lines joined into one paragraph: a full stop between two only when the next starts a sentence. */
+const joinLines = (lines: string[]) =>
+  lines
+    .map((t) => t.trim())
+    .filter(Boolean)
+    .reduce((out, t) => (!out ? t : /[.!?:;…]$/.test(out) || !/^\p{Lu}/u.test(t) ? `${out} ${t}` : `${out}. ${t}`), "");
+
+/**
+ * Text a layout does not draw is text the reader never sees, though the
+ * fidelity check counts it as kept. A replica of "The price of a gigabit"
+ * (18 Oct 2026) put "45% of the world's children…" in `stats` on a card grid
+ * and "what one unit of bandwidth costs…" in a card's `items`: both scored
+ * 100% and neither was on the slide. On a standard card layout, points join
+ * the card's body, and stats become cards while there is room, else the
+ * takeaway band (drawn by the high-density variant, which the slide then takes).
+ */
+function foldUndrawn(slide: SlideContent): void {
+  // big-stat draws no title: a replica's "Same technology, very different
+  // price" over "70 to 200×" was in the data and not on the slide. The light
+  // single stat draws the same figure and text under a title.
+  if (slide.layoutId === "big-stat" && slide.title?.trim() && slide.stat?.trim()) slide.layoutId = "single-stat";
+  if (!CARD_LAYOUTS.has(slide.layoutId) || !slide.blocks) return;
+  if (!slide.density) {
+    slide.blocks = slide.blocks.map((b) => {
+      if (!b.items?.length) return b;
+      const { items, ...rest } = b;
+      return { ...rest, body: joinLines([b.body, ...items]) };
+    });
+  }
+  if (slide.stats?.length && !STATS_DRAWN.has(slide.layoutId)) {
+    const max = ARRAY_LIMITS[slide.layoutId]?.blocks?.[1] ?? 4;
+    const lines = slide.stats.filter((x) => x.value.trim() || x.label.trim());
+    const room = Math.max(0, max - slide.blocks.length);
+    slide.blocks = [...slide.blocks, ...lines.slice(0, room).map((x) => ({ label: x.value.trim(), body: x.label.trim() }))];
+    const rest = lines.slice(room).map((x) => `${x.value.trim()} ${x.label.trim()}`.trim());
+    if (rest.length) {
+      const band = [slide.support?.trim(), ...rest].filter(Boolean).join(" ");
+      slide.support = band;
+      if (DENSITY_LAYOUTS.has(slide.layoutId)) slide.density = "high";
+      else slide.notes = [band, slide.notes].filter(Boolean).join(" ");
+    }
+    delete slide.stats;
+  }
+}
+
+/** A layout whose array overflows, and the sibling that takes the same items with more room. */
+const OVERFLOW_TO: Partial<Record<LayoutId, { field: ArrayField; to: LayoutId }>> = {
+  "two-stats": { field: "stats", to: "stat-grid" },
+  "three-columns": { field: "blocks", to: "four-cards" },
+};
+
 /** The editable item array of each layout (for add/delete element in the editor). */
 export const PRIMARY_ARRAY: Partial<Record<LayoutId, { field: ArrayField; min: number; max: number }>> =
   Object.fromEntries(
@@ -632,6 +687,13 @@ export function normalizeSlide(
     delete slide.body;
   }
 
+  // More items than the layout holds go to its roomier sibling before the
+  // clamp below cuts them: "capex US$41 million, opex US$6.2 million per year"
+  // and the 2,900 schools came back as two-stats, and the opex was gone (18 Oct 2026).
+  const roomier = OVERFLOW_TO[slide.layoutId];
+  if (roomier && (slide[roomier.field]?.length ?? 0) > ARRAY_LIMITS[slide.layoutId]![roomier.field]![1]) {
+    slide.layoutId = roomier.to;
+  }
   const limits = ARRAY_LIMITS[slide.layoutId];
   if (limits) {
     for (const [field, [min, max]] of Object.entries(limits) as [ArrayField, [number, number]][]) {
@@ -680,6 +742,7 @@ export function normalizeSlide(
   if (slide.notes !== undefined && !slide.notes.trim()) delete slide.notes;
   if (slide.takeaway !== undefined && (!slide.takeaway.trim() || !TAKEAWAY_LAYOUTS.has(slide.layoutId))) delete slide.takeaway;
   if (!slide.density || !DENSITY_LAYOUTS.has(slide.layoutId)) delete slide.density;
+  foldUndrawn(slide);
   // A negative figure reads with a typographic minus ("−32.79"), not a hyphen.
   const minus = (v: string) => v.replace(/^-(?=\s?[\d$€£.]|USD|GMD|EUR)/, "\u2212");
   if (slide.stat) slide.stat = minus(slide.stat);

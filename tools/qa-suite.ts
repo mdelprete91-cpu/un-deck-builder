@@ -504,6 +504,7 @@ async function runPrompt(p: Prompt): Promise<Result> {
       mode: "add",
       brief,
       attachments,
+      briefNotes: p.briefNotes,
       instruction: `The deck must have ${wanted} slides and has ${slides.length}. Add the ${missing} still missing: ${perItem ? "the items of the brief that have no slide yet, one slide each" : "beats of the brief and the material not yet covered"}, never a repeat of an existing slide.`,
       count: missing,
       brandLabel: BRAND_LABEL,

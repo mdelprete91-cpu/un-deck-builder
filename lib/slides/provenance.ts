@@ -104,7 +104,16 @@ const NO_NOTES = new Set(["cover", "agenda", "section-divider", "thank-you", "ph
 /** Layouts whose bars are relative heights, not figures (the catalog's chart-bars: 0-100). */
 const RELATIVE_BARS = new Set(["chart-bars"]);
 
-export function checkFigures(slide: SlideContent, index: Map<string, Source[]>, today = new Date()): FigureCheck {
+/** "Source" and the month, in the deck's language: an Italian deck read "Source: giga.global, October 2026" (18 Oct 2026). */
+const SOURCE_WORD: Record<string, [string, string]> = {
+  Italian: ["Fonte", "it-IT"],
+  Spanish: ["Fuente", "es-ES"],
+  French: ["Source", "fr-FR"],
+  Portuguese: ["Fonte", "pt-PT"],
+  German: ["Quelle", "de-DE"],
+};
+
+export function checkFigures(slide: SlideContent, index: Map<string, Source[]>, today = new Date(), language?: string): FigureCheck {
   const year = today.getFullYear();
   const removed: string[] = [];
   const cited = new Set<Source>();
@@ -156,14 +165,15 @@ export function checkFigures(slide: SlideContent, index: Map<string, Source[]>, 
   // Where the figures come from, when it is a web page: "Source: giga.global, read 13 Oct 2026."
   const pages = [...cited].filter((s) => !s.own);
   if (pages.length && !NO_NOTES.has(out.layoutId)) {
-    const when = (d?: string) => (d ? `, ${new Date(`${d}T12:00:00Z`).toLocaleString("en-GB", { month: "long", year: "numeric", timeZone: "UTC" })}` : "");
+    const [word, locale] = SOURCE_WORD[language ?? ""] ?? ["Source", "en-GB"];
+    const when = (d?: string) => (d ? `, ${new Date(`${d}T12:00:00Z`).toLocaleString(locale, { month: "long", year: "numeric", timeZone: "UTC" })}` : "");
     // One entry a site: "giga.global, October 2026", not that and a bare "giga.global" too.
     const bySite = new Map<string, string>();
     for (const s of pages) {
       const text = `${s.label}${when(s.date)}`;
       if (!bySite.has(s.label) || text.length > bySite.get(s.label)!.length) bySite.set(s.label, text);
     }
-    const line = `Source: ${[...bySite.values()].join("; ")}.`;
+    const line = `${word}: ${[...bySite.values()].join("; ")}.`;
     out.notes = out.notes?.trim() ? `${out.notes.trim()} ${line}` : line;
   }
   return { slide: out, removed, cited: pages };

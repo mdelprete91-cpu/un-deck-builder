@@ -307,7 +307,7 @@ export async function POST(request: Request): Promise<Response> {
               let out = body.mode === "replicate" || body.source ? clean : cleanVoice(clean, body.brief ?? "");
               // Only figures that exist, with a source (Mario, 13 Oct 2026). Never on a replica: its figures are the file's.
               if (!twoPager && figureIndex && body.mode !== "replicate" && !body.source && out && typeof out === "object") {
-                const checked = checkFigures(out as SlideContent, figureIndex);
+                const checked = checkFigures(out as SlideContent, figureIndex, new Date(), body.language);
                 if (checked.removed.length) send({ type: "unsourced", index, title: (out as SlideContent).title ?? "", figures: checked.removed, dropped: !checked.slide });
                 if (!checked.slide) continue;
                 out = checked.slide;

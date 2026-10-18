@@ -48,12 +48,15 @@ export function title(s: Slide, color = "#000000", width = 1720, left = 100): st
 }
 
 /**
- * A block's points with their edit paths: `items` when it has them, else its
- * `body` as one point (a block added with "Add element" has only a body).
+ * A block's points with their edit paths: its `body` as the first point when
+ * it has one (a block added with "Add element" has only a body), then `items`.
  */
 export function pointsOf(b: Block, i: number): { text: string; path: string }[] {
-  if (b.items?.length) return b.items.map((text, j) => ({ text, path: `blocks.${i}.items.${j}` }));
-  return b.body?.trim() ? [{ text: b.body, path: `blocks.${i}.body` }] : [];
+  const body = b.body?.trim() ? [{ text: b.body, path: `blocks.${i}.body` }] : [];
+  // A body next to the points comes first: drawn only as points, "70 to 200×"
+  // over "what one unit of bandwidth costs…" was never on the slide (18 Oct 2026).
+  if (b.items?.length) return [...body, ...b.items.map((text, j) => ({ text, path: `blocks.${i}.items.${j}` }))];
+  return body;
 }
 
 /**
@@ -490,7 +493,10 @@ export function chartText(s: Slide, t: BrandTheme): string {
   const span = hi - lo || 1;
   const yOf = (v: number) => P.y + ((hi - v) / span) * P.h;
   const n = Math.max(bars.length, 1);
-  const xOf = (i: number) => P.x + (n === 1 ? P.w / 2 : (P.w * i) / (n - 1));
+  // Under three points there is no trend to draw: two categories ("High-income
+  // 94%, Low-income 23%") read as a falling line (18 Oct 2026). They are columns.
+  const columnsMode = bars.length > 0 && bars.length < 3;
+  const xOf = (i: number) => P.x + (columnsMode ? (P.w * (i + 0.5)) / n : n === 1 ? P.w / 2 : (P.w * i) / (n - 1));
 
   const axisStyle = `font-family:${OPEN_SANS};font-weight:500;font-size:22px;line-height:1.3;color:#6F6F6F;`;
   const ticks = [hi, 0, lo].filter((v, i, a) => a.indexOf(v) === i);
@@ -502,12 +508,40 @@ export function chartText(s: Slide, t: BrandTheme): string {
     ticks
       .map((v) => `<div style="position:absolute;left:840px;top:${Math.round(yOf(v) - 14)}px;width:100px;text-align:right;${axisStyle}">${short(v)}</div>`)
       .join("");
-  const paths = series
-    .map((_, j) => {
-      const pts = vals.map((v, i) => `${xOf(i).toFixed(1)},${yOf(v[j] ?? 0).toFixed(1)}`).join(" ");
-      return `<polyline points="${pts}" fill="none" stroke="${colors[j]}" stroke-width="5" stroke-linejoin="round" stroke-linecap="round"/>`;
-    })
-    .join("");
+  const colW = Math.min(140, (P.w / (n * k)) * 0.5);
+  const paths = columnsMode
+    ? vals
+        .map((v, i) =>
+          series
+            .map((_, j) => {
+              const x = xOf(i) - (k * colW) / 2 + j * colW;
+              const y0 = yOf(0);
+              const y1 = yOf(v[j] ?? 0);
+              return `<rect x="${x.toFixed(1)}" y="${Math.min(y0, y1).toFixed(1)}" width="${(colW - 6).toFixed(1)}" height="${Math.abs(y1 - y0).toFixed(1)}" fill="${colors[j]}"/>`;
+            })
+            .join(""),
+        )
+        .join("")
+    : series
+        .map((_, j) => {
+          const pts = vals.map((v, i) => `${xOf(i).toFixed(1)},${yOf(v[j] ?? 0).toFixed(1)}`).join(" ");
+          return `<polyline points="${pts}" fill="none" stroke="${colors[j]}" stroke-width="5" stroke-linejoin="round" stroke-linecap="round"/>`;
+        })
+        .join("");
+  // A column's value sits over it.
+  const tops = columnsMode
+    ? vals
+        .map((v, i) =>
+          series
+            .map((_, j) => {
+              const x = xOf(i) - (k * colW) / 2 + j * colW;
+              const y = Math.min(yOf(0), yOf(v[j] ?? 0));
+              return `<div class="af" style="position:absolute;left:${Math.round(x - 20)}px;top:${Math.round(y - 40)}px;width:${Math.round(colW + 34)}px;text-align:center;font-family:${MANROPE};font-weight:600;font-size:22px;line-height:34px;color:#000000;pointer-events:none;${dly(20)}">${short(v[j] ?? 0)}</div>`;
+            })
+            .join(""),
+        )
+        .join("")
+    : "";
   const svg = `<svg class="af" width="1920" height="1080" viewBox="0 0 1920 1080" style="position:absolute;left:0;top:0;overflow:visible;pointer-events:none;${dly(14)}">${paths}</svg>`;
   // The lines and their end labels are drawing only (pointer-events off):
   // a click anywhere on the plot reaches [data-chart] and opens the Data
@@ -519,8 +553,8 @@ export function chartText(s: Slide, t: BrandTheme): string {
   const placed = [...endY].sort((a, b) => a.y - b.y);
   for (let q = 1; q < placed.length; q++) placed[q].y = Math.max(placed[q].y, placed[q - 1].y + 40);
   const ends =
-    last < 0
-      ? ""
+    last < 0 || columnsMode
+      ? tops
       : placed
           .map(({ j, y: ly }) => {
             const v = vals[last][j] ?? 0;
