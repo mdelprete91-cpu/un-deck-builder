@@ -33,9 +33,10 @@ UNICEF DI".
 1. **One palette for every lockup on the menu, and it is fixed.** UNICEF, Digital Impact Division
    and Digital Inclusion all run on the cyan palette (Mario, 17 Sep 2026, when UNICEF moved off the
    Giga palette). Switching between them changes the logo lockup and the footer label only, never
-   the colors. The Giga palette survives only for the retired Giga lockup, which is no longer
-   offered in the Logo menu (see `PICKER_BRAND_IDS`) but still renders decks saved with it. See
-   the comment in `lib/slides/brand.ts`.
+   the colors. The Giga palette survives only for the retired Giga lockup. Giga and the old
+   Digital Inclusion lockup (replaced by UNICEF DI, 19 Oct 2026) are no longer offered in the
+   Template menu (see `PICKER_BRAND_IDS`) but still render decks saved with them; such a deck
+   shows its template's name at the bottom of the menu. See the comment in `lib/slides/brand.ts`.
 2. **The UNICEF lockups are two-surface brands.** Every colored surface is exactly UNICEF
    cyan `#01AEEF`; anything that is not that cyan is white. So there is no second darker blue
    (`deep` is the same cyan as `accent`), the tinted surface (`light`) is plain white, Section +

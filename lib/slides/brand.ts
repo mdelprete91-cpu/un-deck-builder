@@ -232,11 +232,12 @@ export const BRAND_IDS = Object.keys(BRANDS) as BrandId[];
 
 /**
  * What the Template menu offers, in this order: UNICEF DI first, the default
- * since 18 Oct 2026. "giga" is not on it (Mario, 15 Sep 2026): it stays in
- * BRANDS so a deck saved with that lockup still opens and renders, but nobody
- * starts a new one with it.
+ * since 18 Oct 2026. "giga" (Mario, 15 Sep 2026) and the old "inclusion"
+ * (Mario, 19 Oct 2026, replaced by UNICEF DI) are not on it: they stay in
+ * BRANDS so a deck saved with them still opens and renders, but nobody starts
+ * a new one with them.
  */
-export const PICKER_BRAND_IDS: BrandId[] = ["di", "inclusion", "did", "unicef"];
+export const PICKER_BRAND_IDS: BrandId[] = ["di", "did", "unicef"];
 
 /** Narrow untrusted input (a reopened deck file) to a brand we actually ship. */
 export function isBrandId(value: unknown): value is BrandId {

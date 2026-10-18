@@ -103,7 +103,9 @@ export default function Sidebar({
           <Select
             ariaLabel="Template"
             value={state.brandId}
-            options={PICKER_BRAND_IDS.map((id: BrandId) => ({
+            // A deck on a template no longer offered still shows its name,
+            // listed last, until the user moves it to one on the menu.
+            options={(PICKER_BRAND_IDS.includes(state.brandId) ? PICKER_BRAND_IDS : [...PICKER_BRAND_IDS, state.brandId]).map((id: BrandId) => ({
               value: id,
               label: BRANDS[id].label,
               badge: id === initialDeckState.brandId ? "default" : undefined,
