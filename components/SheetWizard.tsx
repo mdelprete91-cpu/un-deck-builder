@@ -67,6 +67,8 @@ export default function SheetWizard({
   const answers = s.answers;
   const q: SheetQuestion | undefined = questions[step];
   const last = step >= questions.length - 1;
+  // A required question holds Next until it has an answer.
+  const unanswered = !!q?.required && !(Array.isArray(answers[q.id]) ? answers[q.id].length : String(answers[q.id] ?? "").trim());
   const noun = s.kind === "spreadsheet" ? "sheet" : s.kind === "document" ? "file" : "brief";
 
   useEffect(() => {
@@ -96,7 +98,7 @@ export default function SheetWizard({
         className="pop-in flex max-h-[88vh] w-full max-w-xl flex-col overflow-hidden rounded-3xl bg-surface shadow-float"
         onClick={(e) => e.stopPropagation()}
         onKeyDown={(e) => {
-          if (e.key === "Enter" && (e.metaKey || e.ctrlKey) && analysis) {
+          if (e.key === "Enter" && (e.metaKey || e.ctrlKey) && analysis && !unanswered) {
             e.preventDefault();
             next();
           }
@@ -274,8 +276,9 @@ export default function SheetWizard({
                         };
                         return (
                           // The number of your own: typed on the row, picked as you type.
+                          // `first`: above the options (flex order) and focused.
                           <label
-                            className={`flex min-h-10 items-start gap-3 rounded-[10px] px-3 py-2 text-left text-sm transition-colors duration-100 ${
+                            className={`${c.first ? "-order-1 " : ""}flex min-h-10 items-start gap-3 rounded-[10px] px-3 py-2 text-left text-sm transition-colors duration-100 ${
                               picked ? "bg-giga-tint text-giga" : "text-ink hover:bg-mist"
                             }`}
                           >
@@ -291,6 +294,7 @@ export default function SheetWizard({
                               <span className="flex items-center gap-2">
                                 <span className="font-medium">{c.label}</span>
                                 <input
+                                  autoFocus={c.first}
                                   type="number"
                                   inputMode="numeric"
                                   min={c.min}
@@ -298,7 +302,7 @@ export default function SheetWizard({
                                   value={draft}
                                   onChange={(e) => take(e.target.value)}
                                   onFocus={() => draft && take(draft)}
-                                  placeholder="e.g. 16"
+                                  placeholder="e.g. 8"
                                   aria-label={`${c.label} number of ${c.unit}`}
                                   className="h-8 w-20 rounded-lg border border-hairline bg-surface px-2 text-sm text-ink outline-none transition-shadow duration-150 placeholder:text-ink-faint focus:border-giga focus:ring-[3px] focus:ring-giga/15"
                                 />
@@ -347,16 +351,20 @@ export default function SheetWizard({
             </>
           ) : (
             <>
-              <Button variant="ghost" onClick={skipQuestion} title={q?.placeholder ? "Skip: a placeholder goes on the slide, nothing is made up" : undefined}>
-                Skip
-              </Button>
+              {q?.required ? (
+                <span />
+              ) : (
+                <Button variant="ghost" onClick={skipQuestion} title={q?.placeholder ? "Skip: a placeholder goes on the slide, nothing is made up" : undefined}>
+                  Skip
+                </Button>
+              )}
               <div className="flex items-center gap-2">
                 {step > 0 && (
                   <Button variant="secondary" icon={ArrowLeft} onClick={() => setStep(step - 1)}>
                     Back
                   </Button>
                 )}
-                <Button variant="primary" iconRight={last ? undefined : ArrowRight} icon={last ? Check : undefined} onClick={next} title="⌘↵">
+                <Button variant="primary" iconRight={last ? undefined : ArrowRight} icon={last ? Check : undefined} onClick={next} disabled={unanswered} title="⌘↵">
                   {last ? finalLabel : "Next"}
                 </Button>
               </div>

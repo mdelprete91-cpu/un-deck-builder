@@ -26,8 +26,11 @@ export interface SheetQuestion {
   /**
    * Client-written single questions only: a last row that takes a number
    * typed on it, answered as "<n> <unit>" (the length question's "Custom").
+   * `first` puts that row above the options, focused.
    */
-  custom?: { label: string; unit: string; min: number; max: number; detail?: string };
+  custom?: { label: string; unit: string; min: number; max: number; detail?: string; first?: boolean };
+  /** Client-written questions only: no Skip, and Next waits for an answer. */
+  required?: boolean;
   /** The brief's facts slot: the option that means "I will attach a file", which stops the wizard at the file picker. */
   attach?: string;
   /** A brief's doubt: the words of the brief it is about, quoted above the question. */
@@ -399,34 +402,35 @@ export function answeredCount(analysis: SheetAnalysis, answers: SheetAnswers): n
 }
 
 /**
- * The deck's length, asked in the questions dialog when the brief names none
- * (Mario, 1 Oct 2026: most briefs give no number, and the deck came out at
- * whatever length the model chose). The last step before Generate; skipped
- * for a two-pager and a replica, which keep their own length. Skip or "Let
- * the builder decide" leave the length to the model, as before.
+ * The deck's length, asked in the questions dialog before every slide deck
+ * (Mario, 1 Oct 2026: the deck came out at whatever length the model chose;
+ * 21 Oct 2026: always asked, no "Auto"). The number of your own comes first
+ * and focused, then 12, 16 and 20; the question cannot be skipped. A count
+ * the brief names is filled in already. Skipped for a two-pager and a
+ * replica, which keep their own length.
  */
 export const LENGTH_QUESTION_ID = "deck-length";
-// Auto, two lengths and a number of your own (Mario, 6 Oct 2026).
-export const LENGTH_DECIDE = "Auto";
 const LENGTHS: [number, string][] = [
   [12, "A full presentation or a proposal"],
+  [16, "A detailed presentation"],
   [20, "A long report or a workshop"],
 ];
 const lengthAnalysis: SheetAnalysis = {
-  summary: "Your brief doesn't say how long the deck should be.",
+  summary: "",
   questions: [
     {
       id: LENGTH_QUESTION_ID,
       question: "How many slides should the deck have?",
       why: "The cover counts; the closing slide comes on top. You can add or remove slides afterwards.",
       kind: "single",
-      options: [LENGTH_DECIDE, ...LENGTHS.map(([n]) => `${n} slides`)],
-      details: ["Sized to what the brief and the material need", ...LENGTHS.map(([, d]) => d)],
-      custom: { label: "Custom", unit: "slides", min: 3, max: MAX_SLIDES, detail: `Any length up to ${MAX_SLIDES} slides` },
+      options: LENGTHS.map(([n]) => `${n} slides`),
+      details: LENGTHS.map(([, d]) => d),
+      custom: { label: "Specify the number of slides", unit: "slides", min: 3, max: MAX_SLIDES, detail: `Any length up to ${MAX_SLIDES} slides`, first: true },
+      required: true,
     },
   ],
 };
-/** The count picked in the length question, or undefined for "decide" and no answer. */
+/** The count picked in the length question, or undefined with no answer. */
 export function lengthOf(answers: SheetAnswers | undefined): number | undefined {
   const a = answers?.[LENGTH_QUESTION_ID];
   const n = typeof a === "string" ? parseInt(a, 10) : NaN;
@@ -443,7 +447,7 @@ export function lengthAnalysisFor(chapters: boolean): SheetAnalysis {
   const q = lengthAnalysis.questions[0];
   return {
     ...lengthAnalysis,
-    questions: [{ ...q, details: q.details?.map((d, i) => (parseInt(q.options[i], 10) < MIN_SLIDES_WITH_CHAPTERS ? `${d}. Too short for chapters: they'll be left out` : d)) }],
+    questions: [{ ...q, custom: q.custom && { ...q.custom, detail: `${q.custom.detail}. Under ${MIN_SLIDES_WITH_CHAPTERS}, chapters are left out` } }],
   };
 }
 

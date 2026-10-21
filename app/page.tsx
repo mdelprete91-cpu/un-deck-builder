@@ -54,7 +54,7 @@ import ChartDataPanel from "@/components/ChartDataPanel";
 import ImagePickerModal from "@/components/ImagePickerModal";
 import EditWithAiModal from "@/components/EditWithAiModal";
 import SheetWizard from "@/components/SheetWizard";
-import { askedAlready, compileInsights, normalizeAnalysis, normalizeBriefAnalysis, purposeAsks, slotsFromNotes, COUNT_DOUBT_ID, wantsFile, USE_QUESTION_ID, fileUseOf, fileUseQuestion, lengthAnalysisFor, lengthOf, mentionsMissingFile, missingFileAnalysis, MISSING_FILE_QUESTION_ID, ATTACH_IT, asksForResearch, researchAnalysis, RESEARCH_QUESTION_ID, ADD_LINKS, preselectFileUse, type SheetAnalysis, type SheetAnswers } from "@/lib/slides/sheet-questions";
+import { askedAlready, compileInsights, normalizeAnalysis, normalizeBriefAnalysis, purposeAsks, slotsFromNotes, COUNT_DOUBT_ID, wantsFile, USE_QUESTION_ID, fileUseOf, fileUseQuestion, lengthAnalysisFor, lengthOf, LENGTH_QUESTION_ID, mentionsMissingFile, missingFileAnalysis, MISSING_FILE_QUESTION_ID, ATTACH_IT, asksForResearch, researchAnalysis, RESEARCH_QUESTION_ID, ADD_LINKS, preselectFileUse, type SheetAnalysis, type SheetAnswers } from "@/lib/slides/sheet-questions";
 import { denseBeforeNormalize, densityHint, planReplica, withContentDensity, type ReplicateStep } from "@/lib/slides/replicate";
 import { compareSlide, fidelityScore, isFlawed, planLeftovers, repairNote, runningLines, sourceUnits, totals, type DeckFidelity, type Leftover, type SlideFidelity } from "@/lib/slides/fidelity";
 import { readPdfSlides } from "@/lib/slides/pdf-source";
@@ -801,12 +801,15 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
     // asked now, not found in the deck. Not for a two-pager or a replica.
     // A two-pager too (Mario, 14 Oct 2026: "its content comes out too bland"), with questions of its own.
     if (brief.trim() && !replicaChosen() && !(briefQ?.brief === brief && briefQ.asked)) queue.push("brief");
-    // No length in the brief: ask for one, last. Not for a replica (it keeps
-    // its source's length), nor for "one slide per objective": the brief's
-    // list sets the length, and a picked 12 over 6 objectives read as 12
-    // items and still came back as 8 slides (1 Oct 2026).
+    // The length is asked before every deck, last (Mario, 21 Oct 2026), with
+    // the brief's own count filled in. Not for a replica (it keeps its
+    // source's length), nor for "one slide per objective": the brief's list
+    // sets the length, and a picked 12 over 6 objectives read as 12 items and
+    // still came back as 8 slides (1 Oct 2026). A count the brief contradicts
+    // is the brief's own question (COUNT_DOUBT_ID), not asked twice. Closed
+    // without a number, it is asked again on the next press.
     const askLength =
-      !twoPager && countFromBrief(brief) === undefined && !seriesFromBrief(brief) && !replicaChosen() && !(lengthQ?.brief === brief && lengthQ.asked);
+      !twoPager && !seriesFromBrief(brief) && !countConflict(brief) && !replicaChosen() && !(lengthQ?.brief === brief && lengthQ.asked && lengthOf(lengthQ.answers) !== undefined);
     // A file already read and found clear has nothing to ask.
     const toAsk = queue.filter((id) => {
       if (id === "brief") return !(briefQ?.brief === brief && briefQ.analysis?.questions.length === 0);
@@ -816,7 +819,10 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
     });
     if (askLength) {
       toAsk.push("length");
-      if (lengthQ?.brief !== brief) setLengthQ({ brief, answers: {} });
+      if (lengthQ?.brief !== brief) {
+        const named = countFromBrief(brief);
+        setLengthQ({ brief, answers: named === undefined ? {} : { [LENGTH_QUESTION_ID]: `${named} slides` } });
+      }
     }
     // The brief talks about a file and none is attached: ask that first.
     // The brief asks for research and gives no link: the sources are the user's to choose, asked first of all.
@@ -956,7 +962,7 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
       ? state.count
       : Number.isFinite(countAnswer)
         ? countAnswer
-        : (countFromBrief(brief) ?? (lengthQ?.brief === brief ? lengthOf(lengthQ.answers) : undefined));
+        : ((lengthQ?.brief === brief ? lengthOf(lengthQ.answers) : undefined) ?? countFromBrief(brief));
     // "Six slides" and chapters on cannot both hold: the agenda and the
     // dividers would leave one or two slides for the story. The count wins,
     // the deck goes out without chapters, and the sidebar says why.
@@ -966,7 +972,7 @@ function reattachImages(content: SlideContent, old?: PageBlock[]): SlideContent 
     // The closing slide is on top of the brief's number (Mario, 12 Oct 2026),
     // and with a series the cover too.
     // "8 slides max" is a ceiling: the closing slide stays inside it (A5, 13 Oct 2026).
-    const ceiling = !twoPager && countIsCeiling(brief);
+    const ceiling = !twoPager && countIsCeiling(brief) && count === countFromBrief(brief);
     const wanted = count === undefined ? undefined : perItem ? count + 2 : ceiling ? count : count + 1;
     const rhythm = { series: perItem, uniform: uniformFromBrief(brief), cap: twoPager ? undefined : wanted };
     const briefNotes = briefQ?.brief === brief && briefQ.analysis ? compileInsights(briefQ.analysis, briefQ.answers) : undefined;
