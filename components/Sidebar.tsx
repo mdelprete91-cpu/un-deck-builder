@@ -52,6 +52,12 @@ function Eyebrow({ children }: { children: React.ReactNode }) {
  */
 const SHOW_TWO_PAGER = process.env.NEXT_PUBLIC_SHOW_TWO_PAGER === "1";
 
+/**
+ * UNICEF DI is the only template (Mario, 22 Oct 2026): the Template row is
+ * hidden. A deck saved with another template still opens in its own.
+ */
+const SHOW_TEMPLATE_SWITCH = false;
+
 export default function Sidebar({
   state,
   dispatch,
@@ -98,6 +104,7 @@ export default function Sidebar({
           palette and change only logo and footer. Document picks slides or
           the A4 two-pager, on every template. */}
       <div className="flex flex-col">
+        {SHOW_TEMPLATE_SWITCH && (
         <div className="flex h-9 items-center justify-between gap-3">
           <span className="text-sm text-ink">Template</span>
           <Select
@@ -113,6 +120,7 @@ export default function Sidebar({
             onChange={(brandId) => dispatch({ type: "SET_BRAND", brandId })}
           />
         </div>
+        )}
         {SHOW_TWO_PAGER && (
         <div className="flex h-9 items-center justify-between gap-3">
           <span className="text-sm text-ink">Document</span>
